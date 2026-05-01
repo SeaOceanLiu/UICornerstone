@@ -120,8 +120,11 @@ public:
     static const char EDITBOX_DEFAULT_PASSWORD_CHAR;
 
     // 复选框相关常量
+    static const float BOX_PEN_WIDTH;
+    static const float MARK_PEN_WIDTH;
+    static const Margin CHECKBOX_MARGIN;
     static const float CHECKBOX_SIZE_RATIO;
-    static const float CHECKBOX_BOX_MARGIN;
+    static const Margin CHECKBOX_BOX_MARGIN;
     static const float CHECKBOX_DEFAULT_CAPTION_SIZE;
     static const SDL_Color CHECKBOX_CHECK_COLOR;
     static const SDL_Color CHECKBOX_CROSS_COLOR;

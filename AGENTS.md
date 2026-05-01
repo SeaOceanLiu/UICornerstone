@@ -1,5 +1,12 @@
 # AGENTS.md - UIControls
 
+## Design Rules
+
+1. **所有位置数据存储规则**：
+   - 所有的屏幕位置数据都存储为未缩放的值
+   - 生成字体时，使用缩放后的字体大小（即和字体大小相关的数据都是缩放后的）
+   - 绘制时才对缩放进行处理，而字体因为是已缩放的，所以可以直接绘制
+
 ## Build Commands
 
 - **Build library**: Run `build_scripts\build.bat Debug` (requires Visual Studio 2022 environment)

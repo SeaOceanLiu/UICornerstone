@@ -12,6 +12,7 @@
 class Bench: public Panel, public TopControl
 {
     using OnInitialHandler = std::function<void (void)>;
+protected:
 private:
     bool m_isLoading;
     bool m_isInitialed;
@@ -33,6 +34,7 @@ private:
 public:
     static Bench* getInstance(void){
         static Bench instance = Bench(nullptr, {0, 0, INITIAL_WIDTH, INITIAL_HEIGHT}, GET_RENDERER); // 静态局部变量，程序运行期间只会被初始化一次
+        instance.create(); // 确保在第一次获取实例时调用create方法进行初始化
         return &instance;
     }
     void initial(void);

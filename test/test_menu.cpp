@@ -39,6 +39,14 @@ shared_ptr<GraphTool::DrawingContext> g_dc;
 void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, const char *message)
 {
     cout << "Category[" << category << "], priority[" << priority << "]: " << message << endl;
+    static FILE* logFile = nullptr;
+    if (!logFile) {
+        logFile = fopen("menu_log.txt", "w");
+    }
+    if (logFile) {
+        fprintf(logFile, "Category[%d], priority[%d]: %s\n", category, priority, message);
+        fflush(logFile);
+    }
 }
 void testBenchInitialize(void) {
     SDL_Log("testBenchInitialize");
@@ -51,9 +59,9 @@ void testBenchInitialize(void) {
         cout << "EditBox1 Enter pressed" << endl;
     });
     BENCH->addControl(g_editBox1);
-    
-    
-    
+
+
+
     SDL_Log("EditBox test controls created");
     // 使用链形式调用创建菜单栏
     g_menuBar = dynamic_pointer_cast<MenuBar>(MenuBarBuilder()

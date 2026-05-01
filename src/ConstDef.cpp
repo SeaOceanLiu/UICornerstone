@@ -80,8 +80,11 @@ const SDL_Color ConstDef::EDITBOX_SELECTION_COLOR = { 50, 100, 180, 255 };
 const char ConstDef::EDITBOX_DEFAULT_PASSWORD_CHAR = '*';
 
 // 复选框相关常量
-const float ConstDef::CHECKBOX_SIZE_RATIO = 0.8f;
-const float ConstDef::CHECKBOX_BOX_MARGIN = 4.0f;
+const float ConstDef::BOX_PEN_WIDTH = 2.0f;
+const float ConstDef::MARK_PEN_WIDTH = 2.5f;
+const Margin ConstDef::CHECKBOX_MARGIN = {5.0f, 5.0f, 5.0f, 5.0f};
+const float ConstDef::CHECKBOX_SIZE_RATIO = 1.0f;
+const Margin ConstDef::CHECKBOX_BOX_MARGIN = {2.0f, 2.0f, 2.0f, 2.0f};
 const float ConstDef::CHECKBOX_DEFAULT_CAPTION_SIZE = 16.0f;
 const SDL_Color ConstDef::CHECKBOX_CHECK_COLOR = { 76, 175, 80, 255 };     // 绿色
 const SDL_Color ConstDef::CHECKBOX_CROSS_COLOR = { 244, 67, 54, 255 };     // 红色

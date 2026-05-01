@@ -2,13 +2,14 @@
 ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     // m_weakThis(this),
     // m_sharedThis(nullptr),
+    m_isCreated(false),
     m_isTransparent(false),
     m_isBorderVisible(false),
     m_state(ControlState::Normal),
     m_id(INT_MAX),
     m_parent(parent),
     m_enable(true),
-    m_visible(true),
+    m_visible(false),
     m_xScale(xScale),
     m_yScale(yScale),
     m_xxScale(parent==nullptr?xScale:xScale*parent->getScaleXX()),
@@ -26,12 +27,13 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     m_mouseInside(false)
 {
     m_eventQueueInstance = EventQueue::getInstance();
-    if (m_parent != nullptr){
+    // if (m_parent != nullptr){
         inheritRenderer();
-    }
+    // }
 }
 
 ControlImpl::ControlImpl(const ControlImpl &other):
+    m_isCreated(other.m_isCreated),
     m_isTransparent(other.m_isTransparent),
     m_isBorderVisible(other.m_isBorderVisible),
     m_state(other.m_state),
@@ -57,13 +59,14 @@ ControlImpl::ControlImpl(const ControlImpl &other):
     m_eventQueueInstance = other.m_eventQueueInstance;
 
     for(const auto& child : other.m_children){
-        // shared_ptr<ControlImpl> newChild = make_shared<ControlImpl>(&child); // 这里需要深拷贝
+        // shared_ptr<ControlImpl> newChild = make_shared<ControlImpl>(&child); // Todo: 这里需要深拷贝
         // addControl(newChild);
     }
 
 }
 ControlImpl& ControlImpl::operator=(const ControlImpl &other){
     if (this == &other) return *this;
+    m_isCreated = other.m_isCreated;
     m_isTransparent = other.m_isTransparent;
     m_isBorderVisible = other.m_isBorderVisible;
     m_state = other.m_state;
@@ -88,6 +91,22 @@ ControlImpl& ControlImpl::operator=(const ControlImpl &other){
     }
 
     return *this;
+}
+
+void ControlImpl::recreate(void) {
+    if(!m_isCreated) return;
+    m_isCreated = false;
+
+    if (typeid(*this) == typeid(ControlImpl)) {
+        create();
+    }
+}
+
+void ControlImpl::create(void){
+    if(!m_isCreated) {
+        m_isCreated = true;
+        setVisible(true);
+    }
 }
 
 void ControlImpl::update(void){
@@ -137,7 +156,18 @@ void ControlImpl::draw(void){
         child->draw();
     }
 }
+void ControlImpl::preDraw() {
+    if (!getVisible()) return;
 
+    SRect drawRect = getDrawRect();
+    drawBackground(&drawRect);
+    drawBorder(&drawRect);
+
+    // draw the children
+    for (auto& child : m_children){
+        child->preDraw();
+    }
+}
 void ControlImpl::drawBackground(const SRect *pDrawRect){
     SRect drawRect;
 
@@ -165,10 +195,10 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
                 break;
         }
         if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.r, bgColor.g, bgColor.b, bgColor.a)){
-            SDL_Log("MenuBase failed to set grid render color: %s", SDL_GetError());
+            SDL_Log("ControlImpl::drawBackground: failed to set grid render color: %s", SDL_GetError());
         }
         if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("MenuBase failed to fill render rect: %s", SDL_GetError());
+            SDL_Log("ControlImpl::drawBackground: failed to fill render rect: %s", SDL_GetError());
         }
     }
 }
@@ -200,10 +230,10 @@ void ControlImpl::drawBorder(const SRect *pDrawRect){
                 break;
         }
         if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.r, borderColor.g, borderColor.b, borderColor.a)){
-            SDL_Log("MenuBase failed to set border color: %s", SDL_GetError());
+            SDL_Log("ControlImpl::drawBorder: failed to set border color: %s", SDL_GetError());
         }
         if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("MenuBase failed to draw border: %s", SDL_GetError());
+            SDL_Log("ControlImpl::drawBorder: failed to draw border: %s", SDL_GetError());
         }
     }
 }
@@ -253,8 +283,6 @@ void ControlImpl::addControl(shared_ptr<Control> child){
 
     child->setParent(this);
     child->setRenderer(getRenderer());
-    child->setScaleX(m_xScale);
-    child->setScaleY(m_yScale);
 }
 
 void ControlImpl::removeControl(shared_ptr<Control> child){
@@ -264,6 +292,9 @@ void ControlImpl::removeControl(shared_ptr<Control> child){
 // 如果要自动绘制和处理事件，需要调用addControl
 void ControlImpl::setParent(Control *parent){
     m_parent = parent;
+    inheritRenderer();
+    m_xxScale = (parent==nullptr?m_xScale:m_xScale*parent->getScaleXX());
+    m_yyScale = (parent==nullptr?m_yScale:m_yScale*parent->getScaleYY());
 }
 
 Control* ControlImpl::getParent(void){
@@ -279,13 +310,13 @@ float ControlImpl::getScaleYY(void){
 void ControlImpl::setScaleX(float xScale){
     m_xScale = xScale;
     for (auto& child : m_children){
-        child->setScaleX(xScale);
+        child->setParent(this); // 通过重新设置父控件来更新子控件的实际缩放值
     }
 }
 void ControlImpl::setScaleY(float yScale){
     m_yScale = yScale;
     for (auto& child : m_children){
-        child->setScaleY(yScale);
+        child->setParent(this); // 通过重新设置父控件来更新子控件的实际缩放值
     }
 }
 
@@ -295,6 +326,24 @@ void ControlImpl::setRect(SRect rect){
 
 SRect ControlImpl::getRect(void){
     return m_rect;
+}
+void ControlImpl::setMargin(Margin margin){
+    m_margin = margin;
+
+    recreate();
+}
+Margin ControlImpl::getMargin(void) const{
+    return m_margin;
+}
+SRect ControlImpl::getMarginedRect(void) {
+    Margin margin = getMargin();
+    SRect marginRect = {
+        margin.left,
+        margin.top,
+        getRect().width - margin.left - margin.right,
+        getRect().height - margin.top - margin.bottom
+    };
+    return marginRect.normalize();
 }
 
 void ControlImpl::show(void){
@@ -330,7 +379,7 @@ SDL_Renderer* ControlImpl::getRenderer(void){
     } else {
         m_renderer = GET_RENDERER;
         if (m_renderer == nullptr) {
-            SDL_Log("No renderer found!");
+            SDL_Log("ControlImpl::getRenderer: No renderer found!");
             return nullptr;
         }
     }
@@ -353,17 +402,25 @@ SRect ControlImpl::getDrawRect(void){
     SRect parentDrawRect;
     if (parent != nullptr){
         parentDrawRect = parent->getDrawRect();
-        return {m_rect.left + parentDrawRect.left,
-            m_rect.top + parentDrawRect.top,
+        return {m_rect.left * parent->getScaleXX() + parentDrawRect.left,
+            m_rect.top * parent->getScaleYY() + parentDrawRect.top,
             m_rect.width * getScaleXX(),
             m_rect.height * getScaleYY()};
     }
-    return {m_rect.left, m_rect.top, m_rect.width * m_xxScale, m_rect.height * m_yyScale};
+    return {m_rect.left, m_rect.top, m_rect.width * getScaleXX(), m_rect.height * getScaleYY()};
 }
 
 SRect ControlImpl::mapToDrawRect(SRect rect){
     SRect drawRect = getDrawRect();
-    return {rect.left * m_xxScale + drawRect.left, rect.top * m_yyScale + drawRect.top, rect.width * m_xxScale, rect.height * m_yyScale};
+    return {rect.left * getScaleXX() + drawRect.left,
+        rect.top * getScaleYY() + drawRect.top,
+        rect.width * getScaleXX(),
+        rect.height * getScaleYY()};
+}
+SPoint ControlImpl::mapToDrawPoint(SPoint point){
+    SRect drawRect = getDrawRect();
+    return {point.x * getScaleXX() + drawRect.left,
+        point.y * getScaleYY() + drawRect.top};
 }
 bool ControlImpl::isContainsPoint(float x, float y){
     SRect drawRect = getDrawRect();

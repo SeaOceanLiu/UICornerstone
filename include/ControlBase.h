@@ -2,6 +2,7 @@
 #define ControlBaseH
 #include <memory>
 #include <vector>
+#include <typeinfo>
 #include <SDL3/SDL.h>
 #include "MainWindow.h"
 #include "Utility.h"
@@ -129,11 +130,16 @@ class Control{
 protected:
     // 事件队列
     EventQueue *m_eventQueueInstance;
+
+    virtual void recreate() = 0; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
+
 public:
     virtual ~Control() = default;
+    virtual void create(void) = 0;  // 初始创建控件，缺省情况下只有初始创建控件后，才能显示和处理事件
     virtual void setId(int id) = 0;
     virtual int getId(void) const = 0;
     virtual void update(void) = 0;
+    virtual void preDraw() = 0;
     virtual void draw(void) = 0;
     virtual void resized(SRect newRect) = 0;
     virtual void moved(SRect newRect) = 0;
@@ -162,6 +168,7 @@ public:
     virtual shared_ptr<Control> getThis(void) = 0;
     virtual SRect getDrawRect(void) = 0;
     virtual SRect mapToDrawRect(SRect rect) = 0;
+    virtual SPoint mapToDrawPoint(SPoint point) = 0;
     virtual bool isContainsPoint(float x, float y) = 0; //判断点是否在控件内
 
     // 鼠标进入/退出回调函数
@@ -207,6 +214,7 @@ public:
 
 class ControlImpl: virtual public Control, public enable_shared_from_this<ControlImpl>{
 protected:
+    bool m_isCreated;
     int m_id;
     bool m_visible;
     bool m_enable;
@@ -225,6 +233,7 @@ protected:
     SDL_Texture *m_texture;
 
     SRect m_rect;
+    Margin m_margin;
     Control *m_parent;
     vector<shared_ptr<Control>> m_children; //子控件
 
@@ -233,14 +242,18 @@ protected:
     ControlState m_state;
     // 鼠标进入/退出状态跟踪
     bool m_mouseInside;
+
+    void recreate(void) override; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
 public:
     ControlImpl(Control *parent, float xScale=1.0f, float yScale=1.0f);
     ControlImpl(const ControlImpl& other);
     ~ControlImpl() = default;
+    void create(void) override;  // 初始创建控件，缺省情况下只有初始创建控件后，才能显示和处理事件
     void setId(int id) override { m_id = id; }
     int getId(void) const override { return m_id; }
     ControlImpl& operator=(const ControlImpl& other);
     void update(void) override;
+    void preDraw() override;
     void draw(void) override;
     void resized(SRect newRect) override;
     void moved(SRect newRect) override;
@@ -275,6 +288,9 @@ public:
         setRect(SRect{getRect().left, getRect().top, width, height});
     }
     SRect getRect(void) override;
+    SRect getMarginedRect(void);
+    virtual void setMargin(Margin margin);
+    Margin getMargin(void) const;
     void show(void) override;
     void hide(void) override;
     void setVisible(bool visible) override;
@@ -286,6 +302,7 @@ public:
     shared_ptr<Control> getThis(void) override;
     SRect getDrawRect(void) override;
     SRect mapToDrawRect(SRect rect) override;
+    SPoint mapToDrawPoint(SPoint point) override;
     bool isContainsPoint(float x, float y) override;
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;
