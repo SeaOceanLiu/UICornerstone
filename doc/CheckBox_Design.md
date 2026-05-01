@@ -4,9 +4,22 @@
 
 复选框（CheckBox）是一种常见的 UI 控件，用于表示布尔状态或从多个选项中选择多个选项。本设计文档描述了复选框的功能规格、接口定义和实现细节。
 
-## 2. 功能规格
+## 2. 设计规则
 
-### 2.1 核心功能
+> 参见 [AGENTS.md](../AGENTS.md) 中的设计规则章节。
+
+1. **所有位置数据存储规则**：
+   - 所有的屏幕位置数据都存储为未缩放的值
+   - 生成字体时，使用缩放后的字体大小
+   - 绘制时才对缩放进行处理
+
+2. **控件生命周期**：
+   - `create()`: 初始创建控件，创建内部 Label 并设置布局
+   - `recreate()`: 重新创建控件，用于属性变化时重新布局
+
+## 3. 功能规格
+
+### 3.1 核心功能
 
 - **状态切换**：支持两种模式：
   - 三态模式（默认）：未选中 → 选中 → 三态 → 未选中
@@ -16,8 +29,9 @@
 - **垂直对齐**：支持三种垂直对齐方式（居中、顶部、底部）
 - **尺寸比例**：复选框尺寸基于字体大小的比例计算
 - **颜色自定义**：支持自定义勾选符号、叉号、三态、边框颜色
+- **Label 暴露**：通过 `getCaption()` 方法暴露内部 Label，支持直接配置
 
-### 2.2 状态定义
+### 3.2 状态定义
 
 ```cpp
 enum class CheckState {
@@ -27,7 +41,7 @@ enum class CheckState {
 };
 ```
 
-### 2.3 样式定义
+### 3.3 样式定义
 
 ```cpp
 enum class CheckBoxStyle {
@@ -37,7 +51,7 @@ enum class CheckBoxStyle {
 };
 ```
 
-### 2.4 布局定义
+### 3.4 布局定义
 
 ```cpp
 enum class CheckBoxLayout {
@@ -52,20 +66,21 @@ enum class CheckBoxVerticalAlign {
 };
 ```
 
-## 3. 尺寸计算规则
+## 4. 尺寸计算规则
 
-### 3.1 复选框尺寸
+### 4.1 复选框尺寸
 
 复选框尺寸根据字体大小和缩放比例计算：
 
 ```
-复选框尺寸 = 字体大小 × 缩放比例 × 尺寸倍率
+复选框尺寸 = 行高 × 尺寸倍率
 ```
 
-- **默认倍率**：`0.8`（即复选框尺寸为字体大小的 80%）
+- **默认倍率**：`1.0`（复选框尺寸等于行高）
 - **用户可调整**：通过 `setSizeRatio(float ratio)` 设置倍率
+- 复选框为正方形，宽度等于高度
 
-### 3.2 布局计算
+### 4.2 布局计算
 
 #### TextRight 布局
 ```
@@ -74,9 +89,9 @@ enum class CheckBoxVerticalAlign {
 +------------------------------------------+
 ```
 
-- 复选框区域：左侧，尺寸为 `m_sizeRatio * fontSize * scale`
-- 间距：`CHECKBOX_BOX_MARGIN`（常量）
-- 文字区域：剩余宽度
+- 复选框区域：左侧，尺寸为 `m_caption->getLineHeight() * m_sizeRatio`
+- 间距：`CHECKBOX_BOX_MARGIN`（Margin 类型）
+- 文字区域：剩余宽度，Label 使用 `AM_MID_LEFT` 对齐
 
 #### TextLeft 布局
 ```
@@ -85,7 +100,10 @@ enum class CheckBoxVerticalAlign {
 +------------------------------------------+
 ```
 
-### 3.3 多行文字垂直对齐
+- 复选框区域：右侧
+- 文字区域：剩余宽度，Label 使用 `AM_MID_RIGHT` 对齐
+
+### 4.3 多行文字垂直对齐
 
 当文字有多行时，复选框的垂直位置根据 `m_verticalAlign` 确定：
 
@@ -95,12 +113,30 @@ enum class CheckBoxVerticalAlign {
 | Top | 复选框与第一行顶部对齐 |
 | Bottom | 复选框与最后一行底部对齐 |
 
-## 4. 接口设计
+### 4.4 内部 Label 交互
 
-### 4.1 CheckBox 类
+CheckBox 使用内部 Label 作为 Caption，通过以下方式交互：
+
+1. **创建时**：在 `createCaption()` 中创建 Label，设置回调监听属性变化
+2. **属性变化监听**：Label 的属性变化时，通过回调触发 CheckBox 重新布局
+
+```cpp
+m_caption->setOnPropertyChanged([this](shared_ptr<Label> label){
+    setBoxSize();
+    adjustSpaceAssignment();
+    adjustBoxVerticalAlign();
+})
+```
+
+3. **直接访问**：通过 `getCaption()` 方法获取内部 Label，可直接配置字体、大小、对齐等
+
+## 5. 接口设计
+
+### 5.1 CheckBox 类
 
 ```cpp
 class CheckBox : public ControlImpl {
+    friend class CheckBoxBuilder;
 public:
     using OnCheckChangedHandler = std::function<void (shared_ptr<CheckBox>, CheckState)>;
 
@@ -113,12 +149,26 @@ private:
     shared_ptr<Label> m_caption;
     OnCheckChangedHandler m_onCheckChanged;
 
-    float m_sizeRatio;         // 复选框尺寸与字体大小的比例（默认0.8）
-    float m_captionSize;
-    string m_captionText;
+    float m_sizeRatio;
+    bool m_triStateEnabled;
 
+    SRect m_boxRect;            // 复选框区域（未缩放）
+    Margin m_boxMargin;         // 复选框内边距
+
+    StateColor m_checkStateColor;
+    StateColor m_crossStateColor;
+    StateColor m_indeterminateStateColor;
+    StateColor m_boxBorderStateColor;
+
+protected:
+    void recreate(void) override;
 public:
     CheckBox(Control *parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
+
+    void releaseCaption(void);
+    void createCaption(void);
+    Label& getCaption(void) const;    // 暴露内部 Label
+    void create(void) override;
 
     void update(void) override;
     void draw(void) override;
@@ -143,27 +193,35 @@ public:
     void setSizeRatio(float ratio);
     float getSizeRatio() const;
 
-    void setCaption(string caption);
-    string getCaption() const;
-
-    void setCaptionSize(float size);
+    void setTriStateEnabled(bool enabled);
+    bool isTriStateEnabled() const;
 
     void setOnCheckChanged(OnCheckChangedHandler handler);
 
-private:
-    float calculateCheckBoxSize();
-    SRect calculateCheckBoxRect();
-    SRect calculateCaptionRect();
-    void updateCaptionPosition();
+    void setCheckColor(SDL_Color color);
+    SDL_Color getCheckColor();
+    void setCrossColor(SDL_Color color);
+    SDL_Color getCrossColor();
+    void setIndeterminateColor(SDL_Color color);
+    SDL_Color getIndeterminateColor();
 
-    void drawCheckBoxFrame(SRect boxRect);
-    void drawCheckMark(SRect boxRect);
-    void drawCrossMark(SRect boxRect);
-    void drawIndeterminateMark(SRect boxRect);
+    void setBoxBorderColor(SDL_Color color);
+    SDL_Color getBoxBorderColor();
+
+private:
+    void setBoxSize(void);
+    void adjustSpaceAssignment(void);
+    void adjustBoxVerticalAlign(void);
+
+    SRect getBoxDrawRect(); // for drawing
+    void drawCheckBoxFrame();
+    void drawCheckMark();
+    void drawCrossMark();
+    void drawIndeterminateMark();
 };
 ```
 
-### 4.2 CheckBoxBuilder 类
+### 5.2 CheckBoxBuilder 类
 
 ```cpp
 class CheckBoxBuilder {
@@ -178,9 +236,14 @@ public:
     CheckBoxBuilder& setVerticalAlign(CheckBoxVerticalAlign align);
     CheckBoxBuilder& setCheckState(CheckState state);
     CheckBoxBuilder& setSizeRatio(float ratio);
-    CheckBoxBuilder& setCaption(string caption);
-    CheckBoxBuilder& setCaptionSize(float size);
+    CheckBoxBuilder& setCaptionText(string caption);    // 改为设置内部 Label 文本
+    CheckBoxBuilder& setCaptionSize(float size);        // 实际上是设置内部 Label 字体大小
+    CheckBoxBuilder& setTriStateEnabled(bool enabled);
     CheckBoxBuilder& setOnCheckChanged(CheckBox::OnCheckChangedHandler handler);
+    CheckBoxBuilder& setCheckColor(SDL_Color color);
+    CheckBoxBuilder& setCrossColor(SDL_Color color);
+    CheckBoxBuilder& setIndeterminateColor(SDL_Color color);
+    CheckBoxBuilder& setBoxBorderColor(SDL_Color color);
     CheckBoxBuilder& setBackgroundStateColor(StateColor stateColor);
     CheckBoxBuilder& setBorderStateColor(StateColor stateColor);
     CheckBoxBuilder& setTextStateColor(StateColor stateColor);
@@ -191,31 +254,48 @@ public:
 };
 ```
 
-## 5. 常量定义
+## 6. 常量定义
 
 在 `ConstDef.h` 中添加：
 
 ```cpp
 // 复选框相关常量
-static const float CHECKBOX_SIZE_RATIO;         // 默认尺寸倍率（0.8）
-static const float CHECKBOX_BOX_MARGIN;          // 复选框与文字的间距
+static const float BOX_PEN_WIDTH;                 // 边框线宽（2.0f）
+static const float MARK_PEN_WIDTH;                // 标记线宽（2.5f）
+static const Margin CHECKBOX_MARGIN;             // 复选框整体外边距
+static const float CHECKBOX_SIZE_RATIO;           // 默认尺寸倍率（1.0）
+static const Margin CHECKBOX_BOX_MARGIN;          // 复选框与文字的间距
 static const float CHECKBOX_DEFAULT_CAPTION_SIZE; // 文字默认大小
-static const SDL_Color CHECKBOX_CHECK_COLOR;     // 勾选符号颜色
-static const SDL_Color CHECKBOX_CROSS_COLOR;     // X 符号颜色
+static const SDL_Color CHECKBOX_CHECK_COLOR;      // 勾选符号颜色
+static const SDL_Color CHECKBOX_CROSS_COLOR;      // X 符号颜色
 static const SDL_Color CHECKBOX_INDETERMINATE_COLOR; // 三态颜色
 ```
 
-## 6. 事件处理
+### 常量变更说明
 
-### 6.1 状态切换逻辑
+| 常量 | 旧值 | 新值 | 说明 |
+|------|------|------|------|
+| CHECKBOX_SIZE_RATIO | 0.8f | 1.0f | 复选框尺寸等于行高 |
+| CHECKBOX_BOX_MARGIN | float (4.0f) | Margin | 支持四边不同间距 |
+| BOX_PEN_WIDTH | - | 2.0f | 新增：边框线宽 |
+| MARK_PEN_WIDTH | - | 2.5f | 新增：标记线宽 |
 
-点击复选框时，状态按以下顺序循环切换：
+## 7. 事件处理
+
+### 7.1 状态切换逻辑
+
+点击复选框时，状态按以下顺序循环切换（默认三态模式）：
 
 ```
 Unchecked → Checked → Indeterminate → Unchecked
 ```
 
-### 6.2 事件处理流程
+如果禁用三态模式（`setTriStateEnabled(false)`）：
+```
+Unchecked → Checked → Unchecked
+```
+
+### 7.2 事件处理流程
 
 ```cpp
 bool CheckBox::handleEvent(shared_ptr<Event> event) {
@@ -237,7 +317,11 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
                                 setCheckState(CheckState::Checked);
                                 break;
                             case CheckState::Checked:
-                                setCheckState(CheckState::Indeterminate);
+                                if (m_triStateEnabled) {
+                                    setCheckState(CheckState::Indeterminate);
+                                } else {
+                                    setCheckState(CheckState::Unchecked);
+                                }
                                 break;
                             case CheckState::Indeterminate:
                                 setCheckState(CheckState::Unchecked);
@@ -268,64 +352,111 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
 }
 ```
 
-## 7. 实现细节
+## 8. 实现细节
 
-### 7.1 复选框尺寸计算
-
-复选框尺寸根据字体大小和缩放比例计算：
-
-```
-复选框尺寸 = 字体大小 × 缩放比例 × 尺寸倍率
-```
-
-- **默认倍率**：`0.8`
-- 用户可通过 `setSizeRatio(float ratio)` 调整
-
-### 7.2 布局实现
-
-#### 复选框位置计算
+### 8.1 生命周期管理
 
 ```cpp
-float boxX = (m_layout == CheckBoxLayout::TextRight) 
-    ? drawRect.left                                    // 左侧布局：复选框在左
-    : drawRect.left + drawRect.width - boxSize;       // 右侧布局：复选框在右
-```
+void CheckBox::create(void) {
+    if (m_isCreated) return;
 
-#### 文字区域计算
+    createCaption();         // 创建内部 Label
+    setBoxSize();            // 根据行高设置复选框尺寸
+    adjustSpaceAssignment(); // 设置复选框和 Label 的位置
+    adjustBoxVerticalAlign(); // 调整垂直对齐
 
-```cpp
-if (m_layout == CheckBoxLayout::TextRight) {
-    // 文字区域从复选框右侧开始
-    return {drawRect.left + boxSize + scaledMargin, ...};
-} else {
-    // 文字区域从复选框左侧结束位置开始向前计算
-    float boxX = drawRect.left + drawRect.width - boxSize;
-    return {boxX - scaledMargin - captionWidth, ...};
+    addControl(m_caption);
+    ControlImpl::create();
+}
+
+void CheckBox::recreate(void) {
+    if(!m_isCreated) return;
+
+    releaseCaption();  // 释放内部 Label
+
+    m_isCreated = false;
+    create();          // 重新创建
 }
 ```
 
-#### 对齐模式选择
+### 8.2 布局实现
 
-根据布局选择不同的对齐模式：
-- **TextRight** 使用 `AM_MID_LEFT`：文字从 Label 左侧开始渲染
-- **TextLeft** 使用 `AM_MID_RIGHT`：文字从 Label 右侧开始渲染，配合 captionRect 从复选框右侧开始计算，实现文字紧贴复选框的效果
+#### 设置复选框尺寸
 
-### 7.3 特殊实现说明
+```cpp
+void CheckBox::setBoxSize(void) {
+    m_boxRect.left = 0;
+    m_boxRect.top = 0;
+    m_boxRect.width = m_caption->getLineHeight() * m_sizeRatio;
+    m_boxRect.height = m_boxRect.width;
+}
+```
 
-1. **Label 父控件设置**：内部 Label 的父控件设置为 `nullptr`，避免继承 CheckBox 的缩放导致位置偏移
+#### 分配空间
 
-2. **Margin 设置**：Label 的 margin 设置为 `{0, 0, 0, 0}`，避免额外间距
+```cpp
+void CheckBox::adjustSpaceAssignment(void) {
+    SRect marginRect = getMarginedRect();
 
-## 8. 绘制逻辑
+    switch(m_layout) {
+        case CheckBoxLayout::TextRight:
+            m_boxRect.left = marginRect.left;
+            m_caption->setRect({m_boxRect.right(), marginRect.top,
+                    marginRect.width - m_boxRect.width, marginRect.height});
+            m_caption->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
+            break;
+        case CheckBoxLayout::TextLeft:
+            m_boxRect.left = marginRect.right() - m_boxRect.width;
+            m_caption->setRect({marginRect.left, marginRect.top,
+                    marginRect.width - m_boxRect.width, marginRect.height});
+            m_caption->setAlignmentMode(AlignmentMode::AM_MID_RIGHT);
+            break;
+    }
+}
+```
 
-### 7.1 绘制流程
+#### 垂直对齐
 
-1. 计算复选框区域和文字区域
-2. 绘制复选框外框（根据样式）
-3. 绘制内部标记（根据状态）
-4. 绘制文字
+```cpp
+void CheckBox::adjustBoxVerticalAlign(void) {
+    SRect marginRect = getMarginedRect();
+    switch (m_verticalAlign) {
+        case CheckBoxVerticalAlign::Top:
+            m_boxRect.top = marginRect.top;
+            break;
+        case CheckBoxVerticalAlign::Center:
+            m_boxRect.top = marginRect.top + (marginRect.height - m_boxRect.height) / 2;
+            break;
+        case CheckBoxVerticalAlign::Bottom:
+            m_boxRect.top = marginRect.bottom() - m_boxRect.height;
+            break;
+    }
+}
+```
 
-### 7.2 样式绘制
+### 8.3 缩放处理
+
+所有位置数据（`m_boxRect`、`m_caption` 的位置）存储为未缩放的值，绘制时使用 `getBoxDrawRect()` 转换：
+
+```cpp
+SRect CheckBox::getBoxDrawRect(){
+    SRect boxFrameRect = {m_boxRect.left + m_boxMargin.left, m_boxRect.top + m_boxMargin.top,
+                    m_boxRect.width - m_boxMargin.left - m_boxMargin.right,
+                    m_boxRect.height - m_boxMargin.top - m_boxMargin.bottom};
+    SRect boxDrawRect = mapToDrawRect(boxFrameRect);
+    return boxDrawRect;
+}
+```
+
+### 8.4 绘制逻辑
+
+绘制流程：
+1. 调用 `preDraw()` 绘制背景和边框
+2. 调用 `drawCheckBoxFrame()` 绘制复选框外框
+3. 根据状态绘制标记（勾选、X、或横线）
+4. 子控件（内部 Label）由 `ControlImpl::draw()` 绘制
+
+### 8.5 样式绘制
 
 | 样式 | 外框 | 选中状态 | 三态 |
 |------|------|----------|------|
@@ -333,25 +464,31 @@ if (m_layout == CheckBoxLayout::TextRight) {
 | Cross | 方框边框 | X 符号（×） | 横线 |
 | Circle | 圆形边框 | 勾选符号（√） | 横线 |
 
-## 8. 测试用例
+### 8.6 特殊实现说明
 
-### 8.1 基本功能测试
+1. **内部 Label**：CheckBox 拥有内部 Label 作为子控件，通过 `addControl()` 添加
+2. **属性变化监听**：Label 属性变化时，通过回调触发 CheckBox 重新布局
+3. **尺寸来源**：复选框尺寸基于内部 Label 的行高，而非字体大小
+
+## 9. 测试用例
+
+### 9.1 基本功能测试（使用新 API）
 
 ```cpp
 void testBasicCheckBox() {
-    auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 50, 200, 30))
-        .setCaption("Accept Terms")
+    auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 50, 100, 30))
+        .setCaptionText("1. Accept Terms")   // 使用 setCaptionText
         .build();
     BENCH->addControl(checkbox);
 }
 ```
 
-### 8.2 状态切换测试
+### 9.2 状态切换测试
 
 ```cpp
 void testStateChange() {
     auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 100, 200, 30))
-        .setCaption("Enable Feature")
+        .setCaptionText("2. Enable Feature")
         .setCheckState(CheckState::Checked)
         .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
             cout << "State changed to: " << (int)state << endl;
@@ -360,120 +497,115 @@ void testStateChange() {
 }
 ```
 
-### 8.3 样式测试
+### 9.3 样式测试
 
 ```cpp
 void testStyles() {
     auto classic = CheckBoxBuilder(nullptr, SRect(50, 150, 200, 30))
         .setStyle(CheckBoxStyle::Classic)
-        .setCaption("Classic Style")
+        .setCaptionText("3. Classic Style")
         .build();
 
     auto cross = CheckBoxBuilder(nullptr, SRect(50, 200, 200, 30))
         .setStyle(CheckBoxStyle::Cross)
-        .setCaption("Cross Style")
+        .setCaptionText("4. Cross Style")
         .build();
 
     auto circle = CheckBoxBuilder(nullptr, SRect(50, 250, 200, 30))
         .setStyle(CheckBoxStyle::Circle)
-        .setCaption("Circle Style")
+        .setCaptionText("5. Circle Style")
         .build();
 }
 ```
 
-### 8.4 布局测试
+### 9.4 布局测试
 
 ```cpp
 void testLayouts() {
     auto textRight = CheckBoxBuilder(nullptr, SRect(50, 300, 200, 30))
         .setLayout(CheckBoxLayout::TextRight)
-        .setCaption("Text on Right")
+        .setCaptionText("6. Text on Right")
         .build();
 
     auto textLeft = CheckBoxBuilder(nullptr, SRect(300, 300, 200, 30))
         .setLayout(CheckBoxLayout::TextLeft)
-        .setCaption("Text on Left")
+        .setCaptionText("7. Text on Left")
         .build();
 }
 ```
 
-### 8.5 多行文字垂直对齐测试
+### 9.5 使用 getCaption() 直接配置 Label
 
 ```cpp
-void testMultiLineVerticalAlign() {
-    string multiline = "Line 1\nLine 2\nLine 3";
-
-    auto center = CheckBoxBuilder(nullptr, SRect(50, 450, 250, 80))
-        .setCaption(multiline)
-        .setVerticalAlign(CheckBoxVerticalAlign::Center)
+void testCaptionAccess() {
+    auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 350, 300, 60), 2.0f, 2.0f)
+        .setCaptionText("8. 2x缩放复选框")
+        .setCheckState(CheckState::Checked)
+        .setStyle(CheckBoxStyle::Circle)
+        .setCaptionSize(24)  // 设置内部 Label 字体大小
         .build();
 
-    auto top = CheckBoxBuilder(nullptr, SRect(350, 450, 250, 80))
-        .setCaption(multiline)
-        .setVerticalAlign(CheckBoxVerticalAlign::Top)
-        .build();
-
-    auto bottom = CheckBoxBuilder(nullptr, SRect(650, 450, 250, 80))
-        .setCaption(multiline)
-        .setVerticalAlign(CheckBoxVerticalAlign::Bottom)
-        .build();
+    // 直接访问内部 Label
+    StateColor sc = checkbox->getCaption().getTextStateColor();
+    sc.setNormal({0, 0, 255, 255});
+    checkbox->getCaption().setTextStateColor(sc);
 }
 ```
 
-### 8.6 缩放测试
+### 9.6 缩放测试
 
 ```cpp
 void testScaling() {
     auto scaled2x = CheckBoxBuilder(nullptr, SRect(50, 550, 200, 30), 2.0f, 2.0f)
-        .setCaption("2x Scaled")
+        .setCaptionText("9. 2x Scaled")
         .setCheckState(CheckState::Checked)
         .build();
 
     auto scaled0_5x = CheckBoxBuilder(nullptr, SRect(300, 550, 200, 30), 0.5f, 0.5f)
-        .setCaption("0.5x Scaled")
+        .setCaptionText("10. 0.5x Scaled")
         .setCheckState(CheckState::Indeterminate)
         .build();
 }
 ```
 
-### 8.7 尺寸倍率测试
+### 9.7 尺寸倍率测试
 
 ```cpp
 void testSizeRatios() {
     auto defaultRatio = CheckBoxBuilder(nullptr, SRect(50, 50, 200, 30))
-        .setCaption("Default Ratio (0.8)")
+        .setCaptionText("11. Default Ratio (1.0)")
         .build();
 
     auto largeRatio = CheckBoxBuilder(nullptr, SRect(50, 100, 200, 30))
-        .setCaption("Large Ratio (1.0)")
-        .setSizeRatio(1.0f)
+        .setCaptionText("12. Large Ratio (1.5)")
+        .setSizeRatio(1.5f)
         .build();
 
     auto smallRatio = CheckBoxBuilder(nullptr, SRect(50, 150, 200, 30))
-        .setCaption("Small Ratio (0.6)")
-        .setSizeRatio(0.6f)
+        .setCaptionText("13. Small Ratio (0.5)")
+        .setSizeRatio(0.5f)
         .build();
 }
 ```
 
-### 8.8 禁用状态测试
+### 9.8 禁用状态测试
 
 ```cpp
 void testDisabled() {
     auto disabled = CheckBoxBuilder(nullptr, SRect(50, 400, 200, 30))
-        .setCaption("Disabled Checkbox")
+        .setCaptionText("14. Disabled Checkbox")
         .setEnable(false)
         .setCheckState(CheckState::Checked)
         .build();
 }
 ```
 
-### 8.9 回调测试
+### 9.9 回调测试
 
 ```cpp
 void testCallbacks() {
     auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 650, 200, 30))
-        .setCaption("Callback Test")
+        .setCaptionText("15. Callback Test")
         .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
             static int count = 0;
             count++;
@@ -483,26 +615,59 @@ void testCallbacks() {
 }
 ```
 
-## 9. 文件结构
+### 9.10 自定义颜色测试
+
+```cpp
+void testCustomColors() {
+    auto customCheck = CheckBoxBuilder(nullptr, SRect(50, 50, 250, 30))
+        .setCaptionText("16. Custom Check Color")
+        .setCheckState(CheckState::Checked)
+        .setCheckColor({255, 0, 255, 255})  // 紫色勾选
+        .build();
+
+    auto customCross = CheckBoxBuilder(nullptr, SRect(50, 100, 250, 30))
+        .setStyle(CheckBoxStyle::Cross)
+        .setCaptionText("17. Custom Cross Color")
+        .setCheckState(CheckState::Checked)
+        .setCrossColor({0, 255, 255, 255})  // 青色 X
+        .build();
+
+    auto customIndeterminate = CheckBoxBuilder(nullptr, SRect(50, 150, 250, 30))
+        .setCaptionText("18. Custom Indeterminate Color")
+        .setCheckState(CheckState::Indeterminate)
+        .setIndeterminateColor({255, 165, 0, 255})  // 橙色横线
+        .build();
+}
+```
+
+## 10. 文件结构
 
 ```
 UIControls/
 ├── include/
-│   └── CheckBox.h        # 头文件
+│   ├── CheckBox.h        # 头文件
+│   ├── ControlBase.h     # 基类（含 create/recreate）
+│   └── ConstDef.h        # 常量定义
 ├── src/
-│   └── CheckBox.cpp      # 实现文件
-└── CMakeLists.txt        # 更新的构建配置
+│   ├── CheckBox.cpp      # 实现文件
+│   ├── ControlBase.cpp   # 基类实现
+│   └── ConstDef.cpp      # 常量定义
+└── CMakeLists.txt        # 构建配置
 
 test/
 └── test_checkbox.cpp     # 测试文件
+
+doc/
+└── CheckBox_Design.md   # 本文档
 ```
 
-## 10. 实现顺序
+## 11. 实现顺序
 
-1. 在 `ConstDef.h` 添加常量声明
+1. 在 `ConstDef.h` 添加常量声明（包含新增的 BOX_PEN_WIDTH、MARK_PEN_WIDTH）
 2. 在 `ConstDef.cpp` 添加常量定义
-3. 创建 `UIControls/include/CheckBox.h`
-4. 创建 `UIControls/src/CheckBox.cpp`
-5. 更新 `UIControls/CMakeLists.txt`
-6. 创建 `test/test_checkbox.cpp`
-7. 编译测试
+3. 更新 `ControlBase.h` 和 `ControlBase.cpp`（添加 create/recreate/preDraw）
+4. 创建/更新 `UIControls/include/CheckBox.h`
+5. 创建/更新 `UIControls/src/CheckBox.cpp`
+6. 更新 `UIControls/CMakeLists.txt`
+7. 创建/更新 `test/test_checkbox.cpp`
+8. 编译测试
