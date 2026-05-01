@@ -1,4 +1,4 @@
-#include "CheckBox.h"
+﻿#include "CheckBox.h"
 #include "GraphTool.h"
 
 CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
@@ -6,12 +6,17 @@ CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     m_checkState(CheckState::Unchecked),
     m_style(CheckBoxStyle::Classic),
     m_layout(CheckBoxLayout::TextRight),
+    // m_labelAlignmentMode(),
+    // m_labelFontName(),
+    // m_labelShadowEnabled(false),
+    // m_labelShadowOffset({2, 2}),
     m_verticalAlign(CheckBoxVerticalAlign::Center),
     m_caption(nullptr),
     m_onCheckChanged(nullptr),
     m_sizeRatio(ConstDef::CHECKBOX_SIZE_RATIO),
-    m_captionSize(ConstDef::CHECKBOX_DEFAULT_CAPTION_SIZE),
-    m_captionText(""),
+    // m_captionSize(),
+    m_boxRect({0, 0, 0, 0}),
+    m_boxMargin(ConstDef::CHECKBOX_BOX_MARGIN),
     m_triStateEnabled(true),
     m_checkStateColor(StateColor::Type::Text),
     m_crossStateColor(StateColor::Type::Text),
@@ -21,10 +26,136 @@ CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     m_crossStateColor.setNormal(ConstDef::CHECKBOX_CROSS_COLOR);
     m_indeterminateStateColor.setNormal(ConstDef::CHECKBOX_INDETERMINATE_COLOR);
     m_boxBorderStateColor.setNormal(ConstDef::DEFAULT_BORDER_NORMAL_COLOR);
-    
+
     m_rect = rect;
     setTransparent(true);
     setBorderVisible(false);
+
+
+    createCaption();
+}
+
+void CheckBox::releaseCaption(void){
+    if (m_caption != nullptr) {
+        m_caption.reset();
+        m_caption = nullptr;
+        removeControl(m_caption);
+    }
+}
+void CheckBox::createCaption(void){
+    if (m_caption != nullptr) {
+        return;
+    }
+
+    // 先以CheckBox的rect来创建Label，获得Label的文字尺寸，再刷新Label的rect
+    m_caption = LabelBuilder(this, {0, 0, getRect().width, getRect().height})
+        .setFont(FontName::HarmonyOS_Sans_SC_Regular)
+        .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
+        .setFontSize((int)ConstDef::CHECKBOX_DEFAULT_CAPTION_SIZE)
+        .setCaption("")
+        .setTextStateColor(m_textColor)
+        // .setMargin({0, 0, 0, 0})
+        .setShadow(false)
+        .setShadowOffset({2, 2})
+        .setEnableExpand(false)
+        // .setDebugDraw(true)
+        .setOnPropertyChanged([this](shared_ptr<Label> label){  // Label的属性改变时，通过回调来触发CheckBox调整布局
+            setBoxSize();
+            adjustSpaceAssignment();
+            adjustBoxVerticalAlign();
+        })
+        .build();
+}
+
+Label& CheckBox::getCaption(void) const {
+    if (m_caption == nullptr) {
+        SDL_Log("CheckBox::getCaption: Caption is null");
+        throw std::runtime_error("Caption is null");
+    }
+    return *m_caption;
+}
+
+// setBoxSize必须在createCaption之后调用，因为setBoxSize需要根据caption的行高来设置checkbox的大小
+void CheckBox::setBoxSize(void) {
+    if (m_caption == nullptr) {
+        SDL_Log("CheckBox::setBoxSize: Caption is null");
+        return;
+    }
+    m_boxRect.left = 0;
+    m_boxRect.top = 0;
+    m_boxRect.width = m_caption->getLineHeight() * m_sizeRatio;
+    m_boxRect.height = m_boxRect.width;
+}
+
+// adjustSpaceAssignment必须在setBoxSize之后调用，因为adjustSpaceAssignment需要根据checkbox的大小来调整checkbox和caption的位置
+void CheckBox::adjustSpaceAssignment(void) {
+    SRect marginRect = getMarginedRect();
+
+    switch(m_layout) {
+        case CheckBoxLayout::TextRight:
+            m_boxRect.left = marginRect.left;
+            m_boxRect.top = marginRect.top;
+            m_caption->setRect({m_boxRect.right(), marginRect.top,
+                    marginRect.width - m_boxRect.width, marginRect.height});
+            m_caption->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
+            break;
+        case CheckBoxLayout::TextLeft:
+            m_boxRect.left = marginRect.right() - m_boxRect.width;
+            m_boxRect.top = marginRect.top;
+            m_caption->setRect({marginRect.left, marginRect.top,
+                    marginRect.width - m_boxRect.width, marginRect.height});
+            m_caption->setAlignmentMode(AlignmentMode::AM_MID_RIGHT);
+            break;
+    }
+}
+
+void CheckBox::adjustBoxVerticalAlign(void) {
+    if (m_caption == nullptr) {
+        SDL_Log("CheckBox::adjustBoxVerticalAlign: Caption is null");
+        return;
+    }
+    SRect marginRect = getMarginedRect();
+    switch (m_verticalAlign)
+    {
+        case CheckBoxVerticalAlign::Top:
+            m_boxRect.top = marginRect.top;
+            break;
+        case CheckBoxVerticalAlign::Center:
+            m_boxRect.top = marginRect.top + (marginRect.height - m_boxRect.height) / 2;
+            break;
+        case CheckBoxVerticalAlign::Bottom:
+            m_boxRect.top = marginRect.bottom() - m_boxRect.height;
+            break;
+        default:
+            SDL_Log("CheckBox::adjustBoxVerticalAlign: Invalid vertical align value");
+            break;
+    }
+}
+
+void CheckBox::recreate(void) {
+    // 没有创建过，直接退出，待调用create方法时会创建相关资源
+    if(!m_isCreated) return;
+
+    // 释放子控件
+    releaseCaption();
+
+
+    if (typeid(*this) == typeid(CheckBox)) {
+        m_isCreated = false;  // 重置创建标志，调用create方法时会重新创建相关资源
+        create();
+    }
+}
+void CheckBox::create(void) {
+    if (m_isCreated) return;
+
+    createCaption();
+    setBoxSize();
+    adjustSpaceAssignment();
+    adjustBoxVerticalAlign();
+
+    // 可以直接添加，因为addControl内部会检查是否已经添加过了，如果已经添加过了，就不会重复添加了
+    addControl(m_caption);
+    ControlImpl::create();
 }
 
 void CheckBox::update(void) {
@@ -33,49 +164,43 @@ void CheckBox::update(void) {
 }
 
 void CheckBox::draw(void) {
+    ControlImpl::preDraw();
+
     if (!getVisible()) return;
 
     SRect drawRect = getDrawRect();
-    float boxSize = calculateCheckBoxSize();
-    SRect boxRect = calculateCheckBoxRect();
-    
-    drawCheckBoxFrame(boxRect);
-    
+
+    drawCheckBoxFrame();
+
     switch (m_checkState) {
         case CheckState::Checked:
             if (m_style == CheckBoxStyle::Cross) {
-                drawCrossMark(boxRect);
+                drawCrossMark();
             } else {
-                drawCheckMark(boxRect);
+                drawCheckMark();
             }
             break;
         case CheckState::Indeterminate:
-            drawIndeterminateMark(boxRect);
+            drawIndeterminateMark();
             break;
         case CheckState::Unchecked:
         default:
             break;
     }
-    
-    if (m_caption != nullptr) {
-        SRect captionRect = calculateCaptionRect();
-        m_caption->setRect(captionRect);
-        m_caption->draw();
-    }
-    
+
     ControlImpl::draw();
 }
 
 bool CheckBox::handleEvent(shared_ptr<Event> event) {
     if (!getEnable() || !getVisible()) return false;
-    
+
     if (EventQueue::isPositionEvent(event->m_eventName)) {
         if (!event->m_eventParam.has_value()) return false;
-        
+
         try {
             auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
             if (!pos) return false;
-            
+
             if (getDrawRect().contains(pos->x, pos->y)) {
                 switch (event->m_eventName) {
                     case EventName::MOUSE_LBUTTON_UP:
@@ -123,13 +248,14 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
             return false;
         }
     }
-    
+
     return ControlImpl::handleEvent(event);
 }
 
 void CheckBox::setRect(SRect rect) {
     ControlImpl::setRect(rect);
-    updateCaptionPosition();
+
+    recreate();
 }
 
 void CheckBox::onMouseEnter(float x, float y) {
@@ -173,7 +299,8 @@ CheckBoxStyle CheckBox::getStyle() const {
 
 void CheckBox::setLayout(CheckBoxLayout layout) {
     m_layout = layout;
-    updateCaptionPosition();
+
+    recreate();
 }
 
 CheckBoxLayout CheckBox::getLayout() const {
@@ -182,6 +309,8 @@ CheckBoxLayout CheckBox::getLayout() const {
 
 void CheckBox::setVerticalAlign(CheckBoxVerticalAlign align) {
     m_verticalAlign = align;
+
+    adjustBoxVerticalAlign();
 }
 
 CheckBoxVerticalAlign CheckBox::getVerticalAlign() const {
@@ -190,46 +319,12 @@ CheckBoxVerticalAlign CheckBox::getVerticalAlign() const {
 
 void CheckBox::setSizeRatio(float ratio) {
     m_sizeRatio = ratio;
+
+    recreate();
 }
 
 float CheckBox::getSizeRatio() const {
     return m_sizeRatio;
-}
-
-void CheckBox::setCaption(string caption) {
-    m_captionText = caption;
-    
-    if (m_caption != nullptr) {
-        m_caption.reset();
-    }
-    
-    if (m_captionText.length() > 0) {
-        SRect captionRect = calculateCaptionRect();
-        
-        AlignmentMode alignment = (m_layout == CheckBoxLayout::TextRight) 
-            ? AlignmentMode::AM_MID_LEFT 
-            : AlignmentMode::AM_MID_RIGHT;
-        
-        m_caption = LabelBuilder(nullptr, captionRect)
-            .setFont(FontName::HarmonyOS_Sans_SC_Regular)
-            .setAlignmentMode(alignment)
-            .setFontSize((int)m_captionSize)
-            .setCaption(m_captionText)
-            .setTextStateColor(m_textColor)
-            .setMargin({0, 0, 0, 0})
-            .build();
-    }
-}
-
-string CheckBox::getCaption() const {
-    return m_captionText;
-}
-
-void CheckBox::setCaptionSize(float size) {
-    m_captionSize = size;
-    if (m_caption != nullptr) {
-        m_caption->setFontSize((int)m_captionSize);
-    }
 }
 
 void CheckBox::setOnCheckChanged(OnCheckChangedHandler handler) {
@@ -260,37 +355,6 @@ SDL_Color CheckBox::getIndeterminateColor() {
     return m_indeterminateStateColor.getNormal();
 }
 
-void CheckBox::setFont(FontName fontName) {
-    if (m_caption != nullptr) {
-        m_caption->setFont(fontName);
-    }
-}
-
-void CheckBox::setFontSize(int fontSize) {
-    if (m_caption != nullptr) {
-        m_caption->setFontSize(fontSize);
-    }
-    m_captionSize = (float)fontSize;
-}
-
-void CheckBox::setAlignmentMode(AlignmentMode mode) {
-    if (m_caption != nullptr) {
-        m_caption->setAlignmentMode(mode);
-    }
-}
-
-void CheckBox::setShadow(bool enabled) {
-    if (m_caption != nullptr) {
-        m_caption->setShadow(enabled);
-    }
-}
-
-void CheckBox::setShadowOffset(SPoint offset) {
-    if (m_caption != nullptr) {
-        m_caption->setShadowOffset(offset);
-    }
-}
-
 void CheckBox::setBoxBorderColor(SDL_Color color) {
     m_boxBorderStateColor.setNormal(color);
 }
@@ -299,83 +363,71 @@ SDL_Color CheckBox::getBoxBorderColor() {
     return m_boxBorderStateColor.getNormal();
 }
 
-float CheckBox::calculateCheckBoxSize() {
-    float fontSize = m_captionSize > 0 ? m_captionSize : ConstDef::CHECKBOX_DEFAULT_CAPTION_SIZE;
-    return fontSize * getScaleXX() * m_sizeRatio;
+// float CheckBox::calculateCheckBoxSize() {
+//     float fontSize = m_captionSize > 0 ? m_captionSize : ConstDef::CHECKBOX_DEFAULT_CAPTION_SIZE;
+//     return fontSize * getScaleXX() * m_sizeRatio;
+// }
+
+// SRect CheckBox::calculateCheckBoxRect() {
+//     SRect drawRect = getDrawRect();
+//     float boxSize = calculateCheckBoxSize();
+
+//     float boxX = (m_layout == CheckBoxLayout::TextRight)
+//         ? drawRect.left
+//         : drawRect.left + drawRect.width - boxSize;
+
+//     float boxY;
+//     switch (m_verticalAlign) {
+//         case CheckBoxVerticalAlign::Top:
+//             boxY = drawRect.top;
+//             break;
+//         case CheckBoxVerticalAlign::Bottom:
+//             boxY = drawRect.top + drawRect.height - boxSize;
+//             break;
+//         case CheckBoxVerticalAlign::Center:
+//         default:
+//             boxY = drawRect.top + (drawRect.height - boxSize) / 2;
+//             break;
+//     }
+
+//     return {boxX, boxY, boxSize, boxSize};
+// }
+
+SRect CheckBox::getBoxDrawRect(){
+    SRect boxFrameRect = {m_boxRect.left + m_boxMargin.left, m_boxRect.top + m_boxMargin.top,
+                    m_boxRect.width - m_boxMargin.left - m_boxMargin.right,
+                    m_boxRect.height - m_boxMargin.top - m_boxMargin.bottom};
+    SRect boxDrawRect = mapToDrawRect(boxFrameRect);
+
+    return boxDrawRect;
 }
 
-SRect CheckBox::calculateCheckBoxRect() {
-    SRect drawRect = getDrawRect();
-    float boxSize = calculateCheckBoxSize();
-    
-    float boxX = (m_layout == CheckBoxLayout::TextRight) 
-        ? drawRect.left 
-        : drawRect.left + drawRect.width - boxSize;
-    
-    float boxY;
-    switch (m_verticalAlign) {
-        case CheckBoxVerticalAlign::Top:
-            boxY = drawRect.top;
-            break;
-        case CheckBoxVerticalAlign::Bottom:
-            boxY = drawRect.top + drawRect.height - boxSize;
-            break;
-        case CheckBoxVerticalAlign::Center:
-        default:
-            boxY = drawRect.top + (drawRect.height - boxSize) / 2;
-            break;
-    }
-    
-    return {boxX, boxY, boxSize, boxSize};
-}
-
-SRect CheckBox::calculateCaptionRect() {
-    SRect drawRect = getDrawRect();
-    float boxSize = calculateCheckBoxSize();
-    float scaledMargin = ConstDef::CHECKBOX_BOX_MARGIN * getScaleXX();
-    
-    if (m_layout == CheckBoxLayout::TextRight) {
-        float captionWidth = drawRect.width - boxSize - scaledMargin;
-        return {drawRect.left + boxSize + scaledMargin, drawRect.top, 
-                captionWidth, drawRect.height};
-    } else {
-        float captionWidth = drawRect.width - boxSize - scaledMargin;
-        float boxX = drawRect.left + drawRect.width - boxSize;
-        return {boxX - scaledMargin - captionWidth, drawRect.top, captionWidth, drawRect.height};
-    }
-}
-
-void CheckBox::updateCaptionPosition() {
-    if (m_caption != nullptr) {
-        SRect captionRect = calculateCaptionRect();
-        m_caption->setRect(captionRect);
-    }
-}
-
-void CheckBox::drawCheckBoxFrame(SRect boxRect) {
+void CheckBox::drawCheckBoxFrame() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
-    
+
+    SRect boxDrawRect = getBoxDrawRect();
+
     SDL_Color borderColor = getEnable() ? m_boxBorderStateColor.getNormal() : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
-    
+
     if (!SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, borderColor.a)) {
         return;
     }
-    
-    float penWidth = 2.0f;
-    
+
+    float penWidth = ConstDef::BOX_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
+
     switch (m_style) {
         case CheckBoxStyle::Classic:
         case CheckBoxStyle::Cross: {
-            SPoint topLeft(boxRect.left + penWidth / 2, boxRect.top + penWidth / 2);
-            SPoint topRight(boxRect.left + boxRect.width - penWidth / 2, boxRect.top + penWidth / 2);
-            SPoint bottomRight(boxRect.left + boxRect.width - penWidth / 2, boxRect.top + boxRect.height - penWidth / 2);
-            SPoint bottomLeft(boxRect.left + penWidth / 2, boxRect.top + boxRect.height - penWidth / 2);
-            
+            SPoint topLeft(boxDrawRect.left + penWidth / 2, boxDrawRect.top + penWidth / 2);
+            SPoint topRight(boxDrawRect.left + boxDrawRect.width - penWidth / 2, boxDrawRect.top + penWidth / 2);
+            SPoint bottomRight(boxDrawRect.left + boxDrawRect.width - penWidth / 2, boxDrawRect.top + boxDrawRect.height - penWidth / 2);
+            SPoint bottomLeft(boxDrawRect.left + penWidth / 2, boxDrawRect.top + boxDrawRect.height - penWidth / 2);
+
             GraphTool::DrawingContext dc(renderer);
             dc.setPenColor(GraphTool::SColor(borderColor.r / 255.0f, borderColor.g / 255.0f, borderColor.b / 255.0f, borderColor.a / 255.0f));
             dc.setPenWidth(penWidth);
-            
+
             dc.drawLine(topLeft, topRight);
             dc.drawLine(topRight, bottomRight);
             dc.drawLine(bottomRight, bottomLeft);
@@ -383,87 +435,86 @@ void CheckBox::drawCheckBoxFrame(SRect boxRect) {
             break;
         }
         case CheckBoxStyle::Circle: {
-            float centerX = boxRect.left + boxRect.width / 2;
-            float centerY = boxRect.top + boxRect.height / 2;
-            float radius = (boxRect.width < boxRect.height ? boxRect.width : boxRect.height) / 2 - penWidth / 2;
-            
+            SPoint boxCenter = boxDrawRect.center();
+            float radius = boxDrawRect.width / 2 - penWidth / 2;
+
             const int numPoints = 36;
             GraphTool::DrawingContext dc(renderer);
             dc.setPenColor(GraphTool::SColor(borderColor.r / 255.0f, borderColor.g / 255.0f, borderColor.b / 255.0f, borderColor.a / 255.0f));
             dc.setPenWidth(penWidth);
-            
-            for (int i = 0; i < numPoints; i++) {
-                float angle1 = 2.0f * M_PI * i / numPoints;
-                float angle2 = 2.0f * M_PI * (i + 1) / numPoints;
-                
-                float x1 = centerX + radius * cos(angle1);
-                float y1 = centerY + radius * sin(angle1);
-                float x2 = centerX + radius * cos(angle2);
-                float y2 = centerY + radius * sin(angle2);
-                
-                dc.drawLine(x1, y1, x2, y2);
-            }
+
+            dc.drawCircle(boxCenter, radius);
+
             break;
         }
     }
 }
 
-void CheckBox::drawCheckMark(SRect boxRect) {
+void CheckBox::drawCheckMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
-    
+
     SDL_Color checkColor = getEnable() ? m_checkStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
-    
+
     GraphTool::DrawingContext dc(renderer);
     dc.setPenColor(GraphTool::SColor(checkColor.r / 255.0f, checkColor.g / 255.0f, checkColor.b / 255.0f, checkColor.a / 255.0f));
-    dc.setPenWidth(2.5f);
-    
-    float padding = boxRect.width * 0.2f;
-    float startX = boxRect.left + padding;
-    float endX = boxRect.left + boxRect.width - padding;
-    float startY = boxRect.top + boxRect.height / 2;
-    float midX = boxRect.left + boxRect.width * 0.4f;
-    float midY = boxRect.top + boxRect.height * 0.7f;
-    
-    dc.drawLine(startX, startY, midX, midY);
-    dc.drawLine(midX, midY, endX, boxRect.top + padding);
+    float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
+    dc.setPenWidth(penWidth);
+
+    SRect boxDrawRect = getBoxDrawRect();
+
+    float padding = boxDrawRect.width * 0.2f;
+    float startX = boxDrawRect.left + padding;
+    float endX = boxDrawRect.left + boxDrawRect.width - padding;
+    float startY = boxDrawRect.top + boxDrawRect.height / 2;
+    float midX = boxDrawRect.left + boxDrawRect.width * 0.4f;
+    float midY = boxDrawRect.top + boxDrawRect.height * 0.7f;
+
+    dc.drawLine(startX, startY, midX + penWidth / 2 , midY + penWidth / 2);
+    dc.drawLine(midX, midY, endX, boxDrawRect.top + padding);
 }
 
-void CheckBox::drawCrossMark(SRect boxRect) {
+void CheckBox::drawCrossMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
-    
+
     SDL_Color crossColor = getEnable() ? m_crossStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
-    
+
     GraphTool::DrawingContext dc(renderer);
     dc.setPenColor(GraphTool::SColor(crossColor.r / 255.0f, crossColor.g / 255.0f, crossColor.b / 255.0f, crossColor.a / 255.0f));
-    dc.setPenWidth(2.5f);
-    
-    float padding = boxRect.width * 0.2f;
-    float startX = boxRect.left + padding;
-    float endX = boxRect.left + boxRect.width - padding;
-    float startY = boxRect.top + padding;
-    float endY = boxRect.top + boxRect.height - padding;
-    
+    float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
+    dc.setPenWidth(penWidth);
+
+    SRect boxDrawRect = getBoxDrawRect();
+
+    float padding = boxDrawRect.width * 0.2f;
+    float startX = boxDrawRect.left + padding;
+    float endX = boxDrawRect.left + boxDrawRect.width - padding;
+    float startY = boxDrawRect.top + padding;
+    float endY = boxDrawRect.top + boxDrawRect.height - padding;
+
     dc.drawLine(startX, startY, endX, endY);
     dc.drawLine(endX, startY, startX, endY);
 }
 
-void CheckBox::drawIndeterminateMark(SRect boxRect) {
+void CheckBox::drawIndeterminateMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
-    
+
     SDL_Color indColor = getEnable() ? m_indeterminateStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
-    
+
     GraphTool::DrawingContext dc(renderer);
     dc.setPenColor(GraphTool::SColor(indColor.r / 255.0f, indColor.g / 255.0f, indColor.b / 255.0f, indColor.a / 255.0f));
-    dc.setPenWidth(2.5f);
-    
-    float padding = boxRect.width * 0.25f;
-    float lineStartX = boxRect.left + padding;
-    float lineEndX = boxRect.left + boxRect.width - padding;
-    float lineY = boxRect.top + boxRect.height / 2;
-    
+    float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
+    dc.setPenWidth(penWidth);
+
+    SRect boxDrawRect = getBoxDrawRect();
+
+    float padding = boxDrawRect.width * 0.25f;
+    float lineStartX = boxDrawRect.left + padding;
+    float lineEndX = boxDrawRect.left + boxDrawRect.width - padding;
+    float lineY = boxDrawRect.top + boxDrawRect.height / 2;
+
     dc.drawLine(lineStartX, lineY, lineEndX, lineY);
 }
 
@@ -500,18 +551,13 @@ CheckBoxBuilder& CheckBoxBuilder::setSizeRatio(float ratio) {
     return *this;
 }
 
-CheckBoxBuilder& CheckBoxBuilder::setCaption(string caption) {
-    m_checkBox->setCaption(caption);
+CheckBoxBuilder& CheckBoxBuilder::setCaptionText(string caption) {
+    m_checkBox->getCaption().setCaption(caption);
     return *this;
 }
 
 CheckBoxBuilder& CheckBoxBuilder::setCaptionSize(float size) {
-    m_checkBox->setCaptionSize(size);
-    return *this;
-}
-
-CheckBoxBuilder& CheckBoxBuilder::setFontSize(int fontSize) {
-    m_checkBox->setFontSize(fontSize);
+    m_checkBox->getCaption().setFontSize(size);
     return *this;
 }
 
@@ -571,5 +617,6 @@ CheckBoxBuilder& CheckBoxBuilder::setEnable(bool enable) {
 }
 
 shared_ptr<CheckBox> CheckBoxBuilder::build(void) {
+    m_checkBox->create();
     return m_checkBox;
 }

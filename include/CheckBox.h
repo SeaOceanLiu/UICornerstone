@@ -32,36 +32,42 @@ class CheckBox : public ControlImpl {
     friend class CheckBoxBuilder;
 public:
     using OnCheckChangedHandler = std::function<void (shared_ptr<CheckBox>, CheckState)>;
-    
+
 private:
     CheckState m_checkState;
     CheckBoxStyle m_style;
     CheckBoxLayout m_layout;
     CheckBoxVerticalAlign m_verticalAlign;
-    
+
     shared_ptr<Label> m_caption;
     OnCheckChangedHandler m_onCheckChanged;
-    
+
     float m_sizeRatio;
-    float m_captionSize;
-    string m_captionText;
     bool m_triStateEnabled;
-    
+
+    SRect m_boxRect;
+    Margin m_boxMargin;
+
     StateColor m_checkStateColor;
     StateColor m_crossStateColor;
     StateColor m_indeterminateStateColor;
     StateColor m_boxBorderStateColor;
-    
+protected:
+    void recreate(void) override;
 public:
     CheckBox(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
+    void releaseCaption(void);
+    void createCaption(void);
+    Label& getCaption(void) const;
+    void create(void) override;
     void update(void) override;
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
-    
+
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;
-    
+
     void setCheckState(CheckState state);
     CheckState getCheckState() const;
     void setStyle(CheckBoxStyle style);
@@ -70,45 +76,40 @@ public:
     CheckBoxLayout getLayout() const;
     void setVerticalAlign(CheckBoxVerticalAlign align);
     CheckBoxVerticalAlign getVerticalAlign() const;
-    
+
     void setSizeRatio(float ratio);
     float getSizeRatio() const;
-    
+
     void setTriStateEnabled(bool enabled);
     bool isTriStateEnabled() const;
-    
-    void setCaption(string caption);
-    string getCaption() const;
-    void setCaptionSize(float size);
-    
+
     void setOnCheckChanged(OnCheckChangedHandler handler);
-    
+
     void setCheckColor(SDL_Color color);
     SDL_Color getCheckColor();
     void setCrossColor(SDL_Color color);
     SDL_Color getCrossColor();
     void setIndeterminateColor(SDL_Color color);
     SDL_Color getIndeterminateColor();
-    
+
     void setBoxBorderColor(SDL_Color color);
     SDL_Color getBoxBorderColor();
-    
-    void setFont(FontName fontName);
-    void setFontSize(int fontSize);
-    void setAlignmentMode(AlignmentMode mode);
-    void setShadow(bool enabled);
-    void setShadowOffset(SPoint offset);
-    
+
 private:
-    float calculateCheckBoxSize();
-    SRect calculateCheckBoxRect();
-    SRect calculateCaptionRect();
-    void updateCaptionPosition();
-    
-    void drawCheckBoxFrame(SRect boxRect);
-    void drawCheckMark(SRect boxRect);
-    void drawCrossMark(SRect boxRect);
-    void drawIndeterminateMark(SRect boxRect);
+    void setBoxSize(void);
+    void adjustSpaceAssignment(void);
+    void adjustBoxVerticalAlign(void);
+
+    // float calculateCheckBoxSize();
+    // SRect calculateCheckBoxRect();
+    // void calculateBoxAndCaptionRect();
+    // void updateCaptionPosition();
+
+    SRect getBoxDrawRect(); // for drawing
+    void drawCheckBoxFrame();
+    void drawCheckMark();
+    void drawCrossMark();
+    void drawIndeterminateMark();
 };
 
 class CheckBoxBuilder {
@@ -121,9 +122,8 @@ public:
     CheckBoxBuilder& setVerticalAlign(CheckBoxVerticalAlign align);
     CheckBoxBuilder& setCheckState(CheckState state);
     CheckBoxBuilder& setSizeRatio(float ratio);
-    CheckBoxBuilder& setCaption(string caption);
+    CheckBoxBuilder& setCaptionText(string caption);
     CheckBoxBuilder& setCaptionSize(float size);
-    CheckBoxBuilder& setFontSize(int fontSize);
     CheckBoxBuilder& setTriStateEnabled(bool enabled);
     CheckBoxBuilder& setOnCheckChanged(CheckBox::OnCheckChangedHandler handler);
     CheckBoxBuilder& setCheckColor(SDL_Color color);
