@@ -23,39 +23,41 @@ void Button::update(void){
     ControlImpl::update();
 }
 void Button::draw(void){
+    ControlImpl::preDraw();
+
     if (!getVisible()) return;
 
     SRect drawRect = getDrawRect();
 
-    // 1. 先绘制当前控件的外观
-    if (!m_isTransparent){
+    // // 1. 先绘制当前控件的外观
+    // if (!m_isTransparent){
 
-        // 背景色
-        SDL_Color bgColor;
-        switch (getState()){
-            case ControlState::Disabled:
-                bgColor = m_bgColor.getDisabled();
-                break;
-            case ControlState::Hover:
-                bgColor = m_bgColor.getHover();
-                break;
-            case ControlState::Pressed:
-                bgColor = m_bgColor.getPressed();
-                break;
-            case ControlState::Normal:
-            default:
-                bgColor = m_bgColor.getNormal();
-                break;
-        }
+    //     // 背景色
+    //     SDL_Color bgColor;
+    //     switch (getState()){
+    //         case ControlState::Disabled:
+    //             bgColor = m_bgColor.getDisabled();
+    //             break;
+    //         case ControlState::Hover:
+    //             bgColor = m_bgColor.getHover();
+    //             break;
+    //         case ControlState::Pressed:
+    //             bgColor = m_bgColor.getPressed();
+    //             break;
+    //         case ControlState::Normal:
+    //         default:
+    //             bgColor = m_bgColor.getNormal();
+    //             break;
+    //     }
 
-        if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.r, bgColor.g, bgColor.b, bgColor.a)){
-            SDL_Log("Failed to set grid render color: %s", SDL_GetError());
-        }
+    //     if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.r, bgColor.g, bgColor.b, bgColor.a)){
+    //         SDL_Log("Failed to set grid render color: %s", SDL_GetError());
+    //     }
 
-        if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("Failed to fill render rect: %s", SDL_GetError());
-        }
-    }
+    //     if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
+    //         SDL_Log("Failed to fill render rect: %s", SDL_GetError());
+    //     }
+    // }
 
     // 2. 绘制当前控件的图标
     auto actor = m_actor;
@@ -97,31 +99,31 @@ void Button::draw(void){
     // 4. 接着绘制子控件
     ControlImpl::draw();
 
-    // 5. 最后绘制边框
-    if(!m_isTransparent && m_isBorderVisible) {
-        SDL_Color borderColor;
-        switch (m_state){
-            case ControlState::Disabled:
-                borderColor = m_borderColor.getDisabled();
-                break;
-            case ControlState::Hover:
-                borderColor = m_borderColor.getHover();
-                break;
-            case ControlState::Pressed:
-                borderColor = m_borderColor.getPressed();
-                break;
-            case ControlState::Normal:
-            default:
-                borderColor = m_borderColor.getNormal();
-                break;
-        }
-        if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.r, borderColor.g, borderColor.b, borderColor.a)){
-            SDL_Log("Panel fFailed to set border color: %s", SDL_GetError());
-        }
-        if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("Panel failed to draw border: %s", SDL_GetError());
-        }
-    }
+    // // 5. 最后绘制边框
+    // if(!m_isTransparent && m_isBorderVisible) {
+    //     SDL_Color borderColor;
+    //     switch (m_state){
+    //         case ControlState::Disabled:
+    //             borderColor = m_borderColor.getDisabled();
+    //             break;
+    //         case ControlState::Hover:
+    //             borderColor = m_borderColor.getHover();
+    //             break;
+    //         case ControlState::Pressed:
+    //             borderColor = m_borderColor.getPressed();
+    //             break;
+    //         case ControlState::Normal:
+    //         default:
+    //             borderColor = m_borderColor.getNormal();
+    //             break;
+    //     }
+    //     if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.r, borderColor.g, borderColor.b, borderColor.a)){
+    //         SDL_Log("Panel fFailed to set border color: %s", SDL_GetError());
+    //     }
+    //     if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
+    //         SDL_Log("Panel failed to draw border: %s", SDL_GetError());
+    //     }
+    // }
 }
 
 bool Button::handleEvent(shared_ptr<Event> event){
@@ -354,5 +356,6 @@ ButtonBuilder& ButtonBuilder::setId(int id){
     return *this;
 }
 shared_ptr<Button> ButtonBuilder::build(void){
+    m_button->create();
     return m_button;
 }

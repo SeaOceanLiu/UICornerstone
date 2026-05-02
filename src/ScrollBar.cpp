@@ -351,5 +351,6 @@ ScrollBarBuilder& ScrollBarBuilder::setId(int id) {
 }
 
 shared_ptr<ScrollBar> ScrollBarBuilder::build(void) {
+    m_scrollBar->create();
     return m_scrollBar;
 }

@@ -58,7 +58,7 @@ public:
     CheckBox(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
     void releaseCaption(void);
     void createCaption(void);
-    Label& getCaption(void) const;
+    shared_ptr<Label> getCaption(void) const;
     void create(void) override;
     void update(void) override;
     void draw(void) override;

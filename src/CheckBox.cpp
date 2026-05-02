@@ -67,12 +67,8 @@ void CheckBox::createCaption(void){
         .build();
 }
 
-Label& CheckBox::getCaption(void) const {
-    if (m_caption == nullptr) {
-        SDL_Log("CheckBox::getCaption: Caption is null");
-        throw std::runtime_error("Caption is null");
-    }
-    return *m_caption;
+shared_ptr<Label> CheckBox::getCaption(void) const {
+    return m_caption;
 }
 
 // setBoxSize必须在createCaption之后调用，因为setBoxSize需要根据caption的行高来设置checkbox的大小
@@ -552,12 +548,12 @@ CheckBoxBuilder& CheckBoxBuilder::setSizeRatio(float ratio) {
 }
 
 CheckBoxBuilder& CheckBoxBuilder::setCaptionText(string caption) {
-    m_checkBox->getCaption().setCaption(caption);
+    m_checkBox->getCaption()->setCaption(caption);
     return *this;
 }
 
 CheckBoxBuilder& CheckBoxBuilder::setCaptionSize(float size) {
-    m_checkBox->getCaption().setFontSize(size);
+    m_checkBox->getCaption()->setFontSize(size);
     return *this;
 }
 

@@ -126,11 +126,11 @@ int EditBox::getUtf8CharLength(unsigned char c) {
 std::string EditBox::getUtf8Substr(const std::string& str, int startByte, int byteCount) const {
     if (startByte < 0 || startByte >= (int)str.length()) return "";
     if (byteCount <= 0) return "";
-    
+
     while (startByte > 0 && (str[startByte] & 0xC0) == 0x80) {
         startByte--;
     }
-    
+
     int endByte = startByte;
     int remaining = byteCount;
     while (remaining > 0 && endByte < (int)str.length()) {
@@ -139,7 +139,7 @@ std::string EditBox::getUtf8Substr(const std::string& str, int startByte, int by
         endByte += charLen;
         remaining -= charLen;
     }
-    
+
     return str.substr(startByte, endByte - startByte);
 }
 
@@ -160,26 +160,26 @@ float EditBox::getTextWidth(const std::string& text) const {
 int EditBox::getCursorFromPosition(float x) const {
     std::string displayText = getDisplayText();
     float textX = m_textOffsetX;
-    
+
     int bestOffset = 0;
     float bestDist = 99999.0f;
-    
+
     for (int i = 0; i <= (int)displayText.length(); ) {
         std::string prefix = getUtf8Substr(displayText, 0, i);
         float charX = textX + getTextWidth(prefix);
         float dist = SDL_abs(x - charX);
-        
+
         if (dist < bestDist) {
             bestDist = dist;
             bestOffset = i;
         }
-        
+
         if (i >= (int)displayText.length()) break;
-        
+
         int charLen = getUtf8CharLength((unsigned char)displayText[i]);
         i += charLen;
     }
-    
+
     return bestOffset;
 }
 
@@ -196,27 +196,27 @@ void EditBox::updateTextOffset() {
     float scaledFontSize = m_fontSize * scale;
     float textHeight = scaledFontSize;
     m_textOffsetY = (drawRect.height - textHeight) / 2.0f;
-    
+
     float textWidth = getTextWidth(getDisplayText());
     float visibleWidth = drawRect.width - (m_margin.left + m_margin.right) * scale;
     float margin = m_margin.left * scale;
-    
+
     if (textWidth <= visibleWidth) {
         m_textOffsetX = margin;
         return;
     }
-    
+
     std::string textBeforeCursor = getUtf8Substr(getDisplayText(), 0, m_cursorPosition);
     float cursorPixelX = getTextWidth(textBeforeCursor);
-    
+
     float minVisibleX = margin;
     float maxVisibleX = visibleWidth - margin;
     float cursorDisplayX = cursorPixelX + m_textOffsetX;
-    
+
     if (cursorDisplayX >= minVisibleX && cursorDisplayX <= maxVisibleX) {
         return;
     }
-    
+
     if (cursorDisplayX > maxVisibleX) {
         float targetOffset = cursorPixelX - maxVisibleX + margin;
         float maxOffset = textWidth - visibleWidth + margin;
@@ -225,7 +225,7 @@ void EditBox::updateTextOffset() {
     } else if (cursorDisplayX < minVisibleX) {
         m_textOffsetX = margin - cursorPixelX;
     }
-    
+
     if (m_textOffsetX > margin) m_textOffsetX = margin;
     float minOffset = margin - (textWidth - visibleWidth);
     if (m_textOffsetX < minOffset) m_textOffsetX = minOffset;
@@ -270,6 +270,8 @@ void EditBox::update(void) {
 }
 
 void EditBox::draw(void) {
+    ControlImpl::preDraw();
+
     if (!m_visible) return;
 
     SDL_Renderer *renderer = getRenderer();
@@ -278,36 +280,36 @@ void EditBox::draw(void) {
     SRect drawRect = getDrawRect();
     float scaledFontSize = m_fontSize * getScaleXX();
 
-    drawBackground(&drawRect);
-    drawBorder(&drawRect);
-    
+    // drawBackground(&drawRect);
+    // drawBorder(&drawRect);
+
     float scale = getScaleXX();
     float marginX = m_margin.left * scale;
     float marginY = m_margin.top * scale;
     float marginRight = m_margin.right * scale;
     float marginBottom = m_margin.bottom * scale;
-    SDL_Rect clipRect = {(int)(drawRect.left + marginX), (int)(drawRect.top + marginY), 
+    SDL_Rect clipRect = {(int)(drawRect.left + marginX), (int)(drawRect.top + marginY),
                          (int)(drawRect.width - marginX - marginRight), (int)(drawRect.height - marginY - marginBottom)};
     SDL_SetRenderClipRect(renderer, &clipRect);
 
     if (hasSelection() && m_focused) {
         int selStart = std::min(m_selectionStart, m_selectionEnd);
         int selEnd = std::max(m_selectionStart, m_selectionEnd);
-        
+
         std::string displayText = getDisplayText();
         std::string prefixForStart = getUtf8Substr(displayText, 0, selStart);
         std::string prefixForEnd = getUtf8Substr(displayText, 0, selEnd);
-        
+
         float startX = m_textOffsetX + getTextWidth(prefixForStart);
         float endX = m_textOffsetX + getTextWidth(prefixForEnd);
-        
+
         SDL_FRect selRect = {
             drawRect.left + startX,
             drawRect.top + m_textOffsetY,
             endX - startX,
             scaledFontSize
         };
-        
+
         SDL_SetRenderDrawColor(renderer, 100, 149, 237, 128);
         SDL_RenderFillRect(renderer, &selRect);
     }
@@ -325,7 +327,7 @@ void EditBox::draw(void) {
         SDL_FPoint position = {drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY};
         TTF_DrawRendererText(m_placeholderTextObj, position.x, position.y);
     }
-    
+
     SDL_SetRenderClipRect(renderer, nullptr);
 
     if (m_focused && m_cursorVisible && m_selectionStart == m_selectionEnd) {
@@ -359,7 +361,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
 
                 SDL_Keymod mod = SDL_GetModState();
                 bool shiftPressed = (mod & SDL_KMOD_SHIFT) != 0;
-                
+
                 if (shiftPressed) {
                     m_selectionEnd = newCursor;
                 } else {
@@ -389,13 +391,13 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
                 if (!pos) return false;
                 int newCursor = getCursorFromPosition(pos->x - getDrawRect().left);
-                
+
                 int start = std::min(m_dragStartPosition, newCursor);
                 int end = std::max(m_dragStartPosition, newCursor);
                 m_selectionStart = start;
                 m_selectionEnd = end;
                 m_cursorPosition = newCursor;
-                
+
                 updateTextOffset();
                 return true;
             } catch (...) {
@@ -436,7 +438,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     if (event->m_eventName == EventName::KEY_DOWN) {
         if (!m_focused) return false;
         if (!event->m_eventParam.has_value()) return false;
@@ -505,7 +507,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     if ((m_text[newPos] & 0xC0) != 0x80) break;
                 }
                 newPos = std::max(0, newPos);
-                
+
                 if ((keyData.mod & SDL_KMOD_SHIFT) != 0) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
@@ -528,7 +530,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     break;
                 }
                 newPos = std::min((int)m_text.length(), newPos);
-                
+
                 if ((keyData.mod & SDL_KMOD_SHIFT) != 0) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
@@ -574,7 +576,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
         if (!event->m_eventParam.has_value()) return false;
         try {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
-            
+
             if (keyData.keycode == SDLK_LSHIFT || keyData.keycode == SDLK_RSHIFT) {
                 m_shiftPressed = false;
             } else if (keyData.keycode == SDLK_LCTRL || keyData.keycode == SDLK_RCTRL) {
@@ -595,9 +597,9 @@ void EditBox::setRect(SRect rect) {
 
 void EditBox::setRenderer(SDL_Renderer *renderer) {
     if (m_renderer == renderer) return;
-    
+
     ControlImpl::setRenderer(renderer);
-    
+
     if (renderer && m_font) {
         recreateTextObjects();
     }
@@ -671,7 +673,7 @@ std::string EditBox::getSelectedText() const {
 
 void EditBox::copy() const {
     if (m_passwordMode) return;
-    
+
     std::string selectedText = getSelectedText();
     if (!selectedText.empty()) {
         SDL_SetClipboardText(selectedText.c_str());
@@ -739,14 +741,14 @@ void EditBox::setFocused(bool focused) {
             EventQueue::getInstance()->addBeforeEventHandlingWatcher(EventName::ON_FOCUS, getThis());
             m_focusWatcherRegistered = true;
         }
-        
+
         FocusEventData focusData;
         focusData.controlPtr = this;
         focusData.focused = true;
-        
+
         shared_ptr<Event> event = make_shared<Event>(EventName::ON_FOCUS, focusData);
         EventQueue::getInstance()->pushEventIntoQueue(event);
-        
+
         m_focused = true;
         m_cursorVisible = true;
         m_cursorBlinkTime = 0;
@@ -859,5 +861,6 @@ EditBoxBuilder& EditBoxBuilder::setTransparent(bool isTransparent) {
 }
 
 shared_ptr<EditBox> EditBoxBuilder::build(void) {
+    m_editBox->create();
     return m_editBox;
 }

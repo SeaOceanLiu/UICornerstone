@@ -30,6 +30,14 @@ enum class AlignmentMode: int{
     AM_CENTER,
     AM_BOTTOM_CENTER
 };
+
+enum class LabelDirection: int{
+    LD_LEFT_TO_RIGHT = 4,
+    LD_RIGHT_TO_LEFT,
+    LD_TOP_TO_BOTTOM,
+    LD_BOTTOM_TO_TOP
+};
+
 class Label: public ControlImpl {
     friend class LabelBuilder;
     using OnClickHandler = std::function<void (shared_ptr<Label>)>;

@@ -201,7 +201,6 @@ void ProgressBar::createTextLabel() {
         .setFontSize(m_fontSize)
         .setCaption(displayText)
         .setTextStateColor([&]() { StateColor sc; sc.setNormal(m_textColor); return sc; }())
-        .setMargin({0, 0, 0, 0})
         .build();
 
     addControl(m_textLabel);
@@ -315,5 +314,6 @@ ProgressBarBuilder& ProgressBarBuilder::setId(int id) {
 }
 
 shared_ptr<ProgressBar> ProgressBarBuilder::build(void) {
+    m_progressBar->create();
     return m_progressBar;
 }

@@ -233,6 +233,7 @@ public:
         return *this;
     }
     virtual shared_ptr<MenuBase> build(void) {
+        m_menu->create();
         return m_menu;
     }
 };
@@ -303,6 +304,7 @@ public:
         m_separator = dynamic_pointer_cast<MenuSeparator>(m_menu);
     }
     shared_ptr<MenuBase> build(void) {
+        m_separator->create();
         return m_separator;
     }
 };
@@ -372,7 +374,8 @@ public:
         if (m_menuContainer == nullptr) {
             setType(MenuItemType::SubMenu); // 有子菜单时，类型改为SubMenu
             m_menuContainer = make_shared<MenuContainer>(this); // 创建子菜单容器
-            m_menuContainer->setVisible(true);
+            // m_menuContainer->setVisible(true);
+            m_menuContainer->create(); // 创建子菜单容器
             if (getDirection() == MenuDirection::Horizontal) {
                 // 水平菜单，子菜单容器为水平
                 m_menuContainer->setRect({0, 0, 0, 0});
@@ -425,6 +428,7 @@ public:
         return *this;
     }
     shared_ptr<MenuBase> build(void) {
+        m_menuBar->create();
         return m_menuBar;
     }
 };
@@ -491,6 +495,8 @@ public:
                 // 子菜单做了偏移处理，为了对齐边线，这里需要调整回来
                 m_menuContainer->setRect({0 - ConstDef::MENU_ITEM_MARGIN.left, getRect().height - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
             }
+            m_menuContainer->create(); // 创建子菜单容器
+            m_menuContainer->setVisible(false); // 默认隐藏子菜单，鼠标移入时显示
 
             SDL_Log("MainMenu::addMenuItem rect = {%f, %f, %f, %f}", getRect().left, getRect().top, getRect().width, getRect().height);
         }
@@ -544,6 +550,7 @@ public:
             SDL_Log("MainMenuBuilder::build: Failed to cast MenuBase to MainMenu");
             throw std::runtime_error("MainMenu is not properly initialized");
         }
+        m_mainMenu->create();
         return m_mainMenu;
     }
 };
@@ -605,6 +612,9 @@ public:
                 (getDirection() == MenuDirection::Horizontal) ? "Horizontal" : "Vertical"
             );
             createSubMenuArrowLabel(); // 创建子菜单箭头
+
+            m_menuContainer->create();
+            m_menuContainer->setVisible(false); // 默认隐藏子菜单，鼠标移入时显示
         }
         addItem(item);
     }
@@ -652,6 +662,7 @@ public:
         return *this;
     }
     shared_ptr<MenuBase> build(void) {
+        m_menuItem->create();
         return m_menuItem;
     }
 };

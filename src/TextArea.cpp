@@ -16,14 +16,14 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     , m_textEngine(nullptr)
 {
     m_lines.push_back("");
-    
+
     SRect vScrollBarRect = SRect(
         rect.width - 16.0f,
         0.0f,
         16.0f,
         rect.height
     );
-    
+
     m_vScrollBar = make_shared<ScrollBar>(this, vScrollBarRect, ScrollBarOrientation::Vertical, 1.0f, 1.0f);
     m_vScrollBar->setRange(0, 100);
     m_vScrollBar->setPageSize(rect.height);
@@ -33,16 +33,16 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
             setScrollY((int)value);
         }
     });
-    
+
     addControl(m_vScrollBar);
-    
+
     SRect hScrollBarRect = SRect(
         0.0f,
         rect.height - 16.0f,
         rect.width,
         16.0f
     );
-    
+
     m_hScrollBar = make_shared<ScrollBar>(this, hScrollBarRect, ScrollBarOrientation::Horizontal, 1.0f, 1.0f);
     m_hScrollBar->setRange(0, 100);
     m_hScrollBar->setPageSize(rect.width);
@@ -52,7 +52,7 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
             setScrollX((int)value);
         }
     });
-    
+
     addControl(m_hScrollBar);
 }
 
@@ -60,17 +60,17 @@ float TextArea::getCharWidth(const std::string& text, int byteIndex) {
     if (byteIndex < 0 || byteIndex >= (int)text.length() || !getTextEngine() || !getFont()) {
         return 0;
     }
-    
+
     int charLen = getUtf8CharLength(text[byteIndex]);
     if (byteIndex + charLen > (int)text.length()) {
         charLen = text.length() - byteIndex;
     }
-    
+
     TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), text.c_str() + byteIndex, charLen);
     if (!tempText) {
         return 0;
     }
-    
+
     int w = 0, h = 0;
     TTF_GetTextSize(tempText, &w, &h);
     TTF_DestroyText(tempText);
@@ -81,12 +81,12 @@ int TextArea::getLinePixelWidth(const std::string& line) {
     if (line.empty() || !getTextEngine() || !getFont()) {
         return 0;
     }
-    
+
     TTF_Text *text = TTF_CreateText(getTextEngine(), getFont(), line.c_str(), (Uint32)line.length());
     if (!text) {
         return 0;
     }
-    
+
     int w = 0, h = 0;
     TTF_GetTextSize(text, &w, &h);
     TTF_DestroyText(text);
@@ -97,28 +97,28 @@ int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
     if (text.empty()) {
         return 0;
     }
-    
+
     if (!getTextEngine() || !getFont()) {
         return 0;
     }
-    
+
     if (pixelX <= 0) {
         return 0;
     }
-    
+
     int fullWidth = getLinePixelWidth(text);
     if (pixelX >= fullWidth) {
         return (int)text.length();
     }
-    
+
     int byteIndex = 0;
-    
+
     while (byteIndex < (int)text.length()) {
         int charLen = getUtf8CharLength((unsigned char)text[byteIndex]);
         if (byteIndex + charLen > (int)text.length()) {
             charLen = text.length() - byteIndex;
         }
-        
+
         int prefixWidth = 0;
         if (byteIndex > 0) {
             TTF_Text *prefixText = TTF_CreateText(getTextEngine(), getFont(), text.c_str(), (Uint32)byteIndex);
@@ -129,7 +129,7 @@ int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
                 TTF_DestroyText(prefixText);
             }
         }
-        
+
         int nextPrefixWidth = 0;
         TTF_Text *nextPrefixText = TTF_CreateText(getTextEngine(), getFont(), text.c_str(), (Uint32)(byteIndex + charLen));
         if (nextPrefixText) {
@@ -138,36 +138,36 @@ int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
             nextPrefixWidth = w;
             TTF_DestroyText(nextPrefixText);
         }
-        
+
         float charCenterX = (prefixWidth + nextPrefixWidth) / 2.0f;
-        
+
         if (pixelX < charCenterX) {
             return byteIndex;
         }
-        
+
         byteIndex += charLen;
     }
-    
+
     return (int)text.length();
 }
 
 void TextArea::rebuildLines() {
     m_lines.clear();
     m_lineStartPositions.clear();
-    
+
     std::string text = getText();
     if (text.empty()) {
         m_lines.push_back("");
         m_lineStartPositions.push_back(0);
         return;
     }
-    
+
     float availableWidth = getRect().width - 16.0f - 16.0f * getScaleXX();
-    
+
     size_t start = 0;
     size_t newlinePos;
     int logicalLineStart = 0;
-    
+
     while (start < text.length()) {
         newlinePos = text.find('\n', start);
         std::string line;
@@ -177,21 +177,21 @@ void TextArea::rebuildLines() {
         } else {
             line = text.substr(start, newlinePos - start);
         }
-        
+
         if (m_wordWrap && availableWidth > 0 && getTextEngine() && getFont()) {
             std::string remaining = line;
             int wrapStartInLine = 0;
             while (!remaining.empty()) {
                 m_lineStartPositions.push_back(lineStartInText + wrapStartInLine);
-                
+
                 int breakPos = (int)remaining.length();
                 float lineWidth = 0;
                 bool overflow = false;
-                
+
                 for (int i = 0; i <= (int)remaining.length(); ) {
                     int charLen = (i < (int)remaining.length()) ? getUtf8CharLength(remaining[i]) : 1;
                     std::string charStr = remaining.substr(i, charLen);
-                    
+
                     TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), charStr.c_str(), charLen);
                     float charWidth = 0;
                     if (tempText) {
@@ -200,7 +200,7 @@ void TextArea::rebuildLines() {
                         charWidth = (float)w;
                         TTF_DestroyText(tempText);
                     }
-                    
+
                     if (lineWidth + charWidth > availableWidth && i > 0) {
                         overflow = true;
                         breakPos = i;
@@ -215,11 +215,11 @@ void TextArea::rebuildLines() {
                         }
                         break;
                     }
-                    
+
                     lineWidth += charWidth;
                     i += charLen;
                 }
-                
+
                 if (!overflow || breakPos == 0) {
                     m_lines.push_back(remaining);
                     break;
@@ -237,18 +237,18 @@ void TextArea::rebuildLines() {
             m_lines.push_back(line);
             m_lineStartPositions.push_back(lineStartInText);
         }
-        
+
         if (newlinePos == std::string::npos) {
             break;
         }
         start = newlinePos + 1;
     }
-    
+
     if (m_lines.empty()) {
         m_lines.push_back("");
         m_lineStartPositions.push_back(0);
     }
-    
+
     std::string fullText = getText();
     if (!fullText.empty() && fullText.back() == '\n') {
         m_lines.push_back("");
@@ -258,31 +258,31 @@ void TextArea::rebuildLines() {
 
 void TextArea::updateVScrollBar() {
     if (!m_vScrollBar) return;
-    
+
     SRect rect = getRect();
     if (rect.height <= 0) return;
-    
+
     float scale = getScaleXX();
     Margin margin = getMargin();
     float vThickness = m_vScrollBar->getThickness();
     float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
-    
+
     int totalHeight = getTotalLines() * m_lineHeight;
     int availableHeight = (int)rect.height - (int)(margin.top + margin.bottom);
     bool hScrollVisible = m_hScrollBar && m_hScrollBar->getVisible();
     if (hScrollVisible) {
         availableHeight -= (int)hThickness;
     }
-    
+
     bool wasVisible = m_vScrollBar->getVisible();
-    
+
     if (totalHeight > availableHeight) {
         int maxScroll = totalHeight - availableHeight;
         if (maxScroll < 0) maxScroll = 0;
         if (m_scrollY > maxScroll) {
             m_scrollY = maxScroll;
         }
-        
+
         m_vScrollBar->setVisible(true);
         m_vScrollBar->setRange(0, maxScroll);
         m_vScrollBar->setPageSize(availableHeight);
@@ -293,7 +293,7 @@ void TextArea::updateVScrollBar() {
         m_vScrollBar->setVisible(false);
         m_scrollY = 0;
     }
-    
+
     if (m_vScrollBar) {
         bool hScrollVisible = m_hScrollBar && m_hScrollBar->getVisible();
         float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
@@ -305,7 +305,7 @@ void TextArea::updateVScrollBar() {
         );
         m_vScrollBar->setRect(scrollBarRect);
     }
-    
+
     if (m_hScrollBar) {
         bool vScrollVisible = m_vScrollBar && m_vScrollBar->getVisible();
         float hThickness = m_hScrollBar->getThickness();
@@ -317,7 +317,7 @@ void TextArea::updateVScrollBar() {
         );
         m_hScrollBar->setRect(hScrollBarRect);
     }
-    
+
     if (wasVisible != m_vScrollBar->getVisible() && m_hScrollBar) {
         updateHScrollBar();
     }
@@ -325,13 +325,13 @@ void TextArea::updateVScrollBar() {
 
 void TextArea::updateHScrollBar() {
     if (!m_hScrollBar) return;
-    
+
     SRect rect = getRect();
     if (rect.width <= 0) return;
-    
+
     SRect drawRect = getDrawRect();
     if (drawRect.width <= 0) return;
-    
+
     int maxLineWidth = 0;
     for (const auto& line : m_lines) {
         int lineWidth = getLinePixelWidth(line);
@@ -339,7 +339,7 @@ void TextArea::updateHScrollBar() {
             maxLineWidth = lineWidth;
         }
     }
-    
+
     float scale = getScaleXX();
     Margin margin = getMargin();
     int marginX = (int)(margin.left * scale);
@@ -347,24 +347,24 @@ void TextArea::updateHScrollBar() {
     float vThickness = m_vScrollBar ? m_vScrollBar->getThickness() : 16.0f;
     float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
     int availableWidth = (int)drawRect.width - marginX - marginRight;
-    
+
     bool vScrollVisible = m_vScrollBar && m_vScrollBar->getVisible();
     if (vScrollVisible) {
         availableWidth -= (int)(vThickness * scale);
     }
-    
+
     bool wasVisible = m_hScrollBar->getVisible();
-    
+
     int cursorWidth = (int)(2.0f * scale);
     bool needScrollBar = !m_wordWrap && (maxLineWidth + cursorWidth > availableWidth);
-    
+
     if (!needScrollBar && m_scrollX > 0) {
         needScrollBar = maxLineWidth + cursorWidth > availableWidth;
     }
-    
+
     if (needScrollBar) {
         m_hScrollBar->setVisible(true);
-        
+
         int range = maxLineWidth + cursorWidth - availableWidth;
         if (range < 0) range = 0;
         m_hScrollBar->setRange(0, range);
@@ -379,7 +379,7 @@ void TextArea::updateHScrollBar() {
         m_hScrollBar->setVisible(false);
         m_scrollX = 0;
     }
-    
+
     if (m_hScrollBar) {
         SRect rect = getRect();
         float vThickness = m_vScrollBar ? m_vScrollBar->getThickness() : 16.0f;
@@ -394,7 +394,7 @@ void TextArea::updateHScrollBar() {
         );
         m_hScrollBar->setRect(hScrollBarRect);
     }
-    
+
     if (wasVisible != m_hScrollBar->getVisible() && m_vScrollBar) {
         updateVScrollBar();
     }
@@ -402,11 +402,11 @@ void TextArea::updateHScrollBar() {
 
 void TextArea::setScrollX(int x) {
     if (!m_hScrollBar) return;
-    
+
     int maxScroll = (int)m_hScrollBar->getMaxValue();
-    
+
     m_scrollX = std::max(0, std::min(x, maxScroll));
-    
+
     if (!m_updatingScrollBar) {
         m_updatingScrollBar = true;
         m_hScrollBar->setValue((float)m_scrollX);
@@ -428,54 +428,56 @@ int TextArea::getVisibleLines() {
 
 void TextArea::update(void) {
     EditBox::update();
-    
+
     if (m_text != m_lastTextForRebuild) {
         m_lastTextForRebuild = m_text;
         rebuildLines();
         updateVScrollBar();
         updateHScrollBar();
     }
-    
+
     if (m_vScrollBar && m_vScrollBar->getVisible()) {
         m_vScrollBar->update();
     }
-    
+
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         m_hScrollBar->update();
     }
 }
 
 void TextArea::draw(void) {
+    EditBox::preDraw();
+
     if (!m_visible) return;
-    
+
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
-    
+
     if (m_lines.empty() || m_lineStartPositions.empty()) {
         rebuildLines();
     }
-    
+
     SRect drawRect = getDrawRect();
     float scale = getScaleXX();
-    
+
     if (drawRect.width <= 0 || drawRect.height <= 0 || m_lineHeight <= 0) {
         return;
     }
-    
-    drawBackground(&drawRect);
-    drawBorder(&drawRect);
-    
+
+    // drawBackground(&drawRect);
+    // drawBorder(&drawRect);
+
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         m_hScrollBar->draw();
     }
-    
+
     if (m_vScrollBar && m_vScrollBar->getVisible()) {
         m_updatingScrollBar = true;
         m_vScrollBar->setValue((float)m_scrollY);
         m_updatingScrollBar = false;
         m_vScrollBar->draw();
     }
-    
+
     int clipWidth = (int)drawRect.width;
     int clipHeight = (int)drawRect.height;
     Margin margin = getMargin();
@@ -492,10 +494,10 @@ void TextArea::draw(void) {
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         clipHeight -= (int)(hThickness * scale);
     }
-    SDL_Rect clipRect = {(int)drawRect.left + (int)marginX, (int)drawRect.top + (int)marginY, 
+    SDL_Rect clipRect = {(int)drawRect.left + (int)marginX, (int)drawRect.top + (int)marginY,
                          clipWidth - (int)(marginX + marginRight), clipHeight};
     SDL_SetRenderClipRect(renderer, &clipRect);
-    
+
     int startLine = 0;
     int endLine = getTotalLines();
     int availableHeight = (int)drawRect.height;
@@ -508,27 +510,27 @@ void TextArea::draw(void) {
         int visibleLines = availableHeight / m_lineHeight;
         endLine = std::min(startLine + visibleLines + 1, getTotalLines());
     }
-    
+
     if (hasSelection()) {
         int selStart = std::min(m_selectionStart, m_selectionEnd);
         int selEnd = std::max(m_selectionStart, m_selectionEnd);
-        
+
         for (int i = startLine; i < endLine && i < getTotalLines(); ++i) {
         float y = drawRect.top + (i * m_lineHeight) * scale - m_scrollY * scale + marginY;
-            
+
             if (i >= (int)m_lineStartPositions.size()) continue;
             int lineStartByte = m_lineStartPositions[i];
             int lineEndByte = lineStartByte + (int)m_lines[i].length();
-            
+
             if (selEnd <= lineStartByte || selStart > lineEndByte) {
                 continue;
             }
-            
+
             int selStartInLine = std::max(0, selStart - lineStartByte);
             int selEndInLine = std::min((int)m_lines[i].length(), selEnd - lineStartByte);
-            
+
             if (selStartInLine >= selEndInLine) continue;
-            
+
             float selStartX = drawRect.left + marginX - (float)m_scrollX;
             std::string textBeforeSel = m_lines[i].substr(0, selStartInLine);
             if (!textBeforeSel.empty() && getTextEngine() && getFont()) {
@@ -540,7 +542,7 @@ void TextArea::draw(void) {
                     TTF_DestroyText(tempText);
                 }
             }
-            
+
             float selEndX = selStartX;
             std::string selectedText = m_lines[i].substr(selStartInLine, selEndInLine - selStartInLine);
             if (!selectedText.empty() && getTextEngine() && getFont()) {
@@ -552,50 +554,51 @@ void TextArea::draw(void) {
                     TTF_DestroyText(tempText);
                 }
             }
-            
+
             SDL_Color selColor = {173, 214, 255, 128};
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_SetRenderDrawColor(renderer, selColor.r, selColor.g, selColor.b, selColor.a);
-            SDL_RenderFillRect(renderer, &SDL_FRect{selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY});
+            SDL_FRect selRect = {selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY};
+            SDL_RenderFillRect(renderer, &selRect);
         }
     }
-    
+
     for (int i = startLine; i < endLine; ++i) {
         if (i >= getTotalLines()) break;
-        
+
         float y = drawRect.top + (i * m_lineHeight) * scale - m_scrollY * scale + marginY;
-        
+
         if (!m_lines[i].empty()) {
             std::string displayLine = m_lines[i];
             if (isPasswordMode()) {
                 displayLine = std::string(displayLine.length(), '*');
             }
-            
+
             TTF_TextEngine *textEngine = getTextEngine() ? getTextEngine() : EditBox::getTextEngine();
             if (textEngine && getFont()) {
                 TTF_Text *text = TTF_CreateText(textEngine, getFont(), displayLine.c_str(), (Uint32)displayLine.length());
                 if (text) {
                     SDL_Color textColor = m_textColor.getNormal();
                     TTF_SetTextColor(text, textColor.r, textColor.g, textColor.b, textColor.a);
-                    
+
                     float textStartX = drawRect.left + marginX - (float)m_scrollX;
                     SDL_FPoint position = {textStartX, y};
                     TTF_DrawRendererText(text, position.x, position.y);
-                    
+
                     int w = 0, h = 0;
                     TTF_GetTextSize(text, &w, &h);
-                    
+
                     TTF_DestroyText(text);
                 }
             }
         }
     }
-    
+
     int cursorByteIndex = getCursorPosition();
-    
+
     int currentLine = 0;
     int byteIndexInLine = 0;
-    
+
     if (!m_lines.empty() && !m_lineStartPositions.empty() && getTotalLines() > 0) {
         for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
             int lineStart = m_lineStartPositions[i];
@@ -605,13 +608,13 @@ void TextArea::draw(void) {
             } else {
                 lineEnd = (int)getText().length();
             }
-            
+
             if (cursorByteIndex >= lineStart && cursorByteIndex < lineEnd) {
                 currentLine = i;
                 byteIndexInLine = cursorByteIndex - lineStart;
                 break;
             }
-            
+
             if (cursorByteIndex == lineEnd) {
                 if (cursorByteIndex > 0 && m_text[cursorByteIndex - 1] == '\n') {
                     if (i + 1 < getTotalLines()) {
@@ -630,21 +633,21 @@ void TextArea::draw(void) {
                 break;
             }
         }
-        
+
         if (cursorByteIndex > (int)getText().length()) {
             currentLine = getTotalLines() - 1;
             byteIndexInLine = 0;
         }
     }
-    
+
     float cursorY = drawRect.top + (currentLine * m_lineHeight) * scale - m_scrollY * scale + marginY;
     float cursorH = m_fontSize * scale;
-    
+
     std::string textOnCurrentLine;
     if (currentLine < getTotalLines() && currentLine < (int)m_lines.size()) {
         textOnCurrentLine = m_lines[currentLine].substr(0, std::min(byteIndexInLine, (int)m_lines[currentLine].length()));
     }
-    
+
     int cursorX = (int)(drawRect.left + marginX - m_scrollX);
     if (!textOnCurrentLine.empty() && getTextEngine() && getFont()) {
         TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), textOnCurrentLine.c_str(), (Uint32)textOnCurrentLine.length());
@@ -655,19 +658,20 @@ void TextArea::draw(void) {
             TTF_DestroyText(tempText);
         }
     }
-    
+
     if (m_focused && m_cursorVisible && cursorY >= drawRect.top && cursorY + cursorH <= drawRect.top + drawRect.height) {
         SDL_Color textColor = m_textColor.getNormal();
         SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b, textColor.a);
-        SDL_RenderFillRect(renderer, &SDL_FRect{(float)cursorX, cursorY, 2.0f * scale, cursorH});
+        SDL_FRect cursorRect{(float)cursorX, cursorY, 2.0f * scale, cursorH};
+        SDL_RenderFillRect(renderer, &cursorRect);
     }
-    
+
     SDL_SetRenderClipRect(renderer, nullptr);
 }
 
 bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
-    
+
     if (event->m_eventName == EventName::TEXT_INPUT) {
         if (m_focused) {
             if (!event->m_eventParam.has_value()) return false;
@@ -688,24 +692,24 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     if (event->m_eventName == EventName::KEY_DOWN && !m_focused) {
         return false;
     }
-    
+
     if (event->m_eventName == EventName::KEY_DOWN) {
         try {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
             if (keyData.keycode == SDLK_RETURN || keyData.keycode == SDLK_RETURN2) {
                 int oldCursorPos = m_cursorPosition;
-                
+
                 std::string newText = m_text;
                 newText.insert(m_cursorPosition, 1, '\n');
                 m_text = newText;
                 m_cursorPosition++;
-                
+
                 rebuildLines();
-                
+
                 for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
                     int lineStart = m_lineStartPositions[i];
                     if (oldCursorPos + 1 == lineStart) {
@@ -713,7 +717,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                         break;
                     }
                 }
-                
+
                 updateVScrollBar();
                 updateHScrollBar();
                 ensureCursorVisible();
@@ -728,7 +732,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
         } catch (...) {
         }
     }
-    
+
     if (m_vScrollBar && m_vScrollBar->getVisible()) {
         bool isMouseEvent = event->m_eventName == EventName::MOUSE_LBUTTON_DOWN ||
                            event->m_eventName == EventName::MOUSE_LBUTTON_UP ||
@@ -746,7 +750,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         bool isMouseEvent = event->m_eventName == EventName::MOUSE_LBUTTON_DOWN ||
                            event->m_eventName == EventName::MOUSE_LBUTTON_UP ||
@@ -764,7 +768,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
         if (!event->m_eventParam.has_value()) return false;
         try {
@@ -782,19 +786,19 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 float relY = (pos->y - drawRect.top) / scale + m_scrollY;
                 int targetLine = (int)(relY / m_lineHeight);
                 targetLine = std::max(0, std::min(targetLine, getTotalLines() - 1));
-                
+
                 int targetByteIndex = 0;
                 if (targetLine < getTotalLines() && targetLine < (int)m_lines.size()) {
                     std::string& targetLineText = m_lines[targetLine];
                     targetByteIndex = getByteIndexFromPixelX(targetLineText, relX);
                 }
-                
+
                 int targetPos = 0;
                 if (targetLine < (int)m_lineStartPositions.size()) {
                     targetPos = m_lineStartPositions[targetLine];
                 }
                 targetPos += targetByteIndex;
-                
+
                 SDL_Keymod mod = SDL_GetModState();
                 bool shiftPressed = (mod & SDL_KMOD_SHIFT) != 0;
 
@@ -821,7 +825,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             return false;
         }
     }
-    
+
     if (event->m_eventName == EventName::MOUSE_WHEEL) {
         if (!event->m_eventParam.has_value()) return false;
         try {
@@ -836,7 +840,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             return false;
         }
     }
-    
+
     if (event->m_eventName == EventName::MOUSE_MOVING) {
         if (m_focused && m_isDragging) {
             if (!event->m_eventParam.has_value()) return false;
@@ -852,19 +856,19 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 float relY = (pos->y - drawRect.top) / scale + m_scrollY;
                 int targetLine = (int)(relY / m_lineHeight);
                 targetLine = std::max(0, std::min(targetLine, getTotalLines() - 1));
-                
+
                 int targetByteIndex = 0;
                 if (targetLine < getTotalLines() && targetLine < (int)m_lines.size()) {
                     std::string& targetLineText = m_lines[targetLine];
                     targetByteIndex = getByteIndexFromPixelX(targetLineText, relX);
                 }
-                
+
                 int targetPos = 0;
                 if (targetLine < (int)m_lineStartPositions.size()) {
                     targetPos = m_lineStartPositions[targetLine];
                 }
                 targetPos += targetByteIndex;
-                
+
                 m_cursorPosition = targetPos;
                 m_selectionStart = m_dragStartPosition;
                 m_selectionEnd = targetPos;
@@ -880,15 +884,15 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
         m_isDragging = false;
     }
-    
+
     if (event->m_eventName == EventName::KEY_DOWN) {
         if (isFocused()) {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
-            
+
             if ((keyData.mod & SDL_KMOD_CTRL) && (keyData.keycode == SDLK_C || keyData.keycode == SDLK_V || keyData.keycode == SDLK_X)) {
                 if (keyData.keycode == SDLK_C) {
                     copy();
@@ -910,7 +914,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     return true;
                 }
             }
-            
+
             if (keyData.keycode == SDLK_UP) {
                 int currentLine = 0;
                 int byteIndexInLine = 0;
@@ -922,13 +926,13 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     } else {
                         lineEnd = (int)m_text.length();
                     }
-                    
+
                     if (m_cursorPosition >= lineStart && m_cursorPosition < lineEnd) {
                         currentLine = i;
                         byteIndexInLine = m_cursorPosition - lineStart;
                         break;
                     }
-                    
+
                     if (m_cursorPosition == lineEnd) {
                         if (m_cursorPosition > 0 && m_cursorPosition <= (int)m_text.length() && m_text[m_cursorPosition - 1] == '\n') {
                             if (i + 1 < getTotalLines()) {
@@ -945,20 +949,20 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                         break;
                     }
                 }
-                
+
                 if (currentLine <= 0) return true;
-                
+
                 float scale = getScaleXX();
                 Margin margin = getMargin();
                 float marginX = margin.left * scale;
                 float baseX = getDrawRect().left + marginX;
-                
+
                 std::string currentLineText = (currentLine < (int)m_lines.size()) ? m_lines[currentLine] : "";
                 float cursorX = baseX;
                 for (int i = 0; i < byteIndexInLine && i < (int)currentLineText.length(); ++i) {
                     cursorX += getCharWidth(currentLineText, i);
                 }
-                
+
                 std::string targetLine = m_lines[currentLine - 1];
                 int bestByteIndex = 0;
                 float bestDiff = FLT_MAX;
@@ -973,9 +977,9 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                         x += getCharWidth(targetLine, i);
                     }
                 }
-                
+
                 int newCursorPos = m_lineStartPositions[currentLine - 1] + bestByteIndex;
-                
+
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 if (shiftPressed) {
                     if (!hasSelection()) {
@@ -987,7 +991,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 ensureCursorVisible();
                 return true;
             }
-            
+
             if (keyData.keycode == SDLK_DOWN) {
                 int currentLine = 0;
                 int byteIndexInLine = 0;
@@ -999,13 +1003,13 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     } else {
                         lineEnd = (int)m_text.length();
                     }
-                    
+
                     if (m_cursorPosition >= lineStart && m_cursorPosition < lineEnd) {
                         currentLine = i;
                         byteIndexInLine = m_cursorPosition - lineStart;
                         break;
                     }
-                    
+
                     if (m_cursorPosition == lineEnd) {
                         if (m_cursorPosition > 0 && m_cursorPosition <= (int)m_text.length() && m_text[m_cursorPosition - 1] == '\n') {
                             if (i + 1 < getTotalLines()) {
@@ -1022,31 +1026,31 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                         break;
                     }
                 }
-                
+
                 if (currentLine == 0 && m_cursorPosition >= (int)m_text.length()) {
                     currentLine = getTotalLines() - 1;
                     byteIndexInLine = 0;
                 }
-                
-                if (currentLine == 0 && m_cursorPosition == (int)m_text.length() && 
+
+                if (currentLine == 0 && m_cursorPosition == (int)m_text.length() &&
                     (!m_text.empty() && m_text.back() != '\n')) {
                     currentLine = getTotalLines() - 1;
                     byteIndexInLine = (int)m_lines[currentLine].length();
                 }
-                
+
                 if (currentLine >= getTotalLines() - 1) return true;
-                
+
                 float scale = getScaleXX();
                 Margin margin = getMargin();
                 float marginX = margin.left * scale;
                 float baseX = getDrawRect().left + marginX;
-                
+
                 std::string currentLineText = (currentLine < (int)m_lines.size()) ? m_lines[currentLine] : "";
                 float cursorX = baseX;
                 for (int i = 0; i < byteIndexInLine && i < (int)currentLineText.length(); ++i) {
                     cursorX += getCharWidth(currentLineText, i);
                 }
-                
+
                 std::string targetLine = m_lines[currentLine + 1];
                 int bestByteIndex = 0;
                 float bestDiff = FLT_MAX;
@@ -1061,9 +1065,9 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                         x += getCharWidth(targetLine, i);
                     }
                 }
-                
+
                 int newCursorPos = m_lineStartPositions[currentLine + 1] + bestByteIndex;
-                
+
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 if (shiftPressed) {
                     if (!hasSelection()) {
@@ -1075,7 +1079,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 ensureCursorVisible();
                 return true;
             }
-            
+
             if (keyData.keycode == SDLK_HOME) {
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 int oldCursorPosition = m_cursorPosition;
@@ -1088,7 +1092,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     } else {
                         lineEnd = (int)m_text.length();
                     }
-                    
+
                     if (m_cursorPosition >= lineStart && m_cursorPosition < lineEnd) {
                         currentLine = i;
                         break;
@@ -1111,7 +1115,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 ensureCursorHorizontalVisible();
                 return true;
             }
-            
+
             if (keyData.keycode == SDLK_END) {
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 int oldCursorPosition = m_cursorPosition;
@@ -1124,7 +1128,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     } else {
                         lineEnd = (int)m_text.length();
                     }
-                    
+
                     if (m_cursorPosition >= lineStart && m_cursorPosition <= lineEnd) {
                         currentLine = i;
                         break;
@@ -1152,7 +1156,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 ensureCursorHorizontalVisible();
                 return true;
             }
-            
+
             if (keyData.keycode == SDLK_LEFT) {
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 int oldCursorPosition = m_cursorPosition;
@@ -1197,7 +1201,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 }
                 return true;
             }
-            
+
             if (keyData.keycode == SDLK_RIGHT) {
                 bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
                 int oldCursorPosition = m_cursorPosition;
@@ -1240,16 +1244,16 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
         }
     }
-    
+
     return EditBox::handleEvent(event);
 }
 
 void TextArea::deleteSelectedText() {
     if (m_selectionStart == m_selectionEnd) return;
-    
+
     int start = std::min(m_selectionStart, m_selectionEnd);
     int endVal = std::max(m_selectionStart, m_selectionEnd);
-    
+
     m_text.erase(start, endVal - start);
     m_cursorPosition = start;
     clearSelection();
@@ -1258,7 +1262,7 @@ void TextArea::deleteSelectedText() {
     updateVScrollBar();
     updateHScrollBar();
     ensureCursorVisible();
-    
+
     if (m_onTextChanged) {
         m_onTextChanged(m_text);
     }
@@ -1266,14 +1270,14 @@ void TextArea::deleteSelectedText() {
 
 void TextArea::setScrollY(int y) {
     if (!m_vScrollBar) return;
-    
+
     int totalHeight = getTotalLines() * m_lineHeight;
     if (totalHeight <= 0) return;
-    
+
     int maxScroll = (int)m_vScrollBar->getMaxValue();
-    
+
     m_scrollY = std::max(0, std::min(y, maxScroll));
-    
+
     m_updatingScrollBar = true;
     m_vScrollBar->setValue((float)m_scrollY);
     m_updatingScrollBar = false;
@@ -1283,40 +1287,40 @@ void TextArea::scrollToBottom() {
     SRect rect = getRect();
     int totalHeight = getTotalLines() * m_lineHeight;
     int targetScroll = totalHeight - (int)rect.height;
-    
+
     setScrollY(targetScroll);
 }
 
 void TextArea::ensureCursorHorizontalVisible() {
     if (!m_hScrollBar) return;
-    
+
     SRect drawRect = getDrawRect();
     if (drawRect.width <= 0) return;
-    
+
     float scale = getScaleXX();
     Margin margin = getMargin();
     int marginX = (int)(margin.left * scale);
     int marginRight = (int)(margin.right * scale);
     int availableWidth = (int)drawRect.width - marginX - marginRight;
-    
+
     bool vScrollVisible = m_vScrollBar && m_vScrollBar->getVisible();
-    
+
     if (vScrollVisible) {
         float vThickness = m_vScrollBar ? m_vScrollBar->getThickness() : 16.0f;
         availableWidth -= (int)(vThickness * scale);
     }
-    
+
     if (availableWidth <= 0) return;
-    
+
     int cursorLine = 0;
     int cursorByteIndex = getCursorPosition();
     int totalLines = getTotalLines();
-    
+
     if (totalLines > 0 && !m_lineStartPositions.empty()) {
         for (int i = 0; i < totalLines && i < (int)m_lineStartPositions.size(); ++i) {
             int lineStart = m_lineStartPositions[i];
             int lineEnd = (i + 1 < totalLines) ? m_lineStartPositions[i + 1] : (int)m_text.length();
-            
+
             if (cursorByteIndex >= lineStart && cursorByteIndex < lineEnd) {
                 cursorLine = i;
                 break;
@@ -1327,39 +1331,39 @@ void TextArea::ensureCursorHorizontalVisible() {
             }
         }
     }
-    
+
     if (cursorLine >= totalLines || cursorLine >= (int)m_lines.size()) {
         return;
     }
     if (cursorLine < 0) return;
-    
+
     int byteIndexInLine = cursorByteIndex - m_lineStartPositions[cursorLine];
     if (byteIndexInLine < 0) byteIndexInLine = 0;
-    
+
     std::string textBeforeCursor = m_lines[cursorLine].substr(0, std::min(byteIndexInLine, (int)m_lines[cursorLine].length()));
     int cursorPixelX = getLinePixelWidth(textBeforeCursor);
-    
+
     int maxScroll = (int)m_hScrollBar->getMaxValue();
     int targetScrollX = m_scrollX;
-    
+
     int cursorWidth = (int)(2.0f * scale);
-    
+
     int visibleStart = m_scrollX;
     int visibleEnd = m_scrollX + availableWidth;
-    
+
     if (cursorPixelX + cursorWidth > visibleEnd) {
         targetScrollX = cursorPixelX + cursorWidth - availableWidth;
     } else if (cursorPixelX < visibleStart) {
         targetScrollX = cursorPixelX;
     }
-    
+
     if (targetScrollX > maxScroll) {
         targetScrollX = maxScroll;
     }
     if (targetScrollX < 0) {
         targetScrollX = 0;
     }
-    
+
     if (targetScrollX != m_scrollX) {
         setScrollX(targetScrollX);
     }
@@ -1369,31 +1373,31 @@ void TextArea::ensureCursorVisible() {
     SRect drawRect = getDrawRect();
     SRect rect = getRect();
     if (drawRect.height <= 0) return;
-    
+
     float scale = getScaleXX();
     Margin margin = getMargin();
     int marginY = (int)(margin.top * scale);
     int marginBottom = (int)(margin.bottom * scale);
     int availableHeightScaled = (int)drawRect.height - marginY - marginBottom;
-    
+
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
         availableHeightScaled -= (int)(hThickness * scale);
     }
-    
+
     int availableHeight = (int)(availableHeightScaled / scale);
-    
+
     int totalHeight = getTotalLines() * m_lineHeight;
     int maxScroll = totalHeight - availableHeight;
     if (maxScroll < 0) maxScroll = 0;
-    
+
     if (m_scrollY > maxScroll) {
         m_scrollY = maxScroll;
     }
-    
+
     int cursorLine = 0;
     int cursorByteIndex = getCursorPosition();
-    
+
     if (!m_lines.empty() && !m_lineStartPositions.empty() && getTotalLines() > 0) {
         for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
             int lineStart = m_lineStartPositions[i];
@@ -1403,12 +1407,12 @@ void TextArea::ensureCursorVisible() {
             } else {
                 lineEnd = (int)m_text.length();
             }
-            
+
             if (cursorByteIndex >= lineStart && cursorByteIndex < lineEnd) {
                 cursorLine = i;
                 break;
             }
-            
+
             if (cursorByteIndex == lineEnd) {
                 if (cursorByteIndex > 0 && cursorByteIndex <= (int)m_text.length() && m_text[cursorByteIndex - 1] == '\n') {
                     if (i + 1 < getTotalLines()) {
@@ -1422,16 +1426,16 @@ void TextArea::ensureCursorVisible() {
                 break;
             }
         }
-        
+
         if (cursorByteIndex > (int)m_text.length()) {
             cursorLine = getTotalLines() - 1;
         }
     }
-    
+
     int cursorY = cursorLine * m_lineHeight;
     int visibleTop = m_scrollY;
     int visibleBottom = visibleTop + availableHeight;
-    
+
     if (cursorY < visibleTop) {
         setScrollY(cursorY);
     } else if (cursorY + m_lineHeight > visibleBottom) {
@@ -1471,18 +1475,18 @@ void TextArea::insertText(const std::string& text) {
 
 void TextArea::setRect(SRect rect) {
     EditBox::setRect(rect);
-    
+
     float scale = getScaleXX();
     float vThickness = m_vScrollBar ? m_vScrollBar->getThickness() : 16.0f;
     float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
-    
+
     if (m_wordWrap) {
         rebuildLines();
     }
-    
+
     updateVScrollBar();
     updateHScrollBar();
-    
+
     if (m_vScrollBar) {
         bool hScrollVisible = m_hScrollBar && m_hScrollBar->getVisible();
         float vHeight = hScrollVisible ? rect.height - hThickness : rect.height;
@@ -1494,7 +1498,7 @@ void TextArea::setRect(SRect rect) {
         );
         m_vScrollBar->setRect(scrollBarRect);
     }
-    
+
     if (m_hScrollBar) {
         bool vScrollVisible = m_vScrollBar && m_vScrollBar->getVisible();
         float hWidth = vScrollVisible ? rect.width - vThickness : rect.width;
@@ -1527,16 +1531,16 @@ float TextArea::getScrollBarThickness() const {
 
 void TextArea::setRenderer(SDL_Renderer *renderer) {
     if (m_renderer == renderer) return;
-    
+
     if (renderer) {
         if (m_textEngine) {
             TTF_DestroyRendererTextEngine(m_textEngine);
         }
         m_textEngine = TTF_CreateRendererTextEngine(renderer);
     }
-    
+
     ControlImpl::setRenderer(renderer);
-    
+
     for (auto& child : m_children) {
         child->setRenderer(renderer);
     }
@@ -1627,5 +1631,6 @@ TextAreaBuilder& TextAreaBuilder::setTransparent(bool isTransparent) {
 }
 
 shared_ptr<TextArea> TextAreaBuilder::build(void) {
+    m_textArea->create();
     return m_textArea;
 }
