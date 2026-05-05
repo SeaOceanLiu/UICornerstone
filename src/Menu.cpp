@@ -719,3 +719,389 @@ shared_ptr<MenuBase> MenuContainer::getSubMenuAtPoint(float x, float y) {
     }
     return nullptr;
 }
+
+void MenuSeparator::draw(void) {
+    if (getVisible() == false) return;
+    if (getParent() == nullptr) return;
+
+    SDL_Renderer* renderer = getRenderer();
+    if (!renderer) return;
+
+    MenuBase::draw();
+
+    SRect drawRect = getDrawRect();
+
+    SDL_SetRenderDrawColor(renderer,
+        m_borderColor.getNormal().r,
+        m_borderColor.getNormal().g,
+        m_borderColor.getNormal().b,
+        m_borderColor.getNormal().a);
+    SDL_FRect lineRect;
+    if (getDirection() == MenuDirection::Vertical) {
+        lineRect = {drawRect.left - ConstDef::MENU_ITEM_MARGIN.left,
+                        drawRect.top + drawRect.height/2,
+                        drawRect.width + ConstDef::MENU_ITEM_MARGIN.left + ConstDef::MENU_ITEM_MARGIN.right,
+                        1
+                    };
+    } else {
+        lineRect = {drawRect.left + drawRect.width/2,
+                        drawRect.top - ConstDef::MENU_ITEM_MARGIN.top,
+                        1,
+                        drawRect.height + ConstDef::MENU_ITEM_MARGIN.top + ConstDef::MENU_ITEM_MARGIN.bottom
+                    };
+    }
+    SDL_RenderFillRect(renderer, &lineRect);
+}
+
+MenuSeparatorBuilder::MenuSeparatorBuilder(float xScale, float yScale, Control *parent):
+    MenuBaseBuilder(
+        [parent, xScale, yScale]() -> shared_ptr<MenuBase> {
+            if (parent) {
+                auto menuParent = dynamic_cast<MenuBase*>(parent);
+                if (!menuParent) {
+                    SDL_Log("MenuSeparatorBuilder: Parent must be a MenuBase type or nullptr");
+                    throw std::runtime_error("Parent must be a MenuBase type or nullptr");
+                }
+            }
+            return make_shared<MenuSeparator>(dynamic_cast<MenuBase*>(parent), xScale, yScale);
+        }(),
+        MenuItemType::Separator, MenuDirection::Horizontal, xScale, yScale)
+{
+    m_separator = dynamic_pointer_cast<MenuSeparator>(m_menu);
+}
+
+shared_ptr<MenuBase> MenuSeparatorBuilder::build(void) {
+    m_separator->create();
+    return m_separator;
+}
+
+MenuBar::MenuBar(Control *parent, MenuDirection direction, float xScale, float yScale):
+    MenuBase(parent, MenuItemType::Normal, direction, xScale, yScale),
+    m_showTopSubMenu(false)
+{
+    setCaption("");
+    if (parent != nullptr) {
+        setRect(SRect(0, 0, parent->getRect().width, 30));
+    }
+    setBorderVisible(true);
+    setExpended(true);
+    setMenuClassLevel(MenuClassLevel::MenuBar);
+}
+
+void MenuBar::setShowTopSubMenu(bool show) {
+    m_showTopSubMenu = show;
+    if (show == false) {
+        setExpendedSubMenuItem(nullptr);
+    }
+}
+
+bool MenuBar::getShowTopSubMenu(void) const {
+    return m_showTopSubMenu;
+}
+
+void MenuBar::draw(void) {
+    MenuBase::draw();
+    drawContainer();
+}
+
+void MenuBar::setParent(Control *parent) {
+    MenuBase::setParent(parent);
+    if (parent != nullptr) {
+        setRect(SRect(0, 0, parent->getRect().width, getRect().height));
+    }
+}
+
+bool MenuBar::beforeEventHandlingWatcher(shared_ptr<Event> event) {
+    shared_ptr<SPoint> pos;
+    SRect drawRect;
+    switch(event->m_eventName){
+        case EventName::MOUSE_LBUTTON_DOWN:
+            pos = any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (!isContainsPoint(pos->x, pos->y)) {
+                if(getExpendedSubMenuItem() != nullptr){
+                    getExpendedSubMenuItem()->setExpended(false);
+                    setExpendedSubMenuItem(nullptr);
+                }
+            }
+            break;
+        case EventName::MOUSE_MOVING:
+            drawRect = getDrawRect();
+            pos = any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (!drawRect.contains(pos->x, pos->y)){
+                setState(ControlState::Normal);
+            }
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
+void MenuBar::addMainMenu(shared_ptr<MenuBase> item) {
+    if (!item) {
+        SDL_Log("MenuBar::addMainMenu item is nullptr");
+        throw std::runtime_error("MenuBar::addMainMenu item is nullptr");
+    }
+
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::SubMenu);
+        m_menuContainer = make_shared<MenuContainer>(this);
+        m_menuContainer->create();
+        if (getDirection() == MenuDirection::Horizontal) {
+            m_menuContainer->setRect({0, 0, 0, 0});
+        } else {
+            SDL_Log("MainMenu::addMenuItem getRect().height = %f", getRect().height);
+            m_menuContainer->setRect({0, 0, 0, 0});
+        }
+    }
+    addItem(item);
+    setRect({getRect().left, getRect().top, m_menuContainer->getRect().width, m_menuContainer->getRect().height});
+    SDL_Log("MenuBar::addMainMenu rect = {%f, %f, %f, %f}", getRect().left, getRect().top, getRect().width, getRect().height);
+}
+
+void MenuBar::removeMainMenu(shared_ptr<MenuBase> item){
+    if (!item) {
+        SDL_Log("MenuBar::removeMainMenu item is nullptr");
+        throw std::runtime_error("MenuBar::removeMainMenu item is nullptr");
+    }
+    removeItem(item);
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::Normal);
+        if(getParent() != nullptr)
+            setRect({getRect().left, getRect().top, getParent()->getRect().width, getRect().height});
+    } else {
+        setRect({getRect().left, getRect().top, m_menuContainer->getRect().width, m_menuContainer->getRect().height});
+    }
+}
+
+MainMenu::MainMenu(Control *parent, MenuDirection direction, float xScale, float yScale):
+    MenuBase(parent, MenuItemType::Normal, direction, xScale, yScale)
+{
+    SDL_Log("ManMenu::MainMenu direction = %d", getDirection());
+    setCaptionAlignment(AlignmentMode::AM_CENTER);
+    setMenuClassLevel(MenuClassLevel::MainMenu);
+}
+
+bool MainMenu::handleEvent(shared_ptr<Event> event) {
+    shared_ptr<SPoint> pos;
+    shared_ptr<MenuBar>menuBar;
+    switch(event->m_eventName){
+        case EventName::MOUSE_LBUTTON_DOWN:
+            menuBar = dynamic_pointer_cast<MenuBar>(getParentMenu());
+            if (menuBar != nullptr) {
+                menuBar->setShowTopSubMenu(menuBar->getShowTopSubMenu());
+            }
+            break;
+        default:
+            break;
+    }
+    return MenuBase::handleEvent(event);
+}
+
+bool MainMenu::beforeEventHandlingWatcher(shared_ptr<Event> event) {
+    shared_ptr<SPoint> pos;
+    SRect drawRect;
+    switch(event->m_eventName){
+        case EventName::MOUSE_MOVING:
+            drawRect = getDrawRect();
+            pos = any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (!drawRect.contains(pos->x, pos->y)){
+                setState(ControlState::Normal);
+            }
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
+void MainMenu::addMenuItem(shared_ptr<MenuBase> item){
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::SubMenu);
+        m_menuContainer = make_shared<MenuContainer>(this);
+
+        if (getDirection() == MenuDirection::Horizontal) {
+            m_menuContainer->setRect({getRect().width - ConstDef::MENU_ITEM_MARGIN.left, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        } else {
+            SDL_Log("MainMenu::addMenuItem getRect().height = %f", getRect().height);
+            m_menuContainer->setRect({0 - ConstDef::MENU_ITEM_MARGIN.left, getRect().height - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        }
+        m_menuContainer->create();
+        m_menuContainer->setVisible(false);
+
+        SDL_Log("MainMenu::addMenuItem rect = {%f, %f, %f, %f}", getRect().left, getRect().top, getRect().width, getRect().height);
+    }
+    addItem(item);
+}
+
+void MainMenu::removeMenuItem(shared_ptr<MenuBase> item){
+    removeItem(item);
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::Normal);
+    }
+}
+
+MenuItem::MenuItem(Control *parent, MenuDirection direction, float xScale, float yScale):
+    MenuBase(parent, MenuItemType::Normal, direction, xScale, yScale)
+{
+    setMenuClassLevel(MenuClassLevel::MenuItem);
+}
+
+bool MenuItem::beforeEventHandlingWatcher(shared_ptr<Event> event) {
+    shared_ptr<SPoint> pos;
+    SRect drawRect;
+    switch(event->m_eventName){
+        case EventName::MOUSE_MOVING:
+            drawRect = getDrawRect();
+            pos = any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (!drawRect.contains(pos->x, pos->y)){
+                setState(ControlState::Normal);
+                setExpended(false);
+            }
+            break;
+        default:
+            break;
+    }
+    return false;
+}
+
+void MenuItem::addSubMenuItem(shared_ptr<MenuBase> item){
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::SubMenu);
+        m_menuContainer = make_shared<MenuContainer>(this);
+
+        if (getDirection() == MenuDirection::Horizontal) {
+            m_menuContainer->setRect({0 - ConstDef::MENU_ITEM_MARGIN.left, getRect().height - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        } else {
+            m_menuContainer->setRect({getRect().width, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        }
+        SDL_Log("MenuItem(%s)::new container rect = {%f, %f, %f, %f}, direction=%s", getCaption().c_str(),
+            m_menuContainer->getRect().left,
+            m_menuContainer->getRect().top,
+            m_menuContainer->getRect().width,
+            m_menuContainer->getRect().height,
+            (getDirection() == MenuDirection::Horizontal) ? "Horizontal" : "Vertical"
+        );
+        createSubMenuArrowLabel();
+        if (getDirection() == MenuDirection::Horizontal) {
+            m_menuContainer->setRect({0 - ConstDef::MENU_ITEM_MARGIN.left, getRect().height - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        } else {
+            m_menuContainer->setRect({getRect().width + ConstDef::MENU_ITEM_MARGIN.left, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+        }
+
+        m_menuContainer->create();
+        m_menuContainer->setVisible(false);
+    }
+    addItem(item);
+}
+
+void MenuItem::removeSubMenuItem(shared_ptr<MenuBase> item) {
+    removeItem(item);
+    if (m_menuContainer == nullptr) {
+        setType(MenuItemType::Normal);
+        destroySubMenuArrowLabel();
+    }
+}
+
+MenuBarBuilder::MenuBarBuilder(Control *parent, MenuDirection direction, float xScale, float yScale):
+    MenuBaseBuilder(
+        make_shared<MenuBar>(parent, direction, xScale, yScale),
+        MenuItemType::Normal, direction, xScale, yScale)
+{
+    m_menuBar = dynamic_pointer_cast<MenuBar>(m_menu);
+    m_menuBar->setCaption("MenuBar");
+    SDL_Log("MenuBarBuilder: Created MenuBar with rect {%f, %f, %f, %f}", m_menuBar->getRect().left, m_menuBar->getRect().top, m_menuBar->getRect().width, m_menuBar->getRect().height);
+}
+
+MenuBarBuilder& MenuBarBuilder::addMainMenu(shared_ptr<MenuBase> item) {
+    m_menuBar->addMainMenu(item);
+    return *this;
+}
+
+MenuBarBuilder& MenuBarBuilder::addBeforeEventHandlingWatcher(EventName eventName) {
+    EventQueue::getInstance()->addBeforeEventHandlingWatcher(eventName, m_menuBar);
+    return *this;
+}
+
+shared_ptr<MenuBase> MenuBarBuilder::build(void) {
+    m_menuBar->create();
+    return m_menuBar;
+}
+
+MainMenuBuilder::MainMenuBuilder(string caption, MenuDirection direction, float xScale, float yScale, Control *parent):
+    MenuBaseBuilder(
+        [parent, direction, xScale, yScale]() -> shared_ptr<MenuBase> {
+            if (parent) {
+                auto menuParent = dynamic_cast<MenuBase*>(parent);
+                if (!menuParent) {
+                    SDL_Log("MainMenuBuilder: Parent must be a MenuBase type or nullptr");
+                    throw std::runtime_error("Parent must be a MenuBase type or nullptr");
+                }
+            }
+            return make_shared<MainMenu>(parent, direction, xScale, yScale);
+        }(),
+        MenuItemType::Normal, direction, xScale, yScale)
+{
+    m_mainMenu = dynamic_pointer_cast<MainMenu>(m_menu);
+    if (!m_mainMenu) {
+        SDL_Log("MainMenuBuilder::MainMenuBuilder: Failed to cast MenuBase to MainMenu");
+        throw std::runtime_error("Failed to cast MenuBase to MainMenu");
+    }
+    m_mainMenu->setCaption(caption);
+}
+
+MainMenuBuilder& MainMenuBuilder::addBeforeEventHandlingWatcher(EventName eventName) {
+    EventQueue::getInstance()->addBeforeEventHandlingWatcher(eventName, m_mainMenu);
+    return *this;
+}
+
+MainMenuBuilder& MainMenuBuilder::addMenuItem(shared_ptr<MenuBase> item) {
+    m_mainMenu->addMenuItem(item);
+    return *this;
+}
+
+shared_ptr<MenuBase> MainMenuBuilder::build(void) {
+    if (!m_mainMenu) {
+        SDL_Log("MainMenuBuilder::build: Failed to cast MenuBase to MainMenu");
+        throw std::runtime_error("MainMenu is not properly initialized");
+    }
+    m_mainMenu->create();
+    return m_mainMenu;
+}
+
+MenuItemBuilder::MenuItemBuilder(string caption, MenuDirection direction, float xScale, float yScale, Control *parent):
+    MenuBaseBuilder(
+        [parent, direction, xScale, yScale]() -> shared_ptr<MenuBase> {
+            if (parent) {
+                auto menuParent = dynamic_cast<MenuBase*>(parent);
+                if (!menuParent) {
+                    SDL_Log("MenuItemBuilder: Parent must be a MenuBase type or nullptr");
+                    throw std::runtime_error("Parent must be a MenuBase type or nullptr");
+                }
+            }
+            return make_shared<MenuItem>(parent, direction, xScale, yScale);
+        }(),
+        MenuItemType::Normal, direction, xScale, yScale)
+{
+    m_menuItem = dynamic_pointer_cast<MenuItem>(m_menu);
+    if (!m_menuItem) {
+        SDL_Log("MenuItemBuilder::MenuItemBuilder: Failed to cast MenuBase to MenuItem");
+        throw std::runtime_error("Failed to cast MenuBase to MenuItem");
+    }
+    m_menuItem->setCaption(caption);
+}
+
+MenuItemBuilder& MenuItemBuilder::addBeforeEventHandlingWatcher(EventName eventName) {
+    EventQueue::getInstance()->addBeforeEventHandlingWatcher(eventName, m_menuItem);
+    return *this;
+}
+
+MenuItemBuilder& MenuItemBuilder::addSubMenuItem(shared_ptr<MenuBase> item) {
+    m_menuItem->addSubMenuItem(item);
+    return *this;
+}
+
+shared_ptr<MenuBase> MenuItemBuilder::build(void) {
+    m_menuItem->create();
+    return m_menuItem;
+}
