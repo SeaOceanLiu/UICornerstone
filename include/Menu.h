@@ -338,6 +338,12 @@ public:
         MenuBase::draw();
         drawContainer();
     }
+    void setParent(Control *parent) override {
+        MenuBase::setParent(parent);
+        if (parent != nullptr) {
+            setRect(SRect(0, 0, parent->getRect().width, getRect().height)); // 宽度调整为与父对象相同，高度保持不变
+        }
+    }
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override {
         shared_ptr<SPoint> pos;
         SRect drawRect;
@@ -418,6 +424,7 @@ public:
     {
         m_menuBar = dynamic_pointer_cast<MenuBar>(m_menu);
         m_menuBar->setCaption("MenuBar");
+        SDL_Log("MenuBarBuilder: Created MenuBar with rect {%f, %f, %f, %f}", m_menuBar->getRect().left, m_menuBar->getRect().top, m_menuBar->getRect().width, m_menuBar->getRect().height);
     }
     MenuBarBuilder& addMainMenu(shared_ptr<MenuBase> item) {
         m_menuBar->addMainMenu(item);
@@ -602,7 +609,8 @@ public:
                 // 竖向菜单，子菜单容器为水平，排在右侧或左侧
                 // TODO: 这里暂时只支持右侧展开，左侧展开需要调整子菜单容器的位置
                 // 子菜单做了偏移处理，为了对齐边线，这里需要调整回来
-                m_menuContainer->setRect({getRect().width - ConstDef::MENU_ITEM_MARGIN.left, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+                // m_menuContainer->setRect({getRect().width - ConstDef::MENU_ITEM_MARGIN.left, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+                m_menuContainer->setRect({getRect().width, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
             }
             SDL_Log("MenuItem(%s)::new container rect = {%f, %f, %f, %f}, direction=%s", getCaption().c_str(),
                 m_menuContainer->getRect().left,
@@ -612,6 +620,12 @@ public:
                 (getDirection() == MenuDirection::Horizontal) ? "Horizontal" : "Vertical"
             );
             createSubMenuArrowLabel(); // 创建子菜单箭头
+            // 创建子菜单箭头后，需要再次调整子菜单容器的位置，以确保箭头和子菜单之间的间距正确
+            if (getDirection() == MenuDirection::Horizontal) {
+                m_menuContainer->setRect({0 - ConstDef::MENU_ITEM_MARGIN.left, getRect().height - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+            } else {
+                m_menuContainer->setRect({getRect().width + ConstDef::MENU_ITEM_MARGIN.left, 0 - ConstDef::MENU_ITEM_MARGIN.top, 0, 0});
+            }
 
             m_menuContainer->create();
             m_menuContainer->setVisible(false); // 默认隐藏子菜单，鼠标移入时显示

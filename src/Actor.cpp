@@ -96,10 +96,12 @@ void Actor::loadTextureFromSurface(SDL_Surface *surface) {
 }
 
 void Actor::setParent(Control *parent){
-    m_parent = parent;
+    Material::setParent(parent);
+    // m_parent = parent;
+
     if (m_matchParentRect) {
-        m_rect.width = m_parent->getRect().width;
-        m_rect.height = m_parent->getRect().height;
+        m_rect.width = getParent()->getRect().width;
+        m_rect.height = getParent()->getRect().height;
 
         if (m_surface != nullptr) {
             m_texture = SDL_CreateTextureFromSurface(getRenderer(), m_surface); //创建纹理

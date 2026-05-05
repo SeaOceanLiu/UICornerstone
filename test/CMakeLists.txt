@@ -18,6 +18,7 @@ set(UI_TEST_EXECUTABLES
     test_editbox
     test_checkbox
     test_progressbar
+    test_button
 )
 
 foreach(test_name ${UI_TEST_EXECUTABLES})

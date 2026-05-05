@@ -1,3 +1,4 @@
+// 由AI生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
 #include "ProgressBar.h"
 #include "GraphTool.h"
@@ -39,6 +40,9 @@ void ProgressBar::update(void) {
         }
         updateTextLabel();
     }
+}
+shared_ptr<Label> ProgressBar::getTextLabel(void) const {
+    return m_textLabel;
 }
 
 void ProgressBar::draw(void) {
@@ -177,6 +181,9 @@ void ProgressBar::setOnValueChanged(OnValueChangedHandler handler) {
 
 void ProgressBar::createTextLabel() {
     if (m_textLabel != nullptr) {
+        SDL_Log("ProgressBar::createTextLabel: Text label already exists, reuse it");
+        return;
+
         removeControl(m_textLabel);
         m_textLabel.reset();
     }

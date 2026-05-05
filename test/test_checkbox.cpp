@@ -50,7 +50,7 @@ void testBenchInitialize(void) {
     redBorder.setNormal({255, 0, 0, 255});
 
     g_checkbox1 = make_shared<CheckBox>(nullptr, SRect(50, 50, 100, 30));
-    g_checkbox1->getCaption().setCaption("1. Accept Terms");
+    g_checkbox1->getCaption()->setCaption("1. Accept Terms");
     g_checkbox1->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
         cout << "Checkbox1 state changed to: " << (int)state << endl;
     });
@@ -58,7 +58,7 @@ void testBenchInitialize(void) {
     BENCH->addControl(g_checkbox1);
 
     g_checkbox2 = make_shared<CheckBox>(nullptr, SRect(50, 100, 200, 30));
-    g_checkbox2->getCaption().setCaption("2. Enable Feature");
+    g_checkbox2->getCaption()->setCaption("2. Enable Feature");
     g_checkbox2->setCheckState(CheckState::Checked);
     g_checkbox2->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
         cout << "Checkbox2 state changed to: " << (int)state << endl;
@@ -140,28 +140,28 @@ void testBenchInitialize(void) {
     BENCH->addControl(g_checkbox10);
 
     g_checkbox11 = CheckBoxBuilder(nullptr, SRect(300, 200, 300, 60), 2.0f, 2.0f)
-        .setCaptionText("11. 2x缩放复选框")
+        .setCaptionText(u8"11. 2x缩放复选框")
         .setCheckState(CheckState::Checked)
         .setStyle(CheckBoxStyle::Circle)
         .setCaptionSize(24)
         .setBorderStateColor(redBorder)
         .build();
-    StateColor sc = g_checkbox11->getCaption().getTextStateColor();
+    StateColor sc = g_checkbox11->getCaption()->getTextStateColor();
     sc.setNormal({0, 0, 255, 255});
-    g_checkbox11->getCaption().setBorderStateColor(sc);
+    g_checkbox11->getCaption()->setBorderStateColor(sc);
 
     BENCH->addControl(g_checkbox11);
 
     g_checkbox11x = CheckBoxBuilder(nullptr, SRect(300, 320, 300, 60), 1.0f, 1.0f)
-        .setCaptionText("11x. 1x缩放复选框")
+        .setCaptionText(u8"11x. 1x缩放复选框")
         .setCheckState(CheckState::Checked)
         .setStyle(CheckBoxStyle::Circle)
         .setCaptionSize(24)
         .setBorderStateColor(redBorder)
         .build();
-    StateColor scx = g_checkbox11x->getCaption().getTextStateColor();
+    StateColor scx = g_checkbox11x->getCaption()->getTextStateColor();
     scx.setNormal({0, 0, 255, 255});
-    g_checkbox11x->getCaption().setBorderStateColor(scx);
+    g_checkbox11x->getCaption()->setBorderStateColor(scx);
 
     BENCH->addControl(g_checkbox11x);
 
@@ -207,7 +207,7 @@ void testBenchInitialize(void) {
     BENCH->addControl(g_checkbox16);
     StateColor stateColor;
     stateColor.setNormal({0, 0, 255, 255});
-    g_checkbox16->getCaption().setTextStateColor(stateColor);
+    g_checkbox16->getCaption()->setTextStateColor(stateColor);
 
     SDL_Log("CheckBox test controls created");
 }
@@ -326,6 +326,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+    // Clean up resources
+    // 这里要强制释放资源，因为要确保在后面调用TTF_Quit()之前，要把FontSuite打开的字体都关闭掉
+    // BENCH.reset();
+    // 线程需要显式detach，否则Android下会报泄漏
+    ResourceLoader::getInstance()->detachLoadingThread();
     SDL_Log("Application quit");
     TTF_Quit();
 }

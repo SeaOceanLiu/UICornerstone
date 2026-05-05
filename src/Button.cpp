@@ -248,6 +248,8 @@ void Button::setCaption(string caption){
     m_captionText = caption;
 
     if (m_caption != nullptr){
+        removeControl(m_caption);
+
         m_caption.reset();
         m_caption = nullptr;
     }
@@ -261,6 +263,7 @@ void Button::setCaption(string caption){
                             .setTextShadowStateColor(m_textShadowColor)
                             .setShadow(m_enableTextShadow)
                             .build();
+        addControl(m_caption);
     }
 }
 string Button::getCaption(void) const{

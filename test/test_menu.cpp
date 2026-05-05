@@ -14,14 +14,6 @@
 
 using namespace std;
 
-shared_ptr<EditBox> g_editBox1;
-shared_ptr<EditBox> g_editBox2;
-shared_ptr<EditBox> g_editBox3;
-shared_ptr<TextArea> g_textArea;
-shared_ptr<ScrollBar> g_scrollBar;
-shared_ptr<Button> g_clearButton;
-shared_ptr<Button> g_addTextButton;
-
 // 全局变量存储菜单控件
 shared_ptr<MenuBar> g_menuBar;
 shared_ptr<MainMenu> g_fileMenu;
@@ -50,19 +42,6 @@ void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, co
 }
 void testBenchInitialize(void) {
     SDL_Log("testBenchInitialize");
-    g_editBox1 = make_shared<EditBox>(nullptr, SRect(50, 50, 300, 40));
-    g_editBox1->setPlaceholder("Single line input...");
-    g_editBox1->setOnTextChanged([](string text) {
-        cout << "EditBox1 text changed: " << text << endl;
-    });
-    g_editBox1->setOnEnter([]() {
-        cout << "EditBox1 Enter pressed" << endl;
-    });
-    BENCH->addControl(g_editBox1);
-
-
-
-    SDL_Log("EditBox test controls created");
     // 使用链形式调用创建菜单栏
     g_menuBar = dynamic_pointer_cast<MenuBar>(MenuBarBuilder()
                 // .setBGColor(SDL_Color{23, 23, 24, 255})  // 灰色背景
@@ -176,7 +155,7 @@ void testBenchInitialize(void) {
     // 将菜单栏添加到Bench控件管理器
     BENCH->addControl(g_menuBar);
 
-    SDL_Log("Menubar rect={%f, %f, %f, %f}", g_menuBar->getRect().left, g_menuBar->getRect().top, g_menuBar->getRect().width, g_menuBar->getRect().height);
+    // SDL_Log("Menubar rect={%f, %f, %f, %f}", g_menuBar->getRect().left, g_menuBar->getRect().top, g_menuBar->getRect().width, g_menuBar->getRect().height);
 
     // // 调试信息
     // cout << "MenuBar created: " << (g_menuBar ? "Yes" : "No") << endl;
@@ -196,54 +175,15 @@ void testBenchInitialize(void) {
                     .setBackgroundStateColor(StateColor(StateColor::Type::Background).setNormal({128,128,128,255}))
                     .setBorderStateColor(StateColor(StateColor::Type::Border).setNormal({0,0,255,255}))
                     .setOnClick([](shared_ptr<Button> btn) {
-                        // SDL_Log("recentFilesItem rect={%f, %f, %f, %f}",
-                        //     recentFilesItem->getRect().left,
-                        //     recentFilesItem->getRect().top,
-                        //     recentFilesItem->getRect().width,
-                        //     recentFilesItem->getRect().height);
-                        // SDL_Log("caption rect={%f, %f, %f, %f}",
-                        //     recentFilesItem->m_caption->getRect().left,
-                        //     recentFilesItem->m_caption->getRect().top,
-                        //     recentFilesItem->m_caption->getRect().width,
-                        //     recentFilesItem->m_caption->getRect().height);
-                        // SDL_Log("subMenuArrow rect={%f, %f, %f, %f}",
-                        //     recentFilesItem->m_subMenuArrow->getRect().left,
-                        //     recentFilesItem->m_subMenuArrow->getRect().top,
-                        //     recentFilesItem->m_subMenuArrow->getRect().width,
-                        //     recentFilesItem->m_subMenuArrow->getRect().height);
-                        // SDL_Log("%s", recentFilesItem->m_caption->getParent() == recentFilesItem->m_subMenuArrow->getParent() ? "Same parent" : "Different parent");
-                        // // SDL_Log("set subMenuArrow left to - 10");
-                        // // recentFilesItem->m_subMenuArrow->setLeft(recentFilesItem->m_subMenuArrow->getRect().left - 10);
-                        // // SDL_Log("set subMenuArrow left to 182");
-                        // // recentFilesItem->m_subMenuArrow->setLeft(182);
-
-                        // SRect mRect = recentFilesItem->m_caption->getDrawRect();
-                        // SDL_Log("              caption drawRect={%f, %f, %f, %f}",
-                        //     mRect.left,
-                        //     mRect.top,
-                        //     mRect.width,
-                        //     mRect.height);
-                        // SRect dRect = recentFilesItem->m_subMenuArrow->getDrawRect();
-                        // SDL_Log("              subMenuArrow drawRect={%f, %f, %f, %f}",
-                        //     dRect.left,
-                        //     dRect.top,
-                        //     dRect.width,
-                        //     dRect.height);
-                        // SRect hRect = recentFilesItem->m_subMenuArrow->mapToDrawRect(recentFilesItem->m_subMenuArrow->getHotRect());
-                        // SDL_Log("              subMenuArrow hotRect={%f, %f, %f, %f}",
-                        //     hRect.left,
-                        //     hRect.top,
-                        //     hRect.width,
-                        //     hRect.height
-                        // );
-                        SDL_Log("Button clicked, draw polygon shapes using GraphTool");
-                        vector<SPoint> polygonPoints = {
-                            SPoint(100, 300),
-                            SPoint(400, 300),
-                            // SPoint(400, 600),
-                            SPoint(100, 600)
-                        };
-                        g_dc->drawPolygon(polygonPoints, false, true);
+                        SDL_Log("g_menuBar->getRect()={%f, %f, %f, %f}", g_menuBar->getRect().left, g_menuBar->getRect().top, g_menuBar->getRect().width, g_menuBar->getRect().height);
+                        // SDL_Log("Button clicked, draw polygon shapes using GraphTool");
+                        // vector<SPoint> polygonPoints = {
+                        //     SPoint(100, 300),
+                        //     SPoint(400, 300),
+                        //     // SPoint(400, 600),
+                        //     SPoint(100, 600)
+                        // };
+                        // g_dc->drawPolygon(polygonPoints, false, true);
 
                     })
                     .build()

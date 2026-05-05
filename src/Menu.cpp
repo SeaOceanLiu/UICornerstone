@@ -190,10 +190,14 @@ void MenuBase::setRect(SRect rect)
 {
     ControlImpl::setRect(rect);
 
+    // 调整菜单标题和子菜单箭头的位置
+    // 先调整标题位置和大小，以便子菜单箭头能根据标题的实际宽度来调整位置
     if (m_caption != nullptr){
         SDL_Log("MenuBase(%s)::call m_caption->setRect: rect(0, 0, %f, %f)", getCaption().c_str(), m_rect.width, m_rect.height);
         m_caption->setRect({0, 0, m_rect.width, m_rect.height});
     }
+
+    // 再调整子菜单箭头的位置
     if (m_subMenuArrow != nullptr){
         SDL_Log("MenuBase(%s)::call m_subMenuArrow->setRect: rect(%f, %f, %f, %f)", getCaption().c_str(),
             m_subMenuArrow->getRect().left, m_subMenuArrow->getRect().top, m_subMenuArrow->getRect().width, m_subMenuArrow->getRect().height);
@@ -281,13 +285,16 @@ void MenuBase::setCaption(string caption){
                             .setTextStateColor(m_textColor)
                             .setTextShadowStateColor(m_textShadowColor)
                             .setShadow(m_enableTextShadow)
+                            .setEnableExpand(true)
                             .build();
-        
+
         setRect({getRect().left, getRect().top,
-            ConstDef::MENU_ITEM_MARGIN.left +
-                m_caption->getRect().width + ConstDef::MENU_ITEM_MARGIN.right,
-            ConstDef::MENU_ITEM_MARGIN.top +
-                m_caption->getRect().height + ConstDef::MENU_ITEM_MARGIN.bottom});
+            ConstDef::MENU_ITEM_MARGIN.left + ConstDef::LABEL_CAPTION_MARGIN.left +
+                m_caption->getHotRect().width + ConstDef::MENU_ITEM_MARGIN.right + ConstDef::LABEL_CAPTION_MARGIN.right,
+            ConstDef::MENU_ITEM_MARGIN.top + ConstDef::LABEL_CAPTION_MARGIN.top +
+                m_caption->getHotRect().height + ConstDef::MENU_ITEM_MARGIN.bottom + ConstDef::LABEL_CAPTION_MARGIN.bottom}); // 根据文本内容调整菜单项大小
+        SDL_Log("MenuBase(%s)::setCaption(%s): rect(%f, %f, %f, %f)", getCaption().c_str(),
+            m_captionText.c_str(), getRect().left, getRect().top, getRect().width, getRect().height);
     }
     createSubMenuArrowLabel();
 }
@@ -310,9 +317,11 @@ void MenuBase::createSubMenuArrowLabel(void){
                                 .setTextStateColor(m_textColor)
                                 .setTextShadowStateColor(m_textShadowColor)
                                 .setShadow(m_enableTextShadow)
+                                .setEnableExpand(true)
                                 .build();
+        m_subMenuArrow->setWidth(m_subMenuArrow->getHotRect().width); // 根据内容调整箭头宽度
         // 调整菜单项宽度以容纳箭头
-        setWidth(getRect().width + m_subMenuArrow->getRect().width);
+        setWidth(getRect().width + m_subMenuArrow->getHotRect().width);
     }
 }
 void MenuBase::destroySubMenuArrowLabel(void){
@@ -617,6 +626,7 @@ void MenuContainer::addItem(shared_ptr<MenuBase> item, bool intoMenuList){
             float targetLeft = ConstDef::MENU_ITEM_MARGIN.left;
             float targetTop = ConstDef::MENU_ITEM_MARGIN.top;
 
+            SDL_Log("MenuContainer(%s)::addItem(%s): targetHeight changed, adjust existing items. targetHeight=%f, alignedHeight=%f", getMountMenuCaption().c_str(), item->getCaption().c_str(), targetHeight, m_alignedHeight);
             for (size_t i = 0; i < m_items.size(); ++i) {
                 auto& existingItem = m_items[i];
                 if (existingItem->getType() != MenuItemType::Separator) {
@@ -640,10 +650,18 @@ void MenuContainer::addItem(shared_ptr<MenuBase> item, bool intoMenuList){
             }
         } else {
             // 高度无变化时，直接在最后添加菜单项
-            m_items.back()->setRect(SRect(m_items[m_items.size() - 2]->getRect().right() + ConstDef::MENU_ITEM_MARGIN.right + ConstDef::MENU_ITEM_MARGIN.left,
-                                            ConstDef::MENU_ITEM_MARGIN.top,
-                                            m_items.back()->getRect().width,
-                                            targetHeight));
+            if(m_items.size() == 1) {
+                m_items.back()->setRect(SRect(ConstDef::MENU_ITEM_MARGIN.left,
+                                                ConstDef::MENU_ITEM_MARGIN.top,
+                                                targetWidth,
+                                                targetHeight));
+
+            } else if (m_items.size() > 1) {
+                m_items.back()->setRect(SRect(m_items[m_items.size() - 2]->getRect().right() + ConstDef::MENU_ITEM_MARGIN.right + ConstDef::MENU_ITEM_MARGIN.left,
+                                                ConstDef::MENU_ITEM_MARGIN.top,
+                                                m_items.back()->getRect().width,
+                                                targetHeight));
+            }
             SDL_Log("MenuContainer(%s)::addItem(%s): %f, %f, %f, %f", getMountMenuCaption().c_str(), item->getCaption().c_str(),
                     m_items.back()->getRect().left,
                     m_items.back()->getRect().top,
