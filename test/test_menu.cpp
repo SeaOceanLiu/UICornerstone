@@ -16,15 +16,8 @@ using namespace std;
 
 // 全局变量存储菜单控件
 shared_ptr<MenuBar> g_menuBar;
-shared_ptr<MainMenu> g_fileMenu;
-shared_ptr<MenuItem> newFileItem;
-shared_ptr<MenuItem> openFileItem;
-shared_ptr<MenuItem> recentFilesItem;
-shared_ptr<MenuItem> saveFileItem;
-shared_ptr<MenuSeparator> separatorItem;
-shared_ptr<MenuItem> exitItem;
-
-shared_ptr<MainMenu> g_editMenu;
+shared_ptr<MenuPanel> g_filePanel;
+shared_ptr<MenuPanel> g_editPanel;
 shared_ptr<Button> g_Button;
 shared_ptr<GraphTool::DrawingContext> g_dc;
 
@@ -42,153 +35,108 @@ void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, co
 }
 void testBenchInitialize(void) {
     SDL_Log("testBenchInitialize");
-    // 使用链形式调用创建菜单栏
-    g_menuBar = dynamic_pointer_cast<MenuBar>(MenuBarBuilder()
-                // // .setBGColor(SDL_Color{23, 23, 24, 255})  // 灰色背景
-                // // .setTextColor(SDL_Color{255, 255, 255, 255})  // 白色文字
-                // .addBeforeEventHandlingWatcher(EventName::MOUSE_LBUTTON_DOWN)
-                // .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
 
-                // .addMainMenu(MainMenuBuilder(u8"测试(T)")
-                //                 .addMenuItem(MenuItemBuilder(u8"开始测试")
-                //                             .setOnClick([](shared_ptr<MenuBase> item) {
-                //                                 cout << "Start test clicked" << endl;
-                //                             }).build()
-                //                 )
-                //                 .build()
-                // )
-                .addMainMenu(g_fileMenu = dynamic_pointer_cast<MainMenu>(MainMenuBuilder(u8"文件(F)")
-                                .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                // .addMenuItem(newFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"新建(N)")
-                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                //             .setOnClick([](shared_ptr<MenuBase> item) {
-                                //                 cout << "New file clicked" << endl;
-                                //             })
-                                //             .build())
-                                // )
-                                // .addMenuItem(openFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"打开(O)")
-                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                //             .setOnClick([](shared_ptr<MenuBase> item) {
-                                //                 cout << "Open file clicked" << endl;
-                                //             })
-                                //             .build())
-                                // )
-                                .addMenuItem(recentFilesItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"最近打开的文件")
-                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                            .addSubMenuItem(MenuItemBuilder(u8"file1.txt")
-                                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                                cout << "Recent file1.txt clicked" << endl;
-                                                            })
-                                                            .build()
-                                            )
-                                            .addSubMenuItem(MenuItemBuilder(u8"file2.txt")
-                                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                                cout << "Recent file2.txt clicked" << endl;
-                                                            })
-                                                            .build()
-                                            )
-                                            .build())
-                                )
-                                // .addMenuItem(saveFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"保存(S)")
-                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                //             .setOnClick([](shared_ptr<MenuBase> item) {
-                                //                 cout << "Save file clicked" << endl;
-                                //             })
-                                //             .build())
-                                // )
-                                // .addMenuItem(separatorItem = dynamic_pointer_cast<MenuSeparator>(MenuSeparatorBuilder()
-                                //             .build())
-                                // )
-                                // .addMenuItem(exitItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"退出")
-                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                //             .setOnClick([](shared_ptr<MenuBase> item) {
-                                //                 cout << "Exit program" << endl;
-                                //                 SDL_Event quitEvent;
-                                //                 quitEvent.type = SDL_EVENT_QUIT;
-                                //                 SDL_PushEvent(&quitEvent);
-                                //             })
-                                //             .build())
-                                // )
-                                .build()
-                ))
-                .build());
+    // 创建文件菜单面板
+    g_filePanel = MenuPanelBuilder()
+        .addItem(MenuItemBuilder(u8"新建(N)")
+            .setShortcut("Ctrl+N")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "New file clicked" << endl;
+            })
+            .build())
+        .addItem(MenuItemBuilder(u8"打开(O)")
+            .setShortcut("Ctrl+O")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Open file clicked" << endl;
+            })
+            .build())
+        .addItem(MenuItemBuilder(u8"最近打开的文件")
+            .setSubMenu(MenuPanelBuilder()
+                .addItem(MenuItemBuilder(u8"file1.txt")
+                    .setOnClick([](shared_ptr<MenuItem> item) {
+                        cout << "Recent file1.txt clicked" << endl;
+                    })
+                    .build())
+                .addItem(MenuItemBuilder(u8"file2.txt")
+                    .setOnClick([](shared_ptr<MenuItem> item) {
+                        cout << "Recent file2.txt clicked" << endl;
+                    })
+                    .build())
+                .build())
+            .build())
+        .addSeparator()
+        .addItem(MenuItemBuilder(u8"保存(S)")
+            .setShortcut("Ctrl+S")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Save file clicked" << endl;
+            })
+            .build())
+        .addSeparator()
+        .addItem(MenuItemBuilder(u8"退出")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Exit program" << endl;
+                SDL_Event quitEvent;
+                quitEvent.type = SDL_EVENT_QUIT;
+                SDL_PushEvent(&quitEvent);
+            })
+            .build())
+        .build();
 
-    // SDL_Log("to create edit menu");
-    // // 创建编辑菜单
-    // g_editMenu = dynamic_pointer_cast<MainMenu>(MainMenuBuilder(u8"编辑(E)")
-    //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-    //             // .setNormalStateBGColor(SDL_Color{128, 128, 128, 255})  // 灰色背景
-    //             // .setTextNormalStateColor(SDL_Color{255, 255, 255, 255})  // 白色文字
-    //             // .setHoverStateBGColor(SDL_Color{200, 200, 200, 255})  // 浅灰色悬停
-    //             .build());
+    // 创建编辑菜单面板
+    g_editPanel = MenuPanelBuilder()
+        .addItem(MenuItemBuilder(u8"撤销")
+            .setShortcut("Ctrl+Z")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Undo operation" << endl;
+            })
+            .build())
+        .addItem(MenuItemBuilder(u8"重做")
+            .setShortcut("Ctrl+Y")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Redo operation" << endl;
+            })
+            .build())
+        .addSeparator()
+        .addItem(MenuItemBuilder(u8"剪切")
+            .setShortcut("Ctrl+X")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Cut operation" << endl;
+            })
+            .build())
+        .addItem(MenuItemBuilder(u8"复制")
+            .setShortcut("Ctrl+C")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Copy operation" << endl;
+            })
+            .build())
+        .addItem(MenuItemBuilder(u8"粘贴")
+            .setShortcut("Ctrl+V")
+            .setOnClick([](shared_ptr<MenuItem> item) {
+                cout << "Paste operation" << endl;
+            })
+            .build())
+        .build();
 
-    // SDL_Log("to create undo menu items");
-    // // 创建编辑菜单项
-    // auto undoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("UndoUndoUndo")
-    //                 .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-    //                 .setOnClick([](shared_ptr<MenuBase> item) {
-    //                     cout << "Undo operation" << endl;
-    //                 })
-    //                 .build());
-
-    // SDL_Log("to create redo menu items");
-    // auto redoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("RedoRedoRedo")
-    //                 .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-    //                 .setOnClick([](shared_ptr<MenuBase> item) {
-    //                     cout << "Redo operation" << endl;
-    //                 })
-    //                 .build());
-
-    // SDL_Log("to add menu items to edit menu");
-    // // 将菜单项添加到编辑菜单
-    // g_editMenu->addMenuItem(undoItem);
-    // g_editMenu->addMenuItem(redoItem);
-
-    // SDL_Log("to add main menu(Edit) to menu bar");
-    // // 将菜单添加到菜单栏
-    // // g_menuBar->addMainMenu(g_fileMenu);
-    // g_menuBar->addMainMenu(g_editMenu);
+    // 使用Builder链式调用创建菜单栏
+    g_menuBar = MenuBarBuilder(BENCH)
+        .addMenu(u8"文件(F)", g_filePanel)
+        .addMenu(u8"编辑(E)", g_editPanel)
+        .build();
 
     SDL_Log("Add menu bar to bench");
-    // 将菜单栏添加到Bench控件管理器
     BENCH->addControl(g_menuBar);
-
-    // SDL_Log("Menubar rect={%f, %f, %f, %f}", g_menuBar->getRect().left, g_menuBar->getRect().top, g_menuBar->getRect().width, g_menuBar->getRect().height);
-
-    // // 调试信息
-    // cout << "MenuBar created: " << (g_menuBar ? "Yes" : "No") << endl;
-    // cout << "File menu created: " << (g_fileMenu ? "Yes" : "No") << endl;
-    // cout << "Edit menu created: " << (g_editMenu ? "Yes" : "No") << endl;
-    // cout << "MenuBar enabled: " << (g_menuBar->getEnable() ? "Yes" : "No") << endl;
-    // cout << "File menu enabled: " << (g_fileMenu->getEnable() ? "Yes" : "No") << endl;
-    // cout << "Edit menu enabled: " << (g_editMenu->getEnable() ? "Yes" : "No") << endl;
-
-    // cout << "Menu controls test program started successfully" << endl;
-    // cout << "Click File menu to see dropdown menu" << endl;
-    // cout << "Click Exit menu item to exit program" << endl;
-    // cout << "Press ESC to exit program" << endl;
 
     BENCH->addControl(g_Button = ButtonBuilder(BENCH, {400, 100, 100, 50})
                     .setCaption("Button")
                     .setBackgroundStateColor(StateColor(StateColor::Type::Background).setNormal({128,128,128,255}))
                     .setBorderStateColor(StateColor(StateColor::Type::Border).setNormal({0,0,255,255}))
                     .setOnClick([](shared_ptr<Button> btn) {
-                        SDL_Log("g_menuBar->getRect()={%f, %f, %f, %f}", g_menuBar->getRect().left, g_menuBar->getRect().top, g_menuBar->getRect().width, g_menuBar->getRect().height);
-                        // SDL_Log("Button clicked, draw polygon shapes using GraphTool");
-                        // vector<SPoint> polygonPoints = {
-                        //     SPoint(100, 300),
-                        //     SPoint(400, 300),
-                        //     // SPoint(400, 600),
-                        //     SPoint(100, 600)
-                        // };
-                        // g_dc->drawPolygon(polygonPoints, false, true);
-
+                        SDL_Log("g_menuBar->getRect()={%f, %f, %f, %f}",
+                            g_menuBar->getRect().left, g_menuBar->getRect().top,
+                            g_menuBar->getRect().width, g_menuBar->getRect().height);
                     })
                     .build()
                 );
-
 }
 void testGraphToolInitialize(void){
     SDL_Log("testGraphToolInitialize");
