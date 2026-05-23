@@ -1,4 +1,5 @@
-﻿
+﻿// 由AI生成，可能不完整或有错误，请自行检查和修改
+
 #include "GraphTool.h"
 
 namespace GraphTool {

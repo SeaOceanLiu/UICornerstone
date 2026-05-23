@@ -554,6 +554,13 @@ inline SRotatedRect::SRotatedRect(const SPoint& p0, const SPoint& p1,
     // 对于旋转矩形，可能需要更复杂的算法，但这是一个好的起点
 }
 
+// ============================================================================
+// 确保函数在对象析构时调用
+// ============================================================================
+
+// final_action类，用于确保在对象析构时调用某个函数
+// 使用方法：在对象析构时调用某个函数，可以使用finally()函数
+// 例如：finally([](){ std::cout << "Object is being destroyed!" << std::endl; });
 template<class F>
 class final_action{
 public:

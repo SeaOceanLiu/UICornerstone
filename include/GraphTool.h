@@ -1,4 +1,5 @@
-﻿#ifndef GRAPHTOOL_H
+﻿// 由AI生成，可能不完整或有错误，请自行检查和修改
+#ifndef GRAPHTOOL_H
 #define GRAPHTOOL_H
 
 #include "SDL3/SDL.h"

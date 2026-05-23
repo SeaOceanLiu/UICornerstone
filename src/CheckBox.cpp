@@ -1,4 +1,5 @@
-﻿#include "CheckBox.h"
+﻿// 由AI生成，可能不完整或有错误，请自行检查和修改
+#include "CheckBox.h"
 #include "GraphTool.h"
 
 CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
