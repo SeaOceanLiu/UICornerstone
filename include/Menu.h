@@ -1,337 +1,254 @@
-﻿#ifndef MenuH
+#ifndef MenuH
 #define MenuH
 
 #include <memory>
 #include <vector>
 #include <functional>
+#include <string>
 
 #include <SDL3/SDL.h>
 
 #include "ControlBase.h"
 #include "Label.h"
+#include "GraphTool.h"
 
 using namespace std;
 
-// 菜单项类型枚举
+// ==================== 菜单项类型枚举 ====================
 enum class MenuItemType {
-    Normal,     // 普通菜单项，即无下级菜单，点击后执行相应的操作
-    Separator,  // 分隔符，用于分隔菜单项
-    SubMenu     // 子菜单项，即有下级菜单，点击后展开子菜单，绘制竖向菜单时要画出右侧的箭头
-};
-enum class MenuDirection {
-    Horizontal,  // 水平菜单
-    Vertical     // 垂直菜单
-};
-enum class MenuClassLevel {
-    MenuBar,    // 菜单栏
-    MainMenu,   // 主菜单
-    MenuItem    // 菜单项
-};
-enum class SubMenuState {
-    Collapsed,  // 子菜单折叠
-    Expanded    // 子菜单展开
+    Normal,     // 普通菜单项，点击后执行操作
+    Separator,  // 分隔线
+    SubMenu     // 子菜单项，有下级菜单
 };
 
-// 前向声明
-class MenuBase;
+// ==================== 前向声明 ====================
 class MenuItem;
-class MainMenu;
+class MenuPanel;
 class MenuBar;
 
-class MenuContainer: public ControlImpl {
-public:
-    MenuContainer(MenuBase *parent, float xScale=1.0f, float yScale=1.0f);
-    virtual ~MenuContainer() {}
-
-    void draw(void) override;
-    bool handleEvent(shared_ptr<Event> event) override;
-    bool isContainsPoint(float x, float y) override; // 检查菜单容器是否包含指定点
-    void addItem(shared_ptr<MenuBase> item, bool intoMenuList=true);
-    void removeItem(shared_ptr<MenuBase> item);
-    bool isEmpty(void) const { return m_items.empty(); }
-    shared_ptr<MenuBase> getSubMenuAtPoint(float x, float y);
-protected:
-    float m_alignedWidth;
-    float m_alignedHeight;
-    vector<shared_ptr<MenuBase>> m_items;
-
-    MenuDirection getDirection(void);
-    string getMountMenuCaption(void);
-};
-
-
-class MenuBase: public ControlImpl {
-    friend class MenuBaseBuilder;
-public:
-    using OnClickHandler = std::function<void (shared_ptr<MenuBase>)>;
-public:
-    MenuBase(Control *parent,
-            MenuItemType type=MenuItemType::Normal,
-            MenuDirection direction=MenuDirection::Vertical,
-            float xScale=1.0f,
-            float yScale=1.0f
-        );
-    void setParentMenu(shared_ptr<MenuBase> parentMenu) { m_parentMenu = parentMenu; }
-    shared_ptr<MenuBase> getParentMenu(void) const { return m_parentMenu; }
-    //void update(void) override;
-    void draw(void) override;
-    void drawContainer(void);
-    bool handleEvent(shared_ptr<Event> event) override;
-    bool isContainsPoint(float x, float y) override; // 检查菜单栏是否包含指定点
-    void setParent(Control *parent) override; // 当被添加到其它控件容器中时，当前控件会被调用这个函数用于设置父控件，此时需要重新设置一下菜单项的位置
-    void setRect(SRect rect) override;  // 重载，以便于设置菜单项的矩形区域后，能同步调整菜单标题和子菜单项的位置
-
-    void addItem(shared_ptr<MenuBase> item);
-    void removeItem(shared_ptr<MenuBase> item);
-
-    // 鼠标进入/退出处理
-    void onMouseEnter(float x, float y) override;
-    void onMouseLeave(float x, float y) override;
-
-    // 重载字体颜色设置相关函数，以同步调用Caption相关设置接口
-    void setTextStateColor(StateColor stateColor) override;
-    void setTextShadowStateColor(StateColor stateColor) override;
-    void setTextShadowEnable(bool enable);
-    void setCaption(string caption);
-    string getCaption(void) const;
-    void setCaptionSize(float size);
-    uint32_t getCaptionSize(float size) const;
-    void setCaptionAlignment(AlignmentMode alignment);
-    AlignmentMode getCaptionAlignment(void) const;
-    void setCaptionMargin(Margin margin);
-    Margin getCaptionMargin(void) const;
-    SRect getCaptionRect(void) const;
-    void setMenuChainState(ControlState state);
-    void closeMenuIntheChain(void); // 关闭当前菜单及其所有父菜单
-    shared_ptr<MenuBase> getSubMenuAtPoint(float x, float y); // 获取指定坐标下的子菜单项
-    void setType(MenuItemType type) { m_type = type; }
-    MenuItemType getType(void) const { return m_type; }
-    void setDirection(MenuDirection direction) { m_direction = direction; }
-    MenuDirection getDirection(void) const { return m_direction; }
-    void setExpended(bool isExpanded) {
-        SDL_Log("******MenuBase::setExpended <%s> to %d", getCaption().c_str(), isExpanded);
-        m_isExpanded = isExpanded;
-        // setExpendedSubMenuItem(nullptr);
-        if (m_menuContainer) {
-            if (m_isExpanded) {
-                m_menuContainer->show();
-            } else {
-                m_menuContainer->hide();
-            }
-        }
-    }
-    bool getExpanded(void) const { return m_isExpanded; }
-    void setExpendedSubMenuItem(shared_ptr<MenuBase> item) {
-        if (m_expandedItem == item) return; // 如果展开的子菜单项与要设置的子菜单项相同，则直接返回
-
-        // 如果之前有子菜单项展开，那就先把它收起来
-        if (m_expandedItem) {
-            SDL_Log("MenuBase::set <%s>'s expanded item to: 0x%0X, before set, current expanded item is: 0x%0X", getCaption().c_str(), item.get(), m_expandedItem.get());
-            m_expandedItem->setExpended(false);
-        }
-
-        // 把新的子菜单项展开
-        m_expandedItem = item;
-        SDL_Log("MenuBase::set <%s>'s expanded item to: 0x%0X", getCaption().c_str(), m_expandedItem);
-        if (m_expandedItem) {
-            m_expandedItem->setExpended(true);
-        }
-    }
-    shared_ptr<MenuBase> getExpendedSubMenuItem(void) const { return m_expandedItem; }
-    void setOnClick(OnClickHandler handler) { m_onClick = handler; }
-    shared_ptr<MenuContainer> getMenuContainer(void) const { return m_menuContainer; }
-
-    void setMenuClassLevel(MenuClassLevel level) { m_classLevel = level; }
-    MenuClassLevel getMenuClassLevel(void) const { return m_classLevel; }
-
-    void createSubMenuArrowLabel(void); // 创建子菜单箭头
-    void destroySubMenuArrowLabel(void); // 销毁子菜单箭头
-
-    // shared_ptr<Label> m_subMenuArrow; // 子菜单箭头
-    // shared_ptr<Label> m_caption;
-protected:
-    shared_ptr<MenuBase> m_parentMenu;
-    MenuItemType m_type;
-    MenuClassLevel m_classLevel;
-    MenuDirection m_direction;
-    bool m_isExpanded; // 是否展开子菜单
-    SubMenuState m_subMenuState; // 子菜单状态
-    // vector<shared_ptr<MenuBase>> m_items;
-    shared_ptr<MenuBase> m_expandedItem; // 展开的子菜单项
-
-    shared_ptr<Label> m_caption;
-    shared_ptr<Label> m_subMenuArrow; // 子菜单箭头
-    // shared_ptr<Label> m_shotcutKey; // 快捷键
-
-    string m_captionText;
-    float m_captionSize;
-    AlignmentMode m_captionAlignment;
-    Margin m_captionMargin;
-
-    bool m_enableTextShadow;
-
-    shared_ptr<MenuContainer> m_menuContainer;
-
-    OnClickHandler m_onClick;
-
-};
-
-class MenuBaseBuilder {
-protected:
-    shared_ptr<MenuBase> m_menu; // 菜单项对象
-public:
-    MenuBaseBuilder(shared_ptr<MenuBase> menu,
-            MenuItemType type=MenuItemType::Normal,
-            MenuDirection direction=MenuDirection::Vertical,
-            float xScale=1.0f,
-            float yScale=1.0f):
-        m_menu(menu)
-        {
-        SDL_Log("MenuBaseBuilder: Creating MenuBase");
-        if (!m_menu) {
-            SDL_Log("MenuBaseBuilder::MenuBaseBuilder(): ERROR: input menu is null!");
-            throw std::runtime_error("Failed to create MenuBase");
-        }
-    }
-    // virtual MenuBaseBuilder& addBeforeEventHandlingWatcher(EventName eventName) {
-    //     EventQueue::getInstance()->addBeforeEventHandlingWatcher(eventName, m_menu);
-    //     return *this;
-    // }
-    virtual MenuBaseBuilder& setBackgroundStateColor(StateColor stateColor) {
-        m_menu->setBackgroundStateColor(stateColor);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setBorderStateColor(StateColor stateColor) {
-        m_menu->setBorderStateColor(stateColor);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setTextStateColor(StateColor stateColor) {
-        m_menu->setTextStateColor(stateColor);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setTextShadowStateColor(StateColor stateColor) {
-        m_menu->setTextShadowStateColor(stateColor);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setTextShadowEnable(bool enable) {
-        m_menu->setTextShadowEnable(enable);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setCaption(string caption) {
-        m_menu->setCaption(caption);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setCaptionSize(float size) {
-        m_menu->setCaptionSize(size);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setCaptionAlignment(AlignmentMode alignment) {
-        m_menu->setCaptionAlignment(alignment);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setCaptionMargin(Margin margin) {
-        m_menu->setCaptionMargin(margin);
-        return *this;
-    }
-    virtual MenuBaseBuilder& setOnClick(MenuBase::OnClickHandler handler) {
-        m_menu->setOnClick(handler);
-        return *this;
-    }
-    virtual shared_ptr<MenuBase> build(void) {
-        m_menu->create();
-        return m_menu;
-    }
-};
-
-class MenuSeparator: public MenuBase {
-    friend class MenuSeparatorBuilder;
-public:
-    MenuSeparator(MenuBase *parent, float xScale=1.0f, float yScale=1.0f):
-        MenuBase(parent, MenuItemType::Separator, MenuDirection::Horizontal, xScale, yScale)
-    {}
-
-    // void update(void) override;
-    void draw(void) override;
-};
-
-class MenuSeparatorBuilder: public MenuBaseBuilder {
-private:
-    shared_ptr<MenuSeparator> m_separator; // 菜单项对象
-public:
-    MenuSeparatorBuilder(float xScale=1.0f, float yScale=1.0f, Control *parent=nullptr);
-    shared_ptr<MenuBase> build(void) override;
-};
-
-class MenuBar: public MenuBase {
-private:
-    bool m_showTopSubMenu;
-public:
-    MenuBar(Control *parent, MenuDirection direction=MenuDirection::Horizontal, float xScale=1.0f, float yScale=1.0f);
-    void setShowTopSubMenu(bool show);
-    bool getShowTopSubMenu(void) const;
-    void draw(void) override;
-    void setParent(Control *parent) override;
-    bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
-    void addMainMenu(shared_ptr<MenuBase> item);
-    void removeMainMenu(shared_ptr<MenuBase> item);
-};
-
-class MenuBarBuilder: public MenuBaseBuilder {
-private:
-    shared_ptr<MenuBar> m_menuBar; // 菜单栏对象
-public:
-    MenuBarBuilder(Control *parent=nullptr, MenuDirection direction=MenuDirection::Horizontal, float xScale=1.0f, float yScale=1.0f);
-    MenuBarBuilder& addMainMenu(shared_ptr<MenuBase> item);
-    MenuBarBuilder& addBeforeEventHandlingWatcher(EventName eventName);
-    shared_ptr<MenuBase> build(void) override;
-};
-
-class MainMenu: public MenuBase {
-    friend class MainMenuBuilder;
-public:
-    MainMenu(Control *parent,
-            MenuDirection direction=MenuDirection::Vertical,
-            float xScale=1.0f,
-            float yScale=1.0f
-        );
-
-    bool handleEvent(shared_ptr<Event> event) override;
-    bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
-    void addMenuItem(shared_ptr<MenuBase> item);
-    void removeMenuItem(shared_ptr<MenuBase> item);
-};
-
-class MainMenuBuilder: public MenuBaseBuilder {
-private:
-    shared_ptr<MainMenu> m_mainMenu; // 菜单项对象
-public:
-    MainMenuBuilder(string caption, MenuDirection direction=MenuDirection::Vertical, float xScale=1.0f, float yScale=1.0f, Control *parent=nullptr);
-    MainMenuBuilder& addBeforeEventHandlingWatcher(EventName eventName);
-    MainMenuBuilder& addMenuItem(shared_ptr<MenuBase> item);
-    shared_ptr<MenuBase> build(void) override;
-};
-
-class MenuItem: public MenuBase {
+// ==================== MenuItem 菜单项 ====================
+class MenuItem : public ControlImpl {
     friend class MenuItemBuilder;
+    friend class MenuPanel;
 public:
-    MenuItem(Control *parent,
-            MenuDirection direction=MenuDirection::Vertical,
-            float xScale=1.0f,
-            float yScale=1.0f
-        );
+    using OnClickHandler = function<void(shared_ptr<MenuItem>)>;
 
-    bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
-    void addSubMenuItem(shared_ptr<MenuBase> item);
-    void removeSubMenuItem(shared_ptr<MenuBase> item);
-};
+    MenuItem(Control *parent, MenuItemType type = MenuItemType::Normal,
+             float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuItem() override;
 
-class MenuItemBuilder: public MenuBaseBuilder {
+    void draw() override;
+    bool handleEvent(shared_ptr<Event> event) override;
+
+    // 属性设置
+    void setCaption(const string& caption);
+    const string& getCaption() const { return m_caption; }
+    void setShortcut(const string& shortcut);
+    const string& getShortcut() const { return m_shortcut; }
+    void setChecked(bool checked);
+    bool getChecked() const { return m_checked; }
+
+    // 点击回调
+    void setOnClick(OnClickHandler handler) { m_onClick = handler; }
+
+    // 子菜单
+    void setSubMenu(shared_ptr<MenuPanel> panel);
+    shared_ptr<MenuPanel> getSubMenu() const { return m_subMenu; }
+    bool hasSubMenu() const { return m_subMenu != nullptr; }
+
+    MenuItemType getType() const { return m_type; }
+
+    // 菜单项高度（用于布局计算）
+    static float getItemHeight();
+
+    // 关闭整个菜单链
+    void closeMenuChain();
+
 private:
-    shared_ptr<MenuItem> m_menuItem; // 菜单项对象
-public:
-    MenuItemBuilder(string caption, MenuDirection direction=MenuDirection::Vertical, float xScale=1.0f, float yScale=1.0f, Control *parent=nullptr);
-    MenuItemBuilder& addBeforeEventHandlingWatcher(EventName eventName);
-    MenuItemBuilder& addSubMenuItem(shared_ptr<MenuBase> item);
-    shared_ptr<MenuBase> build(void) override;
+    MenuItemType m_type;
+    string m_caption;
+    string m_shortcut;
+    bool m_checked;
+    bool m_hovered;
+    OnClickHandler m_onClick;
+    shared_ptr<MenuPanel> m_subMenu;
+    shared_ptr<Label> m_captionLabel;
+    shared_ptr<Label> m_shortcutLabel;
+    shared_ptr<Label> m_arrowLabel;
+
+    void createLabels();
+    void updateLabelPositions();
 };
-#endif  // MenuH
+
+// ==================== MenuPanel 菜单面板 ====================
+class MenuPanel : public ControlImpl {
+    friend class MenuPanelBuilder;
+    friend class MenuBar;
+public:
+    MenuPanel(Control *parent, float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuPanel() override;
+
+    void draw() override;
+    bool handleEvent(shared_ptr<Event> event) override;
+    bool isContainsPoint(float x, float y) override;
+
+    // 添加菜单项
+    void addItem(shared_ptr<MenuItem> item);
+    void addSeparator();
+    void removeItem(shared_ptr<MenuItem> item);
+
+    // 显示/隐藏
+    void show();
+    void hide();
+    bool isVisible() const { return m_visible; }
+
+    // 设置位置（屏幕坐标）
+    void setPosition(float x, float y);
+
+    // 获取菜单项
+    shared_ptr<MenuItem> getItemAt(float x, float y);
+
+    // 关闭本面板及子面板
+    void closeWithChildren();
+
+    // 重新计算尺寸
+    void recalculateSize();
+
+    // 获取子菜单面板
+    shared_ptr<MenuPanel> getOpenSubMenu() const { return m_openSubMenu; }
+    void setOpenSubMenu(shared_ptr<MenuPanel> panel);
+
+    int getHoveredIndex() const { return m_hoveredIndex; }
+    void setHoveredIndex(int index);
+
+private:
+    vector<shared_ptr<MenuItem>> m_items;
+    float m_itemHeight;
+    float m_iconAreaWidth;
+    float m_shortcutAreaWidth;
+    float m_arrowAreaWidth;
+    int m_hoveredIndex;
+    bool m_visible;
+    shared_ptr<MenuPanel> m_openSubMenu;
+
+    // 颜色
+    SDL_Color m_bgColor;
+    SDL_Color m_borderColor;
+    SDL_Color m_hoverColor;
+    SDL_Color m_separatorColor;
+    float m_shadowRadius;
+
+    void layoutItems();
+    int hitTest(float x, float y);
+    void drawShadow();
+};
+
+// ==================== MenuBar 菜单栏 ====================
+class MenuBar : public ControlImpl {
+    friend class MenuBarBuilder;
+public:
+    MenuBar(Control *parent, float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuBar() override;
+
+    void draw() override;
+    bool handleEvent(shared_ptr<Event> event) override;
+    bool isContainsPoint(float x, float y) override;
+    void setParent(Control *parent) override;
+    void setRect(SRect rect) override;
+
+    // 添加顶级菜单
+    void addMenu(const string& caption, shared_ptr<MenuPanel> panel);
+    void removeMenu(const string& caption);
+
+    // 关闭所有下拉菜单
+    void closeAllMenus();
+
+    // 菜单栏高度
+    void setBarHeight(float height);
+    float getBarHeight() const { return m_barHeight; }
+
+    // 菜单模式
+    bool isInMenuMode() const { return m_menuMode; }
+    void enterMenuMode(int index);
+    void exitMenuMode();
+
+private:
+    struct MenuEntry {
+        string caption;
+        SRect hitRect;
+        shared_ptr<MenuPanel> panel;
+        shared_ptr<Label> label;
+    };
+
+    vector<MenuEntry> m_entries;
+    float m_barHeight;
+    int m_hoveredIndex;
+    int m_activeIndex;
+    bool m_menuMode;
+
+    // 颜色
+    SDL_Color m_bgColor;
+    SDL_Color m_textColor;
+    SDL_Color m_hoverBgColor;
+    SDL_Color m_hoverTextColor;
+    SDL_Color m_activeBgColor;
+
+    void layoutEntries();
+    int hitTest(float x, float y);
+    void openMenu(int index);
+    void switchMenu(int index);
+};
+
+// ==================== Builder模式 ====================
+
+class MenuItemBuilder {
+public:
+    MenuItemBuilder(const string& caption, float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuItemBuilder() = default;
+
+    MenuItemBuilder& setShortcut(const string& shortcut);
+    MenuItemBuilder& setOnClick(MenuItem::OnClickHandler handler);
+    MenuItemBuilder& setChecked(bool checked);
+    MenuItemBuilder& setSubMenu(shared_ptr<MenuPanel> panel);
+    MenuItemBuilder& setEnabled(bool enabled);
+    MenuItemBuilder& setBackgroundStateColor(StateColor stateColor);
+    MenuItemBuilder& setTextStateColor(StateColor stateColor);
+
+    shared_ptr<MenuItem> build();
+
+private:
+    shared_ptr<MenuItem> m_item;
+};
+
+class MenuPanelBuilder {
+public:
+    MenuPanelBuilder(float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuPanelBuilder() = default;
+
+    MenuPanelBuilder& addItem(shared_ptr<MenuItem> item);
+    MenuPanelBuilder& addSeparator();
+
+    shared_ptr<MenuPanel> build();
+
+private:
+    shared_ptr<MenuPanel> m_panel;
+    vector<shared_ptr<MenuItem>> m_items;
+};
+
+class MenuBarBuilder {
+public:
+    MenuBarBuilder(Control *parent = nullptr, float xScale = 1.0f, float yScale = 1.0f);
+    ~MenuBarBuilder() = default;
+
+    MenuBarBuilder& addMenu(const string& caption, shared_ptr<MenuPanel> panel);
+    MenuBarBuilder& setBarHeight(float height);
+    MenuBarBuilder& setBackgroundStateColor(StateColor stateColor);
+    MenuBarBuilder& setTextStateColor(StateColor stateColor);
+
+    shared_ptr<MenuBar> build();
+
+private:
+    shared_ptr<MenuBar> m_menuBar;
+};
+
+#endif // MenuH
