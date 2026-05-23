@@ -437,6 +437,7 @@ void CheckBox::drawCheckBoxFrame() {
             const int numPoints = 36;
             GraphTool::DrawingContext dc(renderer);
             dc.setPenColor(GraphTool::SColor(borderColor.r / 255.0f, borderColor.g / 255.0f, borderColor.b / 255.0f, borderColor.a / 255.0f));
+            // dc.setPenColor(GraphTool::SColor(1.0f, 1.0f, 1.0f, 1.0f));
             dc.setPenWidth(penWidth);
 
             dc.drawCircle(boxCenter, radius);

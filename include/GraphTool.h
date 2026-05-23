@@ -68,21 +68,24 @@ public:
     uint8_t blueByte() const { return static_cast<uint8_t>(m_b * 255); }
     uint8_t alphaByte() const { return static_cast<uint8_t>(m_a * 255); }
 
-    // 颜色操作
+    // 颜色操作 - alpha调整、变亮/变暗、混合
     SColor withAlpha(float alpha) const {
         return SColor(m_r, m_g, m_b, clamp(alpha));
     }
 
+    // 颜色变亮 - factor控制变亮程度，0.1表示变亮10%，0.5表示变亮50%
     SColor brighter(float factor = 0.1f) const {
         float f = 1.0f + clamp(factor);
         return SColor(clamp(m_r * f), clamp(m_g * f), clamp(m_b * f), m_a);
     }
 
+    // 颜色变暗 - factor控制变暗程度，0.1表示变暗10%，0.5表示变暗50%
     SColor darker(float factor = 0.1f) const {
         float f = 1.0f - clamp(factor);
         return SColor(clamp(m_r * f), clamp(m_g * f), clamp(m_b * f), m_a);
     }
 
+    // 颜色混合 - 线性插值
     SColor blend(const SColor& other, float ratio = 0.5f) const {
         float r = clamp(ratio);
         float invR = 1.0f - r;
@@ -115,9 +118,439 @@ public:
 private:
     float m_r, m_g, m_b, m_a; // 0-1范围的浮点数值
 
+    // 静态工具函数 - 限制值在0-1之间
     static float clamp(float value) {
         return std::max<float>(0.0f, std::min<float>(1.0f, value));
     }
+};
+
+// ==================== 画笔样式枚举 ====================
+enum class PenStyle {
+    Solid,       // 实线 ────────
+    Dash,        // 虚线 ── ── ──
+    Dot,         // 点线 · · · · · ·
+    DashDot,     // 点划线 ── · ── ·
+    DashDotDot,  // 双点划线 ── · · ── · ·
+    Custom       // 自定义虚线样式
+};
+
+// ==================== 线帽样式枚举 ====================
+enum class LineCap {
+    Flat,    // 平头 - 线条在端点处平截
+    Round,   // 圆头 - 线条在端点处添加半圆
+    Square   // 方头 - 线条在端点处添加半方形
+};
+
+// ==================== 线连接样式枚举 ====================
+enum class LineJoin {
+    Miter,   // 尖角 - 外边缘延伸相交
+    Round,   // 圆角 - 在连接处添加圆弧
+    Bevel    // 斜角 - 截断外边缘
+};
+
+// ==================== 画刷样式枚举 ====================
+enum class BrushStyle {
+    None,            // 无填充（透明）
+    Solid,           // 实心填充
+    LinearGradient,  // 线性渐变
+    RadialGradient,  // 径向渐变
+    ConicGradient    // 锥形渐变
+};
+
+// ==================== 渐变停止点 ====================
+struct SGradientStop {
+    float position;  // 0.0 - 1.0 之间的位置
+    SColor color;    // 该位置的颜色
+
+    SGradientStop() : position(0.0f), color(SColor::Black()) {}
+    SGradientStop(float pos, const SColor& c) : position(pos), color(c) {}
+
+    bool operator<(const SGradientStop& other) const {
+        return position < other.position;
+    }
+};
+
+// ==================== 渐变类 ====================
+class SGradient {
+public:
+    SGradient() : m_stops() {}
+    SGradient(const std::vector<SGradientStop>& stops) : m_stops(stops) { sortStops(); }
+
+    // 添加渐变停止点
+    void addStop(float position, const SColor& color) {
+        m_stops.push_back(SGradientStop(position, color));
+        sortStops();
+    }
+
+    // 获取停止点列表
+    const std::vector<SGradientStop>& getStops() const { return m_stops; }
+
+    // 获取指定位置的颜色（线性插值）
+    SColor getColorAt(float position) const {
+        if (m_stops.empty()) return SColor::Black();
+        if (m_stops.size() == 1) return m_stops[0].color;
+        if (position <= m_stops.front().position) return m_stops.front().color;
+        if (position >= m_stops.back().position) return m_stops.back().color;
+
+        // 找到position所在的两个停止点之间
+        for (size_t i = 0; i < m_stops.size() - 1; ++i) {
+            if (position >= m_stops[i].position && position <= m_stops[i + 1].position) {
+                float range = m_stops[i + 1].position - m_stops[i].position;
+                if (range < 0.0001f) return m_stops[i].color;
+                float t = (position - m_stops[i].position) / range;
+                return m_stops[i].color.blend(m_stops[i + 1].color, t);
+            }
+        }
+        return m_stops.back().color;
+    }
+
+    // 停止点数量
+    size_t stopCount() const { return m_stops.size(); }
+
+    // 是否为空
+    bool isEmpty() const { return m_stops.empty(); }
+
+    // 清空停止点
+    void clear() { m_stops.clear(); }
+
+private:
+    std::vector<SGradientStop> m_stops;
+
+    void sortStops() {
+        std::sort(m_stops.begin(), m_stops.end());
+    }
+};
+
+// ==================== 线性渐变 ====================
+class SLinearGradient : public SGradient {
+public:
+    SLinearGradient() : SGradient(), m_startX(0), m_startY(0), m_endX(1), m_endY(0) {}
+    SLinearGradient(float x1, float y1, float x2, float y2)
+        : SGradient(), m_startX(x1), m_startY(y1), m_endX(x2), m_endY(y2) {}
+
+    SLinearGradient(const ::SPoint& start, const ::SPoint& end)
+        : SGradient(), m_startX(start.x), m_startY(start.y), m_endX(end.x), m_endY(end.y) {}
+
+    // 设置渐变起止点
+    void setStart(float x, float y) { m_startX = x; m_startY = y; }
+    void setEnd(float x, float y) { m_endX = x; m_endY = y; }
+
+    float startX() const { return m_startX; }
+    float startY() const { return m_startY; }
+    float endX() const { return m_endX; }
+    float endY() const { return m_endY; }
+
+    // 计算某点在渐变方向上的投影比例（0-1）
+    float getProjectionRatio(float x, float y) const {
+        float dx = m_endX - m_startX;
+        float dy = m_endY - m_startY;
+        float len2 = dx * dx + dy * dy;
+        if (len2 < 0.0001f) return 0.0f;
+        float t = ((x - m_startX) * dx + (y - m_startY) * dy) / len2;
+        return std::max<float>(0.0f, std::min<float>(1.0f, t));
+    }
+
+private:
+    float m_startX, m_startY;
+    float m_endX, m_endY;
+};
+
+// ==================== 径向渐变 ====================
+class SRadialGradient : public SGradient {
+public:
+    SRadialGradient() : SGradient(), m_cx(0.5f), m_cy(0.5f), m_radius(0.5f), m_focalX(0.5f), m_focalY(0.5f) {}
+    SRadialGradient(float cx, float cy, float radius)
+        : SGradient(), m_cx(cx), m_cy(cy), m_radius(radius), m_focalX(cx), m_focalY(cy) {}
+
+    SRadialGradient(float cx, float cy, float radius, float fx, float fy)
+        : SGradient(), m_cx(cx), m_cy(cy), m_radius(radius), m_focalX(fx), m_focalY(fy) {}
+
+    void setCenter(float x, float y) { m_cx = x; m_cy = y; }
+    void setRadius(float r) { m_radius = r; }
+    void setFocal(float x, float y) { m_focalX = x; m_focalY = y; }
+
+    float centerX() const { return m_cx; }
+    float centerY() const { return m_cy; }
+    float radius() const { return m_radius; }
+    float focalX() const { return m_focalX; }
+    float focalY() const { return m_focalY; }
+
+    // 计算某点在径向渐变中的比例（0-1）
+    float getRatio(float x, float y) const {
+        float dx = x - m_cx;
+        float dy = y - m_cy;
+        float dist = std::sqrt(dx * dx + dy * dy);
+        if (m_radius < 0.0001f) return 1.0f;
+        return std::max<float>(0.0f, std::min<float>(1.0f, dist / m_radius));
+    }
+
+private:
+    float m_cx, m_cy;
+    float m_radius;
+    float m_focalX, m_focalY;
+};
+
+// ==================== 画笔类 ====================
+class SPen {
+public:
+    // 默认构造函数：黑色实线，宽度1
+    SPen() :
+        m_color(SColor::Black()),
+        m_width(1.0f),
+        m_style(PenStyle::Solid),
+        m_cap(LineCap::Flat),
+        m_join(LineJoin::Miter),
+        m_dashOffset(0.0f) {}
+
+    // 指定颜色的构造函数
+    SPen(const SColor& color) :
+        m_color(color),
+        m_width(1.0f),
+        m_style(PenStyle::Solid),
+        m_cap(LineCap::Flat),
+        m_join(LineJoin::Miter),
+        m_dashOffset(0.0f) {}
+
+    // 指定颜色和宽度的构造函数
+    SPen(const SColor& color, float width) :
+        m_color(color),
+        m_width(width > 0 ? width : 1.0f),
+        m_style(PenStyle::Solid),
+        m_cap(LineCap::Flat),
+        m_join(LineJoin::Miter),
+        m_dashOffset(0.0f) {}
+
+    // 指定颜色、宽度和样式的构造函数
+    SPen(const SColor& color, float width, PenStyle style) :
+        m_color(color),
+        m_width(width > 0 ? width : 1.0f),
+        m_style(style),
+        m_cap(LineCap::Flat),
+        m_join(LineJoin::Miter),
+        m_dashOffset(0.0f) {}
+
+    // 完整构造函数
+    SPen(const SColor& color, float width, PenStyle style, LineCap cap, LineJoin join) :
+        m_color(color),
+        m_width(width > 0 ? width : 1.0f),
+        m_style(style),
+        m_cap(cap),
+        m_join(join),
+        m_dashOffset(0.0f) {}
+
+    // 颜色设置
+    void setColor(const SColor& color) { m_color = color; }
+    const SColor& color() const { return m_color; }
+    SColor& color() { return m_color; }
+
+    // 宽度设置
+    void setWidth(float width) { m_width = width > 0 ? width : 1.0f; }
+    float width() const { return m_width; }
+
+    // 样式设置
+    void setStyle(PenStyle style) { m_style = style; }
+    PenStyle style() const { return m_style; }
+
+    // 线帽设置
+    void setCap(LineCap cap) { m_cap = cap; }
+    LineCap cap() const { return m_cap; }
+
+    // 线连接设置
+    void setJoin(LineJoin join) { m_join = join; }
+    LineJoin join() const { return m_join; }
+
+    // 虚线偏移设置
+    void setDashOffset(float offset) { m_dashOffset = offset; }
+    float dashOffset() const { return m_dashOffset; }
+
+    // 自定义虚线模式设置
+    void setDashPattern(const std::vector<float>& pattern) {
+        m_dashPattern = pattern;
+        m_style = PenStyle::Custom;
+    }
+    const std::vector<float>& dashPattern() const { return m_dashPattern; }
+
+    // 获取标准虚线模式
+    std::vector<float> getStandardDashPattern() const {
+        switch (m_style) {
+            case PenStyle::Solid:
+                return {};
+            case PenStyle::Dash:
+                return {4.0f * m_width, 2.0f * m_width};
+            case PenStyle::Dot:
+                return {1.0f * m_width, 2.0f * m_width};
+            case PenStyle::DashDot:
+                return {4.0f * m_width, 2.0f * m_width, 1.0f * m_width, 2.0f * m_width};
+            case PenStyle::DashDotDot:
+                return {4.0f * m_width, 2.0f * m_width, 1.0f * m_width, 2.0f * m_width, 1.0f * m_width, 2.0f * m_width};
+            case PenStyle::Custom:
+                return m_dashPattern;
+            default:
+                return {};
+        }
+    }
+
+    // 判断是否为实线
+    bool isSolid() const { return m_style == PenStyle::Solid; }
+
+    // 判断画笔是否有效（宽度>0且颜色不透明度为0则无效）
+    bool isValid() const { return m_width > 0.0f && m_color.alpha() > 0.0f; }
+
+    // 运算符重载
+    bool operator==(const SPen& other) const {
+        return m_color == other.m_color &&
+               m_width == other.m_width &&
+               m_style == other.m_style &&
+               m_cap == other.m_cap &&
+               m_join == other.m_join &&
+               m_dashOffset == other.m_dashOffset &&
+               m_dashPattern == other.m_dashPattern;
+    }
+
+    bool operator!=(const SPen& other) const {
+        return !(*this == other);
+    }
+
+    // 静态工厂方法 - 常用画笔
+    static SPen NoPen() { return SPen(SColor::Transparent(), 0.0f); }
+    static SPen BlackPen(float width = 1.0f) { return SPen(SColor::Black(), width); }
+    static SPen WhitePen(float width = 1.0f) { return SPen(SColor::White(), width); }
+    static SPen RedPen(float width = 1.0f) { return SPen(SColor::Red(), width); }
+    static SPen GreenPen(float width = 1.0f) { return SPen(SColor::Green(), width); }
+    static SPen BluePen(float width = 1.0f) { return SPen(SColor::Blue(), width); }
+    static SPen DashPen(const SColor& color, float width = 1.0f) {
+        return SPen(color, width, PenStyle::Dash);
+    }
+    static SPen DotPen(const SColor& color, float width = 1.0f) {
+        return SPen(color, width, PenStyle::Dot);
+    }
+
+private:
+    SColor m_color;
+    float m_width;
+    PenStyle m_style;
+    LineCap m_cap;
+    LineJoin m_join;
+    float m_dashOffset;
+    std::vector<float> m_dashPattern;
+};
+
+// ==================== 画刷类 ====================
+class SBrush {
+public:
+    // 默认构造函数：黑色实心画刷
+    SBrush() :
+        m_color(SColor::Black()),
+        m_style(BrushStyle::Solid),
+        m_gradient() {}
+
+    // 指定颜色的构造函数（实心画刷）
+    SBrush(const SColor& color) :
+        m_color(color),
+        m_style(BrushStyle::Solid),
+        m_gradient() {}
+
+    // 指定样式的构造函数
+    SBrush(const SColor& color, BrushStyle style) :
+        m_color(color),
+        m_style(style),
+        m_gradient() {}
+
+    // 线性渐变构造函数
+    SBrush(const SLinearGradient& gradient) :
+        m_color(SColor::Black()),
+        m_style(BrushStyle::LinearGradient),
+        m_linearGradient(gradient),
+        m_gradient() {}
+
+    // 径向渐变构造函数
+    SBrush(const SRadialGradient& gradient) :
+        m_color(SColor::Black()),
+        m_style(BrushStyle::RadialGradient),
+        m_radialGradient(gradient),
+        m_gradient() {}
+
+    // 颜色设置
+    void setColor(const SColor& color) { m_color = color; }
+    const SColor& color() const { return m_color; }
+    SColor& color() { return m_color; }
+
+    // 样式设置
+    void setStyle(BrushStyle style) { m_style = style; }
+    BrushStyle style() const { return m_style; }
+
+    // 线性渐变设置
+    void setLinearGradient(const SLinearGradient& gradient) {
+        m_linearGradient = gradient;
+        m_style = BrushStyle::LinearGradient;
+    }
+    const SLinearGradient& linearGradient() const { return m_linearGradient; }
+    SLinearGradient& linearGradient() { return m_linearGradient; }
+
+    // 径向渐变设置
+    void setRadialGradient(const SRadialGradient& gradient) {
+        m_radialGradient = gradient;
+        m_style = BrushStyle::RadialGradient;
+    }
+    const SRadialGradient& radialGradient() const { return m_radialGradient; }
+    SRadialGradient& radialGradient() { return m_radialGradient; }
+
+    // 判断画刷是否有效
+    bool isValid() const {
+        if (m_style == BrushStyle::None) return false;
+        if (m_style == BrushStyle::Solid) return m_color.alpha() > 0.0f;
+        return true; // 渐变画刷总是有效的
+    }
+
+    // 判断是否为透明画刷
+    bool isTransparent() const {
+        return m_style == BrushStyle::None ||
+               (m_style == BrushStyle::Solid && m_color.alpha() <= 0.0f);
+    }
+
+    // 获取指定位置的颜色（用于渐变）
+    SColor getColorAt(float x, float y) const {
+        switch (m_style) {
+            case BrushStyle::None:
+                return SColor::Transparent();
+            case BrushStyle::Solid:
+                return m_color;
+            case BrushStyle::LinearGradient:
+                return m_linearGradient.getColorAt(
+                    m_linearGradient.getProjectionRatio(x, y));
+            case BrushStyle::RadialGradient:
+                return m_radialGradient.getColorAt(
+                    m_radialGradient.getRatio(x, y));
+            case BrushStyle::ConicGradient:
+                return m_gradient.getColorAt(0.5f); // 简化处理
+            default:
+                return m_color;
+        }
+    }
+
+    // 运算符重载
+    bool operator==(const SBrush& other) const {
+        return m_color == other.m_color && m_style == other.m_style;
+    }
+
+    bool operator!=(const SBrush& other) const {
+        return !(*this == other);
+    }
+
+    // 静态工厂方法 - 常用画刷
+    static SBrush NoBrush() { return SBrush(SColor::Transparent(), BrushStyle::None); }
+    static SBrush BlackBrush() { return SBrush(SColor::Black()); }
+    static SBrush WhiteBrush() { return SBrush(SColor::White()); }
+    static SBrush RedBrush() { return SBrush(SColor::Red()); }
+    static SBrush GreenBrush() { return SBrush(SColor::Green()); }
+    static SBrush BlueBrush() { return SBrush(SColor::Blue()); }
+
+private:
+    SColor m_color;
+    BrushStyle m_style;
+    SLinearGradient m_linearGradient;
+    SRadialGradient m_radialGradient;
+    SGradient m_gradient; // 通用渐变（用于锥形等）
 };
 
 // ==================== 圆角半径结构 ====================
@@ -188,7 +621,7 @@ enum class CornerStyle {
 
 // ==================== 实用工具函数 ====================
 namespace Utils {
-    // 颜色工具
+    // 颜色工具：对两个颜色进行线性插值
     inline SColor interpolateColor(const SColor& c1, const SColor& c2, float t) {
         return c1.blend(c2, t);
     }
@@ -705,1606 +1138,101 @@ namespace Utils {
 // ==================== 绘图上下文 ====================
 class DrawingContext {
 public:
-    DrawingContext(SDL_Renderer* renderer) :
-        m_renderer(renderer),
-        m_penColor(SColor::Black()),
-        m_fillColor(SColor::White()),
-        m_penWidth(1.0f),
-        m_fontSize(12.0f),
-        m_cornerStyle(CornerStyle::Round) {
-        if (!renderer) {
-            SDL_Log("DrawingContext: Invalid renderer provided");
-        }
+    DrawingContext(SDL_Renderer* renderer);
+
+    // ==================== 画笔设置 ====================
+    void setPen(const SPen& pen) { m_pen = pen; }
+    const SPen& getPen() const { return m_pen; }
+    SPen& getPen() { return m_pen; }
+
+    void setBrush(const SBrush& brush) { m_brush = brush; }
+    const SBrush& getBrush() const { return m_brush; }
+    SBrush& getBrush() { return m_brush; }
+
+    // 向后兼容
+    void setPenColor(const SColor& color) { m_pen.setColor(color); }
+    SColor getPenColor() const { return m_pen.color(); }
+    void setPenWidth(float width) { m_pen.setWidth(width); }
+    float getPenWidth() const { return m_pen.width(); }
+    void setFillColor(const SColor& color) { m_brush.setColor(color); }
+    SColor getFillColor() const { return m_brush.color(); }
+
+    void setPenStyle(PenStyle style) { m_pen.setStyle(style); }
+    PenStyle getPenStyle() const { return m_pen.style(); }
+    void setLineCap(LineCap cap) { m_pen.setCap(cap); }
+    LineCap getLineCap() const { return m_pen.cap(); }
+    void setLineJoin(LineJoin join) { m_pen.setJoin(join); }
+    LineJoin getLineJoin() const { return m_pen.join(); }
+    void setDashPattern(const std::vector<float>& pattern) { m_pen.setDashPattern(pattern); }
+    const std::vector<float>& getDashPattern() const { return m_pen.dashPattern(); }
+    void setBrushStyle(BrushStyle style) { m_brush.setStyle(style); }
+    BrushStyle getBrushStyle() const { return m_brush.style(); }
+    void setFont(const std::string& fontName, float size);
+
+    // ==================== 基本图形绘制 ====================
+    void drawPoint(const ::SPoint& point) { drawPoint(point.x, point.y); }
+    void drawPoint(float x, float y);
+    void drawPoint(float x, float y, const SColor& color);
+
+    void drawLine(const ::SPoint& start, const ::SPoint& end) { drawLine(start.x, start.y, end.x, end.y); }
+    void drawLine(float x1, float y1, float x2, float y2);
+    void drawLine(int x1, int y1, int x2, int y2);
+    void drawLine(const SLineRectPoints& rectPoints);
+
+    void drawDashedLine(float x1, float y1, float x2, float y2);
+    void drawDashedLine(const ::SPoint& start, const ::SPoint& end) { drawDashedLine(start.x, start.y, end.x, end.y); }
+
+    void drawRect(const ::SRect& rect, bool filled = false);
+    void drawRoundedRect(const ::SRect& rect, float radius, bool filled = false);
+    void drawRoundedRect(const ::SRect& rect, const SRoundedCorners& corners, bool filled = false);
+    void drawRoundedRectWithBorder(const ::SRect& rect, float radius, float borderWidth, const SColor& borderColor, const SColor& fillColor);
+    void drawRoundedRectWithBorder(const ::SRect& rect, const SRoundedCorners& corners, float borderWidth, const SColor& borderColor, const SColor& fillColor);
+
+    static inline float coverageD2(float D2, float R) {
+        float inner = R - 0.5f;
+        float outer = R + 0.5f;
+        float inner2 = inner * inner;
+        float outer2 = outer * outer;
+        if (D2 <= inner2) return 1.0f;
+        if (D2 >= outer2) return 0.0f;
+        return (outer2 - D2) / (outer2 - inner2);
     }
 
-    // 画笔设置
-    void setPenColor(const SColor& color) { m_penColor = color; }
-    void setPenWidth(float width) { m_penWidth = width > 0 ? width : 1.0f; }
-    void setFillColor(const SColor& color) { m_fillColor = color; }
-    void setFont(const std::string& fontName, float size) {
-        m_fontName = fontName;
-        m_fontSize = size > 0 ? size : 12.0f;
-    }
+    void drawFilledCircleWithStroke(int cx, int cy, float R, float thickness, const SColor& fillColor, const SColor& strokeColor);
+    void drawFilledCircleWithStroke(int cx, int cy, float R);
+    void drawFilledCircleAA(float cx, float cy, float radius, const SColor& color);
+    void drawCircleWithThickness(float cx, float cy, float radius, float thickness, const SColor& color);
+    void drawCircle(const ::SPoint& center, float radius, bool filled = false);
+    void drawCircle(const ::SPoint& center, float radius, const SColor& fillColor, const SColor& strokeColor, float strokeWidth);
+
+    void drawEllipse(const ::SPoint& center, float radiusX, float radiusY, bool filled = false);
+    void drawArc(const ::SPoint& center, float radius, float startAngle, float endAngle, bool filled = false);
+    void drawPolygon(const std::vector<::SPoint>& points, bool filled = false, bool debugCorner = false, const SColor& debugColor = SColor::Green());
+    void drawPolyline(const std::vector<::SPoint>& points, bool debugCorner = false, const SColor& debugColor = SColor::Green());
+
+    void drawText(const ::SPoint& position, const std::string& text);
+    void drawText(const ::SRect& bounds, const std::string& text, TextAlignment alignment = TextAlignment::Left);
+
+    void drawImage(const ::SPoint& position, SDL_Texture* texture);
+    void drawImage(const ::SRect& destRect, SDL_Texture* texture);
+    void drawImage(const ::SRect& destRect, SDL_Texture* texture, const ::SRect& srcRect);
+
+    void pushClipRect(const ::SRect& rect);
+    void popClipRect();
+
+    void pushTransform();
+    void popTransform();
 
-    // 基本图形绘制
-    void drawPoint(const ::SPoint& point) {
-        drawPoint(point.x, point.y);
-    }
-
-    void drawPoint(float x, float y) {
-        if (!m_renderer) return;
-        SDL_Color color = m_penColor.toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-        SDL_RenderPoint(m_renderer, x, y);
-    }
-
-    void drawLine(const ::SPoint& start, const ::SPoint& end) {
-        drawLine(start.x, start.y, end.x, end.y);
-    }
-
-    void drawLine(float x1, float y1, float x2, float y2) {
-        if (!m_renderer || m_penWidth <= 0) return;
-
-        // 如果线宽为1或更小，使用SDL的默认绘制
-        if (m_penWidth <= 1.0f) {
-            SDL_Color color = m_penColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-            SDL_RenderLine(m_renderer, x1, y1, x2, y2);
-            return;
-        }
-
-        // 对于粗线，使用generateLineRectPoints工具函数生成矩形四个点
-        ::SPoint start(x1, y1);
-        ::SPoint end(x2, y2);
-
-        auto rectPoints = Utils::generateLineRectPoints(start, end, m_penWidth);
-
-        if (!rectPoints.isValid()) {
-            // 如果生成的矩形点无效（例如起点终点相同），绘制一个点
-            drawPoint(x1, y1);
-            return;
-        }
-
-        // 使用生成的矩形点绘制矩形
-        drawLine(rectPoints);
-    }
-
-    void drawLine(int x1, int y1, int x2, int y2){
-        /*
-        使用Bresenham算法绘制直线，会有锯齿适用于像素级绘制
-        :param x1, y1: 起点坐标
-        :param x2, y2: 终点坐标
-        :param draw_point_func: 画点函数，接受(x, y)参数
-        */
-        int dx = abs(x2 - x1);
-        int dy = abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true) {
-            drawPoint(x1, y1);  // 调用已有的画点函数
-            if (x1 == x2 && y1 == y2)
-                break;
-            int e2 = 2 * err;
-            if (e2 > -dy){
-                err -= dy;
-                x1 += sx;
-            }
-            if (e2 < dx){
-                err += dx;
-                y1 += sy;
-            }
-        }
-    }
-
-    // 新增：使用SLineRectPoints作为参数绘制粗线
-    void drawLine(const SLineRectPoints& rectPoints) {
-        if (!m_renderer || !rectPoints.isValid()) return;
-
-        // 使用生成的矩形点绘制矩形
-        SDL_Color color = m_penColor.toSDLColor();
-        SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-        // 创建四个顶点
-        SDL_Vertex vertices[4];
-
-        // 顶点顺序：startLeft, startRight, endRight, endLeft
-        // 这样形成的四边形可以正确绘制矩形
-        vertices[0].position = SDL_FPoint{rectPoints.startLeft.x, rectPoints.startLeft.y};
-        vertices[0].color = fcolor;
-        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-        vertices[1].position = SDL_FPoint{rectPoints.startRight.x, rectPoints.startRight.y};
-        vertices[1].color = fcolor;
-        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-        vertices[2].position = SDL_FPoint{rectPoints.endRight.x, rectPoints.endRight.y};
-        vertices[2].color = fcolor;
-        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-        vertices[3].position = SDL_FPoint{rectPoints.endLeft.x, rectPoints.endLeft.y};
-        vertices[3].color = fcolor;
-        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-        // 使用两个三角形绘制矩形
-        // 三角形1: startLeft -> startRight -> endRight
-        // 三角形2: startLeft -> endRight -> endLeft
-        int indices[6] = {0, 1, 2, 0, 2, 3};
-        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-    }
-
-    void drawRect(const ::SRect& rect, bool filled = false) {
-        if (!m_renderer) return;
-
-        if (filled) {
-            // 填充矩形
-            SDL_Color color = m_fillColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-            SDL_FRect sdlRect = {rect.left, rect.top, rect.width, rect.height};
-            SDL_RenderFillRect(m_renderer, &sdlRect);
-        } else {
-            // 绘制矩形边框，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-                SDL_FRect sdlRect = {rect.left, rect.top, rect.width, rect.height};
-                SDL_RenderRect(m_renderer, &sdlRect);
-            } else {
-                // 绘制粗边框：绘制两个矩形（外矩形和内矩形），然后填充中间区域
-                float halfWidth = m_penWidth / 2.0f;
-
-                // 计算外矩形和内矩形
-                ::SRect outerRect(
-                    rect.left - halfWidth,
-                    rect.top - halfWidth,
-                    rect.width + m_penWidth,
-                    rect.height + m_penWidth
-                );
-
-                ::SRect innerRect(
-                    rect.left + halfWidth,
-                    rect.top + halfWidth,
-                    rect.width - m_penWidth,
-                    rect.height - m_penWidth
-                );
-
-                // 如果内矩形的宽度或高度为0或负数，直接绘制填充外矩形
-                if (innerRect.width <= 0 || innerRect.height <= 0) {
-                    // 保存当前填充颜色
-                    SColor oldFillColor = m_fillColor;
-                    // 临时使用画笔颜色作为填充颜色
-                    setFillColor(m_penColor);
-                    drawRect(outerRect, true);
-                    // 恢复填充颜色
-                    setFillColor(oldFillColor);
-                    return;
-                }
-
-                // 绘制外矩形和内矩形之间的区域
-                // 使用四个矩形区域来填充
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                // 上边区域
-                SDL_FRect topRect = {
-                    outerRect.left,
-                    outerRect.top,
-                    outerRect.width,
-                    halfWidth * 2
-                };
-                SDL_RenderFillRect(m_renderer, &topRect);
-
-                // 下边区域
-                SDL_FRect bottomRect = {
-                    outerRect.left,
-                    outerRect.top + outerRect.height - halfWidth * 2,
-                    outerRect.width,
-                    halfWidth * 2
-                };
-                SDL_RenderFillRect(m_renderer, &bottomRect);
-
-                // 左边区域（排除上下边已绘制的部分）
-                SDL_FRect leftRect = {
-                    outerRect.left,
-                    outerRect.top + halfWidth * 2,
-                    halfWidth * 2,
-                    outerRect.height - halfWidth * 4
-                };
-                SDL_RenderFillRect(m_renderer, &leftRect);
-
-                // 右边区域（排除上下边已绘制的部分）
-                SDL_FRect rightRect = {
-                    outerRect.left + outerRect.width - halfWidth * 2,
-                    outerRect.top + halfWidth * 2,
-                    halfWidth * 2,
-                    outerRect.height - halfWidth * 4
-                };
-                SDL_RenderFillRect(m_renderer, &rightRect);
-            }
-        }
-    }
-
-    // 圆角矩形绘制
-    void drawRoundedRect(const ::SRect& rect, float radius, bool filled = false) {
-        drawRoundedRect(rect, SRoundedCorners(radius), filled);
-    }
-
-    void drawRoundedRect(const ::SRect& rect, const SRoundedCorners& corners, bool filled = false) {
-        if (!m_renderer) return;
-
-        if (filled) {
-            // 填充圆角矩形
-            auto points = Utils::generateRoundedRectPoints(rect, corners);
-            if (points.empty()) return;
-
-            SColor currentColor = m_fillColor;
-            SDL_Color sdlColor = currentColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-
-            // 使用三角形扇绘制填充
-            if (points.size() >= 3) {
-                for (size_t i = 1; i < points.size() - 1; ++i) {
-                    // 使用三角形绘制填充
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{points[0].x, points[0].y};
-                    vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                    vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                }
-            }
-        } else {
-            // 绘制圆角矩形边框，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                auto points = Utils::generateRoundedRectPoints(rect, corners);
-                if (points.empty()) return;
-
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-                    SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
-                }
-            } else {
-                // 绘制粗边框：使用两个圆角矩形，然后填充中间区域
-                float halfWidth = m_penWidth / 2.0f;
-
-                // 计算外矩形和内矩形
-                ::SRect outerRect(
-                    rect.left - halfWidth,
-                    rect.top - halfWidth,
-                    rect.width + m_penWidth,
-                    rect.height + m_penWidth
-                );
-
-                ::SRect innerRect(
-                    rect.left + halfWidth,
-                    rect.top + halfWidth,
-                    rect.width - m_penWidth,
-                    rect.height - m_penWidth
-                );
-
-                // 调整圆角半径
-                SRoundedCorners outerCorners(
-                    corners.topLeft + halfWidth,
-                    corners.topRight + halfWidth,
-                    corners.bottomRight + halfWidth,
-                    corners.bottomLeft + halfWidth
-                );
-
-                SRoundedCorners innerCorners(
-                    std::max<float>(0.0f, corners.topLeft - halfWidth),
-                    std::max<float>(0.0f, corners.topRight - halfWidth),
-                    std::max<float>(0.0f, corners.bottomRight - halfWidth),
-                    std::max<float>(0.0f, corners.bottomLeft - halfWidth)
-                );
-
-                // 如果内矩形的宽度或高度为0或负数，直接绘制填充外矩形
-                if (innerRect.width <= 0 || innerRect.height <= 0) {
-                    // 保存当前填充颜色
-                    SColor oldFillColor = m_fillColor;
-                    // 临时使用画笔颜色作为填充颜色
-                    setFillColor(m_penColor);
-                    drawRoundedRect(outerRect, outerCorners, true);
-                    // 恢复填充颜色
-                    setFillColor(oldFillColor);
-                    return;
-                }
-
-                // 生成内外圆角矩形的顶点
-                auto outerPoints = Utils::generateRoundedRectPoints(outerRect, outerCorners);
-                auto innerPoints = Utils::generateRoundedRectPoints(innerRect, innerCorners);
-
-                if (outerPoints.empty() || innerPoints.empty()) return;
-
-                // 直接绘制圆角矩形环
-                // 使用三角形带绘制内外多边形之间的区域
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                // 对于每个角，绘制三角形带
-                // 注意：这里简化处理，假设内外多边形的顶点数相同
-                // 实际应用中，内外多边形的顶点数可能不同，需要更复杂的算法
-
-                // 计算每个角的顶点数
-                int segmentsPerCorner = 8; // 与Utils::generateRoundedRectPoints默认值一致
-                int verticesPerCorner = segmentsPerCorner + 1;
-
-                // 绘制四个角
-                for (int corner = 0; corner < 4; ++corner) {
-                    int startIdx = corner * verticesPerCorner;
-                    int endIdx = startIdx + verticesPerCorner;
-
-                    // 确保索引在范围内
-                    if (endIdx > outerPoints.size() || endIdx > innerPoints.size()) {
-                        continue;
-                    }
-
-                    // 绘制这个角的三角形带
-                    for (int i = startIdx; i < endIdx - 1; ++i) {
-                        int next = i + 1;
-
-                        SDL_Vertex vertices[4];
-                        SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                        // 顶点1: 内多边形当前点
-                        vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                        vertices[0].color = fcolor;
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点2: 外多边形当前点
-                        vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                        vertices[1].color = fcolor;
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点3: 外多边形下一个点
-                        vertices[2].position = SDL_FPoint{outerPoints[next].x, outerPoints[next].y};
-                        vertices[2].color = fcolor;
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点4: 内多边形下一个点
-                        vertices[3].position = SDL_FPoint{innerPoints[next].x, innerPoints[next].y};
-                        vertices[3].color = fcolor;
-                        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                        // 使用两个三角形绘制四边形
-                        int indices[6] = {0, 1, 2, 0, 2, 3};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                    }
-                }
-
-                // 绘制四条边
-                // 上边
-                for (int i = verticesPerCorner * 1 - 1; i < verticesPerCorner * 2; ++i) {
-                    if (i + 1 >= outerPoints.size() || i + 1 >= innerPoints.size()) break;
-
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                }
-
-                // 右边
-                for (int i = verticesPerCorner * 2 - 1; i < verticesPerCorner * 3; ++i) {
-                    if (i + 1 >= outerPoints.size() || i + 1 >= innerPoints.size()) break;
-
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                }
-
-                // 下边
-                for (int i = verticesPerCorner * 3 - 1; i < verticesPerCorner * 4; ++i) {
-                    if (i + 1 >= outerPoints.size() || i + 1 >= innerPoints.size()) break;
-
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                }
-
-                // 左边（连接最后一个点和第一个点）
-                if (outerPoints.size() > 0 && innerPoints.size() > 0) {
-                    int last = outerPoints.size() - 1;
-
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[last].x, innerPoints[last].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[last].x, outerPoints[last].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[0].x, outerPoints[0].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[0].x, innerPoints[0].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                }
-            }
-        }
-    }
-
-    // 带边框的圆角矩形
-    void drawRoundedRectWithBorder(const ::SRect& rect, float radius,
-                                  float borderWidth, const SColor& borderColor,
-                                  const SColor& fillColor) {
-        drawRoundedRectWithBorder(rect, SRoundedCorners(radius), borderWidth, borderColor, fillColor);
-    }
-
-    void drawRoundedRectWithBorder(const ::SRect& rect, const SRoundedCorners& corners,
-                                  float borderWidth, const SColor& borderColor,
-                                  const SColor& fillColor) {
-        if (!m_renderer || borderWidth <= 0) return;
-
-        // 保存当前颜色
-        SColor oldPenColor = m_penColor;
-        SColor oldFillColor = m_fillColor;
-
-        // 绘制填充
-        setFillColor(fillColor);
-        drawRoundedRect(rect, corners, true);
-
-        // 绘制边框
-        setPenColor(borderColor);
-        setPenWidth(borderWidth);
-        drawRoundedRect(rect, corners, false);
-
-        // 恢复颜色
-        setPenColor(oldPenColor);
-        setFillColor(oldFillColor);
-    }
-
-    void drawCircle(const ::SPoint& center, float radius, bool filled = false) {
-        if (!m_renderer || radius <= 0) return;
-
-        if (filled) {
-            // 填充圆形
-            auto points = Utils::generateCirclePoints(center, radius);
-            if (points.empty()) return;
-
-            SColor currentColor = m_fillColor;
-            SDL_Color sdlColor = currentColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-
-            // 使用三角形扇绘制填充
-            if (points.size() >= 3) {
-                // 绘制完整的圆形：从第一个点到最后一个点
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-
-                    // 使用三角形绘制填充
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{center.x, center.y};
-                    vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[next].x, points[next].y};
-                    vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                }
-            }
-        } else {
-            // 绘制圆形边框，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                auto points = Utils::generateCirclePoints(center, radius);
-                if (points.empty()) return;
-
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-                    SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
-                }
-            } else {
-                // 绘制粗边框：绘制两个同心圆，然后填充中间区域
-                float innerRadius = radius - m_penWidth / 2.0f;
-                float outerRadius = radius + m_penWidth / 2.0f;
-
-                if (innerRadius <= 0) {
-                    // 如果内径为0或负数，直接绘制填充圆形
-                    drawCircle(center, outerRadius, true);
-                } else {
-                    // 生成内外圆的点
-                    auto innerPoints = Utils::generateCirclePoints(center, innerRadius, 72);
-                    auto outerPoints = Utils::generateCirclePoints(center, outerRadius, 72);
-
-                    if (innerPoints.size() != outerPoints.size() || innerPoints.empty()) return;
-
-                    // 使用三角形带绘制圆环
-                    for (size_t i = 0; i < innerPoints.size(); ++i) {
-                        size_t next = (i + 1) % innerPoints.size();
-
-                        SDL_Vertex vertices[4];
-                        SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                        // 顶点1: 内圆当前点
-                        vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                        vertices[0].color = fcolor;
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点2: 外圆当前点
-                        vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                        vertices[1].color = fcolor;
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点3: 外圆下一个点
-                        vertices[2].position = SDL_FPoint{outerPoints[next].x, outerPoints[next].y};
-                        vertices[2].color = fcolor;
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点4: 内圆下一个点
-                        vertices[3].position = SDL_FPoint{innerPoints[next].x, innerPoints[next].y};
-                        vertices[3].color = fcolor;
-                        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                        // 使用两个三角形绘制四边形
-                        int indices[6] = {0, 1, 2, 0, 2, 3};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                    }
-                }
-            }
-        }
-    }
-
-    void drawEllipse(const ::SPoint& center, float radiusX, float radiusY, bool filled = false) {
-        if (!m_renderer || radiusX <= 0 || radiusY <= 0) return;
-
-        if (filled) {
-            // 填充椭圆
-            auto points = Utils::generateEllipsePoints(center, radiusX, radiusY);
-            if (points.empty()) return;
-
-            SColor currentColor = m_fillColor;
-            SDL_Color sdlColor = currentColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-
-            // 使用三角形扇绘制填充
-            if (points.size() >= 3) {
-                for (size_t i = 1; i < points.size() - 1; ++i) {
-                    // 使用三角形绘制填充
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{center.x, center.y};
-                    vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                    vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                }
-            }
-        } else {
-            // 绘制椭圆边框，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                auto points = Utils::generateEllipsePoints(center, radiusX, radiusY);
-                if (points.empty()) return;
-
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-                    SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
-                }
-            } else {
-                // 绘制粗边框：绘制两个椭圆，然后填充中间区域
-                float innerRadiusX = radiusX - m_penWidth / 2.0f;
-                float outerRadiusX = radiusX + m_penWidth / 2.0f;
-                float innerRadiusY = radiusY - m_penWidth / 2.0f;
-                float outerRadiusY = radiusY + m_penWidth / 2.0f;
-
-                if (innerRadiusX <= 0 || innerRadiusY <= 0) {
-                    // 如果内椭圆为0或负数，直接绘制填充外椭圆
-                    drawEllipse(center, outerRadiusX, outerRadiusY, true);
-                } else {
-                    // 生成内外椭圆的点
-                    auto innerPoints = Utils::generateEllipsePoints(center, innerRadiusX, innerRadiusY, 72);
-                    auto outerPoints = Utils::generateEllipsePoints(center, outerRadiusX, outerRadiusY, 72);
-
-                    if (innerPoints.size() != outerPoints.size() || innerPoints.empty()) return;
-
-                    // 使用三角形带绘制椭圆环
-                    for (size_t i = 0; i < innerPoints.size(); ++i) {
-                        size_t next = (i + 1) % innerPoints.size();
-
-                        SDL_Vertex vertices[4];
-                        SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                        // 顶点1: 内椭圆当前点
-                        vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                        vertices[0].color = fcolor;
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点2: 外椭圆当前点
-                        vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                        vertices[1].color = fcolor;
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点3: 外椭圆下一个点
-                        vertices[2].position = SDL_FPoint{outerPoints[next].x, outerPoints[next].y};
-                        vertices[2].color = fcolor;
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点4: 内椭圆下一个点
-                        vertices[3].position = SDL_FPoint{innerPoints[next].x, innerPoints[next].y};
-                        vertices[3].color = fcolor;
-                        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                        // 使用两个三角形绘制四边形
-                        int indices[6] = {0, 1, 2, 0, 2, 3};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                    }
-                }
-            }
-        }
-    }
-
-    void drawArc(const ::SPoint& center, float radius, float startAngle, float endAngle, bool filled = false) {
-        if (!m_renderer || radius <= 0) return;
-
-        if (filled) {
-            // 填充圆弧（扇形）
-            auto points = Utils::generateArcPoints(center, radius, startAngle, endAngle);
-            if (points.size() < 2) return;
-
-            SColor currentColor = m_fillColor;
-            SDL_Color sdlColor = currentColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-
-            // 对于填充的圆弧，添加中心点形成扇形
-            if (points.size() >= 2) {
-                for (size_t i = 0; i < points.size() - 1; ++i) {
-                    // 使用三角形绘制填充
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{center.x, center.y};
-                    vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                    vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                }
-            }
-        } else {
-            // 绘制圆弧轮廓，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                auto points = Utils::generateArcPoints(center, radius, startAngle, endAngle);
-                if (points.size() < 2) return;
-
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                for (size_t i = 0; i < points.size() - 1; ++i) {
-                    SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
-                }
-            } else {
-                // 绘制粗边框：使用两个圆弧，然后填充中间区域
-                float innerRadius = radius - m_penWidth / 2.0f;
-                float outerRadius = radius + m_penWidth / 2.0f;
-
-                if (innerRadius <= 0) {
-                    // 如果内径为0或负数，直接绘制填充圆弧
-                    auto points = Utils::generateArcPoints(center, outerRadius, startAngle, endAngle);
-                    if (points.size() < 2) return;
-
-                    // 绘制填充扇形
-                    for (size_t i = 0; i < points.size() - 1; ++i) {
-                        SDL_Vertex vertices[3];
-                        vertices[0].position = SDL_FPoint{center.x, center.y};
-                        vertices[0].color = SDL_FColor{m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                        vertices[1].color = SDL_FColor{m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                        vertices[2].color = SDL_FColor{m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                    }
-                } else {
-                    // 生成内外圆弧的点
-                    auto innerPoints = Utils::generateArcPoints(center, innerRadius, startAngle, endAngle, 72);
-                    auto outerPoints = Utils::generateArcPoints(center, outerRadius, startAngle, endAngle, 72);
-
-                    if (innerPoints.size() != outerPoints.size() || innerPoints.size() < 2) return;
-
-                    // 使用三角形带绘制圆弧环
-                    for (size_t i = 0; i < innerPoints.size() - 1; ++i) {
-                        SDL_Vertex vertices[4];
-                        SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                        // 顶点1: 内圆弧当前点
-                        vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                        vertices[0].color = fcolor;
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点2: 外圆弧当前点
-                        vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                        vertices[1].color = fcolor;
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点3: 外圆弧下一个点
-                        vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                        vertices[2].color = fcolor;
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点4: 内圆弧下一个点
-                        vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                        vertices[3].color = fcolor;
-                        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                        // 使用两个三角形绘制四边形
-                        int indices[6] = {0, 1, 2, 0, 2, 3};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                    }
-                }
-            }
-        }
-    }
-
-    // 多边形绘制
-    void drawPolygon(const std::vector<::SPoint>& points, bool filled = false,
-                    bool debugCorner = false, const SColor& debugColor = SColor::Green()) {
-#ifdef GRAPH_TOOL_DEBUG
-        SDL_Log("GraphTool::drawPolygon: points.size=%d, penWidth=%f, cornerStyle=%d", points.size(), m_penWidth, static_cast<int>(m_cornerStyle));
-#endif
-        if (!m_renderer || points.size() < 3) return;
-
-        if (filled) {
-            // 填充多边形
-            SColor currentColor = m_fillColor;
-            SDL_Color sdlColor = currentColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-
-            // 使用三角形扇绘制填充
-            if (points.size() >= 3) {
-                for (size_t i = 1; i < points.size() - 1; ++i) {
-                    // 使用三角形绘制填充
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{points[0].x, points[0].y};
-                    vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                    vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                }
-            }
-        } else {
-            // 绘制多边形边框，支持线宽
-            if (m_penWidth <= 1.0f) {
-                // 线宽为1或更小，使用SDL的默认绘制
-                SDL_Color color = m_penColor.toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-                    SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
-                }
-            } else {
-                // 绘制粗边框：绘制每条边，并处理所有拐角连接
-                for (size_t i = 0; i < points.size(); ++i) {
-                    size_t next = (i + 1) % points.size();
-                    // 绘制当前边
-                    // drawLine(points[i].x, points[i].y, points[next].x, points[next].y);
-                    auto rectPoints = Utils::generateLineRectPoints(points[i], points[next], m_penWidth);
-                    drawLine(rectPoints);
-#ifdef GRAPH_TOOL_DEBUG
-                    SDL_Log("GraphTool::drawPolygon(%d): rectPoints from (%f, %f) to (%f, %f), from (%f, %f) to (%f, %f)", static_cast<int>(i),
-                             rectPoints.startLeft.x, rectPoints.startLeft.y, rectPoints.endLeft.x, rectPoints.endLeft.y,
-                             rectPoints.startRight.x, rectPoints.startRight.y, rectPoints.endRight.x, rectPoints.endRight.y);
-#endif
-                             // 取前一段边
-                    size_t prev = (i == 0) ? points.size() - 1 : i - 1;
-                    auto prevRectPoints = Utils::generateLineRectPoints(points[prev], points[i], m_penWidth);
-#ifdef GRAPH_TOOL_DEBUG
-                    SDL_Log("GraphTool::drawPolygon(%d): prevRectPoints from (%f, %f) to (%f, %f), from (%f, %f) to (%f, %f)", static_cast<int>(i),
-                             prevRectPoints.startLeft.x, prevRectPoints.startLeft.y, prevRectPoints.endLeft.x, prevRectPoints.endLeft.y,
-                             prevRectPoints.startRight.x, prevRectPoints.startRight.y, prevRectPoints.endRight.x, prevRectPoints.endRight.y);
-#endif
-                    // 此时rectPoints和prevRectPoints分别是当前边和前一边的矩形四个顶点，相当于已知四条偏移线
-                    // 现在获取偏移线的交点
-                    SPoint intersectPoint1 = Utils::lineIntersection(rectPoints.startLeft, rectPoints.endLeft,
-                                                                    prevRectPoints.startLeft, prevRectPoints.endLeft);
-                    SPoint intersectPoint2 = Utils::lineIntersection(rectPoints.startLeft, rectPoints.endLeft,
-                                                                    prevRectPoints.startRight, prevRectPoints.endRight);
-                    SPoint intersectPoint3 = Utils::lineIntersection(rectPoints.startRight, rectPoints.endRight,
-                                                                    prevRectPoints.startLeft, prevRectPoints.endLeft);
-                    SPoint intersectPoint4 = Utils::lineIntersection(rectPoints.startRight, rectPoints.endRight,
-                                                                    prevRectPoints.startRight, prevRectPoints.endRight);
-#ifdef GRAPH_TOOL_DEBUG
-                    SDL_Log("GraphTool::drawPolygon(%d): intersectPoints: (%f, %f), (%f, %f), (%f, %f), (%f, %f)", static_cast<int>(i),
-                             intersectPoint1.x, intersectPoint1.y, intersectPoint2.x, intersectPoint2.y,
-                             intersectPoint3.x, intersectPoint3.y, intersectPoint4.x, intersectPoint4.y);
-#endif
-                    // 判断哪个交点是在两个矩形外的，即为“外交点”
-                    SRotatedRect currentRect = SRotatedRect(rectPoints.startLeft, rectPoints.startRight,
-                                                            rectPoints.endRight, rectPoints.endLeft);
-                    SRotatedRect prevRect = SRotatedRect(prevRectPoints.startLeft, prevRectPoints.startRight,
-                                                            prevRectPoints.endRight, prevRectPoints.endLeft);
-                    std::vector<SPoint> drawPolygon = {rectPoints.startLeft, rectPoints.startRight,
-                                                    rectPoints.endRight, rectPoints.endLeft,
-                                                    prevRectPoints.startLeft, prevRectPoints.startRight,
-                                                    prevRectPoints.endRight, prevRectPoints.endLeft};
-                    std::vector<SPoint> candidatePoints = {intersectPoint1, intersectPoint2, intersectPoint3, intersectPoint4};
-                    SPoint outerPoint;
-                    bool hasOuterPoint = false;
-                    for (const auto& point : candidatePoints) {
-                        // if (!Utils::pointInRect(point, SRect(rectPoints.startLeft, rectPoints.endRight))
-                        //     && !Utils::pointInRect(point, SRect(prevRectPoints.startLeft, prevRectPoints.endRight))) {
-                        //     hasOuterPoint = true;
-                        //     outerPoint = point;
-                        //     break; // 找到一个外交点即可
-                        // }
-                        SDL_Log("GraphTool::drawPolygon(%d): checking outerPoint candidate (%f, %f)", static_cast<int>(i), point.x, point.y);
-                        // SDL_Log("    currentRect contains: %s, prevRect contains: %s",
-                        //         currentRect.contains(point) ? "True" : "False",
-                        //         prevRect.contains(point) ? "True" : "False");
-                        // SDL_Log("    currentRect.rotation=%f", currentRect.rotation);
-                        // SDL_Log("    prevRect.rotation=%f", prevRect.rotation);
-                        SDL_Log("    isPointOnPolygonSide()=%s",
-                                isPointOnPolygonSide(drawPolygon, point, false) ? "True" : "False");
-                        // if (!currentRect.contains(point) && !prevRect.contains(point)) {
-                        if (isPointOnPolygonSide(drawPolygon, point, false)){
-                            hasOuterPoint = true;
-                            outerPoint = point;
-                            break; // 找到一个外交点即可
-                        }
-                    }
-
-                    if (hasOuterPoint == false) {
-                        SDL_Log("GraphTool::drawPolygon: not found outerPoint, maybe parallel lines or coinciding lines.");
-                        throw("GraphTool::drawPolygon: not found outerPoint, maybe parallel lines or coinciding lines.");
-                        return;
-                    }
-
-                    // 取外角点
-                    SPoint cornerPoint1;
-                    // if (!Utils::pointInRect(rectPoints.startLeft, SRect(prevRectPoints.startLeft, prevRectPoints.endRight))) {
-                    //     cornerPoint1 = rectPoints.startLeft;
-                    // } else if (!Utils::pointInRect(rectPoints.startRight, SRect(prevRectPoints.startLeft, prevRectPoints.endRight))) {
-                    //     cornerPoint1 = rectPoints.startRight;
-                    // } else {
-                    //     throw("GraphTool::drawPolygon: not found cornerPoint1");
-                    // }
-                    if (!prevRect.contains(rectPoints.startLeft)) {
-                        cornerPoint1 = rectPoints.startLeft;
-                    } else if (!prevRect.contains(rectPoints.startRight)) {
-                        cornerPoint1 = rectPoints.startRight;
-                    } else {
-                        SDL_Log("GraphTool::drawPolygon: not found cornerPoint1");
-                        throw("GraphTool::drawPolygon: not found cornerPoint1");
-                        return;
-                    }
-
-                    SPoint cornerPoint2;
-                    // if (!Utils::pointInRect(prevRectPoints.endLeft, SRect(rectPoints.startLeft, rectPoints.endRight))) {
-                    //     cornerPoint2 = prevRectPoints.endLeft;
-                    // } else if (!Utils::pointInRect(prevRectPoints.endRight, SRect(rectPoints.startLeft, rectPoints.endRight))) {
-                    //     cornerPoint2 = prevRectPoints.endRight;
-                    // } else {
-                    //     throw("GraphTool::drawPolygon: not found cornerPoint2");
-                    // }
-                    if (!currentRect.contains(prevRectPoints.endLeft)) {
-                        cornerPoint2 = prevRectPoints.endLeft;
-                    } else if (!currentRect.contains(prevRectPoints.endRight)) {
-                        cornerPoint2 = prevRectPoints.endRight;
-                    } else {
-                        SDL_Log("GraphTool::drawPolygon: not found cornerPoint2");
-                        throw("GraphTool::drawPolygon: not found cornerPoint2");
-                    }
-
-
-                    if (m_cornerStyle == CornerStyle::Round) {
-                        // // 圆弧角：绘制扇形填充拐角缺口
-                        // // 计算两条线之间的夹角
-                        // float dot = ux1 * ux2 + uy1 * uy2;
-                        // // 确保dot在[-1, 1]范围内
-                        // if (dot > 1.0f) dot = 1.0f;
-                        // if (dot < -1.0f) dot = -1.0f;
-                        // float angle = std::acos(dot);
-
-                        // // 确定圆弧方向（内角还是外角）
-                        // float cross = ux1 * uy2 - uy1 * ux2;
-
-                        // // 计算圆弧的起始角度和结束角度
-                        // float angle1 = std::atan2(ny1, nx1);
-                        // float angle2 = std::atan2(ny2, nx2);
-
-                        // // 调整角度以确保正确的圆弧方向
-                        // if (cross < 0) {
-                        //     // 外角，需要交换角度
-                        //     std::swap(angle1, angle2);
-                        //     if (angle2 < angle1) angle2 += 2.0f * M_PI;
-                        // }
-                        SDL_Log("GraphTool::drawPolygon: CornerStyle::Round");
-                        // // 生成圆弧点 - 使用更多的分段确保平滑
-                        // int segments = (std::max)(8, static_cast<int>(angle * 360.0f / M_PI));
-
-                        // // 直接绘制填充扇形
-                        // for (int j = 0; j < segments; ++j) {
-                        //     float t1 = static_cast<float>(j) / segments;
-                        //     float t2 = static_cast<float>(j + 1) / segments;
-
-                        //     float angle1_current = angle1 + (angle2 - angle1) * t1;
-                        //     float angle2_current = angle1 + (angle2 - angle1) * t2;
-
-                        //     // 计算圆弧点
-                        //     float arcX1 = points[i].x + halfWidth * std::cos(angle1_current);
-                        //     float arcY1 = points[i].y + halfWidth * std::sin(angle1_current);
-                        //     float arcX2 = points[i].x + halfWidth * std::cos(angle2_current);
-                        //     float arcY2 = points[i].y + halfWidth * std::sin(angle2_current);
-
-                        //     // 绘制三角形（顶点-圆弧点1-圆弧点2）
-                        //     SDL_Vertex vertices[3];
-                        //     SDL_FColor fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-
-                        //     // 顶点1: 顶点
-                        //     vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                        //     vertices[0].color = fcolor;
-                        //     vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        //     // 顶点2: 圆弧点1
-                        //     vertices[1].position = SDL_FPoint{arcX1, arcY1};
-                        //     vertices[1].color = fcolor;
-                        //     vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        //     // 顶点3: 圆弧点2
-                        //     vertices[2].position = SDL_FPoint{arcX2, arcY2};
-                        //     vertices[2].color = fcolor;
-                        //     vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        //     SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                        // }
-                    } else {
-                        // 硬角：直接绘制四边形连接两个外角点
-
-                        // 绘制四边形填充拐角缺口
-                        // 使用两个三角形：顶点-外角点1-交点和顶点-交点-外角点2
-                        SDL_Vertex vertices[4];
-                        SDL_FColor fcolor;
-                        if (debugCorner) {
-                            fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-                        } else {
-                            fcolor = getPenColor().toSDLFColor();
-                        }
-
-#ifdef GRAPH_TOOL_DEBUG
-                        SDL_Log("GraphTool::drawPolygon(%d): position:{%f, %f}, cornerPoint1:{%f, %f}, outerPoint:{%f, %f}, cornerPoint2:{%f, %f}",i,
-                                 points[i].x, points[i].y,
-                                 cornerPoint1.x, cornerPoint1.y,
-                                 outerPoint.x, outerPoint.y,
-                                 cornerPoint2.x, cornerPoint2.y);
-#endif
-                        // 顶点1: 交点
-                        vertices[0].position = points[i].toSDLFPoint();
-                        vertices[0].color = fcolor;
-                        vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点2: 外角点1
-                        vertices[1].position = cornerPoint1.toSDLFPoint();
-                        vertices[1].color = fcolor;
-                        vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点3: 外交点
-                        vertices[2].position = outerPoint.toSDLFPoint();
-                        vertices[2].color = fcolor;
-                        vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                        // 顶点4: 外角点2
-                        vertices[3].position = cornerPoint2.toSDLFPoint();
-                        vertices[3].color = fcolor;
-                        vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                        // 使用两个三角形绘制四边形
-                        int indices[6] = {0, 1, 2, 0, 2, 3};
-                        SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                    }
-                }
-            }
-        }
-    }
-
-    void drawPolyline(const std::vector<::SPoint>& points, bool debugCorner = false, const SColor& debugColor = SColor::Green()) {
-        if (!m_renderer || points.size() < 2) return;
-
-        // 绘制折线，支持线宽
-        if (m_penWidth <= 1.0f) {
-            // 线宽为1或更小，使用简单绘制
-            SDL_Color color = m_penColor.toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-            for (size_t i = 0; i < points.size() - 1; ++i) {
-                SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
-            }
-        } else {
-            // 绘制粗折线，需要处理拐角连接
-            for (size_t i = 0; i < points.size() - 1; ++i) {
-                // 绘制当前线段
-                drawLine(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
-
-                // 如果不是第一条线段，绘制拐角连接
-                if (i > 0) {
-                    // 计算前一线段的方向
-                    float dx1 = points[i].x - points[i - 1].x;
-                    float dy1 = points[i].y - points[i - 1].y;
-                    float len1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
-
-                    // 计算当前线段的方向
-                    float dx2 = points[i + 1].x - points[i].x;
-                    float dy2 = points[i + 1].y - points[i].y;
-                    float len2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
-
-                    if (len1 > 0.001f && len2 > 0.001f) {
-                        // 计算单位方向向量
-                        float ux1 = dx1 / len1;
-                        float uy1 = dy1 / len1;
-                        float ux2 = dx2 / len2;
-                        float uy2 = dy2 / len2;
-
-                        // 计算拐角的外角点
-                        float halfWidth = m_penWidth / 2.0f;
-
-                        // 计算两条线的外角交点
-                        // 方法：计算两条线的外偏移线的交点
-
-                        // 计算第一条线的外偏移点
-                        float nx1 = -uy1;
-                        float ny1 = ux1;
-                        float offsetX1 = points[i].x + halfWidth * nx1;
-                        float offsetY1 = points[i].y + halfWidth * ny1;
-
-                        // 计算第二条线的外偏移点
-                        float nx2 = -uy2;
-                        float ny2 = ux2;
-                        float offsetX2 = points[i].x + halfWidth * nx2;
-                        float offsetY2 = points[i].y + halfWidth * ny2;
-
-                        // 计算两条偏移线的交点
-                        float a11 = ux1;
-                        float a12 = -ux2;
-                        float a21 = uy1;
-                        float a22 = -uy2;
-
-                        float det = a11 * a22 - a12 * a21;
-                        float intersectX, intersectY;
-
-                        if (std::abs(det) > 0.001f) {
-                            float b1 = offsetX2 - offsetX1;
-                            float b2 = offsetY2 - offsetY1;
-
-                            float t1 = (b1 * a22 - a12 * b2) / det;
-                            float t2 = (a11 * b2 - b1 * a21) / det;
-
-                            intersectX = offsetX1 + t1 * ux1;
-                            intersectY = offsetY1 + t1 * uy1;
-
-                            // 验证交点
-                            float intersectX2 = offsetX2 + t2 * ux2;
-                            float intersectY2 = offsetY2 + t2 * uy2;
-
-                            if (std::abs(intersectX - intersectX2) > 0.1f || std::abs(intersectY - intersectY2) > 0.1f) {
-                                intersectX = (intersectX + intersectX2) / 2.0f;
-                                intersectY = (intersectY + intersectY2) / 2.0f;
-                            }
-                        } else {
-                            // 两条线平行或接近平行，使用简单的中点
-                            intersectX = (offsetX1 + offsetX2) / 2.0f;
-                            intersectY = (offsetY1 + offsetY2) / 2.0f;
-                        }
-
-                        // 根据拐角样式绘制拐角连接
-                        if (debugCorner) {
-                            // 调试模式：使用不同颜色绘制拐角连接
-                            SColor oldPenColor = m_penColor;
-                            SColor oldFillColor = m_fillColor;
-
-                            // 保存当前颜色
-                            setPenColor(debugColor);
-                            setFillColor(debugColor);
-
-                            if (m_cornerStyle == CornerStyle::Round) {
-                                // 圆弧角：绘制扇形填充拐角缺口
-                                // 计算两条线之间的夹角
-                                float dot = ux1 * ux2 + uy1 * uy2;
-                                // 确保dot在[-1, 1]范围内
-                                if (dot > 1.0f) dot = 1.0f;
-                                if (dot < -1.0f) dot = -1.0f;
-                                float angle = std::acos(dot);
-
-                                // 确定圆弧方向（内角还是外角）
-                                float cross = ux1 * uy2 - uy1 * ux2;
-
-                                // 计算圆弧的起始角度和结束角度
-                                float angle1 = std::atan2(ny1, nx1);
-                                float angle2 = std::atan2(ny2, nx2);
-
-                                // 调整角度以确保正确的圆弧方向
-                                if (cross < 0) {
-                                    // 外角，需要交换角度
-                                    std::swap(angle1, angle2);
-                                    if (angle2 < angle1) angle2 += 2.0f * M_PI;
-                                }
-
-                                // 生成圆弧点 - 使用更多的分段确保平滑
-                                int segments = (std::max)(8, static_cast<int>(angle * 360.0f / M_PI));
-
-                                // 直接绘制填充扇形
-                                for (int j = 0; j < segments; ++j) {
-                                    float t1 = static_cast<float>(j) / segments;
-                                    float t2 = static_cast<float>(j + 1) / segments;
-
-                                    float angle1_current = angle1 + (angle2 - angle1) * t1;
-                                    float angle2_current = angle1 + (angle2 - angle1) * t2;
-
-                                    // 计算圆弧点
-                                    float arcX1 = points[i].x + halfWidth * std::cos(angle1_current);
-                                    float arcY1 = points[i].y + halfWidth * std::sin(angle1_current);
-                                    float arcX2 = points[i].x + halfWidth * std::cos(angle2_current);
-                                    float arcY2 = points[i].y + halfWidth * std::sin(angle2_current);
-
-                                    // 绘制三角形（顶点-圆弧点1-圆弧点2）
-                                    SDL_Vertex vertices[3];
-                                    SDL_FColor fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-
-                                    // 顶点1: 顶点
-                                    vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                    vertices[0].color = fcolor;
-                                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                    // 顶点2: 圆弧点1
-                                    vertices[1].position = SDL_FPoint{arcX1, arcY1};
-                                    vertices[1].color = fcolor;
-                                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                    // 顶点3: 圆弧点2
-                                    vertices[2].position = SDL_FPoint{arcX2, arcY2};
-                                    vertices[2].color = fcolor;
-                                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                                }
-                            } else {
-                                // 硬角：直接绘制四边形连接两个外角点
-                                // 绘制四边形填充拐角缺口
-                                // 使用两个三角形：顶点-外角点1-交点和顶点-交点-外角点2
-                                SDL_Vertex vertices[4];
-                                SDL_FColor fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-
-                                // 顶点1: 顶点
-                                vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                vertices[0].color = fcolor;
-                                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点2: 第一条线的外角点
-                                vertices[1].position = SDL_FPoint{offsetX1, offsetY1};
-                                vertices[1].color = fcolor;
-                                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点3: 交点
-                                vertices[2].position = SDL_FPoint{intersectX, intersectY};
-                                vertices[2].color = fcolor;
-                                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点4: 第二条线的外角点
-                                vertices[3].position = SDL_FPoint{offsetX2, offsetY2};
-                                vertices[3].color = fcolor;
-                                vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                                // 使用两个三角形绘制四边形
-                                int indices[6] = {0, 1, 2, 0, 2, 3};
-                                SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                            }
-
-                            // 恢复颜色
-                            setPenColor(oldPenColor);
-                            setFillColor(oldFillColor);
-                        } else {
-                            // 正常模式：使用画笔颜色绘制拐角连接
-                            if (m_cornerStyle == CornerStyle::Round) {
-                                // 圆弧角：绘制扇形填充拐角缺口
-                                // 计算两条线之间的夹角
-                                float dot = ux1 * ux2 + uy1 * uy2;
-                                // 确保dot在[-1, 1]范围内
-                                if (dot > 1.0f) dot = 1.0f;
-                                if (dot < -1.0f) dot = -1.0f;
-                                float angle = std::acos(dot);
-
-                                // 确定圆弧方向（内角还是外角）
-                                float cross = ux1 * uy2 - uy1 * ux2;
-
-                                // 计算圆弧的起始角度和结束角度
-                                float angle1 = std::atan2(ny1, nx1);
-                                float angle2 = std::atan2(ny2, nx2);
-
-                                // 调整角度以确保正确的圆弧方向
-                                if (cross < 0) {
-                                    // 外角，需要交换角度
-                                    std::swap(angle1, angle2);
-                                    if (angle2 < angle1) angle2 += 2.0f * M_PI;
-                                }
-
-                                // 生成圆弧点 - 使用更多的分段确保平滑
-                                int segments = (std::max)(8, static_cast<int>(angle * 360.0f / M_PI));
-
-                                // 直接绘制填充扇形
-                                for (int j = 0; j < segments; ++j) {
-                                    float t1 = static_cast<float>(j) / segments;
-                                    float t2 = static_cast<float>(j + 1) / segments;
-
-                                    float angle1_current = angle1 + (angle2 - angle1) * t1;
-                                    float angle2_current = angle1 + (angle2 - angle1) * t2;
-
-                                    // 计算圆弧点
-                                    float arcX1 = points[i].x + halfWidth * std::cos(angle1_current);
-                                    float arcY1 = points[i].y + halfWidth * std::sin(angle1_current);
-                                    float arcX2 = points[i].x + halfWidth * std::cos(angle2_current);
-                                    float arcY2 = points[i].y + halfWidth * std::sin(angle2_current);
-
-                                    // 绘制三角形（顶点-圆弧点1-圆弧点2）
-                                    SDL_Vertex vertices[3];
-                                    SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                                    // 顶点1: 顶点
-                                    vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                    vertices[0].color = fcolor;
-                                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                    // 顶点2: 圆弧点1
-                                    vertices[1].position = SDL_FPoint{arcX1, arcY1};
-                                    vertices[1].color = fcolor;
-                                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                    // 顶点3: 圆弧点2
-                                    vertices[2].position = SDL_FPoint{arcX2, arcY2};
-                                    vertices[2].color = fcolor;
-                                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
-                                }
-                            } else {
-                                // 硬角：严格按照用户算法实现
-                                // 算法：四边形[B, A1, O, A2]，其中：
-                                // B: 折线顶点 (points[i])
-                                // A1: 第一条线的外角点 (offsetX1, offsetY1)
-                                // A2: 第二条线的外角点 (offsetX2, offsetY2)
-                                // O: 外交点（两条偏移线的外交点）
-
-                                // 计算外交点O
-                                // 我们需要计算两条偏移线的交点，并确保它是外交点
-                                // 方法：计算两条偏移线的交点，然后判断哪个是外交点
-
-                                // 计算两条偏移线的交点
-                                float a11 = ux1;
-                                float a12 = -ux2;
-                                float a21 = uy1;
-                                float a22 = -uy2;
-
-                                float det = a11 * a22 - a12 * a21;
-                                float intersectX, intersectY;
-
-                                if (std::abs(det) > 0.001f) {
-                                    float b1 = offsetX2 - offsetX1;
-                                    float b2 = offsetY2 - offsetY1;
-
-                                    float t1 = (b1 * a22 - a12 * b2) / det;
-                                    float t2 = (a11 * b2 - b1 * a21) / det;
-
-                                    // 计算交点
-                                    intersectX = offsetX1 + t1 * ux1;
-                                    intersectY = offsetY1 + t1 * uy1;
-
-                                    // 验证交点
-                                    float intersectX2 = offsetX2 + t2 * ux2;
-                                    float intersectY2 = offsetY2 + t2 * uy2;
-
-                                    if (std::abs(intersectX - intersectX2) > 0.1f || std::abs(intersectY - intersectY2) > 0.1f) {
-                                        intersectX = (intersectX + intersectX2) / 2.0f;
-                                        intersectY = (intersectY + intersectY2) / 2.0f;
-                                    }
-
-                                    // 关键：判断交点是否是外交点
-                                    // 外交点应该位于两条线段的"外侧"
-                                    // 方法：检查交点是否在两条线段形成的夹角的外部
-
-                                    // 计算从顶点到交点的向量
-                                    float vx = intersectX - points[i].x;
-                                    float vy = intersectY - points[i].y;
-
-                                    // 计算两条边的方向向量
-                                    float edge1x = -ux1;  // 指向顶点的反方向
-                                    float edge1y = -uy1;
-                                    float edge2x = ux2;   // 指向下一个点
-                                    float edge2y = uy2;
-
-                                    // 计算叉积来判断方向
-                                    float cross1 = edge1x * vy - edge1y * vx;
-                                    float cross2 = edge2x * vy - edge2y * vx;
-
-                                    // 如果交点在内角（夹角内部），则两个叉积应该同号
-                                    // 如果交点在外角（夹角外部），则两个叉积应该异号
-                                    bool isInsideAngle = (cross1 * cross2 > 0);
-
-                                    // 如果交点在夹角内部（内交点），我们需要计算外交点
-                                    if (isInsideAngle) {
-                                        // 计算外交点：使用负的t值
-                                        t1 = -t1;
-                                        t2 = -t2;
-
-                                        intersectX = offsetX1 + t1 * ux1;
-                                        intersectY = offsetY1 + t1 * uy1;
-
-                                        // 验证外交点
-                                        intersectX2 = offsetX2 + t2 * ux2;
-                                        intersectY2 = offsetY2 + t2 * uy2;
-
-                                        if (std::abs(intersectX - intersectX2) > 0.1f || std::abs(intersectY - intersectY2) > 0.1f) {
-                                            intersectX = (intersectX + intersectX2) / 2.0f;
-                                            intersectY = (intersectY + intersectY2) / 2.0f;
-                                        }
-                                    }
-                                } else {
-                                    // 两条线平行或接近平行，使用简单的中点
-                                    intersectX = (offsetX1 + offsetX2) / 2.0f;
-                                    intersectY = (offsetY1 + offsetY2) / 2.0f;
-                                }
-
-                                // 绘制四边形填充拐角缺口 [B, A1, O, A2]
-                                SDL_Vertex vertices[4];
-                                SDL_FColor fcolor = {m_penColor.red(), m_penColor.green(), m_penColor.blue(), m_penColor.alpha()};
-
-                                // 顶点B: 折线顶点
-                                vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                vertices[0].color = fcolor;
-                                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点A1: 第一条线的外角点
-                                vertices[1].position = SDL_FPoint{offsetX1, offsetY1};
-                                vertices[1].color = fcolor;
-                                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点O: 外交点
-                                vertices[2].position = SDL_FPoint{intersectX, intersectY};
-                                vertices[2].color = fcolor;
-                                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                // 顶点A2: 第二条线的外角点
-                                vertices[3].position = SDL_FPoint{offsetX2, offsetY2};
-                                vertices[3].color = fcolor;
-                                vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                                // 使用两个三角形绘制四边形 [B, A1, O] 和 [B, O, A2]
-                                int indices[6] = {0, 1, 2, 0, 2, 3};
-                                SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 绘制线帽（起点和终点）
-            if (points.size() >= 2) {
-                // 保存当前填充颜色
-                SColor oldFillColor = m_fillColor;
-
-                // 使用画笔颜色作为填充颜色绘制圆帽
-                setFillColor(m_penColor);
-
-                // 绘制起点圆帽 - 确保使用完整的圆
-                drawCircle(points[0], m_penWidth / 2.0f, true);
-
-                // 绘制终点圆帽 - 确保使用完整的圆
-                drawCircle(points[points.size() - 1], m_penWidth / 2.0f, true);
-
-                // 恢复填充颜色
-                setFillColor(oldFillColor);
-            }
-        }
-    }
-
-    // 文本绘制（简化版本，实际需要SDL_ttf支持）
-    void drawText(const ::SPoint& position, const std::string& text) {
-        // 这里需要SDL_ttf库来实现文本渲染
-        // 暂时留空，后续可以集成SDL_ttf
-        (void)position;
-        (void)text;
-    }
-
-    void drawText(const ::SRect& bounds, const std::string& text, TextAlignment alignment = TextAlignment::Left) {
-        // 这里需要SDL_ttf库来实现文本渲染
-        // 暂时留空，后续可以集成SDL_ttf
-        (void)bounds;
-        (void)text;
-        (void)alignment;
-    }
-
-    // 图像绘制
-    void drawImage(const ::SPoint& position, SDL_Texture* texture) {
-        if (!m_renderer || !texture) return;
-
-        float width, height;
-        SDL_GetTextureSize(texture, &width, &height);
-        SDL_FRect destRect = {position.x, position.y, width, height};
-        SDL_RenderTexture(m_renderer, texture, nullptr, &destRect);
-    }
-
-    void drawImage(const ::SRect& destRect, SDL_Texture* texture) {
-        if (!m_renderer || !texture) return;
-        SDL_FRect sdlDestRect = {destRect.left, destRect.top, destRect.width, destRect.height};
-        SDL_RenderTexture(m_renderer, texture, nullptr, &sdlDestRect);
-    }
-
-    void drawImage(const ::SRect& destRect, SDL_Texture* texture, const ::SRect& srcRect) {
-        if (!m_renderer || !texture) return;
-        SDL_FRect sdlSrcRect = {srcRect.left, srcRect.top, srcRect.width, srcRect.height};
-        SDL_FRect sdlDestRect = {destRect.left, destRect.top, destRect.width, destRect.height};
-        SDL_RenderTexture(m_renderer, texture, &sdlSrcRect, &sdlDestRect);
-    }
-
-    // 裁剪区域管理
-    void pushClipRect(const ::SRect& rect) {
-        if (!m_renderer) return;
-        SDL_Rect sdlRect = {
-            static_cast<int>(rect.left),
-            static_cast<int>(rect.top),
-            static_cast<int>(rect.width),
-            static_cast<int>(rect.height)
-        };
-        SDL_SetRenderClipRect(m_renderer, &sdlRect);
-        m_clipStack.push_back(rect);
-    }
-
-    void popClipRect() {
-        if (!m_renderer || m_clipStack.empty()) return;
-        m_clipStack.pop_back();
-        if (m_clipStack.empty()) {
-            SDL_SetRenderClipRect(m_renderer, nullptr);
-        } else {
-            const ::SRect& rect = m_clipStack.back();
-            SDL_Rect sdlRect = {
-                static_cast<int>(rect.left),
-                static_cast<int>(rect.top),
-                static_cast<int>(rect.width),
-                static_cast<int>(rect.height)
-            };
-            SDL_SetRenderClipRect(m_renderer, &sdlRect);
-        }
-    }
-
-    // 变换管理
-    void pushTransform() {
-        if (!m_renderer) return;
-        SDL_Renderer* renderer = m_renderer;
-        m_transformStack.push_back(renderer);
-    }
-
-    void popTransform() {
-        if (!m_renderer || m_transformStack.empty()) return;
-        m_transformStack.pop_back();
-    }
-
-    // 获取颜色
-    SColor getPenColor() const { return m_penColor; }
-    SColor getFillColor() const { return m_fillColor; }
-
-    // 拐角样式设置
     void setCornerStyle(CornerStyle style) { m_cornerStyle = style; }
     CornerStyle getCornerStyle() const { return m_cornerStyle; }
-
-    // 获取渲染器
     SDL_Renderer* getRenderer() const { return m_renderer; }
 
-    // 变换操作
-    void scale(float sx, float sy) {
-        if (!m_renderer) return;
-        // SDL3中可能没有直接的scale函数，暂时留空
-        // 可以使用SDL_RenderSetScale或SDL_RenderSetLogicalSize
-        // 这里暂时不实现，因为SDL3 API可能不同
-    }
+    void scale(float sx, float sy);
 
 private:
     SDL_Renderer* m_renderer;
-    SColor m_penColor;
-    SColor m_fillColor;
-    float m_penWidth;
+    SPen m_pen;
+    SBrush m_brush;
     std::string m_fontName;
     float m_fontSize;
     CornerStyle m_cornerStyle;
@@ -2315,89 +1243,29 @@ private:
 // ==================== 高级绘图功能 ====================
 class AdvancedDrawing {
 public:
-    // 绘制渐变矩形
+    static void drawGradientRectWithBrush(DrawingContext& ctx, const ::SRect& rect,
+                                          const SLinearGradient& gradient, bool stroke = false);
     static void drawGradientRect(DrawingContext& ctx, const ::SRect& rect,
                                 const SColor& startColor, const SColor& endColor,
-                                bool horizontal = true) {
-        // 简化实现：使用多个矩形模拟渐变
-        int steps = 20;
-        float stepSize = horizontal ? rect.width / steps : rect.height / steps;
-
-        for (int i = 0; i < steps; ++i) {
-            float t = static_cast<float>(i) / steps;
-            SColor color = Utils::interpolateColor(startColor, endColor, t);
-
-            ::SRect segment;
-            if (horizontal) {
-                segment = ::SRect(rect.left + i * stepSize, rect.top,
-                                 stepSize, rect.height);
-            } else {
-                segment = ::SRect(rect.left, rect.top + i * stepSize,
-                                 rect.width, stepSize);
-            }
-
-            ctx.setFillColor(color);
-            ctx.drawRect(segment, true);
-        }
-    }
-
-    // 绘制阴影效果
+                                bool horizontal = true);
+    static void drawRadialGradientRect(DrawingContext& ctx, const ::SRect& rect,
+                                       const SRadialGradient& gradient);
     static void drawShadow(DrawingContext& ctx, const ::SRect& rect,
                           float shadowSize, const SColor& shadowColor,
-                          float blurRadius = 5.0f) {
-        // 简化实现：绘制多个逐渐变淡的矩形
-        int layers = static_cast<int>(blurRadius);
-        for (int i = layers; i > 0; --i) {
-            float alpha = shadowColor.alpha() * (static_cast<float>(i) / layers);
-            float offset = shadowSize * (static_cast<float>(i) / layers);
-
-            SColor layerColor = shadowColor.withAlpha(alpha);
-            ::SRect shadowRect = ::SRect(rect.left + offset, rect.top + offset, rect.width, rect.height);
-
-            ctx.setFillColor(layerColor);
-            ctx.drawRect(shadowRect, true);
-        }
-    }
-
-    // 绘制发光效果
+                          float blurRadius = 5.0f);
     static void drawGlow(DrawingContext& ctx, std::function<void()> drawFunc,
                         float glowRadius, const SColor& glowColor,
-                        int layers = 5) {
-        // 保存当前状态
-        SColor oldPenColor = ctx.getPenColor();
-        SColor oldFillColor = ctx.getFillColor();
-
-        // 绘制多个逐渐变淡的轮廓
-        for (int i = layers; i > 0; --i) {
-            float currentRadius = glowRadius * (static_cast<float>(i) / layers);
-            float alpha = glowColor.alpha() * (static_cast<float>(i) / layers);
-            SColor currentColor = glowColor.withAlpha(alpha);
-
-            // 应用缩放实现发光扩散
-            ctx.pushTransform();
-            // 应用缩放实现发光扩散
-            ctx.scale(1.0f + currentRadius * 0.01f, 1.0f + currentRadius * 0.01f);
-
-            // 设置发光颜色
-            ctx.setPenColor(currentColor);
-            ctx.setFillColor(currentColor);
-
-            // 绘制发光效果
-            drawFunc();
-
-            // 恢复状态
-            ctx.popTransform();
-        }
-
-        // 绘制原始内容
-        drawFunc();
-
-        // 恢复颜色
-        ctx.setPenColor(oldPenColor);
-        ctx.setFillColor(oldFillColor);
-    }
+                        int layers = 5);
+    static void drawStyledRect(DrawingContext& ctx, const ::SRect& rect,
+                               const SPen& pen, const SBrush& brush);
+    static void drawStyledRoundedRect(DrawingContext& ctx, const ::SRect& rect,
+                                      float radius, const SPen& pen, const SBrush& brush);
+    static void drawStyledCircle(DrawingContext& ctx, const ::SPoint& center, float radius,
+                                 const SPen& pen, const SBrush& brush);
+    static void drawStyledEllipse(DrawingContext& ctx, const ::SPoint& center,
+                                  float radiusX, float radiusY,
+                                  const SPen& pen, const SBrush& brush);
 };
 
 }
-
 #endif // GRAPHTOOL_H

@@ -72,7 +72,8 @@ void MenuBase::drawContainer(void)
 bool MenuBase::handleEvent(shared_ptr<Event> event){
     if (!getEnable() || !getVisible()) return false;
 
-    // 如果有子菜单，则让子菜单先处理事件
+    // 如果有子菜单容器，则让子菜单容器先处理事件
+    SDL_Log("MenuBase::handleEvent <%s> m_menuContainer = 0x%0X", getCaption().c_str(), m_menuContainer);
     if (m_menuContainer != nullptr){
         if (m_menuContainer->handleEvent(event)) return true;
     }
@@ -119,9 +120,13 @@ bool MenuBase::handleEvent(shared_ptr<Event> event){
                     case EventName::FINGER_UP:
                         return true;
                     case EventName::MOUSE_MOVING:
+                        SDL_Log("MenuBase::handleEvent: mouse moving over <%s>", getCaption().c_str());
                         setMenuChainState(ControlState::Hover);
                         if (getType() == MenuItemType::SubMenu && getMenuClassLevel() == MenuClassLevel::MenuItem){
-                            setExpended(true);
+                            SDL_Log("MenuBase::handleEvent: hover <%s>, expend sub menu", getCaption().c_str());
+                            // setExpended(true);
+                            setExpendedSubMenuItem(dynamic_pointer_cast<MenuBase>(getThis()));
+
                         }
                         if (getParentMenu() != nullptr && getParentMenu()->getExpendedSubMenuItem() != nullptr){
                             SDL_Log("MenuBase::handleEvent: expend <%s>'s sub menu", getCaption().c_str());
@@ -441,6 +446,7 @@ void MenuContainer::draw(void){
 }
 
 bool MenuContainer::handleEvent(shared_ptr<Event> event){
+    SDL_Log("MenuContainer::handleEvent for <%s>' container entered, eventName = %d, e=%d, v=%d", getMountMenuCaption().c_str(), event->m_eventName, getEnable(), getVisible());
     if (!getEnable() || !getVisible()) return false;
 
     // 传递给各子菜单项优先处理事件
@@ -456,10 +462,12 @@ bool MenuContainer::handleEvent(shared_ptr<Event> event){
             if (!pos) return false;
             SRect drawRect = getDrawRect();
             if (drawRect.contains(pos->x, pos->y)){
+                SDL_Log("MenuContainer::handleEvent for <%s>'s container, eventName = %d", getMountMenuCaption().c_str(), event->m_eventName);
                 shared_ptr<MenuBase> subMenu = nullptr;
                 switch(event->m_eventName){
                     case EventName::MOUSE_MOVING:
                         dynamic_cast<MenuBase *>(getParent())->setMenuChainState(ControlState::Hover);
+                        SDL_Log("MenuContainer::handleEvent <%s>: mouse moving over container", getMountMenuCaption().c_str());
                         return true;
                     case EventName::MOUSE_WHEEL:
                         return false;

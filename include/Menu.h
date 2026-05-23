@@ -109,6 +109,7 @@ public:
     void setDirection(MenuDirection direction) { m_direction = direction; }
     MenuDirection getDirection(void) const { return m_direction; }
     void setExpended(bool isExpanded) {
+        SDL_Log("******MenuBase::setExpended <%s> to %d", getCaption().c_str(), isExpanded);
         m_isExpanded = isExpanded;
         // setExpendedSubMenuItem(nullptr);
         if (m_menuContainer) {
@@ -123,9 +124,13 @@ public:
     void setExpendedSubMenuItem(shared_ptr<MenuBase> item) {
         if (m_expandedItem == item) return; // 如果展开的子菜单项与要设置的子菜单项相同，则直接返回
 
+        // 如果之前有子菜单项展开，那就先把它收起来
         if (m_expandedItem) {
+            SDL_Log("MenuBase::set <%s>'s expanded item to: 0x%0X, before set, current expanded item is: 0x%0X", getCaption().c_str(), item.get(), m_expandedItem.get());
             m_expandedItem->setExpended(false);
         }
+
+        // 把新的子菜单项展开
         m_expandedItem = item;
         SDL_Log("MenuBase::set <%s>'s expanded item to: 0x%0X", getCaption().c_str(), m_expandedItem);
         if (m_expandedItem) {

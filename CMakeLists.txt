@@ -27,6 +27,7 @@ add_library(UIControls STATIC
     src/Dialog.cpp
     src/EditBox.cpp
     src/EventQueue.cpp
+    src/GraphTool.cpp
     src/Label.cpp
     src/Material.cpp
     src/Panel.cpp

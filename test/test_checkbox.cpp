@@ -9,6 +9,7 @@
 #include "ResourceLoader.h"
 #include "EditBox.h"
 #include "TextArea.h"
+#include "GraphTool.h"
 
 using namespace std;
 
@@ -320,6 +321,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     SDL_RenderClear(MainWindow::getInstance()->getRenderer());
 
     BENCH->draw();
+
+    // GraphTool::DrawingContext dc(MainWindow::getInstance()->getRenderer());
+    // dc.setPenColor(GraphTool::SColor(1.0f, 1.0f, 1.0f,1.0f));
+    // float penWidth = 10.0f;  // 根据X轴缩放比例调整线宽
+    // dc.setPenWidth(penWidth);
+    // dc.drawCircleWithThickness(500, 500, 50, penWidth, GraphTool::SColor(1.0f, 0.0f, 0.0f, 1.0f));
+
 
     SDL_RenderPresent(GET_RENDERER);
     return SDL_APP_CONTINUE;

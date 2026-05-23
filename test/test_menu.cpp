@@ -44,35 +44,35 @@ void testBenchInitialize(void) {
     SDL_Log("testBenchInitialize");
     // 使用链形式调用创建菜单栏
     g_menuBar = dynamic_pointer_cast<MenuBar>(MenuBarBuilder()
-                // .setBGColor(SDL_Color{23, 23, 24, 255})  // 灰色背景
-                // .setTextColor(SDL_Color{255, 255, 255, 255})  // 白色文字
-                .addBeforeEventHandlingWatcher(EventName::MOUSE_LBUTTON_DOWN)
-                .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+                // // .setBGColor(SDL_Color{23, 23, 24, 255})  // 灰色背景
+                // // .setTextColor(SDL_Color{255, 255, 255, 255})  // 白色文字
+                // .addBeforeEventHandlingWatcher(EventName::MOUSE_LBUTTON_DOWN)
+                // .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
 
-                .addMainMenu(MainMenuBuilder(u8"测试(T)")
-                                .addMenuItem(MenuItemBuilder(u8"开始测试")
-                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                cout << "Start test clicked" << endl;
-                                            }).build()
-                                )
-                                .build()
-                )
+                // .addMainMenu(MainMenuBuilder(u8"测试(T)")
+                //                 .addMenuItem(MenuItemBuilder(u8"开始测试")
+                //                             .setOnClick([](shared_ptr<MenuBase> item) {
+                //                                 cout << "Start test clicked" << endl;
+                //                             }).build()
+                //                 )
+                //                 .build()
+                // )
                 .addMainMenu(g_fileMenu = dynamic_pointer_cast<MainMenu>(MainMenuBuilder(u8"文件(F)")
                                 .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                .addMenuItem(newFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"新建(N)")
-                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                cout << "New file clicked" << endl;
-                                            })
-                                            .build())
-                                )
-                                .addMenuItem(openFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"打开(O)")
-                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                cout << "Open file clicked" << endl;
-                                            })
-                                            .build())
-                                )
+                                // .addMenuItem(newFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"新建(N)")
+                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+                                //             .setOnClick([](shared_ptr<MenuBase> item) {
+                                //                 cout << "New file clicked" << endl;
+                                //             })
+                                //             .build())
+                                // )
+                                // .addMenuItem(openFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"打开(O)")
+                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+                                //             .setOnClick([](shared_ptr<MenuBase> item) {
+                                //                 cout << "Open file clicked" << endl;
+                                //             })
+                                //             .build())
+                                // )
                                 .addMenuItem(recentFilesItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"最近打开的文件")
                                             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
                                             .addSubMenuItem(MenuItemBuilder(u8"file1.txt")
@@ -91,65 +91,65 @@ void testBenchInitialize(void) {
                                             )
                                             .build())
                                 )
-                                .addMenuItem(saveFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"保存(S)")
-                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                cout << "Save file clicked" << endl;
-                                            })
-                                            .build())
-                                )
-                                .addMenuItem(separatorItem = dynamic_pointer_cast<MenuSeparator>(MenuSeparatorBuilder()
-                                            .build())
-                                )
-                                .addMenuItem(exitItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"退出")
-                                            .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                                            .setOnClick([](shared_ptr<MenuBase> item) {
-                                                cout << "Exit program" << endl;
-                                                SDL_Event quitEvent;
-                                                quitEvent.type = SDL_EVENT_QUIT;
-                                                SDL_PushEvent(&quitEvent);
-                                            })
-                                            .build())
-                                )
+                                // .addMenuItem(saveFileItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"保存(S)")
+                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+                                //             .setOnClick([](shared_ptr<MenuBase> item) {
+                                //                 cout << "Save file clicked" << endl;
+                                //             })
+                                //             .build())
+                                // )
+                                // .addMenuItem(separatorItem = dynamic_pointer_cast<MenuSeparator>(MenuSeparatorBuilder()
+                                //             .build())
+                                // )
+                                // .addMenuItem(exitItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder(u8"退出")
+                                //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+                                //             .setOnClick([](shared_ptr<MenuBase> item) {
+                                //                 cout << "Exit program" << endl;
+                                //                 SDL_Event quitEvent;
+                                //                 quitEvent.type = SDL_EVENT_QUIT;
+                                //                 SDL_PushEvent(&quitEvent);
+                                //             })
+                                //             .build())
+                                // )
                                 .build()
                 ))
                 .build());
 
-    SDL_Log("to create edit menu");
-    // 创建编辑菜单
-    g_editMenu = dynamic_pointer_cast<MainMenu>(MainMenuBuilder(u8"编辑(E)")
-                .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                // .setNormalStateBGColor(SDL_Color{128, 128, 128, 255})  // 灰色背景
-                // .setTextNormalStateColor(SDL_Color{255, 255, 255, 255})  // 白色文字
-                // .setHoverStateBGColor(SDL_Color{200, 200, 200, 255})  // 浅灰色悬停
-                .build());
+    // SDL_Log("to create edit menu");
+    // // 创建编辑菜单
+    // g_editMenu = dynamic_pointer_cast<MainMenu>(MainMenuBuilder(u8"编辑(E)")
+    //             .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+    //             // .setNormalStateBGColor(SDL_Color{128, 128, 128, 255})  // 灰色背景
+    //             // .setTextNormalStateColor(SDL_Color{255, 255, 255, 255})  // 白色文字
+    //             // .setHoverStateBGColor(SDL_Color{200, 200, 200, 255})  // 浅灰色悬停
+    //             .build());
 
-    SDL_Log("to create undo menu items");
-    // 创建编辑菜单项
-    auto undoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("UndoUndoUndo")
-                    .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                    .setOnClick([](shared_ptr<MenuBase> item) {
-                        cout << "Undo operation" << endl;
-                    })
-                    .build());
+    // SDL_Log("to create undo menu items");
+    // // 创建编辑菜单项
+    // auto undoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("UndoUndoUndo")
+    //                 .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+    //                 .setOnClick([](shared_ptr<MenuBase> item) {
+    //                     cout << "Undo operation" << endl;
+    //                 })
+    //                 .build());
 
-    SDL_Log("to create redo menu items");
-    auto redoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("RedoRedoRedo")
-                    .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
-                    .setOnClick([](shared_ptr<MenuBase> item) {
-                        cout << "Redo operation" << endl;
-                    })
-                    .build());
+    // SDL_Log("to create redo menu items");
+    // auto redoItem = dynamic_pointer_cast<MenuItem>(MenuItemBuilder("RedoRedoRedo")
+    //                 .addBeforeEventHandlingWatcher(EventName::MOUSE_MOVING)
+    //                 .setOnClick([](shared_ptr<MenuBase> item) {
+    //                     cout << "Redo operation" << endl;
+    //                 })
+    //                 .build());
 
-    SDL_Log("to add menu items to edit menu");
-    // 将菜单项添加到编辑菜单
-    g_editMenu->addMenuItem(undoItem);
-    g_editMenu->addMenuItem(redoItem);
+    // SDL_Log("to add menu items to edit menu");
+    // // 将菜单项添加到编辑菜单
+    // g_editMenu->addMenuItem(undoItem);
+    // g_editMenu->addMenuItem(redoItem);
 
-    SDL_Log("to add main menu(Edit) to menu bar");
-    // 将菜单添加到菜单栏
-    // g_menuBar->addMainMenu(g_fileMenu);
-    g_menuBar->addMainMenu(g_editMenu);
+    // SDL_Log("to add main menu(Edit) to menu bar");
+    // // 将菜单添加到菜单栏
+    // // g_menuBar->addMainMenu(g_fileMenu);
+    // g_menuBar->addMainMenu(g_editMenu);
 
     SDL_Log("Add menu bar to bench");
     // 将菜单栏添加到Bench控件管理器
@@ -358,6 +358,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
+    SDL_Log("SDL_AppQuit");
     // Clean up resources
     // 这里要强制释放资源，因为要确保在后面调用TTF_Quit()之前，要把FontSuite打开的字体都关闭掉
     // BENCH.reset();
