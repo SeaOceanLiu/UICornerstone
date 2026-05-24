@@ -1,3 +1,4 @@
+// 由AI生成，可能不完整或有错误，请自行检查和修改
 // Menu.cpp - VSCode风格菜单控件实现
 
 #include "Menu.h"
@@ -25,9 +26,14 @@ namespace MenuColors {
     // 分隔线
     constexpr SDL_Color SEPARATOR       = {69, 69, 69, 255};     // #454545
 
-    // 尺寸
-    constexpr float BAR_HEIGHT          = 30.0f;
-    constexpr float ITEM_HEIGHT         = 28.0f;
+    // 尺寸（基于字体大小比例计算）
+    inline float g_menuTextSize = 20.0f;
+    constexpr float DEFAULT_HEIGHT_RATIO = 1.6f;
+    inline float g_heightRatio = DEFAULT_HEIGHT_RATIO;
+    constexpr float MIN_HEIGHT_RATIO = 1.0f;
+    constexpr float MAX_HEIGHT_RATIO = 3.0f;
+    inline float getItemHeight() { return g_menuTextSize * g_heightRatio; }
+    inline float getBarHeight() { return g_menuTextSize * g_heightRatio; }
     constexpr float ITEM_LEFT_PADDING   = 28.0f;
     constexpr float ITEM_RIGHT_PADDING  = 20.0f;
     constexpr float ICON_AREA_WIDTH     = 20.0f;
@@ -38,7 +44,7 @@ namespace MenuColors {
     constexpr float PANEL_RADIUS        = 5.0f;
     constexpr float PANEL_SHADOW_OFFSET = 3.0f;
     constexpr float PANEL_SHADOW_BLUR   = 8.0f;
-    constexpr float MENU_TEXT_SIZE       = 14.0f;
+    constexpr FontName MENU_FONT         = FontName::MapleMono_NF_CN_Regular;
 }
 
 // ==================== MenuItem 实现 ====================
@@ -61,8 +67,13 @@ MenuItem::MenuItem(Control *parent, MenuItemType type, float xScale, float yScal
 
 MenuItem::~MenuItem() = default;
 
+void MenuItem::create() {
+    ControlImpl::create();
+    createLabels();
+}
+
 float MenuItem::getItemHeight() {
-    return MenuColors::ITEM_HEIGHT;
+    return MenuColors::getItemHeight();
 }
 
 void MenuItem::setCaption(const string& caption) {
@@ -89,9 +100,9 @@ void MenuItem::createLabels() {
     // 创建标题Label
     if (!m_caption.empty() && m_type != MenuItemType::Separator) {
         m_captionLabel = LabelBuilder(this, {0, 0, 0, 0})
-            .setFont(FontName::HarmonyOS_Sans_SC_Regular)
+            .setFont(MenuColors::MENU_FONT)
             .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
-            .setFontSize((int)MenuColors::MENU_TEXT_SIZE)
+            .setFontSize((int)MenuColors::g_menuTextSize)
             .setCaption(m_caption)
             .setTextStateColor(StateColor(StateColor::Type::Text)
                 .setNormal(MenuColors::ITEM_TEXT)
@@ -104,9 +115,9 @@ void MenuItem::createLabels() {
     // 创建快捷键Label
     if (!m_shortcut.empty()) {
         m_shortcutLabel = LabelBuilder(this, {0, 0, 0, 0})
-            .setFont(FontName::HarmonyOS_Sans_SC_Regular)
+            .setFont(MenuColors::MENU_FONT)
             .setAlignmentMode(AlignmentMode::AM_MID_RIGHT)
-            .setFontSize((int)MenuColors::MENU_TEXT_SIZE)
+            .setFontSize((int)MenuColors::g_menuTextSize)
             .setCaption(m_shortcut)
             .setTextStateColor(StateColor(StateColor::Type::Text)
                 .setNormal(MenuColors::SHORTCUT_TEXT)
@@ -119,10 +130,10 @@ void MenuItem::createLabels() {
     // 创建子菜单箭头Label
     if (m_type == MenuItemType::SubMenu) {
         m_arrowLabel = LabelBuilder(this, {0, 0, 0, 0})
-            .setFont(FontName::HarmonyOS_Sans_SC_Regular)
+            .setFont(MenuColors::MENU_FONT)
             .setAlignmentMode(AlignmentMode::AM_CENTER)
-            .setFontSize((int)MenuColors::MENU_TEXT_SIZE)
-            .setCaption("\u25B6")  // ▶ 三角箭头
+            .setFontSize((int)MenuColors::g_menuTextSize)
+            .setCaption(u8"\u25B6")
             .setTextStateColor(StateColor(StateColor::Type::Text)
                 .setNormal(MenuColors::ARROW_COLOR)
                 .setHover(MenuColors::ARROW_COLOR)
@@ -275,7 +286,7 @@ void MenuItem::closeMenuChain() {
 
 MenuPanel::MenuPanel(Control *parent, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
-    , m_itemHeight(MenuColors::ITEM_HEIGHT)
+    , m_itemHeight(MenuColors::getItemHeight())
     , m_iconAreaWidth(MenuColors::ICON_AREA_WIDTH)
     , m_shortcutAreaWidth(0)
     , m_arrowAreaWidth(MenuColors::ARROW_AREA_WIDTH)
@@ -626,7 +637,7 @@ bool MenuPanel::isContainsPoint(float x, float y) {
 
 MenuBar::MenuBar(Control *parent, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
-    , m_barHeight(MenuColors::BAR_HEIGHT)
+    , m_barHeight(MenuColors::getBarHeight())
     , m_hoveredIndex(-1)
     , m_activeIndex(-1)
     , m_menuMode(false)
@@ -664,9 +675,9 @@ void MenuBar::addMenu(const string& caption, shared_ptr<MenuPanel> panel) {
 
     // 创建菜单项Label
     entry.label = LabelBuilder(this, {0, 0, 0, m_barHeight})
-        .setFont(FontName::HarmonyOS_Sans_SC_Regular)
+        .setFont(MenuColors::MENU_FONT)
         .setAlignmentMode(AlignmentMode::AM_CENTER)
-        .setFontSize((int)MenuColors::MENU_TEXT_SIZE)
+        .setFontSize((int)MenuColors::g_menuTextSize)
         .setCaption(caption)
         .setTextStateColor(StateColor(StateColor::Type::Text)
             .setNormal(m_textColor)
@@ -703,7 +714,7 @@ void MenuBar::layoutEntries() {
     }
     // 更新菜单栏宽度
     if (getParent()) {
-        setRect(SRect(0, 0, getParent()->getRect().width, m_barHeight));
+        ControlImpl::setRect(SRect(0, 0, getParent()->getRect().width, m_barHeight));
     }
 }
 
@@ -767,6 +778,20 @@ void MenuBar::setBarHeight(float height) {
     m_barHeight = height;
     setRect(SRect(getRect().left, getRect().top, getRect().width, m_barHeight));
     layoutEntries();
+}
+
+void MenuBar::setItemHeightRatio(float ratio) {
+    if (ratio < MenuColors::MIN_HEIGHT_RATIO) ratio = MenuColors::MIN_HEIGHT_RATIO;
+    if (ratio > MenuColors::MAX_HEIGHT_RATIO) ratio = MenuColors::MAX_HEIGHT_RATIO;
+    MenuColors::g_heightRatio = ratio;
+}
+
+void MenuBar::setFontSize(float size) {
+    MenuColors::g_menuTextSize = size;
+}
+
+float MenuBar::getFontSize() {
+    return MenuColors::g_menuTextSize;
 }
 
 void MenuBar::draw() {

@@ -1,3 +1,4 @@
+﻿// 由AI生成，可能不完整或有错误，请自行检查和修改
 #ifndef MenuH
 #define MenuH
 
@@ -37,6 +38,7 @@ public:
              float xScale = 1.0f, float yScale = 1.0f);
     ~MenuItem() override;
 
+    void create() override;
     void draw() override;
     bool handleEvent(shared_ptr<Event> event) override;
 
@@ -166,6 +168,13 @@ public:
     // 菜单栏高度
     void setBarHeight(float height);
     float getBarHeight() const { return m_barHeight; }
+
+    // 设置菜单项高度与字体大小的比例系数（范围 1.0 ~ 3.0）
+    static void setItemHeightRatio(float ratio);
+
+    // 设置菜单字体大小
+    static void setFontSize(float size);
+    static float getFontSize();
 
     // 菜单模式
     bool isInMenuMode() const { return m_menuMode; }

@@ -34,9 +34,22 @@ void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, co
     }
 }
 void testBenchInitialize(void) {
-    SDL_Log("testBenchInitialize");
+    SDL_Log("testBenchInitialize - START");
+
+    SDL_Log("testBenchInitialize - creating item1");
+    auto item1 = MenuItemBuilder(u8"新建(N)")
+        .setShortcut("Ctrl+N")
+        .setOnClick([](shared_ptr<MenuItem> item) {
+            cout << "New file clicked" << endl;
+        })
+        .build();
+    SDL_Log("testBenchInitialize - item1 created OK");
+
+    // 设置菜单字体大小（必须在创建菜单面板之前调用）
+    MenuBar::setFontSize(16);
 
     // 创建文件菜单面板
+    SDL_Log("testBenchInitialize - creating MenuPanelBuilder");
     g_filePanel = MenuPanelBuilder()
         .addItem(MenuItemBuilder(u8"新建(N)")
             .setShortcut("Ctrl+N")

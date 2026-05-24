@@ -75,6 +75,13 @@ public:
     void setBarHeight(float height);
     float getBarHeight() const;
 
+    // 菜单项高度与字体大小的比例系数（范围 1.0 ~ 3.0，默认 1.6）
+    static void setItemHeightRatio(float ratio);
+
+    // 菜单字体大小（默认 20.0，须在面板创建前设置）
+    static void setFontSize(float size);
+    static float getFontSize();
+
 private:
     struct MenuEntry {
         string caption;              // 菜单标题，如 "文件(F)"
@@ -161,6 +168,7 @@ public:
              float xScale=1.0f, float yScale=1.0f);
     ~MenuItem() override;
 
+    void create() override;
     void draw() override;
     bool handleEvent(shared_ptr<Event> event) override;
 
@@ -208,7 +216,25 @@ VSCode菜单的核心交互是"菜单模式"：
    - 点击菜单外部区域
    - 按ESC键
 
-### 3.2 事件处理流程
+### 3.2 控件生命周期
+
+```
+MenuItem::create()  →  ControlImpl::create()  →  createLabels()
+```
+
+`create()` 中调用 `createLabels()` 创建所有 label 控件（文字、快捷键、箭头）。
+label 在创建时读取 `MenuColors::g_menuTextSize` 和 `MenuColors::MENU_FONT`，
+因此字体大小和字体必须在 create 调用之前设置。推荐在构建 MenuPanel 之前调用：
+
+```cpp
+MenuBar::setFontSize(16);                       // 先设字体大小
+auto panel = MenuPanelBuilder().addItem(...).build();  // 再构建面板
+```
+
+**注意**：`setFontSize` 和 `setItemHeightRatio` 对已创建的 label 不生效，
+只有下次调用 `create()` 时才会读取新值。
+
+### 3.3 事件处理流程
 
 ```
 SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -225,7 +251,7 @@ SDL_EVENT_KEY_DOWN:
   └─ ESC → 关闭当前子菜单，或退出菜单模式
 ```
 
-### 3.3 子菜单展开
+### 3.4 子菜单展开
 
 - 鼠标hover到子菜单项时，延迟200ms展开子菜单
 - 鼠标从子菜单项移向子菜单面板时，不关闭子菜单
@@ -233,10 +259,10 @@ SDL_EVENT_KEY_DOWN:
 
 ## 4. 视觉规格
 
-### 4.1 颜色方案（VSCode Dark主题）
+### 4.1 颜色方案与字体（VSCode Dark主题）
 
-| 元素 | 颜色 |
-|------|------|
+| 元素 | 值 |
+|------|-----|
 | 菜单栏背景 | #3C3C3C |
 | 菜单栏文字 | #CCCCCC |
 | 菜单栏hover背景 | #505050 |
@@ -250,20 +276,31 @@ SDL_EVENT_KEY_DOWN:
 | 分隔线颜色 | #454545 |
 | 子菜单箭头 | #CCCCCC |
 | 快捷键文字 | #858585 |
+| **字体** | MapleMono_NF_CN_Regular（含 ▶ 等 Nerd Font 图标） |
+| **缺省字体大小** | 20px（运行时可通过 `MenuBar::setFontSize()` 修改） |
 
 ### 4.2 尺寸规格
 
+菜单栏高度和菜单项高度不再使用固定常量，而是**基于字体大小 × 比例系数**动态计算。
+
 | 元素 | 尺寸 |
 |------|------|
-| 菜单栏高度 | 30px |
-| 菜单项高度 | 28px |
-| 菜单项左侧padding | 20px |
+| 菜单栏高度 | `g_menuTextSize × g_heightRatio`（默认 20 × 1.6 = 32px） |
+| 菜单项高度 | `g_menuTextSize × g_heightRatio`（默认 20 × 1.6 = 32px） |
+| 菜单项左侧padding | 28px |
 | 菜单项右侧padding | 20px |
 | 图标区域宽度 | 20px |
 | 快捷键区域最小宽度 | 60px |
-| 子菜单箭头宽度 | 16px |
+| 子菜单箭头宽度 | 20px |
 | 分隔线高度 | 1px |
 | 分隔线左右margin | 10px |
+
+**运行时调整：**
+
+- `MenuBar::setFontSize(16)` → 菜单栏/项高度变为 16 × 1.6 = 25.6px
+- `MenuBar::setItemHeightRatio(2.0)` → 菜单栏/项高度变为 当前字体大小 × 2.0
+- 字体大小和比例系数必须在 `MenuPanel` 创建（`createLabels()` 调用）**之前**设置，生效于 label 重建时。
+- 比例系数范围：1.0 ~ 3.0，超出自动钳制。
 
 ## 5. Builder模式
 
@@ -328,13 +365,23 @@ auto menuBar = MenuBarBuilder(parent)
 - `MenuPanel` - 替代MenuContainer，负责下拉菜单面板的绘制和布局
 - `MenuBarBuilder` / `MenuPanelBuilder` / `MenuItemBuilder` - Builder模式
 
-## 7. 实现计划
+### 6.4 API 变更
 
-1. **Phase 1**: 创建新的 Menu.h 头文件，定义所有类接口
-2. **Phase 2**: 实现 MenuBar（菜单栏布局、hover高亮、菜单模式切换）
-3. **Phase 3**: 实现 MenuPanel（下拉面板绘制、圆角阴影、菜单项布局）
-4. **Phase 4**: 实现 MenuItem（文字绘制、快捷键、子菜单箭头、hover高亮）
-5. **Phase 5**: 实现交互逻辑（菜单模式、子菜单延迟展开、点击外部关闭）
-6. **Phase 6**: 实现 Builder 模式
-7. **Phase 7**: 更新测试文件 test_menu.cpp
-8. **Phase 8**: 编译验证
+| API | 变更说明 |
+|------|---------|
+| `MenuBar::setFontSize(float)` | **新增** - 运行时修改菜单字体大小 |
+| `MenuBar::getFontSize()` | **新增** - 获取当前字体大小 |
+| `MenuBar::setItemHeightRatio(float)` | **新增** - 设置菜单项/栏高度与字体大小的比例 |
+| `MenuItem::create()` | **新增** - 调用 `createLabels()`，确保字体大小生效 |
+| `MenuColors::BAR_HEIGHT` / `ITEM_HEIGHT` | **移除** - 替换为 `getItemHeight()` / `getBarHeight()` 动态计算 |
+| `MenuColors::MENU_TEXT_SIZE` | **移除** - 替换为运行时变量 `g_menuTextSize` |
+| 字体 | **变更** - `HarmonyOS_Sans_SC_Regular` → `MapleMono_NF_CN_Regular` |
+| 箭头编码 | **修复** - `"\u25B6"` → `u8"\u25B6"`（避免 CP936 乱码） |
+
+## 7. 后续优化方向
+
+- **动态字体切换**：为不同 DPI 场景自动调整字体大小
+- **动画过渡**：下拉菜单展开/收起动画
+- **键盘导航**：上下箭头选择、回车执行、左右切换菜单
+- **无障碍支持**：屏幕阅读器、高对比度模式
+- **菜单栏溢出**：窗口缩小时自动收起溢出菜单项到 "..." 按钮
