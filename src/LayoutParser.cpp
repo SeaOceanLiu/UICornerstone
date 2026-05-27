@@ -183,6 +183,14 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseButton(j, parent);
     } else if (type == "EditBox") {
         result = parseEditBox(j, parent);
+    } else if (type == "TextArea") {
+        result = parseTextArea(j, parent);
+    } else if (type == "CheckBox") {
+        result = parseCheckBox(j, parent);
+    } else if (type == "ProgressBar") {
+        result = parseProgressBar(j, parent);
+    } else if (type == "ScrollBar") {
+        result = parseScrollBar(j, parent);
     } else if (type == "Panel") {
         result = parsePanel(j, parent);
     } else {
@@ -436,6 +444,322 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
     return panel;
 }
 
+// ==================== TextArea ====================
+
+shared_ptr<TextArea> LayoutParser::parseTextArea(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto textArea = make_shared<TextArea>(parent, rect, xScale, yScale);
+
+    parseCommonProperties(textArea, j);
+
+    if (j.contains("text") && j["text"].is_string()) {
+        textArea->setText(j["text"].get<string>());
+    }
+
+    if (j.contains("placeholder") && j["placeholder"].is_string()) {
+        textArea->setPlaceholder(j["placeholder"].get<string>());
+    }
+
+    if (j.contains("wordWrap") && j["wordWrap"].is_boolean()) {
+        textArea->setWordWrap(j["wordWrap"].get<bool>());
+    }
+
+    if (j.contains("lineHeight") && j["lineHeight"].is_number()) {
+        textArea->setLineHeight(j["lineHeight"].get<int>());
+    }
+
+    if (j.contains("scrollBarThickness") && j["scrollBarThickness"].is_number()) {
+        textArea->setScrollBarThickness(j["scrollBarThickness"].get<float>());
+    }
+
+    if (j.contains("font") && j["font"].is_object()) {
+        pushJsonPath("font");
+        const json& font = j["font"];
+        if (font.contains("name") && font["name"].is_string()) {
+            textArea->setFont(parseFontName(font["name"].get<string>()));
+        }
+        if (font.contains("size") && font["size"].is_number()) {
+            textArea->setFontSize(font["size"].get<int>());
+        }
+        popJsonPath();
+    }
+
+    if (j.contains("alignment") && j["alignment"].is_string()) {
+        textArea->setAlignmentMode(parseAlignment(j["alignment"].get<string>()));
+    }
+
+    if (j.contains("margin")) {
+        textArea->setMargin(parseMargin(j["margin"]));
+    }
+
+    parseEvents(textArea, j);
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = textArea;
+    }
+
+    textArea->create();
+    return textArea;
+}
+
+// ==================== CheckBox ====================
+
+static CheckState parseCheckState(const string& s) {
+    if (s == "Checked")        return CheckState::Checked;
+    if (s == "Indeterminate")  return CheckState::Indeterminate;
+    return CheckState::Unchecked;
+}
+
+static CheckBoxStyle parseCheckBoxStyle(const string& s) {
+    if (s == "Cross")   return CheckBoxStyle::Cross;
+    if (s == "Circle")  return CheckBoxStyle::Circle;
+    return CheckBoxStyle::Classic;
+}
+
+static CheckBoxLayout parseCheckBoxLayout(const string& s) {
+    if (s == "TextLeft") return CheckBoxLayout::TextLeft;
+    return CheckBoxLayout::TextRight;
+}
+
+static CheckBoxVerticalAlign parseCheckBoxVerticalAlign(const string& s) {
+    if (s == "Top")    return CheckBoxVerticalAlign::Top;
+    if (s == "Bottom") return CheckBoxVerticalAlign::Bottom;
+    return CheckBoxVerticalAlign::Center;
+}
+
+shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto checkBox = make_shared<CheckBox>(parent, rect, xScale, yScale);
+
+    parseCommonProperties(checkBox, j);
+
+    if (j.contains("caption") && j["caption"].is_string()) {
+        checkBox->getCaption()->setCaption(j["caption"].get<string>());
+    }
+
+    if (j.contains("captionSize") && j["captionSize"].is_number()) {
+        checkBox->getCaption()->setFontSize(j["captionSize"].get<int>());
+    }
+
+    if (j.contains("checkState") && j["checkState"].is_string()) {
+        checkBox->setCheckState(parseCheckState(j["checkState"].get<string>()));
+    }
+
+    if (j.contains("style") && j["style"].is_string()) {
+        checkBox->setStyle(parseCheckBoxStyle(j["style"].get<string>()));
+    }
+
+    if (j.contains("layout") && j["layout"].is_string()) {
+        checkBox->setLayout(parseCheckBoxLayout(j["layout"].get<string>()));
+    }
+
+    if (j.contains("verticalAlign") && j["verticalAlign"].is_string()) {
+        checkBox->setVerticalAlign(parseCheckBoxVerticalAlign(j["verticalAlign"].get<string>()));
+    }
+
+    if (j.contains("sizeRatio") && j["sizeRatio"].is_number()) {
+        checkBox->setSizeRatio(j["sizeRatio"].get<float>());
+    }
+
+    if (j.contains("triState") && j["triState"].is_boolean()) {
+        checkBox->setTriStateEnabled(j["triState"].get<bool>());
+    }
+
+    // CheckBox-specific colors
+    if (j.contains("colors") && j["colors"].is_object()) {
+        const json& colors = j["colors"];
+        if (colors.contains("checkColor")) {
+            checkBox->setCheckColor(parseColor(colors["checkColor"]));
+        }
+        if (colors.contains("crossColor")) {
+            checkBox->setCrossColor(parseColor(colors["crossColor"]));
+        }
+        if (colors.contains("indeterminateColor")) {
+            checkBox->setIndeterminateColor(parseColor(colors["indeterminateColor"]));
+        }
+        if (colors.contains("boxBorderColor")) {
+            checkBox->setBoxBorderColor(parseColor(colors["boxBorderColor"]));
+        }
+    }
+
+    parseEvents(checkBox, j);
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = checkBox;
+    }
+
+    checkBox->create();
+    return checkBox;
+}
+
+// ==================== ProgressBar ====================
+
+static ProgressBarStyle parseProgressBarStyle(const string& s) {
+    if (s == "Vertical") return ProgressBarStyle::Vertical;
+    return ProgressBarStyle::Horizontal;
+}
+
+static ProgressBarTextMode parseProgressBarTextMode(const string& s) {
+    if (s == "None")    return ProgressBarTextMode::None;
+    if (s == "Custom")  return ProgressBarTextMode::Custom;
+    return ProgressBarTextMode::Percent;
+}
+
+shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto progressBar = make_shared<ProgressBar>(parent, rect, xScale, yScale);
+
+    parseCommonProperties(progressBar, j);
+
+    if (j.contains("value") && j["value"].is_number()) {
+        progressBar->setValue(j["value"].get<float>());
+    }
+
+    if (j.contains("range") && j["range"].is_object()) {
+        float minVal = j["range"].value("min", 0.0f);
+        float maxVal = j["range"].value("max", 100.0f);
+        progressBar->setRange(minVal, maxVal);
+    }
+
+    if (j.contains("style") && j["style"].is_string()) {
+        progressBar->setStyle(parseProgressBarStyle(j["style"].get<string>()));
+    }
+
+    if (j.contains("textMode") && j["textMode"].is_string()) {
+        progressBar->setTextMode(parseProgressBarTextMode(j["textMode"].get<string>()));
+    }
+
+    if (j.contains("customText") && j["customText"].is_string()) {
+        progressBar->setCustomText(j["customText"].get<string>());
+    }
+
+    if (j.contains("animationSpeed") && j["animationSpeed"].is_number()) {
+        progressBar->setAnimationSpeed(j["animationSpeed"].get<float>());
+    }
+
+    if (j.contains("font") && j["font"].is_object()) {
+        pushJsonPath("font");
+        const json& font = j["font"];
+        if (font.contains("name") && font["name"].is_string()) {
+            progressBar->setFont(parseFontName(font["name"].get<string>()));
+        }
+        if (font.contains("size") && font["size"].is_number()) {
+            progressBar->setFontSize(font["size"].get<int>());
+        }
+        popJsonPath();
+    }
+
+    if (j.contains("alignment") && j["alignment"].is_string()) {
+        progressBar->setAlignmentMode(parseAlignment(j["alignment"].get<string>()));
+    }
+
+    // ProgressBar-specific colors
+    if (j.contains("colors") && j["colors"].is_object()) {
+        const json& colors = j["colors"];
+        if (colors.contains("progressColor")) {
+            progressBar->setProgressColor(parseColor(colors["progressColor"]));
+        }
+        if (colors.contains("backgroundColor")) {
+            progressBar->setBackgroundColor(parseColor(colors["backgroundColor"]));
+        }
+    }
+
+    parseEvents(progressBar, j);
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = progressBar;
+    }
+
+    progressBar->create();
+    return progressBar;
+}
+
+// ==================== ScrollBar ====================
+
+static ScrollBarOrientation parseScrollBarOrientation(const string& s) {
+    if (s == "Horizontal") return ScrollBarOrientation::Horizontal;
+    return ScrollBarOrientation::Vertical;
+}
+
+shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    ScrollBarOrientation orientation = ScrollBarOrientation::Vertical;
+    if (j.contains("orientation") && j["orientation"].is_string()) {
+        orientation = parseScrollBarOrientation(j["orientation"].get<string>());
+    }
+
+    auto scrollBar = make_shared<ScrollBar>(parent, rect, orientation, xScale, yScale);
+
+    parseCommonProperties(scrollBar, j);
+
+    if (j.contains("value") && j["value"].is_number()) {
+        scrollBar->setValue(j["value"].get<float>());
+    }
+
+    if (j.contains("range") && j["range"].is_object()) {
+        float minVal = j["range"].value("min", 0.0f);
+        float maxVal = j["range"].value("max", 100.0f);
+        scrollBar->setRange(minVal, maxVal);
+    }
+
+    if (j.contains("pageSize") && j["pageSize"].is_number()) {
+        scrollBar->setPageSize(j["pageSize"].get<float>());
+    }
+
+    if (j.contains("stepSize") && j["stepSize"].is_number()) {
+        scrollBar->setStepSize(j["stepSize"].get<float>());
+    }
+
+    if (j.contains("thickness") && j["thickness"].is_number()) {
+        scrollBar->setThickness(j["thickness"].get<float>());
+    }
+
+    parseEvents(scrollBar, j);
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = scrollBar;
+    }
+
+    scrollBar->create();
+    return scrollBar;
+}
+
 // ==================== 通用属性解析 ====================
 
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
@@ -504,7 +828,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
-    // EditBox: onTextChanged, onEnter
+    // EditBox & TextArea: onTextChanged, onEnter
     if (auto editBox = dynamic_pointer_cast<EditBox>(ctrl)) {
         if (events.contains("onTextChanged") && events["onTextChanged"].is_string()) {
             string handlerName = events["onTextChanged"].get<string>();
@@ -523,6 +847,48 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 editBox->setOnEnter([handler]() {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // CheckBox: onCheckChanged
+    if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
+        if (events.contains("onCheckChanged") && events["onCheckChanged"].is_string()) {
+            string handlerName = events["onCheckChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                cb->setOnCheckChanged([handler](shared_ptr<CheckBox> sender, CheckState state) {
+                    handler(sender);
+                });
+            }
+        }
+    }
+
+    // ProgressBar: onValueChanged
+    if (auto pb = dynamic_pointer_cast<ProgressBar>(ctrl)) {
+        if (events.contains("onValueChanged") && events["onValueChanged"].is_string()) {
+            string handlerName = events["onValueChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                pb->setOnValueChanged([handler](float val) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // ScrollBar: onPositionChanged
+    if (auto sb = dynamic_pointer_cast<ScrollBar>(ctrl)) {
+        if (events.contains("onPositionChanged") && events["onPositionChanged"].is_string()) {
+            string handlerName = events["onPositionChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                sb->setOnPositionChanged([handler](float value, float min, float max) {
                     handler(nullptr);
                 });
             }

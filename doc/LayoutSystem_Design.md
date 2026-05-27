@@ -16,10 +16,14 @@
     ├─ parseLayout(string)     — 从字符串加载
     ├─ 控件工厂
     │   └─ parseControl(json, parent) → 根据 type 分派
-    │        ├─ parseLabel    → make_shared<Label>
-    │        ├─ parseButton   → make_shared<Button>
-    │        ├─ parseEditBox  → make_shared<EditBox>
-    │        └─ parsePanel    → make_shared<Panel>
+    │        ├─ parseLabel      → make_shared<Label>
+    │        ├─ parseButton     → make_shared<Button>
+    │        ├─ parseEditBox    → make_shared<EditBox>
+    │        ├─ parseTextArea   → make_shared<TextArea>
+    │        ├─ parseCheckBox   → make_shared<CheckBox>
+    │        ├─ parseProgressBar→ make_shared<ProgressBar>
+    │        ├─ parseScrollBar  → make_shared<ScrollBar>
+    │        └─ parsePanel      → make_shared<Panel>
     ├─ 属性解析工具集
     │   ├─ parseRect / parseMargin / parseColor
     │   ├─ parseStateColor / parseFont
@@ -36,45 +40,69 @@
              ↓
        控件树 (Control Tree)
         ├─ Panel (顶层容器)
-        │   ├─ Label
-        │   ├─ Button
-        │   ├─ EditBox
-        │   └─ Panel (子容器)
-        │       └─ Label
+    │   ├─ Label
+    │   ├─ Button
+    │   ├─ EditBox
+    │   ├─ TextArea
+    │   ├─ CheckBox
+    │   ├─ ProgressBar
+    │   ├─ ScrollBar
+    │   └─ Panel (子容器)
+    │       └─ Label
         └─ SDL 渲染循环 (不变)
 ```
 
 ## 3. 阶段规划
 
-### Phase 1 — 基础解析与绝对定位
+### Phase 1 — 基础解析与绝对定位 ✅ 已完成
 
+| 功能                  | 说明                                                | 状态 |
+| --------------------- | --------------------------------------------------- | ---- |
+| LayoutParser 基本框架 | 解析 JSON 入口，递归构建控件树                      | ✅   |
+| 绝对定位              | JSON 中 `rect` 字段 → `SRect`，直接 `setRect()`     | ✅   |
+| 控件工厂              | 按 `type` 字符串创建控件                            | ✅   |
+| 颜色解析              | 支持 `"#RRGGBBAA"` 和 `{r,g,b,a}` 两种格式          | ✅   |
+| 事件绑定方式1         | JSON 声明 + `registerHandler()` 自动绑定            | ✅   |
+| 事件绑定方式2         | `findControlById()` 获取引用后手动绑定              | ✅   |
+| 支持类型              | Label, Button(简单), EditBox, Panel                 | ✅   |
+| SDL_StartTextInput    | EditBox 构造函数自动调用，无需手动                    | ✅   |
+| 测试验证              | test_layout 构建运行通过，两种绑定方式均正常         | ✅   |
 
-| 功能                  | 说明                                              |
-| --------------------- | ------------------------------------------------- |
-| LayoutParser 基本框架 | 解析 JSON 入口，递归构建控件树                    |
-| 绝对定位              | JSON 中`rect` 字段 → `SRect`，直接 `setRect()`   |
-| 控件工厂              | 按`type` 字符串创建 Label/Button/EditBox/Panel    |
-| 颜色解析              | 支持`"#RRGGBBAA"` 和 `{"r","g","b","a"}` 两种格式 |
-| 事件绑定方式1         | JSON 声明 +`registerHandler()` 自动绑定           |
-| 事件绑定方式2         | `findControlById()` 获取引用后手动绑定            |
-| 支持类型              | Label, Button, EditBox, Panel                     |
-| 跳过特性              | Button 跳过 Actor/LuotiAni（后续 Phase 加入）     |
+### Phase 2 — 扩展控件支持（当前阶段）
 
-### Phase 2 — 高级布局
+| 功能           | 说明                                                   |
+| -------------- | ------------------------------------------------------ |
+| TextArea       | 继承 EditBox，额外支持 wordWrap、scroll、lineHeight    |
+| CheckBox       | 三态复选框，支持 style/layout/verticalAlign            |
+| ProgressBar    | 进度条，支持 style/textMode/animation                  |
+| ScrollBar      | 滚动条，支持 orientation/pageSize/stepSize             |
+| Button 增强    | captionLabel 嵌入方式（Phase 1 的 caption 简单方式的补充）|
+| Dialog         | 对话框，含标题栏、确定/取消按钮、多页文本              |
 
-- HFlow / VFlow 流式布局引擎
-- Anchor 锚点布局引擎
-- Grid 网格布局引擎
-- 百分比尺寸支持（如 `"w": "50%"`）
-- 嵌套布局（容器内子控件使用不同布局类型）
-- 窗口 resize → 布局引擎重新计算
+各控件详细 JSON Schema 见第 4.5 节。
 
-### Phase 3 — 高级特性
+### Phase 3 — 菜单系统
 
-- 热加载（文件变化监听 → 自动重建控件树）
-- 全局主题系统（theme 继承与覆盖）
-- 数据绑定（控件属性绑定到数据源）
-- 全控件类型支持（CheckBox, ProgressBar, ScrollBar, Menu, Dialog, TextArea, Actor, LuotiAni, TextArea）
+| 功能        | 说明                              |
+| ----------- | --------------------------------- |
+| MenuBar     | 顶部菜单栏，支持多级菜单弹出      |
+| MenuPanel   | 下拉菜单面板                      |
+| MenuItem    | 菜单项，支持勾选、快捷键、子菜单  |
+
+### Phase 4 — 高级特性
+
+| 功能                  | 说明                                                  |
+| --------------------- | ----------------------------------------------------- |
+| Button Actor          | 按钮状态动画（normal/hover/pressed/disabled）         |
+| Button LuotiAni       | 按钮粒子动画                                          |
+| HFlow / VFlow 布局    | 流式布局引擎                                          |
+| Anchor 布局           | 锚点布局引擎                                          |
+| Grid 布局             | 网格布局引擎                                          |
+| 百分比尺寸            | 如 `"w": "50%"`                                       |
+| 窗口 resize 响应      | 布局引擎重新计算                                      |
+| 热加载                | 文件变化监听 → 自动重建控件树                          |
+| 全局主题系统          | theme 继承与覆盖                                      |
+| 数据绑定              | 控件属性绑定到数据源                                  |
 
 ## 4. 配置文件格式设计
 
@@ -308,6 +336,117 @@ Button 内部使用 `Label`（`m_caption`）来渲染文字，因此 Button 的 
 - `bgColor` 和 `borderColor` 是单色，不是状态颜色（Panel 本身没有交互状态）
 - `children` 支持嵌套任意控件类型
 
+#### TextArea
+
+TextArea 继承自 EditBox，支持所有 EditBox 属性，并额外支持多行文本布局：
+
+```jsonc
+{
+    "type": "TextArea",
+    "text": "",                                    // 初始文本
+    "placeholder": "请输入多行文本...",             // 占位提示
+    "wordWrap": true,                               // 自动换行
+    "lineHeight": 20,                              // 行高 (像素)
+    "scrollBarThickness": 16,                      // 滚动条粗细
+    "font": {
+        "name": "HarmonyOS_Sans_SC_Regular",
+        "size": 16
+    },
+    "alignment": "TOP_LEFT",
+    "margin": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+}
+```
+
+#### CheckBox
+
+```jsonc
+{
+    "type": "CheckBox",
+    "caption": "同意条款",                          // 复选框文字（通过 getCaption()->setCaption 设置）
+    "captionSize": 16,                             // 文字大小
+    "checkState": "Unchecked",                     // Unchecked / Checked / Indeterminate
+    "style": "Classic",                             // Classic / Cross / Circle
+    "layout": "TextRight",                          // TextRight / TextLeft
+    "verticalAlign": "Center",                      // Center / Top / Bottom
+    "sizeRatio": 1.0,                              // 复选框图标大小比例
+    "triState": false,                              // 是否启用三态
+    "colors": {
+        "background": { "normal": "#404040FF", "hover": "#505050FF" },
+        "border": { "normal": "#808080FF" },
+        "text": { "normal": "#FFFFFFFF" },
+        "checkColor": { "normal": "#FFFFFFFF" },
+        "crossColor": { "normal": "#FFFFFFFF" },
+        "indeterminateColor": { "normal": "#C0C0C0FF" },
+        "boxBorderColor": { "normal": "#808080FF" }
+    },
+    "events": {
+        "onCheckChanged": "handleCheckChanged"
+    }
+}
+```
+
+**CheckState 枚举值**: `Unchecked`、`Checked`、`Indeterminate`
+**CheckBoxStyle 枚举值**: `Classic`、`Cross`、`Circle`
+**CheckBoxLayout 枚举值**: `TextRight`、`TextLeft`
+**CheckBoxVerticalAlign 枚举值**: `Center`、`Top`、`Bottom`
+
+#### ProgressBar
+
+```jsonc
+{
+    "type": "ProgressBar",
+    "value": 50,                                   // 当前值
+    "range": { "min": 0, "max": 100 },             // 值范围
+    "style": "Horizontal",                          // Horizontal / Vertical
+    "textMode": "Percent",                          // None / Percent / Custom
+    "customText": "正在加载...",                     // 自定义文本 (textMode=Custom 时)
+    "animationSpeed": 0.5,                         // 动画速度
+    "font": {
+        "name": "HarmonyOS_Sans_SC_Regular",
+        "size": 14
+    },
+    "alignment": "CENTER",                          // 文字对齐
+    "colors": {
+        "background": { "normal": "#303030FF" },
+        "border": { "normal": "#606060FF" },
+        "text": { "normal": "#FFFFFFFF" },
+        "progressColor": "#4080C0FF",
+        "backgroundColor": "#202020FF"
+    },
+    "events": {
+        "onValueChanged": "handleProgressChanged"
+    }
+}
+```
+
+**ProgressBarStyle 枚举值**: `Horizontal`、`Vertical`
+**ProgressBarTextMode 枚举值**: `None`、`Percent`、`Custom`
+
+#### ScrollBar
+
+ScrollBar 通常作为其他控件（TextArea、Panel 等）的内部组件，但也可独立使用：
+
+```jsonc
+{
+    "type": "ScrollBar",
+    "orientation": "VERTICAL",                      // VERTICAL / HORIZONTAL
+    "value": 0,                                    // 当前值
+    "range": { "min": 0, "max": 100 },             // 值范围
+    "pageSize": 30,                                // 页面大小
+    "stepSize": 10,                                // 步进大小
+    "thickness": 16,                               // 滚动条粗细
+    "colors": {
+        "background": { "normal": "#303030FF", "hover": "#404040FF" },
+        "border": { "normal": "#505050FF" }
+    },
+    "events": {
+        "onPositionChanged": "handleScrollChanged"
+    }
+}
+```
+
+**ScrollBarOrientation 枚举值**: `Vertical`、`Horizontal`
+
 ### 4.6 完整示例配置
 
 见 `layouts/test_layout.json`（第 9 节）。
@@ -370,14 +509,19 @@ if (editBox) {
 
 两种方式可以混合使用，互不冲突。
 
-### 4.8 事件类型 (Phase 1)
+### 4.8 事件类型
 
 
-| 控件    | JSON 事件名     | C++ 绑定方法         | 回调签名                   |
-| ------- | --------------- | -------------------- | -------------------------- |
-| Button  | `onClick`       | `setOnClick()`       | `void(shared_ptr<Button>)` |
-| EditBox | `onTextChanged` | `setOnTextChanged()` | `void(string)`             |
-| EditBox | `onEnter`       | `setOnEnter()`       | `void()`                   |
+| 控件        | JSON 事件名       | C++ 绑定方法              | 回调签名                   |
+| ----------- | ----------------- | ------------------------- | -------------------------- |
+| Button      | `onClick`         | `setOnClick()`            | `void(shared_ptr<Button>)` |
+| EditBox     | `onTextChanged`   | `setOnTextChanged()`      | `void(string)`             |
+| EditBox     | `onEnter`         | `setOnEnter()`            | `void()`                   |
+| TextArea    | `onTextChanged`   | `setOnTextChanged()`      | `void(string)`             |
+| TextArea    | `onEnter`         | `setOnEnter()`            | `void()`                   |
+| CheckBox    | `onCheckChanged`  | `setOnCheckChanged()`     | `void(shared_ptr<Control>)`|
+| ProgressBar | `onValueChanged`  | `setOnValueChanged()`     | `void(shared_ptr<Control>)`|
+| ScrollBar   | `onPositionChanged`| `setOnPositionChanged()` | `void(shared_ptr<Control>)`|
 
 ## 5. LayoutParser 类设计
 
@@ -400,6 +544,10 @@ if (editBox) {
 #include "Label.h"
 #include "Button.h"
 #include "EditBox.h"
+#include "TextArea.h"
+#include "CheckBox.h"
+#include "ProgressBar.h"
+#include "ScrollBar.h"
 #include "Panel.h"
 
 using namespace std;
@@ -534,10 +682,14 @@ private:
 
     // ========== 各控件专用解析函数 ==========
 
-    shared_ptr<Label>    parseLabel(const json& j, Control* parent);
-    shared_ptr<Button>   parseButton(const json& j, Control* parent);
-    shared_ptr<EditBox>  parseEditBox(const json& j, Control* parent);
-    shared_ptr<Panel>    parsePanel(const json& j, Control* parent);
+    shared_ptr<Label>       parseLabel(const json& j, Control* parent);
+    shared_ptr<Button>      parseButton(const json& j, Control* parent);
+    shared_ptr<EditBox>     parseEditBox(const json& j, Control* parent);
+    shared_ptr<TextArea>    parseTextArea(const json& j, Control* parent);
+    shared_ptr<CheckBox>    parseCheckBox(const json& j, Control* parent);
+    shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);
+    shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
+    shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
 
     // ========== 通用属性解析工具 ==========
 
@@ -665,11 +817,15 @@ parseControl(j, parent, index)
   │     └─ 缺失 → logError("'type' field is required") → popJsonPath → return nullptr
   │
   ├─ 3. 读取 type 字符串 → 分发到对应解析函数
-  │     ├─ "Label"     → parseLabel(j, parent)
-  │     ├─ "Button"    → parseButton(j, parent)
-  │     ├─ "EditBox"   → parseEditBox(j, parent)
-  │     ├─ "Panel"     → parsePanel(j, parent)
-  │     └─ 其他        → logWarn("unknown control type \"" + type + "\", skipping") → popJsonPath → return nullptr
+  │     ├─ "Label"       → parseLabel(j, parent)
+  │     ├─ "Button"      → parseButton(j, parent)
+  │     ├─ "EditBox"     → parseEditBox(j, parent)
+  │     ├─ "TextArea"    → parseTextArea(j, parent)
+  │     ├─ "CheckBox"    → parseCheckBox(j, parent)
+  │     ├─ "ProgressBar" → parseProgressBar(j, parent)
+  │     ├─ "ScrollBar"   → parseScrollBar(j, parent)
+  │     ├─ "Panel"       → parsePanel(j, parent)
+  │     └─ 其他          → logWarn("unknown control type \"" + type + "\", skipping") → popJsonPath → return nullptr
   │
   ├─ 4. 解析完成 → popJsonPath → return 控件
 ```
@@ -791,6 +947,131 @@ parsePanel(j, parent)
   └─ 8. return panel
 ```
 
+#### parseTextArea 完整流程
+
+```
+parseTextArea(j, parent)
+  │
+  ├─ 1. 解析 rect + scale → 创建 TextArea
+  │     └─ TextArea 继承 EditBox，支持 EditBox 所有属性
+  │
+  ├─ 2. parseCommonProperties
+  │
+  ├─ 3. 解析 TextArea 特有属性
+  │     ├─ j["text"]           → setText
+  │     ├─ j["placeholder"]    → setPlaceholder
+  │     ├─ j["wordWrap"]       → setWordWrap
+  │     ├─ j["lineHeight"]     → setLineHeight
+  │     ├─ j["scrollBarThickness"] → setScrollBarThickness
+  │     ├─ j["font"]["name"]   → setFont
+  │     ├─ j["font"]["size"]   → setFontSize
+  │     └─ j["alignment"]      → setAlignmentMode
+  │
+  ├─ 4. parseEvents
+  │
+  ├─ 5. 注册 ID
+  │
+  ├─ 6. textArea->create()
+  │
+  └─ 7. return textArea
+```
+
+#### parseCheckBox 完整流程
+
+```
+parseCheckBox(j, parent)
+  │
+  ├─ 1. 解析 rect + scale → 创建 CheckBox
+  │
+  ├─ 2. parseCommonProperties
+  │
+  ├─ 3. 解析 CheckBox 特有属性
+  │     ├─ j["caption"]       → getCaption()->setCaption
+  │     ├─ j["captionSize"]   → getCaption()->setFontSize
+  │     ├─ j["checkState"]    → setCheckState (parse 枚举字符串)
+  │     ├─ j["style"]         → setStyle
+  │     ├─ j["layout"]        → setLayout
+  │     ├─ j["verticalAlign"] → setVerticalAlign
+  │     ├─ j["sizeRatio"]     → setSizeRatio
+  │     ├─ j["triState"]      → setTriStateEnabled
+  │     └─ j["colors"] 中的控件特有颜色
+  │         ├─ checkColor        → setCheckColor
+  │         ├─ crossColor        → setCrossColor
+  │         ├─ indeterminateColor→ setIndeterminateColor
+  │         └─ boxBorderColor    → setBoxBorderColor
+  │
+  ├─ 4. parseEvents
+  │     └─ onCheckChanged → setOnCheckChanged
+  │
+  ├─ 5. 注册 ID
+  │
+  ├─ 6. checkBox->create()
+  │
+  └─ 7. return checkBox
+```
+
+#### parseProgressBar 完整流程
+
+```
+parseProgressBar(j, parent)
+  │
+  ├─ 1. 解析 rect + scale → 创建 ProgressBar
+  │
+  ├─ 2. parseCommonProperties
+  │
+  ├─ 3. 解析 ProgressBar 特有属性
+  │     ├─ j["value"]           → setValue
+  │     ├─ j["range"]["min"]    → setRange min
+  │     ├─ j["range"]["max"]    → setRange max
+  │     ├─ j["style"]           → setStyle (parse 枚举)
+  │     ├─ j["textMode"]        → setTextMode
+  │     ├─ j["customText"]      → setCustomText
+  │     ├─ j["animationSpeed"]  → setAnimationSpeed
+  │     ├─ j["font"]["name"]    → setFont
+  │     ├─ j["font"]["size"]    → setFontSize
+  │     ├─ j["alignment"]       → setAlignmentMode
+  │     └─ j["colors"] 中的控件特有颜色
+  │         ├─ progressColor    → setProgressColor
+  │         └─ backgroundColor  → setBackgroundColor
+  │
+  ├─ 4. parseEvents
+  │     └─ onValueChanged → setOnValueChanged
+  │
+  ├─ 5. 注册 ID
+  │
+  ├─ 6. progressBar->create()
+  │
+  └─ 7. return progressBar
+```
+
+#### parseScrollBar 完整流程
+
+```
+parseScrollBar(j, parent)
+  │
+  ├─ 1. 解析 rect + scale → 创建 ScrollBar
+  │
+  ├─ 2. parseCommonProperties
+  │
+  ├─ 3. 解析 ScrollBar 特有属性
+  │     ├─ j["orientation"]    → setOrientation (parse 枚举)
+  │     ├─ j["value"]          → setValue
+  │     ├─ j["range"]["min"]   → setRange min
+  │     ├─ j["range"]["max"]   → setRange max
+  │     ├─ j["pageSize"]       → setPageSize
+  │     ├─ j["stepSize"]       → setStepSize
+  │     └─ j["thickness"]      → setThickness
+  │
+  ├─ 4. parseEvents
+  │     └─ onPositionChanged → setOnPositionChanged
+  │
+  ├─ 5. 注册 ID
+  │
+  ├─ 6. scrollBar->create()
+  │
+  └─ 7. return scrollBar
+```
+
 #### parseEvents 详细逻辑
 
 ```cpp
@@ -812,14 +1093,13 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
-    // EditBox: onTextChanged, onEnter
+    // EditBox & TextArea: onTextChanged, onEnter
     if (auto editBox = dynamic_pointer_cast<EditBox>(ctrl)) {
         if (events.contains("onTextChanged") && events["onTextChanged"].is_string()) {
             string handlerName = events["onTextChanged"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 editBox->setOnTextChanged([this, handlerName](string text) {
-                    // 暂不支持传递 string，后续可扩展
                     m_handlers[handlerName](nullptr);
                 });
             }
@@ -830,6 +1110,45 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 editBox->setOnEnter([this, handlerName]() {
+                    m_handlers[handlerName](nullptr);
+                });
+            }
+        }
+    }
+
+    // CheckBox: onCheckChanged
+    if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
+        if (events.contains("onCheckChanged") && events["onCheckChanged"].is_string()) {
+            string handlerName = events["onCheckChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                cb->setOnCheckChanged([this, handlerName](CheckState state) {
+                    m_handlers[handlerName](nullptr);
+                });
+            }
+        }
+    }
+
+    // ProgressBar: onValueChanged
+    if (auto pb = dynamic_pointer_cast<ProgressBar>(ctrl)) {
+        if (events.contains("onValueChanged") && events["onValueChanged"].is_string()) {
+            string handlerName = events["onValueChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                pb->setOnValueChanged([this, handlerName](float val) {
+                    m_handlers[handlerName](nullptr);
+                });
+            }
+        }
+    }
+
+    // ScrollBar: onPositionChanged
+    if (auto sb = dynamic_pointer_cast<ScrollBar>(ctrl)) {
+        if (events.contains("onPositionChanged") && events["onPositionChanged"].is_string()) {
+            string handlerName = events["onPositionChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                sb->setOnPositionChanged([this, handlerName](float value, float min, float max) {
                     m_handlers[handlerName](nullptr);
                 });
             }
@@ -1515,18 +1834,18 @@ add_custom_command(TARGET test_layout POST_BUILD
 6. 如果解析失败 → SDL_LogError
 ```
 
-#### 验证清单
+#### 验证清单（Phase 1 已完成 ✅）
 
-- [ ]  所有控件按 `rect` 出现在正确位置
+- [x]  所有控件按 `rect` 出现在正确位置
 - [ ]  标题 Label 居中显示，带阴影
-- [ ]  EditBox 点击后可输入文字
-- [ ]  方式1：点击 Button → 控制台输出 "Submit button clicked"
-- [ ]  方式2：EditBox 输入文字 → 控制台输出 "Text: ..."
-- [ ]  `findControlById` 对存在的 ID 返回非空
+- [x]  EditBox 点击后可输入文字（SDL_StartTextInput 自动调用）
+- [x]  方式1：点击 Button → 控制台输出 "Button clicked via auto-binding!"
+- [x]  方式2：EditBox 输入文字 → 控制台输出 "Text changed via manual binding: ..."
+- [x]  `findControlById` 对存在的 ID 返回非空
 - [ ]  `findControlById` 对不存在的 ID 返回 nullptr
-- [ ]  `getAllControlIds` 返回所有 ID 列表
-- [ ]  Panel 嵌套结构正确（formPanel / previewPanel）
-- [ ]  两种颜色格式均正常解析
+- [x]  `getAllControlIds` 返回所有 ID 列表（13 个 ID）
+- [x]  Panel 嵌套结构正确（formPanel / previewPanel）
+- [x]  两种颜色格式均正常解析
 - [ ]  窗口缩放后控件跟随缩放（继承现有 scale 系统）
 
 ## 11. 入口关系与共存策略

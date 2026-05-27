@@ -161,6 +161,101 @@
                         "enabled": true,
                         "offset": { "x": 1, "y": 1 }
                     }
+                },
+                {
+                    "type": "Label",
+                    "id": "phase2Title",
+                    "rect": { "x": 0, "y": 370, "w": 800, "h": 25 },
+                    "caption": "--- Phase 2 Controls ---",
+                    "alignment": "CENTER",
+                    "font": { "size": 14, "style": "BOLD" },
+                    "colors": {
+                        "text": { "normal": "#AAAAAAFF" }
+                    }
+                },
+                {
+                    "type": "TextArea",
+                    "id": "notesTextArea",
+                    "rect": { "x": 20, "y": 400, "w": 200, "h": 80 },
+                    "placeholder": "Multi-line notes...",
+                    "wordWrap": true,
+                    "font": { "size": 12 },
+                    "colors": {
+                        "background": { "normal": "#353535FF" },
+                        "border": { "normal": "#606060FF" }
+                    },
+                    "events": {
+                        "onTextChanged": "onNotesChanged"
+                    }
+                },
+                {
+                    "type": "CheckBox",
+                    "id": "agreeCheck",
+                    "rect": { "x": 240, "y": 400, "w": 180, "h": 30 },
+                    "caption": "I agree",
+                    "captionSize": 14,
+                    "checkState": "Unchecked",
+                    "style": "Classic",
+                    "layout": "TextRight",
+                    "events": {
+                        "onCheckChanged": "onAgreeChanged"
+                    }
+                },
+                {
+                    "type": "CheckBox",
+                    "id": "optionCheck",
+                    "rect": { "x": 240, "y": 430, "w": 180, "h": 30 },
+                    "caption": "Enable option",
+                    "captionSize": 14,
+                    "checkState": "Checked",
+                    "style": "Cross",
+                    "layout": "TextRight"
+                },
+                {
+                    "type": "ProgressBar",
+                    "id": "loadProgress",
+                    "rect": { "x": 440, "y": 400, "w": 200, "h": 25 },
+                    "value": 65,
+                    "range": { "min": 0, "max": 100 },
+                    "style": "Horizontal",
+                    "textMode": "Percent",
+                    "colors": {
+                        "progressColor": "#4080C0FF",
+                        "backgroundColor": "#303030FF"
+                    }
+                },
+                {
+                    "type": "ProgressBar",
+                    "id": "vertProgress",
+                    "rect": { "x": 660, "y": 400, "w": 20, "h": 80 },
+                    "value": 75,
+                    "range": { "min": 0, "max": 100 },
+                    "style": "Vertical",
+                    "textMode": "None",
+                    "colors": {
+                        "progressColor": "#60C060FF",
+                        "backgroundColor": "#303030FF"
+                    }
+                },
+                {
+                    "type": "ScrollBar",
+                    "id": "hScroll",
+                    "rect": { "x": 440, "y": 440, "w": 200, "h": 16 },
+                    "orientation": "Horizontal",
+                    "value": 30,
+                    "range": { "min": 0, "max": 100 },
+                    "pageSize": 20,
+                    "stepSize": 5
+                },
+                {
+                    "type": "ScrollBar",
+                    "id": "vScroll",
+                    "rect": { "x": 700, "y": 370, "w": 16, "h": 110 },
+                    "orientation": "Vertical",
+                    "value": 50,
+                    "range": { "min": 0, "max": 200 },
+                    "pageSize": 30,
+                    "stepSize": 10
                 }
             ]
         }

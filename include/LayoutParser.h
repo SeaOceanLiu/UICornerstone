@@ -13,6 +13,10 @@
 #include "Label.h"
 #include "Button.h"
 #include "EditBox.h"
+#include "TextArea.h"
+#include "CheckBox.h"
+#include "ProgressBar.h"
+#include "ScrollBar.h"
 #include "Panel.h"
 
 using namespace std;
@@ -24,34 +28,24 @@ public:
     LayoutParser();
     ~LayoutParser() = default;
 
-    // ========== 布局加载 ==========
-
     shared_ptr<Control> parseLayout(const string& jsonContent);
     shared_ptr<Control> parseLayoutFile(const fs::path& jsonPath);
 
-    // ========== 事件绑定方式 2：ID 查找 ==========
-
     shared_ptr<Control> findControlById(const string& id);
     vector<string> getAllControlIds() const;
-
-    // ========== 事件绑定方式 1：注册处理器 ==========
 
     void registerHandler(const string& name,
                          function<void(shared_ptr<Control>)> handler);
     void unregisterHandler(const string& name);
     void clearHandlers();
 
-    // ========== 状态管理 ==========
-
     void clear();
     void reset();
 
 private:
-    // ========== 内部状态 ==========
     unordered_map<string, shared_ptr<Control>> m_controlsById;
     unordered_map<string, function<void(shared_ptr<Control>)>> m_handlers;
 
-    // ========== 错误追踪 ==========
     int m_currentLineNo;
     string m_currentJsonPath;
     string m_rawJsonContent;
@@ -62,20 +56,21 @@ private:
     void popJsonPath();
     int byteOffsetToLineNo(const string& content, size_t byteOffset) const;
 
-    // ========== 控件工厂 ==========
     shared_ptr<Control> parseControl(const json& j, Control* parent, int index);
 
-    shared_ptr<Label>    parseLabel(const json& j, Control* parent);
-    shared_ptr<Button>   parseButton(const json& j, Control* parent);
-    shared_ptr<EditBox>  parseEditBox(const json& j, Control* parent);
-    shared_ptr<Panel>    parsePanel(const json& j, Control* parent);
+    shared_ptr<Label>       parseLabel(const json& j, Control* parent);
+    shared_ptr<Button>      parseButton(const json& j, Control* parent);
+    shared_ptr<EditBox>     parseEditBox(const json& j, Control* parent);
+    shared_ptr<TextArea>    parseTextArea(const json& j, Control* parent);
+    shared_ptr<CheckBox>    parseCheckBox(const json& j, Control* parent);
+    shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);
+    shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
+    shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
 
-    // ========== 通用属性解析 ==========
     void parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseEvents(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseChildren(shared_ptr<Control> container, const json& j);
 
-    // ========== 基础类型解析 ==========
     SRect      parseRect(const json& j);
     Margin     parseMargin(const json& j);
     SDL_Color  parseColor(const json& j);

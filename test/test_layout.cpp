@@ -25,10 +25,20 @@ void onTextChanged(string text) {
     SDL_Log("Text changed via manual binding: %s", text.c_str());
 }
 
+void onNotesChanged(shared_ptr<Control> c) {
+    SDL_Log("TextArea content changed via auto-binding!");
+}
+
+void onAgreeChanged(shared_ptr<Control> c) {
+    SDL_Log("CheckBox state changed via auto-binding!");
+}
+
 void testBenchInitialize(void) {
     SDL_Log("testLayoutInitialize");
 
     g_parser.registerHandler("onSubmitClick", onSubmitClicked);
+    g_parser.registerHandler("onNotesChanged", onNotesChanged);
+    g_parser.registerHandler("onAgreeChanged", onAgreeChanged);
 
     string basePath = string(SDL_GetBasePath());
     fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout.json";
