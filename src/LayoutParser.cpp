@@ -390,10 +390,16 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         if (!filePath.empty()) {
             auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
             luotiAni->loadAniDesc(fs::path(filePath));
+            luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
+            luotiAni->prepare(0);
+            luotiAni->play();
             btn->setLuotiAni(luotiAni);
         } else if (!resourceId.empty()) {
             auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
             luotiAni->loadAniDesc(resourceId);
+            luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
+            luotiAni->prepare(0);
+            luotiAni->play();
             btn->setLuotiAni(luotiAni);
         }
         popJsonPath();

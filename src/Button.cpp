@@ -17,7 +17,10 @@ Button::Button(Control *parent, SRect rect, float xScale, float yScale):
 void Button::update(void){
     if (!getEnable()) return;
 
-    // 如果有定时器，这里需要更新定时器
+    // 更新 LuotiAni 粒子动画（如果有）
+    if (m_luotiAni != nullptr) {
+        m_luotiAni->update();
+    }
 
     // 如果有子控件，这里需要更新子控件
     ControlImpl::update();
