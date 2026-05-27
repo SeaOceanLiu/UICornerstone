@@ -8,6 +8,14 @@
 #include <algorithm>
 #include <cstdint>
 
+static void EnsureTextInputStarted() {
+    static bool started = false;
+    if (!started) {
+        SDL_StartTextInput(MainWindow::getInstance()->getWindow());
+        started = true;
+    }
+}
+
 EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
     , m_cursorPosition(0)
@@ -33,6 +41,7 @@ EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     , m_focusWatcherRegistered(false)
     , m_AlignmentMode(AlignmentMode::AM_MID_LEFT)
 {
+    EnsureTextInputStarted();
     m_id = 0;
     m_visible = true;
     m_enable = true;

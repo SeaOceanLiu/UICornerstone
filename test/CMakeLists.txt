@@ -20,6 +20,7 @@ set(UI_TEST_EXECUTABLES
     test_progressbar
     test_button
     test_graphtool
+    test_layout
 )
 
 foreach(test_name ${UI_TEST_EXECUTABLES})
@@ -66,6 +67,12 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${ASSETS_DIR}"
                     $<TARGET_FILE_DIR:${test_name}>/assets)
+            if(${test_name} STREQUAL "test_layout")
+                add_custom_command(TARGET ${test_name} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${CMAKE_SOURCE_DIR}/layouts"
+                        $<TARGET_FILE_DIR:${test_name}>/layouts)
+            endif()
         endif()
     endif()
 endforeach()

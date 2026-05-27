@@ -1,0 +1,168 @@
+{
+    "version": "1.0",
+    "controls": [
+        {
+            "type": "Panel",
+            "id": "mainPanel",
+            "rect": { "x": 0, "y": 0, "w": 800, "h": 600 },
+            "colors": {
+                "background": { "normal": "#282828FF" }
+            },
+            "children": [
+                {
+                    "type": "Label",
+                    "id": "titleLabel",
+                    "rect": { "x": 0, "y": 20, "w": 800, "h": 40 },
+                    "caption": "Layout Configuration Test",
+                    "alignment": "CENTER",
+                    "font": {
+                        "name": "HarmonyOS_Sans_SC_Regular",
+                        "size": 28
+                    },
+                    "colors": {
+                        "text": { "normal": "#FFFFFFFF" }
+                    },
+                    "shadow": {
+                        "enabled": true,
+                        "offset": { "x": 2, "y": 2 }
+                    }
+                },
+                {
+                    "type": "Panel",
+                    "id": "formPanel",
+                    "rect": { "x": 50, "y": 80, "w": 400, "h": 200 },
+                    "colors": {
+                        "border": { "normal": "#808080FF" }
+                    },
+                    "children": [
+                        {
+                            "type": "Label",
+                            "id": "nameLabel",
+                            "rect": { "x": 20, "y": 20, "w": 80, "h": 30 },
+                            "caption": "Name:",
+                            "alignment": "MID_LEFT",
+                            "font": { "size": 16 },
+                            "colors": {
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "EditBox",
+                            "id": "nameEdit",
+                            "rect": { "x": 110, "y": 20, "w": 250, "h": 30 },
+                            "placeholder": "Please input your name",
+                            "font": { "size": 16 },
+                            "colors": {
+                                "background": { "normal": "#404040FF" },
+                                "border": { "normal": "#606060FF" }
+                            }
+                        },
+                        {
+                            "type": "Label",
+                            "id": "descLabel",
+                            "rect": { "x": 20, "y": 70, "w": 360, "h": 20 },
+                            "caption": "Type in the edit box above and click Submit",
+                            "alignment": "TOP_LEFT",
+                            "font": { "size": 12 },
+                            "colors": {
+                                "text": { "normal": "#A0A0A0FF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "submitBtn",
+                            "rect": { "x": 280, "y": 140, "w": 100, "h": 35 },
+                            "caption": "Submit",
+                            "captionSize": 16,
+                            "colors": {
+                                "background": {
+                                    "normal": "#4060A0FF",
+                                    "hover": "#5080C0FF",
+                                    "pressed": "#305090FF"
+                                },
+                                "border": { "normal": "#6080C0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            },
+                            "events": {
+                                "onClick": "onSubmitClick"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "Panel",
+                    "id": "previewPanel",
+                    "rect": { "x": 500, "y": 80, "w": 250, "h": 200 },
+                    "colors": {
+                        "border": { "normal": "#808080FF" }
+                    },
+                    "children": [
+                        {
+                            "type": "Label",
+                            "id": "previewTitle",
+                            "rect": { "x": 10, "y": 10, "w": 230, "h": 25 },
+                            "caption": "Preview Panel",
+                            "alignment": "CENTER",
+                            "font": { "size": 14 },
+                            "colors": {
+                                "text": { "normal": "#FFFFFFFF" },
+                                "border": { "normal": "#606060FF" }
+                            },
+                            "shadow": { "enabled": false }
+                        },
+                        {
+                            "type": "Label",
+                            "id": "previewContent",
+                            "rect": { "x": 10, "y": 45, "w": 230, "h": 140 },
+                            "caption": "Name:\nAge:\nNotes:",
+                            "alignment": "TOP_LEFT",
+                            "font": { "size": 14 },
+                            "colors": {
+                                "text": { "normal": "#C0C0C0FF" }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "id": "statusLabel",
+                    "rect": { "x": 0, "y": 560, "w": 800, "h": 25 },
+                    "caption": "Status: Ready",
+                    "alignment": "TOP_LEFT",
+                    "font": { "size": 14 },
+                    "colors": {
+                        "text": { "normal": "#808080FF" }
+                    }
+                },
+                {
+                    "type": "Label",
+                    "id": "colorTestLabel",
+                    "rect": { "x": 50, "y": 320, "w": 200, "h": 30 },
+                    "caption": "Object format color",
+                    "alignment": "MID_LEFT",
+                    "font": { "size": 14 },
+                    "colors": {
+                        "text": { "normal": { "r": 255, "g": 255, "b": 0, "a": 255 } },
+                        "border": { "normal": { "r": 0, "g": 255, "b": 255, "a": 255 } }
+                    }
+                },
+                {
+                    "type": "Label",
+                    "id": "scaledLabel",
+                    "rect": { "x": 400, "y": 320, "w": 100, "h": 30 },
+                    "scale": { "x": 2.0, "y": 2.0 },
+                    "caption": "2x Scaled",
+                    "alignment": "CENTER",
+                    "font": { "size": 14 },
+                    "colors": {
+                        "text": { "normal": "#FF8800FF" }
+                    },
+                    "shadow": {
+                        "enabled": true,
+                        "offset": { "x": 1, "y": 1 }
+                    }
+                }
+            ]
+        }
+    ]
+}
