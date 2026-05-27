@@ -321,6 +321,84 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         btn->setTextShadowEnable(j["enableTextShadow"].get<bool>());
     }
 
+    // Actors (state images)
+    if (j.contains("actors") && j["actors"].is_object()) {
+        pushJsonPath("actors");
+        const json& actors = j["actors"];
+
+        bool matchRect = actors.value("matchParentRect", false);
+
+        auto createActor = [&](const json& v) -> shared_ptr<Actor> {
+            if (v.is_null()) return nullptr;
+            string filePath;
+            string resourceId;
+            if (v.is_string()) {
+                filePath = v.get<string>();
+            } else if (v.is_object()) {
+                if (v.contains("file") && v["file"].is_string()) {
+                    filePath = v["file"].get<string>();
+                }
+                if (v.contains("resourceId") && v["resourceId"].is_string()) {
+                    resourceId = v["resourceId"].get<string>();
+                }
+            }
+            if (!filePath.empty()) {
+                return make_shared<Actor>(btn.get(), fs::path(filePath), matchRect, 1.0f, 1.0f);
+            }
+            if (!resourceId.empty()) {
+                return make_shared<Actor>(btn.get(), resourceId, matchRect, 1.0f, 1.0f);
+            }
+            return nullptr;
+        };
+
+        if (actors.contains("normal") && !actors["normal"].is_null()) {
+            auto actor = createActor(actors["normal"]);
+            if (actor) btn->setNormalStateActor(actor);
+        }
+        if (actors.contains("hover") && !actors["hover"].is_null()) {
+            auto actor = createActor(actors["hover"]);
+            if (actor) btn->setHoverStateActor(actor);
+        }
+        if (actors.contains("pressed") && !actors["pressed"].is_null()) {
+            auto actor = createActor(actors["pressed"]);
+            if (actor) btn->setPressedStateActor(actor);
+        }
+        if (actors.contains("disabled") && !actors["disabled"].is_null()) {
+            auto actor = createActor(actors["disabled"]);
+            if (actor) btn->setDisabledStateActor(actor);
+        }
+
+        popJsonPath();
+    }
+
+    // LuotiAni (particle animation)
+    if (j.contains("luotiAni") && !j["luotiAni"].is_null()) {
+        pushJsonPath("luotiAni");
+        const json& la = j["luotiAni"];
+        string filePath;
+        string resourceId;
+        if (la.is_string()) {
+            filePath = la.get<string>();
+        } else if (la.is_object()) {
+            if (la.contains("file") && la["file"].is_string()) {
+                filePath = la["file"].get<string>();
+            }
+            if (la.contains("resourceId") && la["resourceId"].is_string()) {
+                resourceId = la["resourceId"].get<string>();
+            }
+        }
+        if (!filePath.empty()) {
+            auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
+            luotiAni->loadAniDesc(fs::path(filePath));
+            btn->setLuotiAni(luotiAni);
+        } else if (!resourceId.empty()) {
+            auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
+            luotiAni->loadAniDesc(resourceId);
+            btn->setLuotiAni(luotiAni);
+        }
+        popJsonPath();
+    }
+
     parseEvents(btn, j);
 
     if (j.contains("id") && j["id"].is_string()) {

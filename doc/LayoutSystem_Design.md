@@ -278,6 +278,39 @@ Button 内部使用 `Label`（`m_caption`）来渲染文字，因此 Button 的 
 }
 ```
 
+**Actor（图片）和 LuotiAni（动画）支持**：
+
+Button 可以为每个状态指定一个 Actor（图片），并选择性地添加 LuotiAni（粒子动画）：
+
+```jsonc
+{
+    "type": "Button",
+    "caption": "Play",
+    "captionSize": 16,
+    "actors": {
+        "normal":   "assets/images/play.png",       // 文件路径字符串
+        "hover":    "assets/images/right_hover.png",
+        "pressed":  "assets/images/right_pressed.png",
+        "disabled": null,                               // 不使用该状态的 Actor
+        "matchParentRect": true                        // Actor 是否匹配 Button 的 rect
+    },
+    "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc"  // 粒子动画文件（相对于可执行文件路径）
+}
+```
+
+每个状态的值可以是：
+- **字符串**：文件路径，通过 `Actor::loadFromFile` 加载
+- **对象**：显式配置 `file` 或 `resourceId`
+  ```jsonc
+  "normal": { "file": "assets/images/play.png" },
+  "hover":  { "resourceId": "btnHoverImage" }   // 通过 ResourceLoader 预加载的资源
+  ```
+- **`null`** 或缺失：该状态不使用 Actor
+
+`luotiAni` 的值可以是：
+- **字符串**：文件路径，通过 `LuotiAni::loadAniDesc` 加载
+- **对象**：`{ "file": "..." }` 或 `{ "resourceId": "..." }`
+
 **嵌入方式（Phase 2 加入）**：
 
 ```jsonc

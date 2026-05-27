@@ -256,6 +256,43 @@
                     "range": { "min": 0, "max": 200 },
                     "pageSize": 30,
                     "stepSize": 10
+                },
+                {
+                    "type": "Button",
+                    "id": "imageBtn",
+                    "rect": { "x": 20, "y": 500, "w": 160, "h": 40 },
+                    "caption": "Image Button",
+                    "captionSize": 14,
+                    "actors": {
+                        "normal": "assets/images/cross_up.png",
+                        "hover": "assets/images/cross_over.png",
+                        "pressed": "assets/images/cross_down.png"
+                    },
+                    "colors": {
+                        "text": { "normal": "#FFFFFFFF" }
+                    },
+                    "events": {
+                        "onClick": "onImageBtnClick"
+                    }
+                },
+                {
+                    "type": "Button",
+                    "id": "aniBtn",
+                    "rect": { "x": 200, "y": 500, "w": 100, "h": 40 },
+                    "caption": "Animated",
+                    "captionSize": 14,
+                    "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
+                    "colors": {
+                        "background": {
+                            "normal": "#505050FF",
+                            "hover": "#606060FF",
+                            "pressed": "#404040FF"
+                        },
+                        "text": { "normal": "#FFFFFFFF" }
+                    },
+                    "events": {
+                        "onClick": "onImageBtnClick"
+                    }
                 }
             ]
         }

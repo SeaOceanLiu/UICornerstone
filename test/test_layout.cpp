@@ -33,12 +33,17 @@ void onAgreeChanged(shared_ptr<Control> c) {
     SDL_Log("CheckBox state changed via auto-binding!");
 }
 
+void onImageBtnClick(shared_ptr<Control> c) {
+    SDL_Log("Image button clicked!");
+}
+
 void testBenchInitialize(void) {
     SDL_Log("testLayoutInitialize");
 
     g_parser.registerHandler("onSubmitClick", onSubmitClicked);
     g_parser.registerHandler("onNotesChanged", onNotesChanged);
     g_parser.registerHandler("onAgreeChanged", onAgreeChanged);
+    g_parser.registerHandler("onImageBtnClick", onImageBtnClick);
 
     string basePath = string(SDL_GetBasePath());
     fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout.json";
