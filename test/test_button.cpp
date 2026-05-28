@@ -94,17 +94,23 @@ void testBenchInitialize(void) {
     g_button3->create();
     BENCH->addControl(g_button3);
 
-    // 4. 有动画的 button（LuotiAni 暂时注释，待链接问题解决后启用）
-    g_button4 = ButtonBuilder(nullptr, SRect(530, 50, 120, 50))
-        .setCaption(u8"有动画的按钮")
-        .setBackgroundStateColor(StateColor::Type::Background)
-        .setBorderStateColor(redBorder)
-        .setOnClick([](shared_ptr<Button> btn) {
-            logOutput(u8"Button4 (有动画) clicked!");
-        })
-        .build();
-    g_button4->create();
-    BENCH->addControl(g_button4);
+    // 4. 有动画的 button（LuotiAni）
+    {
+        shared_ptr<LuotiAni> rotateAni = LuotiAniBuilder(BENCH)
+            .loadAniDesc(ResourceLoader::RID_rotateBtn_jsonc)
+            .prepare()
+            .setAutoStart()
+            .build();
+        g_button4 = ButtonBuilder(nullptr, SRect(530, 50, 120, 50))
+            .setLuotiAni(rotateAni)
+            .setTransparent(true)
+            .setOnClick([](shared_ptr<Button> btn) {
+                logOutput(u8"Button4 (有动画) clicked!");
+            })
+            .build();
+        g_button4->create();
+        BENCH->addControl(g_button4);
+    }
 
     // 5. 2x缩放的含有文字、图片的 button
     shared_ptr<Actor> normalActor2x = ActorBuilder(nullptr)

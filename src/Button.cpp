@@ -289,10 +289,18 @@ void Button::setLuotiAni(shared_ptr<LuotiAni>luotiAni){
     if (m_luotiAni != nullptr){
         // 设置动画的父控件为当前控件
         m_luotiAni->setParent(this);
+        m_luotiAni->setVisible(true);
     }
 }
 void Button::setOnClick(OnClickHandler onClick){
     m_onClick = onClick;
+}
+
+void Button::setRenderer(SDL_Renderer* renderer){
+    ControlImpl::setRenderer(renderer);
+    if (m_luotiAni != nullptr) {
+        m_luotiAni->setRenderer(renderer);
+    }
 }
 
 ButtonBuilder::ButtonBuilder(Control *parent, SRect rect, float xScale, float yScale):

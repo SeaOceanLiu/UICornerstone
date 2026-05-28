@@ -22,6 +22,8 @@ public:
     void loadFromResource(string resourceId) override;
     void setParent(Control *parent) override;   // 由于要考虑匹配父控件绘图区域大小，所以需要重载该函数，以使其在设备父控件时匹配父控件绘图区域大小
     void loadTextureFromSurface(SDL_Surface *surface);
+    SDL_Texture* getTexture() const { return m_texture; }
+    void setTexture(SDL_Texture* texture) { m_texture = texture; }
 };
 
 class ActorBuilder{

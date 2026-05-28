@@ -239,6 +239,7 @@ private:
     vector<shared_ptr<Layer>>m_layers; // 图层列表
 
     vector<shared_ptr<Actor>>m_frames; // 纹理列表，根据动画描述生成的逐帧纹理
+    vector<SDL_Surface*> m_frameSurfaces; // 每帧的canvas表面，用于renderer就绪后重建纹理
 
     // 下面矩阵运算可以考虑换成SIMD指令来加速，但SIMD有CPU依赖，等确实有需要时再换
     // 定义2x2矩阵结构
@@ -681,7 +682,12 @@ public:
         m_isPlaying(false)
     {
     }
-    ~LuotiAni(){};
+    ~LuotiAni(){
+        for (auto surface : m_frameSurfaces) {
+            if (surface) SDL_DestroySurface(surface);
+        }
+        m_frameSurfaces.clear();
+    };
 
     void loadFromFile(fs::path filePath) override {
         loadAniDesc(filePath);
@@ -891,6 +897,26 @@ public:
         m_lastFrameMsTick = SDL_GetTicks();
     }
 
+    void setRenderer(SDL_Renderer* renderer) override {
+        if (m_renderer == renderer) return;
+        m_renderer = renderer;
+        for (auto& child : m_children) {
+            child->setRenderer(renderer);
+        }
+
+        // renderer就绪后，为之前因renderer不可用而未能创建纹理的帧重建纹理
+        if (renderer != nullptr) {
+            for (size_t i = 0; i < m_frames.size() && i < m_frameSurfaces.size(); i++) {
+                Actor* frameActor = dynamic_cast<Actor*>(m_frames[i].get());
+                if (frameActor != nullptr && frameActor->getTexture() == nullptr && m_frameSurfaces[i] != nullptr) {
+                    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, m_frameSurfaces[i]);
+                    if (tex != nullptr) {
+                        frameActor->setTexture(tex);
+                    }
+                }
+            }
+        }
+    }
 
     void prepare(uint32_t startFrame = 0){
         // SDL_Log("LuotiAni::prepare: Try to preparing animation...\n");
@@ -1165,9 +1191,9 @@ public:
             frame->loadTextureFromSurface(canvas);
             m_frames.push_back(frame);
 
-            // 释放画布
-            SDL_DestroySurface(canvas);
-            canvas = nullptr;
+            // 保存画布表面，当renderer不可用时（如纹理创建时renderer为空），后续可在setRenderer中重建纹理
+            m_frameSurfaces.push_back(canvas);
+            // 注意：此处不释放canvas，由m_frameSurfaces管理
         }
         // 释放各图层临时Surface
         for (uint32_t l = 0; l < m_layers.size(); l++) {
