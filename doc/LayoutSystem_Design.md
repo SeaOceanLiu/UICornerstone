@@ -106,7 +106,7 @@
 | Grid 布局          | 网格布局引擎                                  | ✅   |
 | 百分比尺寸         | 如`"w": "50%"`，相对父容器自动计算实际尺寸    | ✅   |
 | 窗口 resize 响应   | Panel 自身 rect 变化时自动重排子控件          | ✅   |
-| 热加载             | 文件变化监听 → 自动重建控件树                | ⬜   |
+| 热加载             | 文件变化监听 → 自动重建控件树                | ✅   |
 | 全局主题系统       | theme 继承与覆盖                              | ✅   |
 | 数据绑定           | 控件属性绑定到数据源                          | ⬜   |
 
@@ -2024,9 +2024,85 @@ Margin LayoutParser::parseMargin(const json& j) {
 - `src/LayoutParser.cpp` — `parseLayout()` 中解析 theme block；每个 per-control parser 调用 `applyCommonColors()` 等
 - `layouts/test_layout_advanced.json` — 完整的 dark theme 演示（定义 button/label/editbox/checkbox/progressbar 等各控件默认颜色和字体）
 
-## 6. 错误处理策略
+### 5.8 与 Phase 4 状态
 
-### 6.1 核心原则
+| 功能 | 状态 |
+|------|------|
+| Button Actor ScaleType | ✅ |
+| HFlow / VFlow 布局 | ✅ |
+| Anchor 布局 | ✅ |
+| Grid 布局 | ✅ |
+| 百分比尺寸 | ✅ |
+| 窗口 resize 响应 | ✅ |
+| 全局主题系统 | ✅ |
+| 热加载 | ✅ |
+| 数据绑定 | ⬜ |
+
+## 6. 热加载系统
+
+### 6.1 概述
+
+热加载系统允许在布局 JSON 文件被修改后自动重建控件树，无需重启应用程序。系统通过轮询文件的最后修改时间检测变化，在检测到变化时触发控件树的完全重建。
+
+### 6.2 HotReloader 类
+
+**位置**: `include/HotReloader.h`, `src/HotReloader.cpp`
+
+| 方法 | 说明 |
+|------|------|
+| `HotReloader(path, callback)` | 构造并开始监视指定文件 |
+| `poll()` | 每次帧循环调用，检测文件变化。按 `pollInterval` 帧间隔检查 `fs::last_write_time` |
+| `reload()` | 手动触发重新加载 |
+| `setPollInterval(frames)` | 设置轮询间隔（帧数，默认 30 帧≈0.5秒@60fps） |
+
+### 6.3 使用方式
+
+```cpp
+// 全局变量
+HotReloader g_reloader;
+fs::path g_layoutPath;
+
+void reloadLayout() {
+    BENCH->removeAllControls();    // 清除旧控件
+    parser.clear();                // 清除旧 ID 映射
+    auto root = parser.parseLayoutFile(g_layoutPath);
+    BENCH->addControl(root);       // 添加新控件
+    // 重新添加 MenuBars...
+}
+
+// 初始化
+g_layoutPath = fs::path(basePath) / "layouts" / "test_layout_advanced.json";
+g_reloader = HotReloader(g_layoutPath, reloadLayout);
+
+// 帧循环（SDL_AppIterate）
+g_reloader.poll();
+```
+
+### 6.4 重建流程
+
+热加载的完整重建顺序：
+
+1. `BENCH->removeAllControls()` — 清除 Bench 的所有子控件，释放旧控件
+2. `parser.clear()` — 清除 LayoutParser 的 `m_controlsById` 和 `m_menuBars`
+3. `parser.parseLayoutFile(path)` — 重新解析 JSON 文件，创建全新控件树
+4. 重新添加根控件到 Bench
+5. 重新添加 MenuBar
+
+事件处理器（通过 `registerHandler` 注册）在 `clear()` 之后保持不变，新控件自动绑定到已注册的处理器。
+
+### 6.5 辅助接口
+
+**`Panel::removeAllControls()`** — 清除面板的所有子控件及相关布局属性（flow props、anchor props、grid props），用于热加载前的控件树清理。
+
+### 6.6 限制
+
+- 当前采取完全重建策略，不保留控件状态（如输入框内容、按钮悬停状态）
+- 采用轮询方式检测文件变化（而非操作系统文件事件通知），延迟约 0.5 秒
+- 只支持单文件监视，不支持目录监视
+
+## 8. 错误处理策略
+
+### 8.1 核心原则
 
 所有解析错误和警告的日志输出 **必须包含**以下信息：
 
@@ -2040,7 +2116,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 [LayoutParser] [Line 85] [controls[1].colors.background.normal] WARN: invalid color format "#GGG", using default
 ```
 
-### 6.2 行号获取机制
+### 8.2 行号获取机制
 
 `nlohmann/json` 在 v3.11+ 提供了 `get_token_start_location()` 方法返回 `json::parse_event_t` 的位置信息。通过结合 `parser` 回调，可以在解析时获取每个 JSON token 的行号。
 
@@ -2089,7 +2165,7 @@ void LayoutParser::parseControl(const json& j, Control* parent) {
 }
 ```
 
-### 6.3 日志辅助函数
+### 8.3 日志辅助函数
 
 ```cpp
 void LayoutParser::logError(const string& message) const {
@@ -2107,7 +2183,7 @@ void LayoutParser::logWarn(const string& message) const {
 }
 ```
 
-### 6.4 pushJsonPath / popJsonPath 实现
+### 8.4 pushJsonPath / popJsonPath 实现
 
 ```cpp
 void LayoutParser::pushJsonPath(const string& segment) {
@@ -2128,7 +2204,7 @@ void LayoutParser::popJsonPath() {
 }
 ```
 
-### 6.5 行号映射辅助函数
+### 8.5 行号映射辅助函数
 
 ```cpp
 // 将 JSON 字符串和字节偏移转换为行号
@@ -2141,7 +2217,7 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 }
 ```
 
-### 6.6 错误分级
+### 8.6 错误分级
 
 
 | 级别 | 处理方式                  | 日志格式     | 场景                                    |
@@ -2150,7 +2226,7 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 | 警告 | 使用默认值继续解析        | `WARN: ...`  | 颜色格式错误、未知 type、未知 font name |
 | 静默 | 跳过不处理                | 不输出日志   | 缺失可选字段、未注册的 handler 名称     |
 
-### 6.7 常见错误场景与日志示例
+### 8.7 常见错误场景与日志示例
 
 
 | 错误                | 级别 | 日志示例                                                                                                                 |
@@ -2167,9 +2243,9 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 | 字体名称不存在      | 警告 | `[LayoutParser] [Line 33] [controls[0].font.name] WARN: unknown font name "NonExistentFont", using default`              |
 | 控件创建失败        | 严重 | `[LayoutParser] [Line 50] [controls[2]] ERROR: failed to create Label control`                                           |
 
-## 7. 模板代码与宏
+## 9. 模板代码与宏
 
-### 7.1 parseCommonProperties 实现模板
+### 9.1 parseCommonProperties 实现模板
 
 ```cpp
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
@@ -2227,7 +2303,7 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
 }
 ```
 
-### 7.2 parseChildren 实现模板
+### 9.2 parseChildren 实现模板
 
 ```cpp
 void LayoutParser::parseChildren(shared_ptr<Control> container, const json& j) {
@@ -2248,7 +2324,7 @@ void LayoutParser::parseChildren(shared_ptr<Control> container, const json& j) {
 }
 ```
 
-### 7.3 解析结果使用者指南
+### 9.3 解析结果使用者指南
 
 ```cpp
 // 使用示例
@@ -2281,9 +2357,9 @@ void testBenchInitialize(void) {
 }
 ```
 
-## 8. 构建系统变更
+## 10. 构建系统变更
 
-### 8.1 CMakeLists.txt (根目录)
+### 10.1 CMakeLists.txt (根目录)
 
 在 `set(SOURCES ...)` 中添加 `src/LayoutParser.cpp`：
 
@@ -2316,7 +2392,7 @@ set(SOURCES
 )
 ```
 
-### 8.2 test/CMakeLists.txt
+### 10.2 test/CMakeLists.txt
 
 ```cmake
 # 在底部添加（或与其他 test_xxx 并列的区域添加）：
@@ -2336,7 +2412,7 @@ add_custom_command(TARGET test_layout POST_BUILD
 )
 ```
 
-## 9. 完整示例配置文件
+## 11. 完整示例配置文件
 
 文件路径：`layouts/test_layout.json`
 
@@ -2483,9 +2559,9 @@ add_custom_command(TARGET test_layout POST_BUILD
 }
 ```
 
-## 10. 测试计划
+## 12. 测试计划
 
-### 10.1 test_layout 测试场景
+### 12.1 test_layout 测试场景
 
 测试文件：`test/test_layout.cpp`
 
@@ -2520,9 +2596,9 @@ add_custom_command(TARGET test_layout POST_BUILD
 - [X]  两种颜色格式均正常解析
 - [ ]  窗口缩放后控件跟随缩放（继承现有 scale 系统）
 
-## 11. 入口关系与共存策略
+## 13. 入口关系与共存策略
 
-### 11.1 当前硬编码入口
+### 13.1 当前硬编码入口
 
 ```
 SDL_AppInit()
@@ -2538,7 +2614,7 @@ SDL_AppInit()
 
 每个测试文件在 `testBenchInitialize()` 中依次创建控件、设置属性、绑定事件、添加到 Bench。
 
-### 11.2 配置文件化入口
+### 13.2 配置文件化入口
 
 ```
 SDL_AppInit()
@@ -2554,7 +2630,7 @@ SDL_AppInit()
                  btn->setOnClick(...);
 ```
 
-### 11.3 两种入口的关系
+### 13.3 两种入口的关系
 
 ```
                     ┌──────────────────────────────────────┐
@@ -2580,7 +2656,7 @@ SDL_AppInit()
               └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-### 11.4 三种模式详解
+### 13.4 三种模式详解
 
 #### 模式 1：纯硬编码（现有模式）
 
@@ -2650,7 +2726,7 @@ void testMixedInitialize() {
 - 适用于：渐进式迁移，将稳定部分逐步抽取到配置文件中
 - 两者同时存在时，硬编码控件按添加到 Bench 的顺序排在配置控件的上方
 
-### 11.5 迁移路径
+### 13.5 迁移路径
 
 ```
 Phase 1:  test_layout 纯配置文件模式         ← 新建测试，验证功能
@@ -2662,16 +2738,16 @@ Phase 3:  test_checkbox 等 纯配置文件模式    ← 完全替换
 
 整个迁移过程可逐步进行，随时可以退回到硬编码模式。
 
-## 12. 向后兼容与安全性
+## 14. 向后兼容与安全性
 
-### 12.1 向后兼容
+### 14.1 向后兼容
 
 - 现有 C++ 创建控件的方式完全不受影响
 - LayoutParser 仅作为新增工具，不修改任何现有控件类
 - 现有测试用例无需改动
 - nlohmann/json 已是子模块，无需新增依赖
 
-### 12.2 安全性
+### 14.2 安全性
 
 - 所有 `json` 访问均使用 `.value()` 或 `contains()` + 默认值的方式，不会因字段缺失而崩溃
 - 错误信息通过 `SDL_LogError/SDL_LogWarn` 输出，不抛出异常

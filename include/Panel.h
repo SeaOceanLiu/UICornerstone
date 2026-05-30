@@ -26,6 +26,7 @@ public:
     bool handleEvent(shared_ptr<Event> event) override;
 
     void addControl(shared_ptr<Control> control) override;
+    void removeAllControls();
 
     void setLayoutEngine(shared_ptr<LayoutEngine> engine) { m_layoutEngine = engine; }
     shared_ptr<LayoutEngine> getLayoutEngine() const { return m_layoutEngine; }

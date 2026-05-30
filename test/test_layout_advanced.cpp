@@ -6,6 +6,7 @@
 #include "ResourceLoader.h"
 #include "Bench.h"
 #include "MainWindow.h"
+#include "HotReloader.h"
 #include <iostream>
 #include <string>
 #include <memory>
@@ -16,6 +17,29 @@ using namespace std;
 namespace fs = std::filesystem;
 
 LayoutParser g_parser;
+HotReloader g_reloader;
+fs::path g_layoutPath;
+
+void reloadLayout() {
+    SDL_Log("[HotReload] Reloading layout...");
+    BENCH->removeAllControls();
+    g_parser.clear();
+
+    auto root = g_parser.parseLayoutFile(g_layoutPath);
+    if (!root) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[HotReload] Failed to re-parse layout!");
+        return;
+    }
+    BENCH->addControl(root);
+
+    auto menuBars = g_parser.getMenuBars();
+    for (auto& menuBar : menuBars) {
+        BENCH->addControl(menuBar);
+    }
+
+    auto allIds = g_parser.getAllControlIds();
+    SDL_Log("[HotReload] Reloaded: %zu controls with IDs", allIds.size());
+}
 
 void onScaleTypeBtnClick(shared_ptr<Control> c) {
     SDL_Log("ScaleType button clicked! (FIT_CENTER)");
@@ -42,10 +66,10 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onMenuAbout", onMenuAbout);
 
     string basePath = string(SDL_GetBasePath());
-    fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout_advanced.json";
-    SDL_Log("Loading layout from: %s", layoutPath.string().c_str());
+    g_layoutPath = fs::path(basePath) / "layouts" / "test_layout_advanced.json";
+    SDL_Log("Loading layout from: %s", g_layoutPath.string().c_str());
 
-    auto root = g_parser.parseLayoutFile(layoutPath);
+    auto root = g_parser.parseLayoutFile(g_layoutPath);
     if (!root) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");
         return;
@@ -63,6 +87,9 @@ void testBenchInitialize(void) {
     for (auto& id : allIds) {
         SDL_Log("  - ID: %s", id.c_str());
     }
+
+    g_reloader = HotReloader(g_layoutPath, reloadLayout);
+    SDL_Log("[HotReload] Watching: %s", g_layoutPath.filename().string().c_str());
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -162,6 +189,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    g_reloader.poll();
     BENCH->eventLoopEntry();
     BENCH->update();
 

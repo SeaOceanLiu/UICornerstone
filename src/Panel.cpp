@@ -22,9 +22,15 @@ bool Panel::handleEvent(shared_ptr<Event> event){
     return ControlImpl::handleEvent(event);
 
 }
-
 void Panel::addControl(shared_ptr<Control> control){
     ControlImpl::addControl(control);
+}
+
+void Panel::removeAllControls() {
+    m_flowItemProps.clear();
+    m_anchorItemProps.clear();
+    m_gridItemProps.clear();
+    m_children.clear();
 }
 
 void Panel::reflowChildren() {

@@ -28,6 +28,7 @@ add_library(UIControls STATIC
     src/EditBox.cpp
     src/EventQueue.cpp
     src/GraphTool.cpp
+    src/HotReloader.cpp
     src/Label.cpp
     src/LayoutEngine.cpp
     src/LayoutParser.cpp
