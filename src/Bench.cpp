@@ -127,18 +127,6 @@ void Bench::setOnInitial(OnInitialHandler handler) {
 
 void Bench::resized(SRect newRect) {
     Panel::resized(newRect);
-    propagateResizeToDescendants(newRect, this);
-}
-
-void Bench::propagateResizeToDescendants(SRect newRect, Panel* root) {
-    for (auto& child : root->getChildren()) {
-        if (!child->getVisible()) continue;
-        auto panel = dynamic_pointer_cast<Panel>(child);
-        if (panel) {
-            panel->resized(newRect);
-            propagateResizeToDescendants(newRect, panel.get());
-        }
-    }
 }
 
 // Draw a centered rectangle
