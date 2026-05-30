@@ -105,7 +105,7 @@
 | Anchor 布局        | 锚点布局引擎                                  | ✅   |
 | Grid 布局          | 网格布局引擎                                  | ✅   |
 | 百分比尺寸         | 如`"w": "50%"`                                | ⬜   |
-| 窗口 resize 响应   | 布局引擎重新计算                              | ⬜   |
+| 窗口 resize 响应   | 布局引擎重新计算（Panel/Bench 响应式重排）    | ✅   |
 | 热加载             | 文件变化监听 → 自动重建控件树                | ⬜   |
 | 全局主题系统       | theme 继承与覆盖                              | ⬜   |
 | 数据绑定           | 控件属性绑定到数据源                          | ⬜   |
@@ -859,10 +859,11 @@ Panel (继承 ControlImpl)
 
 #### 4.9.7 注意事项
 
-1. **布局触发的时机**：`reflowChildren()` 需要在 `panel->create()` 之前调用。在 LayoutParser 中，解析完所有子控件和 layout 配置后，先调用 `reflowChildren()` 设定子控件 rect，再调用 `panel->create()`。若之后运行时修改子控件或容器尺寸，需再次调用 `reflowChildren()`（未来可集成进 `resized()` 事件成为响应式布局）。
-2. **坐标系统**：布局引擎计算的子控件坐标是相对容器的本地坐标（从 `(0,0)` 开始），与 UI 框架的父子坐标约定一致。
-3. **初始 rect**：子控件的初始 `rect` 只用于固定尺寸子控件的尺寸读取，弹性子控件的 `rect.w`（VFlow 为 `rect.h`）会被布局引擎覆盖。
-4. **可见性**：布局引擎自动跳过 `getVisible() == false` 的子控件。
+1. **布局触发的时机**：`reflowChildren()` 需要在 `panel->create()` 之前调用。在 LayoutParser 中，解析完所有子控件和 layout 配置后，先调用 `reflowChildren()` 设定子控件 rect，再调用 `panel->create()`。
+2. **响应式重排**：`Panel::resized()` 重写后会在窗口大小变化时自动调用 `reflowChildren()`。`Panel::setRect()` 也集成了自动重排：当父容器的布局引擎通过 `setRect()` 调整子 Panel 的尺寸时，子 Panel 自动触发自身的 `reflowChildren()`，形成级联响应。`Bench::resized()` 会向所有持有布局引擎的子 Panel 传播 resize 事件，使根容器也能随窗口缩放。
+3. **坐标系统**：布局引擎计算的子控件坐标是相对容器的本地坐标（从 `(0,0)` 开始），与 UI 框架的父子坐标约定一致。
+4. **初始 rect**：子控件的初始 `rect` 只用于固定尺寸子控件的尺寸读取，弹性子控件的 `rect.w`（VFlow 为 `rect.h`）会被布局引擎覆盖。
+5. **可见性**：布局引擎自动跳过 `getVisible() == false` 的子控件。
 
 #### 4.9.8 Anchor 布局（锚点布局）
 
@@ -952,7 +953,7 @@ Panel::reflowChildren()
   └─ 其他 → apply(containerRect, children, flowProps)
 ```
 
-子控件锚点信息存储于 `Panel::m_anchorItemProps`（`unordered_map<Control*, AnchorInfo>`），通过 `Panel::setChildAnchorProps()` 设置。Anchor 模式不涉及 flex 权重计算，子控件的 `rect.w` 和 `rect.h` 保持初始值（FILL/STRETCH 模式除外，它们会覆盖对应方向的尺寸）。
+子控件锚点信息存储于 `Panel::m_anchorItemProps`（`unordered_map<Control*, AnchorInfo>`），通过 `Panel::setChildAnchorProps()` 设置。Anchor 模式不涉及 flex 权重计算，子控件的 `rect.w` 和 `rect.h` 保持初始值（FILL/STRETCH 模式除外，它们会覆盖对应方向的尺寸）。注意，`Panel::setRect()` 在 Anchor 布局中同样会触发自动重排，确保嵌套 Panel 的响应式级联。
 
 #### 4.9.9 Grid 布局（网格布局）
 
@@ -1060,7 +1061,7 @@ Panel::reflowChildren()
   └─ 其他                  → apply(containerRect, children, flowProps)
 ```
 
-子控件网格信息存储于 `Panel::m_gridItemProps`（`unordered_map<Control*, GridItemProps>`），通过 `Panel::setChildGridProps()` 设置。GridSize 解析在 `LayoutParser::parseGridSize()` 中处理三种类型（`"1fr"` → Flex、`"100px"` → Fixed、`"auto"` → Auto）。行列定义在 `GridLayout` 对象中，通过 `setColumns()` / `setRows()` 注入。
+子控件网格信息存储于 `Panel::m_gridItemProps`（`unordered_map<Control*, GridItemProps>`），通过 `Panel::setChildGridProps()` 设置。GridSize 解析在 `LayoutParser::parseGridSize()` 中处理三种类型（`"1fr"` → Flex、`"100px"` → Fixed、`"auto"` → Auto）。行列定义在 `GridLayout` 对象中，通过 `setColumns()` / `setRows()` 注入。由于 `Panel::setRect()` 集成了自动重排，Grid 布局的嵌套 Panel 在父容器调整大小时会级联重排子网格。
 
 ### 5.1 头文件完整定义
 

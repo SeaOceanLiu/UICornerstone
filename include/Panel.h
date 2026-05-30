@@ -33,6 +33,8 @@ public:
     void setChildAnchorProps(Control* child, AnchorInfo props) { m_anchorItemProps[child] = props; }
     void setChildGridProps(Control* child, GridItemProps props) { m_gridItemProps[child] = props; }
     void reflowChildren();
+    void setRect(SRect rect) override;
+    void resized(SRect newRect) override;
 };
 class PanelBuilder {
 private:

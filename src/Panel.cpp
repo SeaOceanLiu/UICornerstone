@@ -39,6 +39,18 @@ void Panel::reflowChildren() {
     }
 }
 
+void Panel::setRect(SRect rect) {
+    ControlImpl::setRect(rect);
+    if (m_layoutEngine) {
+        reflowChildren();
+    }
+}
+
+void Panel::resized(SRect newRect) {
+    ControlImpl::resized(newRect);
+    reflowChildren();
+}
+
 // *********************************************************************************************
 PanelBuilder::PanelBuilder(Control *parent, SRect rect, float xScale, float yScale):
     m_panel(nullptr)
