@@ -46,6 +46,10 @@ void onAniBtnClick(shared_ptr<Control> c) {
     SDL_Log("Animated button clicked!");
 }
 
+void onCaptionLabelBtnClick(shared_ptr<Control> c) {
+    SDL_Log("CaptionLabel button clicked!");
+}
+
 void testBenchInitialize(void) {
     SDL_Log("testLayoutInitialize");
 
@@ -54,6 +58,7 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onAgreeChanged", onAgreeChanged);
     g_parser.registerHandler("onImageBtnClick", onImageBtnClick);
     g_parser.registerHandler("onAniBtnClick", onAniBtnClick);
+    g_parser.registerHandler("onCaptionLabelBtnClick", onCaptionLabelBtnClick);
 
     string basePath = string(SDL_GetBasePath());
     fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout.json";
@@ -88,6 +93,26 @@ void testBenchInitialize(void) {
             if (g_resultDialog) {
                 SDL_Log("Dialog parsed from JSON: id=resultDialog");
             }
+        }
+
+        auto captionLabelCtrl = g_parser.findControlById("captionLabelBtn");
+        if (captionLabelCtrl) {
+            shared_ptr<Button> captionLabelBtn = dynamic_pointer_cast<Button>(captionLabelCtrl);
+            if (captionLabelBtn) {
+                shared_ptr<Label> label = captionLabelBtn->getCaptionLabel();
+                if (label) {
+                    SDL_Log("captionLabelBtn::getCaptionLabel() = \"%s\", fontSize=%d, alignment=%d",
+                        label->getCaption().c_str(),
+                        label->getFontSize(),
+                        (int)label->getAlignmentMode());
+                } else {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "captionLabelBtn: getCaptionLabel() returned null!");
+                }
+            } else {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "captionLabelBtn: dynamic_pointer_cast<Button> failed!");
+            }
+        } else {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: captionLabelBtn not found!");
         }
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");

@@ -313,16 +313,75 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
 
     parseCommonProperties(btn, j);
 
-    if (j.contains("caption") && j["caption"].is_string()) {
-        btn->setCaption(j["caption"].get<string>());
-    }
+    // captionLabel embedding (Phase 2): 使用完整 Label 配置
+    if (j.contains("captionLabel") && j["captionLabel"].is_object()) {
+        pushJsonPath("captionLabel");
 
-    if (j.contains("captionSize") && j["captionSize"].is_number()) {
-        btn->setCaptionSize(j["captionSize"].get<float>());
-    }
+        const json& cl = j["captionLabel"];
 
-    if (j.contains("enableTextShadow") && j["enableTextShadow"].is_boolean()) {
-        btn->setTextShadowEnable(j["enableTextShadow"].get<bool>());
+        auto builder = LabelBuilder(btn.get(), SRect(0, 0, rect.width, rect.height));
+
+        if (cl.contains("caption") && cl["caption"].is_string()) {
+            builder.setCaption(cl["caption"].get<string>());
+        }
+
+        if (cl.contains("font") && cl["font"].is_object()) {
+            const json& font = cl["font"];
+            if (font.contains("name") && font["name"].is_string()) {
+                builder.setFont(parseFontName(font["name"].get<string>()));
+            }
+            if (font.contains("size") && font["size"].is_number()) {
+                builder.setFontSize(font["size"].get<int>());
+            }
+            if (font.contains("style") && font["style"].is_string()) {
+                builder.SetFontStyle(parseFontStyle(font["style"].get<string>()));
+            }
+        }
+
+        if (cl.contains("alignment") && cl["alignment"].is_string()) {
+            builder.setAlignmentMode(parseAlignment(cl["alignment"].get<string>()));
+        }
+
+        if (cl.contains("shadow") && cl["shadow"].is_object()) {
+            const json& shadow = cl["shadow"];
+            if (shadow.contains("enabled") && shadow["enabled"].is_boolean()) {
+                builder.setShadow(shadow["enabled"].get<bool>());
+            }
+            if (shadow.contains("offset") && shadow["offset"].is_object()) {
+                SPoint offset;
+                offset.x = shadow["offset"].value("x", 1);
+                offset.y = shadow["offset"].value("y", 1);
+                builder.setShadowOffset(offset);
+            }
+        }
+
+        if (cl.contains("colors") && cl["colors"].is_object()) {
+            const json& colors = cl["colors"];
+            if (colors.contains("text") && colors["text"].is_object()) {
+                builder.setTextStateColor(parseStateColor(colors["text"], StateColor::Type::Text));
+            }
+            if (colors.contains("textShadow") && colors["textShadow"].is_object()) {
+                builder.setTextShadowStateColor(parseStateColor(colors["textShadow"], StateColor::Type::TextShadow));
+            }
+        }
+
+        auto label = builder.build();
+        btn->setCaptionLabel(label);
+
+        popJsonPath();
+    } else {
+        // 简单方式 (Phase 1): 仅 caption / captionSize / enableTextShadow
+        if (j.contains("caption") && j["caption"].is_string()) {
+            btn->setCaption(j["caption"].get<string>());
+        }
+
+        if (j.contains("captionSize") && j["captionSize"].is_number()) {
+            btn->setCaptionSize(j["captionSize"].get<float>());
+        }
+
+        if (j.contains("enableTextShadow") && j["enableTextShadow"].is_boolean()) {
+            btn->setTextShadowEnable(j["enableTextShadow"].get<bool>());
+        }
     }
 
     // Actors (state images)
@@ -392,19 +451,27 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             }
         }
         if (!filePath.empty()) {
-            auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
-            luotiAni->loadAniDesc(fs::path(filePath));
-            luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
-            luotiAni->prepare(0);
-            luotiAni->play();
-            btn->setLuotiAni(luotiAni);
+            try {
+                auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
+                luotiAni->loadAniDesc(fs::path(filePath));
+                luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
+                luotiAni->prepare(0);
+                luotiAni->play();
+                btn->setLuotiAni(luotiAni);
+            } catch (...) {
+                logWarn("failed to load luotiAni from file: " + filePath);
+            }
         } else if (!resourceId.empty()) {
-            auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
-            luotiAni->loadAniDesc(resourceId);
-            luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
-            luotiAni->prepare(0);
-            luotiAni->play();
-            btn->setLuotiAni(luotiAni);
+            try {
+                auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
+                luotiAni->loadAniDesc(resourceId);
+                luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
+                luotiAni->prepare(0);
+                luotiAni->play();
+                btn->setLuotiAni(luotiAni);
+            } catch (...) {
+                logWarn("failed to load luotiAni from resource: " + resourceId);
+            }
         }
         popJsonPath();
     }

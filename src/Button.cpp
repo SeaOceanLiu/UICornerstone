@@ -238,6 +238,24 @@ void Button::setCaption(string caption){
         addControl(m_caption);
     }
 }
+
+void Button::setCaptionLabel(shared_ptr<Label> label){
+    if (m_caption != nullptr){
+        removeControl(m_caption);
+        m_caption.reset();
+    }
+    m_caption = label;
+    if (m_caption != nullptr){
+        m_caption->setParent(this);
+        m_caption->setRect({0, 0, m_rect.width, m_rect.height});
+        m_captionText = m_caption->getCaption();
+        addControl(m_caption);
+    }
+}
+
+shared_ptr<Label> Button::getCaptionLabel(void) const {
+    return m_caption;
+}
 string Button::getCaption(void) const{
     return m_captionText;
 }

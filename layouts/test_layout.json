@@ -296,6 +296,35 @@
                     }
                 },
                 {
+                    "type": "Button",
+                    "id": "captionLabelBtn",
+                    "rect": { "x": 320, "y": 500, "w": 120, "h": 40 },
+                    "captionLabel": {
+                        "caption": "Styled",
+                        "font": { "size": 18, "style": "BOLD" },
+                        "alignment": "CENTER",
+                        "shadow": {
+                            "enabled": true,
+                            "offset": { "x": 1, "y": 1 }
+                        },
+                        "colors": {
+                            "text": { "normal": "#FFD700FF", "hover": "#FFA500FF", "pressed": "#FF8C00FF" },
+                            "textShadow": { "normal": "#00000080" }
+                        }
+                    },
+                    "colors": {
+                        "background": {
+                            "normal": "#404040FF",
+                            "hover": "#505050FF",
+                            "pressed": "#303030FF"
+                        },
+                        "border": { "normal": "#808080FF" }
+                    },
+                    "events": {
+                        "onClick": "onCaptionLabelBtnClick"
+                    }
+                },
+                {
                     "type": "Dialog",
                     "id": "resultDialog",
                     "rect": { "x": 200, "y": 100, "w": 400, "h": 300 },

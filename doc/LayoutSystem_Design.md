@@ -70,7 +70,7 @@
 | SDL_StartTextInput    | EditBox 构造函数自动调用，无需手动              | ✅   |
 | 测试验证              | test_layout 构建运行通过，两种绑定方式均正常    | ✅   |
 
-### Phase 2 — 扩展控件支持（当前阶段）
+### Phase 2 — 扩展控件支持 ✅ 已完成
 
 
 | 功能        | 说明                                                       |
@@ -79,7 +79,7 @@
 | CheckBox    | 三态复选框，支持 style/layout/verticalAlign                |
 | ProgressBar | 进度条，支持 style/textMode/animation                      |
 | ScrollBar   | 滚动条，支持 orientation/pageSize/stepSize                 |
-| Button 增强 | captionLabel 嵌入方式（Phase 1 的 caption 简单方式的补充） |
+| Button 增强 | captionLabel 嵌入方式（Phase 1 的 caption 简单方式的补充）✅ |
 | Dialog      | 对话框，含标题栏、确定/取消按钮、TextArea ✅               |
 
 各控件详细 JSON Schema 见第 4.5 节。
@@ -941,22 +941,35 @@ parseButton(j, parent)
   │
   ├─ 2. parseCommonProperties (通用属性)
   │
-  ├─ 3. 解析 Button 特有属性
-  │     ├─ j["caption"]        → setCaption
-  │     ├─ j["captionSize"]    → setCaptionSize
-  │     └─ j["enableTextShadow"] → setTextShadowEnable
+  ├─ 3. 解析 caption（二选一，captionLabel 优先）
+  │     ├─ j["captionLabel"] 存在 → 使用 LabelBuilder 创建完整 Label
+  │     │     ├─ caption / font(name,size,style) / alignment
+  │     │     └─ shadow(enabled,offset) / colors(text,textShadow)
+  │     │     → btn->setCaptionLabel(label)
+  │     └─ captionLabel 不存在 → 简单方式
+  │           ├─ j["caption"]        → setCaption
+  │           ├─ j["captionSize"]    → setCaptionSize
+  │           └─ j["enableTextShadow"] → setTextShadowEnable
   │
-  ├─ 4. parseEvents
+  ├─ 4. 解析 Actors（状态图片）
+  │     ├─ j["actors"]["normal"]   → setNormalStateActor
+  │     ├─ j["actors"]["hover"]    → setHoverStateActor
+  │     ├─ j["actors"]["pressed"]  → setPressedStateActor
+  │     └─ j["actors"]["disabled"] → setDisabledStateActor
+  │
+  ├─ 5. 解析 LuotiAni（粒子动画，异常安全）
+  │     ├─ j["luotiAni"] 存在 → try-catch 加载
+  │     └─ 加载失败 → logWarn（不崩溃）
+  │
+  ├─ 6. parseEvents
   │     └─ j["events"]["onClick"] → btn->setOnClick(lambda)
   │
-  ├─ 5. 注册 ID
+  ├─ 7. 注册 ID
   │
-  ├─ 6. btn->create()
+  ├─ 8. btn->create()
   │
-  └─ 7. return btn
+  └─ 9. return btn
 ```
-
-注意：Phase 1 的 Button 不会解析 actors 和 luotiAni 字段，即使 JSON 中包含这些字段也会忽略。
 
 #### parseEditBox 完整流程
 

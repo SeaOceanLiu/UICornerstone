@@ -50,6 +50,8 @@ public:
     void setTextShadowEnable(bool enable);
 
     void setCaption(string caption);
+    void setCaptionLabel(shared_ptr<Label> label);
+    shared_ptr<Label> getCaptionLabel(void) const;
     string getCaption(void) const;
     void setCaptionSize(float size);
     uint32_t getCaptionSize(float size) const;

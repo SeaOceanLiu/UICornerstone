@@ -89,6 +89,8 @@ public:
 
     // 标题相关
     void setCaption(string caption);
+    void setCaptionLabel(shared_ptr<Label> label);
+    shared_ptr<Label> getCaptionLabel(void) const;
     string getCaption(void) const;
     void setCaptionSize(float size);
     uint32_t getCaptionSize(float size) const;
@@ -261,6 +263,10 @@ bool Button::handleEvent(shared_ptr<Event> event){
 
 ### 5.4 标题设置
 
+Button 提供两种设置标题的方式：
+
+#### 5.4.1 简单方式 — setCaption
+
 ```cpp
 void Button::setCaption(string caption){
     m_captionText = caption;
@@ -271,7 +277,7 @@ void Button::setCaption(string caption){
     }
 
     if (m_captionText.length() > 0) {
-        // 创建内部Label
+        // 使用默认样式创建内部 Label
         m_caption = LabelBuilder(this, {0, 0, m_rect.width, m_rect.height})
                             .setFont(FontName::HarmonyOS_Sans_SC_Regular)
                             .setAlignmentMode(AlignmentMode::AM_CENTER)
@@ -285,6 +291,32 @@ void Button::setCaption(string caption){
     }
 }
 ```
+
+#### 5.4.2 嵌入方式 — setCaptionLabel
+
+由 LayoutParser 在解析 `captionLabel` JSON 字段时使用，允许外部传入一个已完全配置的 Label：
+
+```cpp
+void Button::setCaptionLabel(shared_ptr<Label> label){
+    if (m_caption != nullptr){
+        removeControl(m_caption);
+        m_caption.reset();
+    }
+    m_caption = label;
+    if (m_caption != nullptr){
+        m_caption->setParent(this);
+        m_caption->setRect({0, 0, m_rect.width, m_rect.height});
+        m_captionText = m_caption->getCaption();
+        addControl(m_caption);
+    }
+}
+
+shared_ptr<Label> Button::getCaptionLabel(void) const {
+    return m_caption;
+}
+```
+
+`getCaptionLabel()` 返回内部 Label 指针，可在运行时读取或修改 Label 属性（字体、对齐、颜色等）。
 
 ### 5.5 状态Actor设置
 
