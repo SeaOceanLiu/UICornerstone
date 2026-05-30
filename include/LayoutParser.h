@@ -1,3 +1,4 @@
+// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #ifndef LayoutParserH
 #define LayoutParserH
 
@@ -18,6 +19,7 @@
 #include "ProgressBar.h"
 #include "ScrollBar.h"
 #include "Panel.h"
+#include "Dialog.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -66,6 +68,7 @@ private:
     shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);
     shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
+    shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);
 
     void parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseEvents(shared_ptr<ControlImpl> ctrl, const json& j);

@@ -1,4 +1,4 @@
-// 由AI生成，可能不完整或有错误，请自行检查和修改
+// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
 #include "TextArea.h"
 #include "MainWindow.h"
@@ -447,9 +447,9 @@ void TextArea::update(void) {
 }
 
 void TextArea::draw(void) {
-    EditBox::preDraw();
-
     if (!m_visible) return;
+
+    ControlImpl::preDraw();
 
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;

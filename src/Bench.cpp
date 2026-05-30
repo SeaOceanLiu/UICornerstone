@@ -83,9 +83,9 @@ void Bench::update() {
     }
 }
 void Bench::draw(void){
-    ControlImpl::preDraw();
-
     if(m_isLoading){
+        ControlImpl::preDraw();
+
         SRect rect = {0, m_rect.height / 2 - 50, m_rect.width, 100};
         SRect percentRect = {0, m_rect.height / 2 - 50, m_rect.width * ResourceLoader::getInstance()->getLoadingProgress(), 100};
 
@@ -103,6 +103,7 @@ void Bench::draw(void){
         if (!SDL_RenderRect(getRenderer(), rect.toSDLFRect())){
             SDL_Log("Failed to fill render rect: %s", SDL_GetError());
         }
+        return;
     }
 
     if (!m_visible) return;

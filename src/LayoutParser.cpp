@@ -1,4 +1,6 @@
+// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
+#include "Dialog.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -193,6 +195,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseScrollBar(j, parent);
     } else if (type == "Panel") {
         result = parsePanel(j, parent);
+    } else if (type == "Dialog") {
+        result = parseDialog(j, parent);
     } else {
         logWarn("unknown control type \"" + type + "\", skipping");
         popJsonPath();
@@ -526,6 +530,42 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
 
     panel->create();
     return panel;
+}
+
+// ==================== Dialog ====================
+
+shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto dialog = make_shared<Dialog>(parent, rect, xScale, yScale);
+
+    if (j.contains("title") && j["title"].is_string()) {
+        dialog->setTitle(j["title"].get<string>());
+    }
+
+    if (j.contains("text") && j["text"].is_string()) {
+        dialog->setText(j["text"].get<string>());
+    }
+
+    if (j.contains("okBtnCaption") && j["okBtnCaption"].is_string()) {
+        dialog->setOkBtnCaption(j["okBtnCaption"].get<string>());
+    }
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = dialog;
+    }
+
+    dialog->create();
+    dialog->hide();
+    return dialog;
 }
 
 // ==================== TextArea ====================

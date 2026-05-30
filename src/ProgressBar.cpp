@@ -1,4 +1,4 @@
-// 由AI生成，可能不完整或有错误，请自行检查和修改
+// 由A(MinMax V2.5)I生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
 #include "ProgressBar.h"
 #include "GraphTool.h"
@@ -47,6 +47,8 @@ shared_ptr<Label> ProgressBar::getTextLabel(void) const {
 
 void ProgressBar::draw(void) {
     if (!getVisible()) return;
+
+    ControlImpl::preDraw();
 
     SRect drawRect = getDrawRect();
 

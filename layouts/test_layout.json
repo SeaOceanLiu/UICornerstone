@@ -269,6 +269,7 @@
                         "pressed": "assets/images/cross_down.png"
                     },
                     "colors": {
+                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
                         "text": { "normal": "#FFFFFFFF" }
                     },
                     "events": {
@@ -293,6 +294,14 @@
                     "events": {
                         "onClick": "onAniBtnClick"
                     }
+                },
+                {
+                    "type": "Dialog",
+                    "id": "resultDialog",
+                    "rect": { "x": 200, "y": 100, "w": 400, "h": 300 },
+                    "title": "Submitted",
+                    "text": "Form submitted successfully!\n\nThis is a Dialog with TextArea.\n\nThe TextArea has built-in scrollbar support, so long text can be viewed without page-turning buttons.\n\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20",
+                    "okBtnCaption": "Close"
                 }
             ]
         }

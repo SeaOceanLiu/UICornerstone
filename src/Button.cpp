@@ -26,41 +26,9 @@ void Button::update(void){
     ControlImpl::update();
 }
 void Button::draw(void){
-    ControlImpl::preDraw();
-
     if (!getVisible()) return;
 
-    SRect drawRect = getDrawRect();
-
-    // // 1. 先绘制当前控件的外观
-    // if (!m_isTransparent){
-
-    //     // 背景色
-    //     SDL_Color bgColor;
-    //     switch (getState()){
-    //         case ControlState::Disabled:
-    //             bgColor = m_bgColor.getDisabled();
-    //             break;
-    //         case ControlState::Hover:
-    //             bgColor = m_bgColor.getHover();
-    //             break;
-    //         case ControlState::Pressed:
-    //             bgColor = m_bgColor.getPressed();
-    //             break;
-    //         case ControlState::Normal:
-    //         default:
-    //             bgColor = m_bgColor.getNormal();
-    //             break;
-    //     }
-
-    //     if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.r, bgColor.g, bgColor.b, bgColor.a)){
-    //         SDL_Log("Failed to set grid render color: %s", SDL_GetError());
-    //     }
-
-    //     if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
-    //         SDL_Log("Failed to fill render rect: %s", SDL_GetError());
-    //     }
-    // }
+    ControlImpl::preDraw();
 
     // 2. 绘制当前控件的图标
     auto actor = m_actor;
@@ -266,6 +234,7 @@ void Button::setCaption(string caption){
                             .setTextShadowStateColor(m_textShadowColor)
                             .setShadow(m_enableTextShadow)
                             .build();
+        m_caption->setTransparent(true);
         addControl(m_caption);
     }
 }

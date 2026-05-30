@@ -11,14 +11,19 @@
 #include "TextArea.h"
 #include "Button.h"
 #include "EditBox.h"
+#include "Dialog.h"
 #include <SDL3_ttf/SDL_ttf.h>
 
 using namespace std;
 
 static LayoutParser g_parser;
+static shared_ptr<Dialog> g_resultDialog;
 
 void onSubmitClicked(shared_ptr<Control> c) {
     SDL_Log("Button clicked via auto-binding!");
+    if (g_resultDialog) {
+        g_resultDialog->show();
+    }
 }
 
 void onTextChanged(string text) {
@@ -75,6 +80,14 @@ void testBenchInitialize(void) {
         SDL_Log("Total controls with IDs: %zu", ids.size());
         for (size_t i = 0; i < ids.size(); i++) {
             SDL_Log("  - ID: %s", ids[i].c_str());
+        }
+
+        auto resultCtrl = g_parser.findControlById("resultDialog");
+        if (resultCtrl) {
+            g_resultDialog = dynamic_pointer_cast<Dialog>(resultCtrl);
+            if (g_resultDialog) {
+                SDL_Log("Dialog parsed from JSON: id=resultDialog");
+            }
         }
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");

@@ -226,16 +226,44 @@ void ControlImpl::preDraw() {
     SRect drawRect = getDrawRect();
     drawBackground(&drawRect);
     drawBorder(&drawRect);
-
-    for (auto& child : m_children){
-        child->preDraw();
-    }
 }
 ```
 
-- 绘制背景
-- 绘制边框
-- 调用子控件的 preDraw()
+- 绘制控件自身的背景
+- 绘制控件自身的边框
+- 不递归子控件（子控件的背景由各自的 draw() 调用 preDraw() 时处理）
+
+#### draw() — 各控件绘制流程
+
+所有控件的 `draw()` 遵循统一的调用顺序：
+
+```cpp
+void SomeControl::draw(void) {
+    if (!getVisible()) return;
+
+    ControlImpl::preDraw();    // ① 绘制自身背景 + 边框
+    // ... 绘制自身内容 ...    // ② 绘制内容（文字、图片等）
+    ControlImpl::draw();       // ③ 递归绘制子控件（父容器调用）
+}
+```
+
+- ① `preDraw()` — 每个控件在 draw 开头绘制自己的背景和边框
+- ② 绘制内容 — 控件特有的绘制逻辑
+- ③ `ControlImpl::draw()` — 仅容器类（Panel、Button 等）需要，遍历 `m_children` 调用每个子控件的 `draw()`
+
+**绘制入口**：`Bench::draw()` 负责启动整个绘制链：
+
+```cpp
+void Bench::draw(void){
+    if(m_isLoading){
+        ControlImpl::preDraw();
+        // 绘制加载进度条...
+        return;
+    }
+    if (!m_visible) return;
+    Panel::draw();  // 内部调用 ControlImpl::preDraw() + ControlImpl::draw()
+}
+```
 
 ### 4.2 缩放处理
 

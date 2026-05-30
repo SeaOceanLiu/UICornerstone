@@ -162,11 +162,6 @@ void ControlImpl::preDraw() {
     SRect drawRect = getDrawRect();
     drawBackground(&drawRect);
     drawBorder(&drawRect);
-
-    // draw the children
-    for (auto& child : m_children){
-        child->preDraw();
-    }
 }
 void ControlImpl::drawBackground(const SRect *pDrawRect){
     SRect drawRect;

@@ -358,9 +358,9 @@ void Label::update(void){
 }
 
 void Label::draw(void){
-    ControlImpl::preDraw();
-
     if(!getVisible()) return;
+
+    ControlImpl::preDraw();
 
     if (m_lineTexts.empty()) {
         return;

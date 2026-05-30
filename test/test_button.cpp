@@ -42,6 +42,10 @@ void testBenchInitialize(void) {
     StateColor redBorder(StateColor::Type::Border);
     redBorder.setNormal({255, 0, 0, 255});
 
+    BENCH->addControl(LabelBuilder(nullptr, SRect(50, 50, 120, 50))
+        .setCaption(u8"普通按钮")
+        .build());
+
     // 1. 普通 button（只有背景，无文字无图片）
     g_button1 = ButtonBuilder(nullptr, SRect(50, 50, 120, 50))
         .setBackgroundStateColor(StateColor::Type::Background)

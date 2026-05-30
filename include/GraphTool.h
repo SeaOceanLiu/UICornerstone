@@ -1,4 +1,4 @@
-﻿// 由AI生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(GLM 5.1)生成，可能不完整或有错误，请自行检查和修改
 #ifndef GRAPHTOOL_H
 #define GRAPHTOOL_H
 

@@ -13,36 +13,10 @@ void Panel::update(void){
     ControlImpl::update();
 }
 void Panel::draw(void){
-    ControlImpl::preDraw();
-
     if (!getVisible()) return;
 
-    // SRect drawRect = getDrawRect();
-
-    // // 1. 先绘制当前控件的外观
-    // if(!m_isTransparent) {
-    //     if(!SDL_SetRenderDrawColor(getRenderer(), m_bgColor.getNormal().r, m_bgColor.getNormal().g,
-    //                                 m_bgColor.getNormal().b, m_bgColor.getNormal().a)){
-    //         SDL_Log("Panel failed to set background color: %s", SDL_GetError());
-    //     }
-    //     if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
-    //         SDL_Log("Panel failed to fill render rect: %s", SDL_GetError());
-    //     }
-    // }
-
-    // 2. 接着绘制子控件
+    ControlImpl::preDraw();
     ControlImpl::draw();
-
-    // // 5. 最后绘制边框
-    // if(!getTransparent() && getBorderVisible()) {
-    //     if(!SDL_SetRenderDrawColor(getRenderer(), m_borderColor.getNormal().r, m_borderColor.getNormal().g,
-    //                                 m_borderColor.getNormal().b, m_borderColor.getNormal().a)){
-    //         SDL_Log("Panel fFailed to set border color: %s", SDL_GetError());
-    //     }
-    //     if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
-    //         SDL_Log("Panel failed to draw border: %s", SDL_GetError());
-    //     }
-    // }
 }
 
 bool Panel::handleEvent(shared_ptr<Event> event){
