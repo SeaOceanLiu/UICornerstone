@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "ControlBase.h"
 #include "Actor.h"
+#include "LayoutEngine.h"
 
 using namespace std;
 
@@ -14,13 +15,20 @@ class Panel: public ControlImpl {
     using OnClickHandler = std::function<void (shared_ptr<Control>)>;
 private:
     unordered_map<shared_ptr<Actor>, SPoint> m_actors;
+    shared_ptr<LayoutEngine> m_layoutEngine;
+    unordered_map<Control*, FlowItemProps> m_flowItemProps;
 public:
     Panel(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
     void update(void) override;
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
 
-    void addControl(shared_ptr<Control> control) override;;
+    void addControl(shared_ptr<Control> control) override;
+
+    void setLayoutEngine(shared_ptr<LayoutEngine> engine) { m_layoutEngine = engine; }
+    shared_ptr<LayoutEngine> getLayoutEngine() const { return m_layoutEngine; }
+    void setChildFlowProps(Control* child, FlowItemProps props) { m_flowItemProps[child] = props; }
+    void reflowChildren();
 };
 class PanelBuilder {
 private:

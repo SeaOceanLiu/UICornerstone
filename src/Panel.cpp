@@ -9,7 +9,6 @@ Panel::Panel(Control *parent, SRect rect, float xScale, float yScale):
 void Panel::update(void){
     if (!getEnable()) return;
 
-    // 如果有子控件，这里需要更新子控件
     ControlImpl::update();
 }
 void Panel::draw(void){
@@ -26,6 +25,11 @@ bool Panel::handleEvent(shared_ptr<Event> event){
 
 void Panel::addControl(shared_ptr<Control> control){
     ControlImpl::addControl(control);
+}
+
+void Panel::reflowChildren() {
+    if (!m_layoutEngine) return;
+    m_layoutEngine->apply(m_rect, m_children, m_flowItemProps);
 }
 
 // *********************************************************************************************

@@ -210,6 +210,7 @@ public:
     virtual SDL_Color getBorderColor(void) = 0;
     virtual void setBorderVisible(bool isVisible) = 0;
     virtual bool getBorderVisible(void) = 0;
+    virtual Margin getMargin(void) const = 0;
 };
 
 class ControlImpl: virtual public Control, public enable_shared_from_this<ControlImpl>{
@@ -269,6 +270,7 @@ public:
     void setScaleX(float xScale=1.0f) override;
     void setScaleY(float yScale=1.0f) override;
     void setRect(SRect rect) override;
+    vector<shared_ptr<Control>>& getChildren() { return m_children; }
     void setLeft(float left){
         setRect(SRect{left, getRect().top, getRect().width, getRect().height});
     }
@@ -290,7 +292,7 @@ public:
     SRect getRect(void) override;
     SRect getMarginedRect(void);
     virtual void setMargin(Margin margin);
-    Margin getMargin(void) const;
+    Margin getMargin(void) const override;
     void show(void) override;
     void hide(void) override;
     void setVisible(bool visible) override;

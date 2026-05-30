@@ -1,0 +1,209 @@
+{
+    "version": "1.0",
+    "viewport": { "width": 800, "height": 640 },
+    "theme": {
+        "fonts": {
+            "default": "HarmonyOS_Sans_SC_Regular",
+            "size": 16,
+            "style": "NORMAL"
+        },
+        "colors": {
+            "background": "#282828FF",
+            "text":       "#FFFFFFFF",
+            "border":     "#808080FF"
+        }
+    },
+    "controls": [
+        {
+            "type": "Panel",
+            "id": "rootPanel",
+            "rect": { "x": 0, "y": 0, "w": 800, "h": 640 },
+            "colors": {
+                "background": { "normal": "#282828FF" }
+            },
+            "children": [
+                {
+                    "type": "Label",
+                    "id": "titleLabel",
+                    "rect": { "x": 10, "y": 10, "w": 780, "h": 30 },
+                    "caption": "Advanced Layout Features Test",
+                    "font": { "size": 20, "style": "BOLD" },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Label",
+                    "id": "scaleTypeTitle",
+                    "rect": { "x": 10, "y": 50, "w": 780, "h": 24 },
+                    "caption": "--- ScaleType (Actor缩放模式) ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Button",
+                    "id": "stretchBtn",
+                    "rect": { "x": 10, "y": 80, "w": 240, "h": 60 },
+                    "caption": "STRETCH (default)",
+                    "captionSize": 14,
+                    "actors": {
+                        "normal": {
+                            "file": "assets/images/cross_up.png",
+                            "scaleType": "STRETCH"
+                        }
+                    },
+                    "colors": {
+                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
+                },
+                {
+                    "type": "Button",
+                    "id": "fitCenterBtn",
+                    "rect": { "x": 270, "y": 80, "w": 240, "h": 60 },
+                    "caption": "FIT_CENTER",
+                    "captionSize": 14,
+                    "actors": {
+                        "normal": {
+                            "file": "assets/images/cross_up.png",
+                            "scaleType": "FIT_CENTER"
+                        }
+                    },
+                    "colors": {
+                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
+                },
+                {
+                    "type": "Button",
+                    "id": "centerCropBtn",
+                    "rect": { "x": 530, "y": 80, "w": 240, "h": 60 },
+                    "caption": "CENTER_CROP",
+                    "captionSize": 14,
+                    "actors": {
+                        "normal": {
+                            "file": "assets/images/cross_up.png",
+                            "scaleType": "CENTER_CROP"
+                        }
+                    },
+                    "colors": {
+                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
+                },
+                {
+                    "type": "Label",
+                    "id": "hflowTitle",
+                    "rect": { "x": 10, "y": 160, "w": 780, "h": 24 },
+                    "caption": "--- HFlow (水平流式布局: 权重1:2:1) ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Panel",
+                    "id": "hflowPanel",
+                    "rect": { "x": 10, "y": 190, "w": 780, "h": 50 },
+                    "bgColor": "#353535FF",
+                    "borderColor": "#606060FF",
+                    "layout": {
+                        "type": "HFlow",
+                        "gap": 4,
+                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+                    },
+                    "children": [
+                        {
+                            "type": "Button",
+                            "id": "hflowBtn1",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
+                            "flowWeight": 1,
+                            "caption": "Flex1",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "hflowBtn2",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
+                            "flowWeight": 2,
+                            "caption": "Flex2 (x2)",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "hflowBtn3",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
+                            "flowWeight": 1,
+                            "caption": "Flex3",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "id": "vflowTitle",
+                    "rect": { "x": 10, "y": 260, "w": 780, "h": 24 },
+                    "caption": "--- VFlow (垂直流式布局: 固定+flex混合) ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Panel",
+                    "id": "vflowPanel",
+                    "rect": { "x": 10, "y": 290, "w": 200, "h": 200 },
+                    "bgColor": "#353535FF",
+                    "borderColor": "#606060FF",
+                    "layout": {
+                        "type": "VFlow",
+                        "gap": 4,
+                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+                    },
+                    "children": [
+                        {
+                            "type": "Button",
+                            "id": "vflowBtn1",
+                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
+                            "caption": "Fixed 40px",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "vflowBtn2",
+                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
+                            "flowWeight": 1,
+                            "caption": "Flex1 (fills rest)",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "vflowBtn3",
+                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
+                            "caption": "Fixed 40px",
+                            "captionSize": 13,
+                            "colors": {
+                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,6 +1,7 @@
 // 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
 #include "Dialog.h"
+#include "LayoutEngine.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -409,6 +410,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             if (v.is_null()) return nullptr;
             string filePath;
             string resourceId;
+            ScaleType scaleType = ScaleType::STRETCH;
             if (v.is_string()) {
                 filePath = v.get<string>();
             } else if (v.is_object()) {
@@ -418,14 +420,23 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
                 if (v.contains("resourceId") && v["resourceId"].is_string()) {
                     resourceId = v["resourceId"].get<string>();
                 }
+                if (v.contains("scaleType") && v["scaleType"].is_string()) {
+                    string st = v["scaleType"].get<string>();
+                    if (st == "FIT_CENTER")      scaleType = ScaleType::FIT_CENTER;
+                    else if (st == "CENTER_CROP") scaleType = ScaleType::CENTER_CROP;
+                    else if (st == "NONE")        scaleType = ScaleType::NONE;
+                }
             }
+            shared_ptr<Actor> actor = nullptr;
             if (!filePath.empty()) {
-                return make_shared<Actor>(btn.get(), fs::path(filePath), matchRect, 1.0f, 1.0f);
+                actor = make_shared<Actor>(btn.get(), fs::path(filePath), matchRect, 1.0f, 1.0f);
+            } else if (!resourceId.empty()) {
+                actor = make_shared<Actor>(btn.get(), resourceId, matchRect, 1.0f, 1.0f);
             }
-            if (!resourceId.empty()) {
-                return make_shared<Actor>(btn.get(), resourceId, matchRect, 1.0f, 1.0f);
+            if (actor) {
+                actor->setScaleType(scaleType);
             }
-            return nullptr;
+            return actor;
         };
 
         if (actors.contains("normal") && !actors["normal"].is_null()) {
@@ -608,6 +619,44 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
     }
 
     parseChildren(panel, j);
+
+    // Layout engine
+    if (j.contains("layout") && j["layout"].is_object()) {
+        pushJsonPath("layout");
+        const json& layoutJson = j["layout"];
+        string layoutType = layoutJson.value("type", "HFlow");
+        float gap = layoutJson.value("gap", 0.0f);
+
+        Margin padding{0,0,0,0};
+        if (layoutJson.contains("padding") && layoutJson["padding"].is_object()) {
+            padding = parseMargin(layoutJson["padding"]);
+        }
+
+        shared_ptr<LayoutEngine> engine;
+        if (layoutType == "VFlow") {
+            engine = make_shared<VFlowLayout>(gap, padding);
+        } else {
+            engine = make_shared<HFlowLayout>(gap, padding);
+        }
+        panel->setLayoutEngine(engine);
+
+        // Per-child flow properties
+        if (j.contains("children") && j["children"].is_array()) {
+            const json& children = j["children"];
+            auto& panelChildren = panel->getChildren();
+            for (size_t i = 0; i < children.size() && i < panelChildren.size(); ++i) {
+                if (children[i].contains("flowWeight") && children[i]["flowWeight"].is_number()) {
+                    float fw = children[i]["flowWeight"].get<float>();
+                    FlowItemProps props;
+                    props.flexWeight = fw;
+                    panel->setChildFlowProps(panelChildren[i].get(), props);
+                }
+            }
+        }
+
+        panel->reflowChildren();
+        popJsonPath();
+    }
 
     panel->create();
     return panel;

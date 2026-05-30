@@ -2,21 +2,24 @@
 
 Actor::Actor(Control *parent, float xScale, float yScale):
     Material(parent, xScale, yScale),
-    m_matchParentRect(false)
+    m_matchParentRect(false),
+    m_scaleType(ScaleType::STRETCH)
 {
     setParent(parent);
 }
 
 Actor::Actor(Control *parent, bool matchParentRect, float xScale, float yScale):
     Material(parent, xScale, yScale),
-    m_matchParentRect(matchParentRect)
+    m_matchParentRect(matchParentRect),
+    m_scaleType(ScaleType::STRETCH)
 {
     // setParent(parent);
 }
 
 Actor::Actor(Control *parent, fs::path filePath, bool matchParentRect, float xScale, float yScale):
     Material(parent, filePath, xScale, yScale),
-    m_matchParentRect(matchParentRect)
+    m_matchParentRect(matchParentRect),
+    m_scaleType(ScaleType::STRETCH)
 {
     setParent(parent);
     loadFromFile(filePath);
@@ -24,7 +27,8 @@ Actor::Actor(Control *parent, fs::path filePath, bool matchParentRect, float xSc
 
 Actor::Actor(Control *parent, string resourceId, bool matchParentRect, float xScale, float yScale):
     Material(parent, resourceId, xScale, yScale),
-    m_matchParentRect(matchParentRect)
+    m_matchParentRect(matchParentRect),
+    m_scaleType(ScaleType::STRETCH)
 {
     setParent(parent);
     loadFromResource(resourceId);
@@ -32,13 +36,15 @@ Actor::Actor(Control *parent, string resourceId, bool matchParentRect, float xSc
 
 Actor::Actor(const Actor& other):
     Material(other),
-    m_matchParentRect(other.m_matchParentRect)
+    m_matchParentRect(other.m_matchParentRect),
+    m_scaleType(other.m_scaleType)
 {
 }
 
 Actor& Actor::operator=(const Actor& other) {
     Material::operator=(other);
     m_matchParentRect = other.m_matchParentRect;
+    m_scaleType = other.m_scaleType;
     return *this;
 }
 
@@ -113,6 +119,72 @@ void Actor::setParent(Control *parent){
     }
 }
 
+void Actor::draw(float posx, float posy, Uint8 alpha) {
+    inheritRenderer();
+    if (m_texture == nullptr) return;
+
+    SRect targetRect = getRect();
+    targetRect.left = posx - m_anchorPoint.x;
+    targetRect.top = posy - m_anchorPoint.y;
+
+    SRect drawRect = mapToDrawRect(targetRect);
+    SDL_FRect drawRectF = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
+
+    if (!SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND)) {
+        SDL_Log("SDL_SetTextureBlendMode Error: %s", SDL_GetError());
+    }
+    if (!SDL_SetTextureAlphaMod(m_texture, alpha)) {
+        SDL_Log("SDL_SetTextureAlphaMod Error: %s", SDL_GetError());
+    }
+
+    if (m_scaleType == ScaleType::STRETCH) {
+        // 拉伸填满 — 原始行为
+        SDL_RenderTexture(getRenderer(), m_texture, nullptr, &drawRectF);
+        return;
+    }
+
+    float texW, texH;
+    if (!SDL_GetTextureSize(m_texture, &texW, &texH)) return;
+    if (texW <= 0 || texH <= 0) return;
+
+    switch (m_scaleType) {
+        case ScaleType::FIT_CENTER: {
+            float scale = min(drawRectF.w / texW, drawRectF.h / texH);
+            float w = texW * scale;
+            float h = texH * scale;
+            SDL_FRect fitRect = {
+                drawRectF.x + (drawRectF.w - w) * 0.5f,
+                drawRectF.y + (drawRectF.h - h) * 0.5f,
+                w, h
+            };
+            SDL_RenderTexture(getRenderer(), m_texture, nullptr, &fitRect);
+            break;
+        }
+        case ScaleType::CENTER_CROP: {
+            float scale = max(drawRectF.w / texW, drawRectF.h / texH);
+            float cropW = drawRectF.w / scale;
+            float cropH = drawRectF.h / scale;
+            SDL_FRect srcRect = {
+                (texW - cropW) * 0.5f,
+                (texH - cropH) * 0.5f,
+                cropW, cropH
+            };
+            SDL_RenderTexture(getRenderer(), m_texture, &srcRect, &drawRectF);
+            break;
+        }
+        case ScaleType::NONE: {
+            SDL_FRect naturalRect = {
+                drawRectF.x + (drawRectF.w - texW) * 0.5f,
+                drawRectF.y + (drawRectF.h - texH) * 0.5f,
+                texW, texH
+            };
+            SDL_RenderTexture(getRenderer(), m_texture, nullptr, &naturalRect);
+            break;
+        }
+        default:
+            break;
+    }
+}
 
 ActorBuilder::ActorBuilder(Control *parent, float xScale, float yScale):
     m_actor(nullptr)
@@ -125,6 +197,10 @@ ActorBuilder& ActorBuilder::loadFromFile(fs::path filePath){
 }
 ActorBuilder& ActorBuilder::setMatchParentRect(bool matchParentRect){
     m_actor->m_matchParentRect = matchParentRect;
+    return *this;
+}
+ActorBuilder& ActorBuilder::setScaleType(ScaleType type){
+    m_actor->m_scaleType = type;
     return *this;
 }
 shared_ptr<Actor> ActorBuilder::build(void){
