@@ -88,11 +88,12 @@
 ### Phase 3 — 菜单系统 ✅ 已完成
 
 
-| 功能      | 说明                                                       |
-| --------- | ---------------------------------------------------------- |
-| MenuBar   | LayoutParser 解析顶部菜单栏，支持多级菜单 JSON 定义        |
-| MenuPanel | 下拉菜单面板，自动重算尺寸                                 |
-| MenuItem  | 菜单项解析，支持 Separator、Shortcut、SubMenu、onClick 事件 |
+| 功能      | 说明                                                       | 状态 |
+| --------- | ---------------------------------------------------------- | ---- |
+| MenuBar   | LayoutParser 解析顶部菜单栏，支持多级菜单 JSON 定义        | ✅   |
+| MenuPanel | 下拉菜单面板，自动重算尺寸                                 | ✅   |
+| MenuItem  | 菜单项解析，支持 Separator、Shortcut、SubMenu、onClick 事件 | ✅   |
+| Z-ordering| MenuBar 独立于控件树存储，直接添加 BENCH 确保绘制在最顶层    | ✅   |
 
 ### Phase 4 — 高级特性
 
