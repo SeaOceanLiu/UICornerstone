@@ -12,12 +12,20 @@ struct FlowItemProps {
     float flexWeight = 1.0f;
 };
 
+struct AnchorInfo {
+    string anchor = "TOP_LEFT";
+    Margin offset;
+};
+
 class LayoutEngine {
 public:
     virtual ~LayoutEngine() = default;
     virtual void apply(const SRect& containerRect,
                        vector<shared_ptr<Control>>& children,
                        unordered_map<Control*, FlowItemProps>& itemProps) = 0;
+    virtual void applyAnchor(const SRect& containerRect,
+                             vector<shared_ptr<Control>>& children,
+                             unordered_map<Control*, AnchorInfo>& anchorProps) {}
     virtual string getType() const = 0;
 };
 
@@ -47,6 +55,23 @@ public:
                vector<shared_ptr<Control>>& children,
                unordered_map<Control*, FlowItemProps>& itemProps) override;
     string getType() const override { return "VFlow"; }
+};
+
+// ==================== AnchorLayout ====================
+
+class AnchorLayout : public LayoutEngine {
+private:
+    Margin m_padding;
+public:
+    AnchorLayout(Margin padding = Margin{0,0,0,0});
+    void setPadding(const Margin& padding) { m_padding = padding; }
+    void apply(const SRect& containerRect,
+               vector<shared_ptr<Control>>& children,
+               unordered_map<Control*, FlowItemProps>& itemProps) override {}
+    void applyAnchor(const SRect& containerRect,
+                     vector<shared_ptr<Control>>& children,
+                     unordered_map<Control*, AnchorInfo>& anchorProps) override;
+    string getType() const override { return "Anchor"; }
 };
 
 #endif

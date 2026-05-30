@@ -102,7 +102,7 @@
 | ------------------ | --------------------------------------------- | ---- |
 | Button Actor       | 按钮状态动画（normal/hover/pressed/disabled） | ✅   |
 | HFlow / VFlow 布局 | 流式布局引擎                                  | ✅   |
-| Anchor 布局        | 锚点布局引擎                                  | ⬜   |
+| Anchor 布局        | 锚点布局引擎                                  | ✅   |
 | Grid 布局          | 网格布局引擎                                  | ⬜   |
 | 百分比尺寸         | 如`"w": "50%"`                                | ⬜   |
 | 窗口 resize 响应   | 布局引擎重新计算                              | ⬜   |
@@ -720,7 +720,8 @@ if (editBox) {
 布局引擎体系设计为可替换：
 - `HFlowLayout` — 水平流式布局（子控件从左到右排列）
 - `VFlowLayout` — 垂直流式布局（子控件从上到下排列）
-- 可扩展：实现 `LayoutEngine` 接口即可添加新布局类型（Anchor、Grid 等）
+- `AnchorLayout` — 锚点布局（子控件相对于容器边角/中心定位）
+- 可扩展：实现 `LayoutEngine` 接口即可添加新布局类型（Grid 等）
 
 #### 4.9.2 JSON 配置方式
 
@@ -861,6 +862,96 @@ Panel (继承 ControlImpl)
 2. **坐标系统**：布局引擎计算的子控件坐标是相对容器的本地坐标（从 `(0,0)` 开始），与 UI 框架的父子坐标约定一致。
 3. **初始 rect**：子控件的初始 `rect` 只用于固定尺寸子控件的尺寸读取，弹性子控件的 `rect.w`（VFlow 为 `rect.h`）会被布局引擎覆盖。
 4. **可见性**：布局引擎自动跳过 `getVisible() == false` 的子控件。
+
+#### 4.9.8 Anchor 布局（锚点布局）
+
+Anchor 布局将子控件锚定到容器的特定边角或中心，支持偏移量微调。适用于固定位置的 UI 元素（如返回按钮、关闭按钮、状态指示器）。
+
+##### JSON 配置
+
+```jsonc
+{
+    "type": "Panel",
+    "layout": {
+        "type": "Anchor",
+        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+    },
+    "children": [
+        {
+            "type": "Button",
+            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
+            "anchor": "TOP_RIGHT",                       // 锚点模式
+            "anchorOffset": { "left": 0, "top": 0, "right": 4, "bottom": 0 },  // 偏移量
+            "caption": "Close"
+        }
+    ]
+}
+```
+
+##### 锚点模式
+
+| 模式 | 定位方式 | 说明 |
+|------|---------|------|
+| `TOP_LEFT` | 左上角固定 | 默认模式，`offset.left` / `offset.top` 决定距离左上角的偏移 |
+| `TOP_CENTER` | 顶部居中 | 水平居中，`offset.left` 提供额外水平偏移 |
+| `TOP_RIGHT` | 右上角固定 | `offset.right` 决定距离右侧的偏移 |
+| `MID_LEFT` | 左方居中 | 垂直居中，`offset.top` 提供额外垂直偏移 |
+| `CENTER` | 正中心 | 水平和垂直均居中 |
+| `MID_RIGHT` | 右方居中 | 垂直居中，靠右对齐 |
+| `BOTTOM_LEFT` | 左下角固定 | `offset.bottom` 决定距离底部的偏移 |
+| `BOTTOM_CENTER` | 底部居中 | 水平居中，靠底部对齐 |
+| `BOTTOM_RIGHT` | 右下角固定 | `offset.right` / `offset.bottom` 决定距离右下角的偏移 |
+| `TOP_STRETCH` | 顶部拉伸 | 宽度填满容器（减去 `offset.left+offset.right`），顶部固定 |
+| `BOTTOM_STRETCH` | 底部拉伸 | 宽度填满容器，底部固定 |
+| `LEFT_STRETCH` | 左侧拉伸 | 高度填满容器（减去 `offset.top+offset.bottom`），左侧固定 |
+| `RIGHT_STRETCH` | 右侧拉伸 | 高度填满容器，右侧固定 |
+| `FILL` | 填满容器 | 宽高均填满容器（减去四边偏移量） |
+
+##### 偏移量说明
+
+`anchorOffset` 是可选字段，使用 `{left, top, right, bottom}` 结构，语义取决于锚点模式：
+
+- **`TOP_LEFT`**：使用 `offset.left` 和 `offset.top`（距左上角的距离）
+- **`TOP_RIGHT`**：使用 `offset.right` 和 `offset.top`（距右上角的距离）
+- **`CENTER`**：使用 `offset.left` 和 `offset.top`（居中后的额外位移）
+- **`FILL`**：四边偏移量都使用，控制与容器边缘的间距
+
+##### 完整示例
+
+```jsonc
+{
+    "type": "Panel",
+    "rect": { "x": 10, "y": 540, "w": 780, "h": 90 },
+    "layout": {
+        "type": "Anchor",
+        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+    },
+    "children": [
+        { "type": "Button", "rect": { "w": 80, "h": 30 }, "anchor": "TOP_LEFT",      "caption": "TL" },
+        { "type": "Button", "rect": { "w": 80, "h": 30 }, "anchor": "TOP_RIGHT",     "caption": "TR",
+          "anchorOffset": { "right": 4 } },
+        { "type": "Button", "rect": { "w": 80, "h": 30 }, "anchor": "BOTTOM_LEFT",   "caption": "BL",
+          "anchorOffset": { "bottom": 4 } },
+        { "type": "Button", "rect": { "w": 80, "h": 30 }, "anchor": "BOTTOM_RIGHT",  "caption": "BR",
+          "anchorOffset": { "right": 4, "bottom": 4 } },
+        { "type": "Button", "rect": { "w": 100, "h": 30 }, "anchor": "CENTER",       "caption": "CENTER" },
+        { "type": "Button", "rect": { "w": 100, "h": 30 }, "anchor": "FILL",         "caption": "FILL bar",
+          "anchorOffset": { "left": 90, "top": 32, "right": 90, "bottom": 4 } }
+    ]
+}
+```
+
+##### 架构说明
+
+Anchor 布局通过 `LayoutEngine::applyAnchor()` 虚方法实现，与 Flow 布局共用相同的 `reflowChildren()` 调度入口：
+
+```
+Panel::reflowChildren()
+  ├─ getType() == "Anchor" → applyAnchor(containerRect, children, anchorProps)
+  └─ 其他 → apply(containerRect, children, flowProps)
+```
+
+子控件锚点信息存储于 `Panel::m_anchorItemProps`（`unordered_map<Control*, AnchorInfo>`），通过 `Panel::setChildAnchorProps()` 设置。Anchor 模式不涉及 flex 权重计算，子控件的 `rect.w` 和 `rect.h` 保持初始值（FILL/STRETCH 模式除外，它们会覆盖对应方向的尺寸）。
 
 ### 5.1 头文件完整定义
 

@@ -635,12 +635,14 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
         shared_ptr<LayoutEngine> engine;
         if (layoutType == "VFlow") {
             engine = make_shared<VFlowLayout>(gap, padding);
+        } else if (layoutType == "Anchor") {
+            engine = make_shared<AnchorLayout>(padding);
         } else {
             engine = make_shared<HFlowLayout>(gap, padding);
         }
         panel->setLayoutEngine(engine);
 
-        // Per-child flow properties
+        // Per-child layout properties
         if (j.contains("children") && j["children"].is_array()) {
             const json& children = j["children"];
             auto& panelChildren = panel->getChildren();
@@ -650,6 +652,14 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
                     FlowItemProps props;
                     props.flexWeight = fw;
                     panel->setChildFlowProps(panelChildren[i].get(), props);
+                }
+                if (children[i].contains("anchor") && children[i]["anchor"].is_string()) {
+                    AnchorInfo info;
+                    info.anchor = children[i]["anchor"].get<string>();
+                    if (children[i].contains("anchorOffset") && children[i]["anchorOffset"].is_object()) {
+                        info.offset = parseMargin(children[i]["anchorOffset"]);
+                    }
+                    panel->setChildAnchorProps(panelChildren[i].get(), info);
                 }
             }
         }

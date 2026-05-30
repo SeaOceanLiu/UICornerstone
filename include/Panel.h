@@ -17,6 +17,7 @@ private:
     unordered_map<shared_ptr<Actor>, SPoint> m_actors;
     shared_ptr<LayoutEngine> m_layoutEngine;
     unordered_map<Control*, FlowItemProps> m_flowItemProps;
+    unordered_map<Control*, AnchorInfo> m_anchorItemProps;
 public:
     Panel(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
     void update(void) override;
@@ -28,6 +29,7 @@ public:
     void setLayoutEngine(shared_ptr<LayoutEngine> engine) { m_layoutEngine = engine; }
     shared_ptr<LayoutEngine> getLayoutEngine() const { return m_layoutEngine; }
     void setChildFlowProps(Control* child, FlowItemProps props) { m_flowItemProps[child] = props; }
+    void setChildAnchorProps(Control* child, AnchorInfo props) { m_anchorItemProps[child] = props; }
     void reflowChildren();
 };
 class PanelBuilder {

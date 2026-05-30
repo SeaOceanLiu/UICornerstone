@@ -202,6 +202,103 @@
                             }
                         }
                     ]
+                },
+                {
+                    "type": "Label",
+                    "id": "anchorTitle",
+                    "rect": { "x": 10, "y": 510, "w": 780, "h": 24 },
+                    "caption": "--- Anchor (锚点布局: TL/TR/BL/BR/CENTER) ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Panel",
+                    "id": "anchorPanel",
+                    "rect": { "x": 10, "y": 540, "w": 780, "h": 90 },
+                    "bgColor": "#353535FF",
+                    "borderColor": "#606060FF",
+                    "layout": {
+                        "type": "Anchor",
+                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+                    },
+                    "children": [
+                        {
+                            "type": "Button",
+                            "id": "anchorTL",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
+                            "anchor": "TOP_LEFT",
+                            "caption": "TL",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "anchorTR",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
+                            "anchor": "TOP_RIGHT",
+                            "anchorOffset": { "left": 0, "top": 0, "right": 4, "bottom": 0 },
+                            "caption": "TR",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "anchorBL",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
+                            "anchor": "BOTTOM_LEFT",
+                            "anchorOffset": { "left": 0, "top": 0, "right": 0, "bottom": 4 },
+                            "caption": "BL",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "anchorBR",
+                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
+                            "anchor": "BOTTOM_RIGHT",
+                            "anchorOffset": { "left": 0, "top": 0, "right": 4, "bottom": 4 },
+                            "caption": "BR",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#C0A060FF", "hover": "#D0B070FF", "pressed": "#B09050FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "anchorCenter",
+                            "rect": { "x": 0, "y": 0, "w": 100, "h": 30 },
+                            "anchor": "CENTER",
+                            "caption": "CENTER",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#A060C0FF", "hover": "#B070D0FF", "pressed": "#9050B0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "anchorFill",
+                            "rect": { "x": 0, "y": 0, "w": 100, "h": 30 },
+                            "anchor": "FILL",
+                            "anchorOffset": { "left": 90, "top": 32, "right": 90, "bottom": 4 },
+                            "caption": "FILL bar",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#60A0A0FF", "hover": "#70B0B0FF", "pressed": "#509090FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        }
+                    ]
                 }
             ]
         }

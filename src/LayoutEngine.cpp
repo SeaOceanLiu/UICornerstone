@@ -121,3 +121,78 @@ void VFlowLayout::apply(const SRect& containerRect,
         cursorY += h + margin.top + margin.bottom + m_gap;
     }
 }
+
+// ==================== AnchorLayout ====================
+
+AnchorLayout::AnchorLayout(Margin padding)
+    : m_padding(padding) {}
+
+void AnchorLayout::applyAnchor(const SRect& containerRect,
+                                vector<shared_ptr<Control>>& children,
+                                unordered_map<Control*, AnchorInfo>& anchorProps) {
+    float innerLeft = m_padding.left;
+    float innerTop = m_padding.top;
+    float innerWidth = containerRect.width - m_padding.left - m_padding.right;
+    float innerHeight = containerRect.height - m_padding.top - m_padding.bottom;
+
+    for (auto& child : children) {
+        if (!child->getVisible()) continue;
+        SRect childRect = child->getRect();
+
+        string anchor = "TOP_LEFT";
+        Margin offset;
+        auto it = anchorProps.find(child.get());
+        if (it != anchorProps.end()) {
+            anchor = it->second.anchor;
+            offset = it->second.offset;
+        }
+
+        float x = innerLeft + offset.left;
+        float y = innerTop + offset.top;
+        float w = childRect.width;
+        float h = childRect.height;
+
+        if (anchor == "TOP_RIGHT") {
+            x = innerLeft + innerWidth - w - offset.right;
+        } else if (anchor == "BOTTOM_LEFT") {
+            y = innerTop + innerHeight - h - offset.bottom;
+        } else if (anchor == "BOTTOM_RIGHT") {
+            x = innerLeft + innerWidth - w - offset.right;
+            y = innerTop + innerHeight - h - offset.bottom;
+        } else if (anchor == "TOP_CENTER") {
+            x = innerLeft + (innerWidth - w) * 0.5f + offset.left;
+        } else if (anchor == "BOTTOM_CENTER") {
+            x = innerLeft + (innerWidth - w) * 0.5f + offset.left;
+            y = innerTop + innerHeight - h - offset.bottom;
+        } else if (anchor == "MID_LEFT") {
+            y = innerTop + (innerHeight - h) * 0.5f + offset.top;
+        } else if (anchor == "MID_RIGHT") {
+            x = innerLeft + innerWidth - w - offset.right;
+            y = innerTop + (innerHeight - h) * 0.5f + offset.top;
+        } else if (anchor == "CENTER") {
+            x = innerLeft + (innerWidth - w) * 0.5f + offset.left;
+            y = innerTop + (innerHeight - h) * 0.5f + offset.top;
+        } else if (anchor == "TOP_STRETCH") {
+            x = innerLeft + offset.left;
+            w = innerWidth - offset.left - offset.right;
+        } else if (anchor == "BOTTOM_STRETCH") {
+            x = innerLeft + offset.left;
+            w = innerWidth - offset.left - offset.right;
+            y = innerTop + innerHeight - h - offset.bottom;
+        } else if (anchor == "LEFT_STRETCH") {
+            y = innerTop + offset.top;
+            h = innerHeight - offset.top - offset.bottom;
+        } else if (anchor == "RIGHT_STRETCH") {
+            x = innerLeft + innerWidth - w - offset.right;
+            y = innerTop + offset.top;
+            h = innerHeight - offset.top - offset.bottom;
+        } else if (anchor == "FILL") {
+            x = innerLeft + offset.left;
+            y = innerTop + offset.top;
+            w = innerWidth - offset.left - offset.right;
+            h = innerHeight - offset.top - offset.bottom;
+        }
+
+        child->setRect(SRect{x, y, w, h});
+    }
+}

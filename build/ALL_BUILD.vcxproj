@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ResolveNugetPackages>false</ResolveNugetPackages>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1F5DCC3E-9212-3DCE-9AFB-9330A2EBFC36}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>ALL_BUILD</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\GitSpace\UIControls\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/GitSpace/UIControls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCXXCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeRCCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\GitSpace\UIControls\build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/GitSpace/UIControls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCXXCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeRCCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\GitSpace\UIControls\build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/GitSpace/UIControls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCXXCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeRCCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\GitSpace\UIControls\build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/GitSpace/UIControls/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCXXCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeRCCompiler.cmake;D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCXXInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeGenericSystem.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeInitializeConfigs.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeRCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeSystemSpecificInitialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-Initialize.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-CXX.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\WindowsPaths.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\GitSpace\UIControls\build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\ZERO_CHECK.vcxproj">
+      <Project>{34D68411-3FFB-3F47-9FB8-3D397894654C}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\UIControls.vcxproj">
+      <Project>{7026DCF4-26D3-3390-966D-DAB7BE3C8624}</Project>
+      <Name>UIControls</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_button.vcxproj">
+      <Project>{2B5EF516-4500-3030-BB49-3BE645223964}</Project>
+      <Name>test_button</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_checkbox.vcxproj">
+      <Project>{60FC5EF1-03D3-33A4-A292-530619658C7D}</Project>
+      <Name>test_checkbox</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_editbox.vcxproj">
+      <Project>{98E337C0-9C1F-34F9-87D9-47BE6C4D745E}</Project>
+      <Name>test_editbox</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_graphtool.vcxproj">
+      <Project>{4CF4EFCC-9C7C-3582-AD8A-7328EBC0A535}</Project>
+      <Name>test_graphtool</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_label.vcxproj">
+      <Project>{F5769DC5-CD00-38CA-A672-70786B8AAA6A}</Project>
+      <Name>test_label</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_layout.vcxproj">
+      <Project>{43898A98-3303-3807-804E-C76ECEE3574E}</Project>
+      <Name>test_layout</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_layout_advanced.vcxproj">
+      <Project>{2AA9AD89-2FE0-3A4C-A5FB-4ED4A469769B}</Project>
+      <Name>test_layout_advanced</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_menu.vcxproj">
+      <Project>{760A1220-29E6-3335-ABA9-D822A5F243D7}</Project>
+      <Name>test_menu</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\test\test_progressbar.vcxproj">
+      <Project>{D682EB01-EB29-30ED-8E6D-0A176671DF88}</Project>
+      <Name>test_progressbar</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

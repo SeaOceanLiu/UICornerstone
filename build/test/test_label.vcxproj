@@ -1,0 +1,540 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F5769DC5-CD00-38CA-A672-70786B8AAA6A}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>test_label</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\GitSpace\UIControls\build\test\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_label.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_label</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\GitSpace\UIControls\build\test\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_label.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_label</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\GitSpace\UIControls\build\test\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_label.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_label</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\GitSpace\UIControls\build\test\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_label.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_label</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>				</Message>
+      <Command>setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3.dll D:/GitSpace/UIControls/build/test/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_ttf.dll D:/GitSpace/UIControls/build/test/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_image.dll D:/GitSpace/UIControls/build/test/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/DebugTrace/DebugInfoX64.dll D:/GitSpace/UIControls/build/test/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_directory D:/GitSpace/UIControls/subModules/assets D:/GitSpace/UIControls/build/test/Debug/assets
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\Debug\UIControls.lib;D:\GitSpace\UIControls\subModules\libs\SDL3.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_ttf.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_image.lib;user32.lib;kernel32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>D:/GitSpace/UIControls/build/test/Debug/test_label.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/GitSpace/UIControls/build/test/Debug/test_label.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>				</Message>
+      <Command>setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3.dll D:/GitSpace/UIControls/build/test/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_ttf.dll D:/GitSpace/UIControls/build/test/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_image.dll D:/GitSpace/UIControls/build/test/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/DebugTrace/DebugInfoX64.dll D:/GitSpace/UIControls/build/test/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_directory D:/GitSpace/UIControls/subModules/assets D:/GitSpace/UIControls/build/test/Release/assets
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\Release\UIControls.lib;D:\GitSpace\UIControls\subModules\libs\SDL3.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_ttf.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_image.lib;user32.lib;kernel32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>D:/GitSpace/UIControls/build/test/Release/test_label.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/GitSpace/UIControls/build/test/Release/test_label.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>				</Message>
+      <Command>setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3.dll D:/GitSpace/UIControls/build/test/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_ttf.dll D:/GitSpace/UIControls/build/test/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_image.dll D:/GitSpace/UIControls/build/test/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/DebugTrace/DebugInfoX64.dll D:/GitSpace/UIControls/build/test/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_directory D:/GitSpace/UIControls/subModules/assets D:/GitSpace/UIControls/build/test/MinSizeRel/assets
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\MinSizeRel\UIControls.lib;D:\GitSpace\UIControls\subModules\libs\SDL3.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_ttf.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_image.lib;user32.lib;kernel32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>D:/GitSpace/UIControls/build/test/MinSizeRel/test_label.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/GitSpace/UIControls/build/test/MinSizeRel/test_label.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\GitSpace\UIControls\subModules;D:\GitSpace\UIControls\subModules\SDL3;D:\GitSpace\UIControls\subModules\SDL3_ttf;D:\GitSpace\UIControls\subModules\SDL3_image\include;D:\GitSpace\UIControls\subModules\json\include;D:\GitSpace\UIControls\subModules\DebugTrace;D:\GitSpace\UIControls\test\..\include;D:\GitSpace\UIControls\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message>				</Message>
+      <Command>setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3.dll D:/GitSpace/UIControls/build/test/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_ttf.dll D:/GitSpace/UIControls/build/test/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/libs/SDL3_image.dll D:/GitSpace/UIControls/build/test/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_if_different D:/GitSpace/UIControls/subModules/DebugTrace/DebugInfoX64.dll D:/GitSpace/UIControls/build/test/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -E copy_directory D:/GitSpace/UIControls/subModules/assets D:/GitSpace/UIControls/build/test/RelWithDebInfo/assets
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\RelWithDebInfo\UIControls.lib;D:\GitSpace\UIControls\subModules\libs\SDL3.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_ttf.lib;D:\GitSpace\UIControls\subModules\libs\SDL3_image.lib;user32.lib;kernel32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>D:/GitSpace/UIControls/build/test/RelWithDebInfo/test_label.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:/GitSpace/UIControls/build/test/RelWithDebInfo/test_label.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\GitSpace\UIControls\test\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/GitSpace/UIControls/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\GitSpace\UIControls\build\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/GitSpace/UIControls/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\GitSpace\UIControls\build\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/GitSpace/UIControls/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\GitSpace\UIControls\build\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/GitSpace/UIControls/test/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -SD:/GitSpace/UIControls -BD:/GitSpace/UIControls/build --check-stamp-file D:/GitSpace/UIControls/build/test/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\GitSpace\UIControls\build\CMakeFiles\3.30.3\CMakeCCompiler.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeCommonLanguageInclude.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\CMakeLanguageInformation.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\CMakeCommonCompilerMacros.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Compiler\MSVC.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC-C.cmake;D:\Program Files\CMake\share\cmake-3.30\Modules\Platform\Windows-MSVC.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\GitSpace\UIControls\build\test\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D:\GitSpace\UIControls\test\test_label.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\ZERO_CHECK.vcxproj">
+      <Project>{34D68411-3FFB-3F47-9FB8-3D397894654C}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitSpace\UIControls\build\UIControls.vcxproj">
+      <Project>{7026DCF4-26D3-3390-966D-DAB7BE3C8624}</Project>
+      <Name>UIControls</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
