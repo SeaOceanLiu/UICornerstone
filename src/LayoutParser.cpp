@@ -112,6 +112,7 @@ void LayoutParser::clearHandlers() {
 
 void LayoutParser::clear() {
     m_controlsById.clear();
+    m_menuBars.clear();
     m_currentJsonPath.clear();
     m_currentLineNo = 0;
     m_rawJsonContent.clear();
@@ -120,6 +121,10 @@ void LayoutParser::clear() {
 void LayoutParser::reset() {
     clear();
     m_handlers.clear();
+}
+
+const vector<shared_ptr<MenuBar>>& LayoutParser::getMenuBars() const {
+    return m_menuBars;
 }
 
 // ==================== 错误追踪 ====================
@@ -198,7 +203,14 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
     } else if (type == "Dialog") {
         result = parseDialog(j, parent);
     } else if (type == "MenuBar") {
-        result = parseMenuBar(j, parent);
+        // MenuBar 不加入控件树（会被父容器裁剪），独立存储后再由调用方加入 BENCH 顶层
+        auto menuBar = parseMenuBar(j, parent);
+        if (menuBar) {
+            m_menuBars.push_back(menuBar);
+        }
+        result = nullptr;
+        popJsonPath();
+        return nullptr;
     } else {
         logWarn("unknown control type \"" + type + "\", skipping");
         popJsonPath();
@@ -646,7 +658,8 @@ shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
         yScale = j["scale"].value("y", 1.0f);
     }
 
-    auto menuBar = make_shared<MenuBar>(parent, xScale, yScale);
+    // 使用 nullptr parent：MenuBar 独立于控件树，调用方负责添加到 BENCH 顶层
+    auto menuBar = make_shared<MenuBar>(nullptr, xScale, yScale);
 
     parseCommonProperties(menuBar, j);
 

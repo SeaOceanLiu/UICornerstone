@@ -42,12 +42,15 @@ public:
     void unregisterHandler(const string& name);
     void clearHandlers();
 
+    const vector<shared_ptr<MenuBar>>& getMenuBars() const;
+
     void clear();
     void reset();
 
 private:
     unordered_map<string, shared_ptr<Control>> m_controlsById;
     unordered_map<string, function<void(shared_ptr<Control>)>> m_handlers;
+    vector<shared_ptr<MenuBar>> m_menuBars;
 
     int m_currentLineNo;
     string m_currentJsonPath;

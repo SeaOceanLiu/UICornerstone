@@ -107,6 +107,12 @@ void testBenchInitialize(void) {
     if (root != nullptr) {
         BENCH->addControl(root);
 
+        // MenuBar 独立于控件树，添加到 BENCH 顶层确保绘制在最上方
+        const auto& menuBars = g_parser.getMenuBars();
+        for (const auto& menuBar : menuBars) {
+            BENCH->addControl(menuBar);
+        }
+
         shared_ptr<Control> found = g_parser.findControlById("nameEdit");
         if (found != nullptr) {
             shared_ptr<EditBox> editBox = dynamic_pointer_cast<EditBox>(found);
@@ -154,17 +160,13 @@ void testBenchInitialize(void) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: captionLabelBtn not found!");
         }
 
-        auto menuBarCtrl = g_parser.findControlById("mainMenuBar");
-        if (menuBarCtrl) {
-            shared_ptr<MenuBar> menuBar = dynamic_pointer_cast<MenuBar>(menuBarCtrl);
-            if (menuBar) {
-                SDL_Log("MenuBar parsed from JSON: id=mainMenuBar, barHeight=%f, fontSize=%f",
-                    menuBar->getBarHeight(), MenuBar::getFontSize());
-            } else {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "mainMenuBar: dynamic_pointer_cast<MenuBar> failed!");
-            }
+        const auto& menuBarsVerification = g_parser.getMenuBars();
+        if (!menuBarsVerification.empty()) {
+            auto menuBar = menuBarsVerification[0];
+            SDL_Log("MenuBar parsed from JSON: barHeight=%f, fontSize=%f, menuCount=%zu",
+                menuBar->getBarHeight(), MenuBar::getFontSize(), menuBars.size());
         } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: mainMenuBar not found!");
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "getMenuBars() returned empty!");
         }
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");

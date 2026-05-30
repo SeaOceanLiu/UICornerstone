@@ -36,11 +36,12 @@
     └─ 内部状态
         ├─ m_controlsById     — ID → 控件映射
         ├─ m_handlers         — handler 名称 → 函数映射
+        ├─ m_menuBars         — MenuBar 独立列表（不加入控件树，避免被裁剪）
         ├─ m_currentLineNo    — 当前解析的 JSON 行号 (nlohmann/json 的 get_token_start_location)
         └─ m_currentJsonPath  — 当前解析的 JSON 路径 (如 "controls[2].children[1].rect")
              ↓
-       控件树 (Control Tree)
-        ├─ Panel (顶层容器)
+       控件树 (Control Tree)       独立顶层控件 (直接加入 BENCH)
+        ├─ Panel (顶层容器)          └─ MenuBar ← 绘制在控件树上层
     │   ├─ Label
     │   ├─ Button
     │   ├─ EditBox
@@ -580,6 +581,9 @@ MenuBar 继承自 ControlImpl，不通过 rect 定位（auto-width 通过 setPar
 - `type` 为 `"Separator"` → 分隔线（忽略其他字段）
 - 存在 `items` 数组且非空 → SubMenu 类型（自动递归解析下级菜单）
 - `caption` 支持 Unicode/UTF-8，如 `"文件(F)"`
+
+**Z-ordering 保障**：
+MenuBar 解析后不加入父容器的子控件列表，而是独立存储在 `LayoutParser::m_menuBars` 中。调用方通过 `getMenuBars()` 获取后，在添加完所有普通控件之后再一次性 `BENCH->addControl(menuBar)`。由于 BENCH 按添加顺序绘制（后添加的绘制在上层），MenuBar 始终绘制在控件树的最顶层，其弹出的下拉菜单不会被其他控件遮挡。
 
 ### 4.6 完整示例配置
 
