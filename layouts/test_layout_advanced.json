@@ -465,6 +465,31 @@
                         "background": { "normal": "#E06060FF" },
                         "text": { "normal": "#FFFFFFFF" }
                     }
+                },
+                {
+                    "type": "Label",
+                    "id": "themeTitle",
+                    "rect": { "x": "2%", "y": 980, "w": "96%", "h": 24 },
+                    "caption": "--- 全局主题演示 (以下控件无显式颜色，使用 theme 默认值) ---",
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn1",
+                    "rect": { "x": "2%", "y": 1010, "w": "30%", "h": 36 },
+                    "caption": "主题按钮 A"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn2",
+                    "rect": { "x": "34%", "y": 1010, "w": "30%", "h": 36 },
+                    "caption": "主题按钮 B"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn3",
+                    "rect": { "x": "66%", "y": 1010, "w": "32%", "h": 36 },
+                    "caption": "主题按钮 C"
                 }
             ]
         }
