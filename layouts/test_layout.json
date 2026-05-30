@@ -4,15 +4,52 @@
         {
             "type": "Panel",
             "id": "mainPanel",
-            "rect": { "x": 0, "y": 0, "w": 800, "h": 600 },
+            "rect": { "x": 0, "y": 0, "w": 800, "h": 640 },
             "colors": {
                 "background": { "normal": "#282828FF" }
             },
             "children": [
                 {
+                    "type": "MenuBar",
+                    "id": "mainMenuBar",
+                    "font": { "size": 16 },
+                    "menus": [
+                        {
+                            "caption": "文件(F)",
+                            "items": [
+                                { "caption": "新建", "shortcut": "Ctrl+N", "events": { "onClick": "onMenuNew" } },
+                                { "caption": "打开", "shortcut": "Ctrl+O", "events": { "onClick": "onMenuOpen" } },
+                                { "type": "Separator" },
+                                {
+                                    "caption": "最近文件",
+                                    "items": [
+                                        { "caption": "file1.txt", "events": { "onClick": "onMenuRecent" } },
+                                        { "caption": "file2.txt", "events": { "onClick": "onMenuRecent" } }
+                                    ]
+                                },
+                                { "type": "Separator" },
+                                { "caption": "退出", "shortcut": "Alt+F4", "events": { "onClick": "onMenuExit" } }
+                            ]
+                        },
+                        {
+                            "caption": "编辑(E)",
+                            "items": [
+                                { "caption": "撤销", "shortcut": "Ctrl+Z", "events": { "onClick": "onMenuUndo" } },
+                                { "caption": "重做", "shortcut": "Ctrl+Y", "events": { "onClick": "onMenuRedo" } }
+                            ]
+                        },
+                        {
+                            "caption": "帮助(H)",
+                            "items": [
+                                { "caption": "关于", "events": { "onClick": "onMenuAbout" } }
+                            ]
+                        }
+                    ]
+                },
+                {
                     "type": "Label",
                     "id": "titleLabel",
-                    "rect": { "x": 0, "y": 20, "w": 800, "h": 40 },
+                    "rect": { "x": 0, "y": 52, "w": 800, "h": 40 },
                     "caption": "Layout Configuration Test",
                     "alignment": "CENTER",
                     "font": {
@@ -30,7 +67,7 @@
                 {
                     "type": "Panel",
                     "id": "formPanel",
-                    "rect": { "x": 50, "y": 80, "w": 400, "h": 200 },
+                    "rect": { "x": 50, "y": 112, "w": 400, "h": 200 },
                     "colors": {
                         "border": { "normal": "#808080FF" }
                     },
@@ -92,7 +129,7 @@
                 {
                     "type": "Panel",
                     "id": "previewPanel",
-                    "rect": { "x": 500, "y": 80, "w": 250, "h": 200 },
+                    "rect": { "x": 500, "y": 112, "w": 250, "h": 200 },
                     "colors": {
                         "border": { "normal": "#808080FF" }
                     },
@@ -126,7 +163,7 @@
                 {
                     "type": "Label",
                     "id": "statusLabel",
-                    "rect": { "x": 0, "y": 560, "w": 800, "h": 25 },
+                    "rect": { "x": 0, "y": 592, "w": 800, "h": 25 },
                     "caption": "Status: Ready",
                     "alignment": "TOP_LEFT",
                     "font": { "size": 14 },
@@ -137,7 +174,7 @@
                 {
                     "type": "Label",
                     "id": "colorTestLabel",
-                    "rect": { "x": 50, "y": 320, "w": 200, "h": 30 },
+                    "rect": { "x": 50, "y": 352, "w": 200, "h": 30 },
                     "caption": "Object format color",
                     "alignment": "MID_LEFT",
                     "font": { "size": 14 },
@@ -149,7 +186,7 @@
                 {
                     "type": "Label",
                     "id": "scaledLabel",
-                    "rect": { "x": 400, "y": 320, "w": 100, "h": 30 },
+                    "rect": { "x": 400, "y": 352, "w": 100, "h": 30 },
                     "scale": { "x": 2.0, "y": 2.0 },
                     "caption": "2x Scaled",
                     "alignment": "CENTER",
@@ -165,7 +202,7 @@
                 {
                     "type": "Label",
                     "id": "phase2Title",
-                    "rect": { "x": 0, "y": 370, "w": 800, "h": 25 },
+                    "rect": { "x": 0, "y": 402, "w": 800, "h": 25 },
                     "caption": "--- Phase 2 Controls ---",
                     "alignment": "CENTER",
                     "font": { "size": 14, "style": "BOLD" },
@@ -176,7 +213,7 @@
                 {
                     "type": "TextArea",
                     "id": "notesTextArea",
-                    "rect": { "x": 20, "y": 400, "w": 200, "h": 80 },
+                    "rect": { "x": 20, "y": 432, "w": 200, "h": 80 },
                     "placeholder": "Multi-line notes...",
                     "wordWrap": true,
                     "font": { "size": 12 },
@@ -191,7 +228,7 @@
                 {
                     "type": "CheckBox",
                     "id": "agreeCheck",
-                    "rect": { "x": 240, "y": 400, "w": 180, "h": 30 },
+                    "rect": { "x": 240, "y": 432, "w": 180, "h": 30 },
                     "caption": "I agree",
                     "captionSize": 14,
                     "checkState": "Unchecked",
@@ -204,7 +241,7 @@
                 {
                     "type": "CheckBox",
                     "id": "optionCheck",
-                    "rect": { "x": 240, "y": 430, "w": 180, "h": 30 },
+                    "rect": { "x": 240, "y": 462, "w": 180, "h": 30 },
                     "caption": "Enable option",
                     "captionSize": 14,
                     "checkState": "Checked",
@@ -214,7 +251,7 @@
                 {
                     "type": "ProgressBar",
                     "id": "loadProgress",
-                    "rect": { "x": 440, "y": 400, "w": 200, "h": 25 },
+                    "rect": { "x": 440, "y": 432, "w": 200, "h": 25 },
                     "value": 65,
                     "range": { "min": 0, "max": 100 },
                     "style": "Horizontal",
@@ -227,7 +264,7 @@
                 {
                     "type": "ProgressBar",
                     "id": "vertProgress",
-                    "rect": { "x": 660, "y": 400, "w": 20, "h": 80 },
+                    "rect": { "x": 660, "y": 432, "w": 20, "h": 80 },
                     "value": 75,
                     "range": { "min": 0, "max": 100 },
                     "style": "Vertical",
@@ -240,7 +277,7 @@
                 {
                     "type": "ScrollBar",
                     "id": "hScroll",
-                    "rect": { "x": 440, "y": 440, "w": 200, "h": 16 },
+                    "rect": { "x": 440, "y": 472, "w": 200, "h": 16 },
                     "orientation": "Horizontal",
                     "value": 30,
                     "range": { "min": 0, "max": 100 },
@@ -250,7 +287,7 @@
                 {
                     "type": "ScrollBar",
                     "id": "vScroll",
-                    "rect": { "x": 700, "y": 370, "w": 16, "h": 110 },
+                    "rect": { "x": 700, "y": 402, "w": 16, "h": 110 },
                     "orientation": "Vertical",
                     "value": 50,
                     "range": { "min": 0, "max": 200 },
@@ -260,7 +297,7 @@
                 {
                     "type": "Button",
                     "id": "imageBtn",
-                    "rect": { "x": 20, "y": 500, "w": 160, "h": 40 },
+                    "rect": { "x": 20, "y": 532, "w": 160, "h": 40 },
                     "caption": "Image Button",
                     "captionSize": 14,
                     "actors": {
@@ -279,7 +316,7 @@
                 {
                     "type": "Button",
                     "id": "aniBtn",
-                    "rect": { "x": 200, "y": 500, "w": 100, "h": 40 },
+                    "rect": { "x": 200, "y": 532, "w": 100, "h": 40 },
                     "caption": "Animated",
                     "captionSize": 14,
                     "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
@@ -298,7 +335,7 @@
                 {
                     "type": "Button",
                     "id": "captionLabelBtn",
-                    "rect": { "x": 320, "y": 500, "w": 120, "h": 40 },
+                    "rect": { "x": 320, "y": 532, "w": 120, "h": 40 },
                     "captionLabel": {
                         "caption": "Styled",
                         "font": { "size": 18, "style": "BOLD" },

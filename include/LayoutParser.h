@@ -20,6 +20,7 @@
 #include "ScrollBar.h"
 #include "Panel.h"
 #include "Dialog.h"
+#include "Menu.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -69,6 +70,8 @@ private:
     shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
     shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);
+    shared_ptr<MenuBar>     parseMenuBar(const json& j, Control* parent);
+    void populateMenuPanel(shared_ptr<MenuPanel> panel, const json& items, float xScale, float yScale);
 
     void parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseEvents(shared_ptr<ControlImpl> ctrl, const json& j);

@@ -50,6 +50,38 @@ void onCaptionLabelBtnClick(shared_ptr<Control> c) {
     SDL_Log("CaptionLabel button clicked!");
 }
 
+// ===== Menu event handlers =====
+void onMenuNew(shared_ptr<Control> c) {
+    SDL_Log("Menu: New file");
+}
+
+void onMenuOpen(shared_ptr<Control> c) {
+    SDL_Log("Menu: Open file");
+}
+
+void onMenuRecent(shared_ptr<Control> c) {
+    SDL_Log("Menu: Recent file");
+}
+
+void onMenuExit(shared_ptr<Control> c) {
+    SDL_Log("Menu: Exit");
+    SDL_Event quitEvent;
+    quitEvent.type = SDL_EVENT_QUIT;
+    SDL_PushEvent(&quitEvent);
+}
+
+void onMenuUndo(shared_ptr<Control> c) {
+    SDL_Log("Menu: Undo");
+}
+
+void onMenuRedo(shared_ptr<Control> c) {
+    SDL_Log("Menu: Redo");
+}
+
+void onMenuAbout(shared_ptr<Control> c) {
+    SDL_Log("Menu: About");
+}
+
 void testBenchInitialize(void) {
     SDL_Log("testLayoutInitialize");
 
@@ -59,6 +91,13 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onImageBtnClick", onImageBtnClick);
     g_parser.registerHandler("onAniBtnClick", onAniBtnClick);
     g_parser.registerHandler("onCaptionLabelBtnClick", onCaptionLabelBtnClick);
+    g_parser.registerHandler("onMenuNew", onMenuNew);
+    g_parser.registerHandler("onMenuOpen", onMenuOpen);
+    g_parser.registerHandler("onMenuRecent", onMenuRecent);
+    g_parser.registerHandler("onMenuExit", onMenuExit);
+    g_parser.registerHandler("onMenuUndo", onMenuUndo);
+    g_parser.registerHandler("onMenuRedo", onMenuRedo);
+    g_parser.registerHandler("onMenuAbout", onMenuAbout);
 
     string basePath = string(SDL_GetBasePath());
     fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout.json";
@@ -113,6 +152,19 @@ void testBenchInitialize(void) {
             }
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: captionLabelBtn not found!");
+        }
+
+        auto menuBarCtrl = g_parser.findControlById("mainMenuBar");
+        if (menuBarCtrl) {
+            shared_ptr<MenuBar> menuBar = dynamic_pointer_cast<MenuBar>(menuBarCtrl);
+            if (menuBar) {
+                SDL_Log("MenuBar parsed from JSON: id=mainMenuBar, barHeight=%f, fontSize=%f",
+                    menuBar->getBarHeight(), MenuBar::getFontSize());
+            } else {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "mainMenuBar: dynamic_pointer_cast<MenuBar> failed!");
+            }
+        } else {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: mainMenuBar not found!");
         }
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");

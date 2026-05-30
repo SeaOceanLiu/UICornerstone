@@ -197,6 +197,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parsePanel(j, parent);
     } else if (type == "Dialog") {
         result = parseDialog(j, parent);
+    } else if (type == "MenuBar") {
+        result = parseMenuBar(j, parent);
     } else {
         logWarn("unknown control type \"" + type + "\", skipping");
         popJsonPath();
@@ -633,6 +635,121 @@ shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
     dialog->create();
     dialog->hide();
     return dialog;
+}
+
+// ==================== MenuBar ====================
+
+shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto menuBar = make_shared<MenuBar>(parent, xScale, yScale);
+
+    parseCommonProperties(menuBar, j);
+
+    // font.size (static global setting)
+    if (j.contains("font") && j["font"].is_object()) {
+        pushJsonPath("font");
+        if (j["font"].contains("size") && j["font"]["size"].is_number()) {
+            float fontSize = (float)j["font"]["size"].get<int>();
+            MenuBar::setFontSize(fontSize);
+            // auto-recalculate barHeight if not explicitly set
+            if (!j.contains("barHeight")) {
+                menuBar->setBarHeight(fontSize * 1.6f);
+            }
+        }
+        popJsonPath();
+    }
+
+    // barHeight (overrides auto-calculation from font.size)
+    if (j.contains("barHeight") && j["barHeight"].is_number()) {
+        menuBar->setBarHeight(j["barHeight"].get<float>());
+    }
+
+    // menus array
+    if (j.contains("menus") && j["menus"].is_array()) {
+        pushJsonPath("menus");
+        const json& menus = j["menus"];
+        for (size_t i = 0; i < menus.size(); ++i) {
+            const json& menuJson = menus[i];
+            string caption = menuJson.value("caption", "Menu");
+
+            if (menuJson.contains("items") && menuJson["items"].is_array()) {
+                auto panel = make_shared<MenuPanel>(nullptr, xScale, yScale);
+                populateMenuPanel(panel, menuJson["items"], xScale, yScale);
+                menuBar->addMenu(caption, panel);
+            } else {
+                pushJsonPath("menus[" + to_string(i) + "]");
+                logWarn("menu entry \"" + caption + "\" has no 'items' array, skipping");
+                popJsonPath();
+            }
+        }
+        popJsonPath();
+    }
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = menuBar;
+    }
+
+    return menuBar;
+}
+
+void LayoutParser::populateMenuPanel(shared_ptr<MenuPanel> panel, const json& items, float xScale, float yScale) {
+    for (const auto& itemJson : items) {
+        // Separator
+        if (itemJson.contains("type") && itemJson["type"].is_string() &&
+            itemJson["type"].get<string>() == "Separator") {
+            panel->addSeparator();
+            continue;
+        }
+
+        // Determine type: SubMenu if has nested "items"
+        MenuItemType type = MenuItemType::Normal;
+        if (itemJson.contains("items") && itemJson["items"].is_array()) {
+            type = MenuItemType::SubMenu;
+        }
+
+        auto item = make_shared<MenuItem>(panel.get(), type, xScale, yScale);
+
+        // Caption
+        if (itemJson.contains("caption") && itemJson["caption"].is_string()) {
+            item->setCaption(itemJson["caption"].get<string>());
+        }
+
+        // Shortcut
+        if (itemJson.contains("shortcut") && itemJson["shortcut"].is_string()) {
+            item->setShortcut(itemJson["shortcut"].get<string>());
+        }
+
+        // Checked
+        if (itemJson.contains("checked") && itemJson["checked"].is_boolean()) {
+            item->setChecked(itemJson["checked"].get<bool>());
+        }
+
+        // Enabled
+        if (itemJson.contains("enabled") && itemJson["enabled"].is_boolean()) {
+            item->setEnable(itemJson["enabled"].get<bool>());
+        }
+
+        // SubMenu (recursive)
+        if (itemJson.contains("items") && itemJson["items"].is_array()) {
+            auto subPanel = make_shared<MenuPanel>(nullptr, xScale, yScale);
+            populateMenuPanel(subPanel, itemJson["items"], xScale, yScale);
+            item->setSubMenu(subPanel);
+        }
+
+        // Events (onClick)
+        if (itemJson.contains("events") && itemJson["events"].is_object()) {
+            parseEvents(item, itemJson);
+        }
+
+        item->create();
+
+        panel->addItem(item);
+    }
 }
 
 // ==================== TextArea ====================
@@ -1081,6 +1198,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
                 auto handler = it->second;
                 sb->setOnPositionChanged([handler](float value, float min, float max) {
                     handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // MenuItem: onClick
+    if (auto mi = dynamic_pointer_cast<MenuItem>(ctrl)) {
+        if (events.contains("onClick") && events["onClick"].is_string()) {
+            string handlerName = events["onClick"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                mi->setOnClick([handler](shared_ptr<MenuItem> sender) {
+                    handler(sender);
                 });
             }
         }

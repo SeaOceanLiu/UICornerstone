@@ -378,7 +378,69 @@ auto menuBar = MenuBarBuilder(parent)
 | 字体 | **变更** - `HarmonyOS_Sans_SC_Regular` → `MapleMono_NF_CN_Regular` |
 | 箭头编码 | **修复** - `"\u25B6"` → `u8"\u25B6"`（避免 CP936 乱码） |
 
-## 7. 后续优化方向
+## 7. LayoutParser 集成
+
+### 7.1 JSON Schema
+
+MenuBar 已集成到 LayoutParser 中，支持通过 JSON 配置文件定义完整的菜单结构（含多级子菜单）。详见 `LayoutSystem_Design.md` 第 4.5 节的 MenuBar 章节。
+
+### 7.2 解析流程
+
+```
+parseControl(j, parent)
+  └─ type == "MenuBar"
+       → parseMenuBar(j, parent)
+            ├─ 创建 MenuBar(parent, xScale, yScale)
+            ├─ parseCommonProperties (visible/enabled)
+            ├─ font.size → MenuBar::setFontSize()
+            ├─ barHeight → setBarHeight()
+            ├─ menus 数组遍历
+            │    └─ 对每个菜单：
+            │         ├─ 创建 MenuPanel(nullptr, xScale, yScale)
+            │         ├─ populateMenuPanel(panel, items)
+            │         │    └─ 遍历 items 数组：
+            │         │         ├─ Separator → panel->addSeparator()
+            │         │         ├─ Normal → create MenuItem + setCaption/setShortcut/setChecked
+            │         │         ├─ SubMenu → create MenuItem + 递归 populateMenuPanel → setSubMenu
+            │         │         └─ events.onClick → parseEvents → setOnClick
+            │         └─ menuBar->addMenu(caption, panel)
+            └─ 注册 ID
+```
+
+### 7.3 事件绑定
+
+菜单项的点击事件通过标准 LayoutParser 事件系统处理：
+
+```cpp
+// C++ 注册事件处理器
+g_parser.registerHandler("onMenuNew", [](shared_ptr<Control> c) {
+    SDL_Log("Menu: New file");
+});
+
+g_parser.registerHandler("onMenuExit", [](shared_ptr<Control> c) {
+    SDL_Log("Menu: Exit");
+    SDL_Event quitEvent;
+    quitEvent.type = SDL_EVENT_QUIT;
+    SDL_PushEvent(&quitEvent);
+});
+```
+
+```jsonc
+// JSON 绑定
+{ "caption": "新建", "shortcut": "Ctrl+N", "events": { "onClick": "onMenuNew" } }
+```
+
+- 处理器函数接收 `shared_ptr<Control>` 参数（可 `dynamic_pointer_cast<MenuItem>` 获取原类型）
+- 未注册的 handler 名称被静默忽略
+
+### 7.4 注意事项
+
+- `font.size` 设置影响所有菜单（`MenuBar::setFontSize()` 是静态全局方法）
+- MenuBar 不需要 `rect` 字段，其宽度继承自父容器，高度由 `barHeight` 或 font 自动计算
+- 菜单项与菜单栏不可独立在 JSON 中使用，必须作为 MenuBar 的子项
+- 子菜单使用递归解析，嵌套层级不限
+
+## 8. 后续优化方向
 
 - **动态字体切换**：为不同 DPI 场景自动调整字体大小
 - **动画过渡**：下拉菜单展开/收起动画
