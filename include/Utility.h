@@ -188,11 +188,17 @@ public:
     float top;
     float width;
     float height;
+    bool leftIsPct = false, topIsPct = false, widthIsPct = false, heightIsPct = false;
+    float leftPct = 0, topPct = 0, widthPct = 0, heightPct = 0;
     SRect():left(0), top(0), width(0), height(0){}
     SRect(SPoint p, SSize s):left(p.x), top(p.y), width(s.width), height(s.height){ normalize(); }
     SRect(float l, float t, float w, float h):left(l), top(t), width(w), height(h){ normalize(); }
-    SRect(const SRect& r):left(r.left), top(r.top), width(r.width), height(r.height){ normalize(); }
-    SRect(const SRect&& r):left(r.left), top(r.top), width(r.width), height(r.height){ normalize(); }
+    SRect(const SRect& r):left(r.left), top(r.top), width(r.width), height(r.height),
+        leftIsPct(r.leftIsPct), topIsPct(r.topIsPct), widthIsPct(r.widthIsPct), heightIsPct(r.heightIsPct),
+        leftPct(r.leftPct), topPct(r.topPct), widthPct(r.widthPct), heightPct(r.heightPct){ normalize(); }
+    SRect(const SRect&& r):left(r.left), top(r.top), width(r.width), height(r.height),
+        leftIsPct(r.leftIsPct), topIsPct(r.topIsPct), widthIsPct(r.widthIsPct), heightIsPct(r.heightIsPct),
+        leftPct(r.leftPct), topPct(r.topPct), widthPct(r.widthPct), heightPct(r.heightPct){ normalize(); }
     SRect(const SPoint& leftTop, const SPoint rightBottom):left(leftTop.x), top(leftTop.y), width(rightBottom.x - leftTop.x), height(rightBottom.y - leftTop.y){ normalize(); }
     // 标准化矩形，使得width和height为正值
     SRect& normalize(void){
@@ -211,6 +217,10 @@ public:
         top = r.top;
         width = r.width;
         height = r.height;
+        leftIsPct = r.leftIsPct; topIsPct = r.topIsPct;
+        widthIsPct = r.widthIsPct; heightIsPct = r.heightIsPct;
+        leftPct = r.leftPct; topPct = r.topPct;
+        widthPct = r.widthPct; heightPct = r.heightPct;
         return normalize();
     }
     SRect& operator=(const SRect&& r){
@@ -218,6 +228,10 @@ public:
         top = r.top;
         width = r.width;
         height = r.height;
+        leftIsPct = r.leftIsPct; topIsPct = r.topIsPct;
+        widthIsPct = r.widthIsPct; heightIsPct = r.heightIsPct;
+        leftPct = r.leftPct; topPct = r.topPct;
+        widthPct = r.widthPct; heightPct = r.heightPct;
         return normalize();
     }
     bool operator==(const SRect& r) const {
@@ -253,6 +267,12 @@ public:
     }
     SPoint center(void) const {
         return SPoint(left + width / 2, top + height / 2);
+    }
+    void resolve(float cw, float ch){
+        if (leftIsPct) left = cw * leftPct / 100.0f;
+        if (topIsPct) top = ch * topPct / 100.0f;
+        if (widthIsPct) width = cw * widthPct / 100.0f;
+        if (heightIsPct) height = ch * heightPct / 100.0f;
     }
 };
 

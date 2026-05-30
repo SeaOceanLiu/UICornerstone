@@ -690,8 +690,11 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
             }
         }
 
+        panel->resolveChildPercentages();
         panel->reflowChildren();
         popJsonPath();
+    } else {
+        panel->resolveChildPercentages();
     }
 
     panel->create();
@@ -1347,10 +1350,29 @@ SRect LayoutParser::parseRect(const json& j) {
         return rect;
     }
 
-    rect.left   = j.value("x", 0.0f);
-    rect.top    = j.value("y", 0.0f);
-    rect.width  = j.value("w", 0.0f);
-    rect.height = j.value("h", 0.0f);
+    auto parseField = [&](const string& key, float& pixel, bool& isPct, float& pct, float defaultVal) {
+        if (!j.contains(key)) {
+            pixel = defaultVal;
+            return;
+        }
+        const json& v = j[key];
+        if (v.is_string()) {
+            string s = v.get<string>();
+            if (s.size() > 1 && s.back() == '%') {
+                isPct = true;
+                pct = stof(s.substr(0, s.size() - 1));
+                return;
+            }
+        }
+        if (v.is_number()) {
+            pixel = v.get<float>();
+        }
+    };
+
+    parseField("x", rect.left,   rect.leftIsPct,   rect.leftPct,   0.0f);
+    parseField("y", rect.top,    rect.topIsPct,    rect.topPct,    0.0f);
+    parseField("w", rect.width,  rect.widthIsPct,  rect.widthPct,  0.0f);
+    parseField("h", rect.height, rect.heightIsPct, rect.heightPct, 0.0f);
 
     vector<string> missing;
     if (!j.contains("x")) missing.push_back("x");

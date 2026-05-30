@@ -104,7 +104,7 @@
 | HFlow / VFlow 布局 | 流式布局引擎                                  | ✅   |
 | Anchor 布局        | 锚点布局引擎                                  | ✅   |
 | Grid 布局          | 网格布局引擎                                  | ✅   |
-| 百分比尺寸         | 如`"w": "50%"`                                | ⬜   |
+| 百分比尺寸         | 如`"w": "50%"`，相对父容器自动计算实际尺寸    | ✅   |
 | 窗口 resize 响应   | Panel 自身 rect 变化时自动重排子控件          | ✅   |
 | 热加载             | 文件变化监听 → 自动重建控件树                | ⬜   |
 | 全局主题系统       | theme 继承与覆盖                              | ⬜   |
@@ -860,10 +860,11 @@ Panel (继承 ControlImpl)
 #### 4.9.7 注意事项
 
 1. **布局触发的时机**：`reflowChildren()` 需要在 `panel->create()` 之前调用。在 LayoutParser 中，解析完所有子控件和 layout 配置后，先调用 `reflowChildren()` 设定子控件 rect，再调用 `panel->create()`。
-2. **响应式重排**：重排自动在两种情况下触发：① `Panel::setRect()` 被调用时（父容器布局引擎或外部代码调整了该 Panel 的尺寸）→ auto-reflowChildren()；② `Panel::resized()` 被调用时（窗口 resize 事件→Bench 收到新尺寸）→ reflowChildren()。注意：resize 事件不会自动传播到子控件——必须有**父容器的布局引擎**调用子控件的 `setRect()`，子控件的 auto-reflow 才生效。若根 Panel（如 rootPanel）没有 layout engine，其子控件不会收到新尺寸，从而不会重排。
-3. **坐标系统**：布局引擎计算的子控件坐标是相对容器的本地坐标（从 `(0,0)` 开始），与 UI 框架的父子坐标约定一致。
-4. **初始 rect**：子控件的初始 `rect` 只用于固定尺寸子控件的尺寸读取，弹性子控件的 `rect.w`（VFlow 为 `rect.h`）会被布局引擎覆盖。
-5. **可见性**：布局引擎自动跳过 `getVisible() == false` 的子控件。
+2. **响应式重排**：重排自动在两种情况下触发：① `Panel::setRect()` 被调用时（父容器布局引擎或外部代码调整了该 Panel 的尺寸）→ auto-reflowChildren()；② `Panel::resized()` 被调用时（窗口 resize 事件→Bench 收到新尺寸）→ reflowChildren() + resolveChildPercentages()。注意：resize 事件会自动传播到 **Bench 的直接子 Panel**，然后由子 Panel 的 `resized()` 解析百分比子控件。但不会递归传播到孙子 Panel（它们需要父容器布局引擎通过 `setRect()` 分配新尺寸）。
+3. **百分比尺寸**：rect 的 `x/y/w/h` 支持百分比字符串值（如 `"50%"`），相对父容器的对应尺寸计算实际像素值。百分比值存储在 `SRect` 的 `xIsPct/xPct` 等字段中，在 `Panel::resolveChildPercentages()` 中根据父容器 rect 解析为像素值。百分比解析在初始化和窗口 resize 时各执行一次。
+4. **坐标系统**：布局引擎计算的子控件坐标是相对容器的本地坐标（从 `(0,0)` 开始），与 UI 框架的父子坐标约定一致。
+5. **初始 rect**：子控件的初始 `rect` 只用于固定尺寸子控件的尺寸读取，弹性子控件的 `rect.w`（VFlow 为 `rect.h`）会被布局引擎覆盖。
+6. **可见性**：布局引擎自动跳过 `getVisible() == false` 的子控件。
 
 #### 4.9.8 Anchor 布局（锚点布局）
 

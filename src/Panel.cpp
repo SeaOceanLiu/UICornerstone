@@ -39,8 +39,18 @@ void Panel::reflowChildren() {
     }
 }
 
+void Panel::resolveChildPercentages() {
+    for (auto& child : m_children) {
+        if (!child->getVisible()) continue;
+        SRect childRect = child->getRect();
+        childRect.resolve(m_rect.width, m_rect.height);
+        child->setRect(childRect);
+    }
+}
+
 void Panel::setRect(SRect rect) {
     ControlImpl::setRect(rect);
+    resolveChildPercentages();
     if (m_layoutEngine) {
         reflowChildren();
     }
@@ -48,6 +58,7 @@ void Panel::setRect(SRect rect) {
 
 void Panel::resized(SRect newRect) {
     ControlImpl::resized(newRect);
+    resolveChildPercentages();
     reflowChildren();
 }
 

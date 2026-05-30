@@ -1,6 +1,6 @@
 {
     "version": "1.0",
-    "viewport": { "width": 800, "height": 900 },
+    "viewport": { "width": 800, "height": 1000 },
     "theme": {
         "fonts": {
             "default": "HarmonyOS_Sans_SC_Regular",
@@ -17,7 +17,7 @@
         {
             "type": "Panel",
             "id": "rootPanel",
-            "rect": { "x": 0, "y": 0, "w": 800, "h": 900 },
+            "rect": { "x": 0, "y": 0, "w": 800, "h": 1000 },
             "colors": {
                 "background": { "normal": "#282828FF" }
             },
@@ -407,6 +407,25 @@
                             }
                         }
                     ]
+                },
+                {
+                    "type": "Label",
+                    "id": "pctTitle",
+                    "rect": { "x": "2%", "y": 900, "w": "96%", "h": 24 },
+                    "caption": "--- 百分比尺寸: (x:2%, w:96%) 窗口拉宽后自动变宽 ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Button",
+                    "id": "pctBtn",
+                    "rect": { "x": "2%", "y": 930, "w": "96%", "h": 40 },
+                    "caption": "宽度=96% × 窗口宽，拉宽窗口试试",
+                    "captionSize": 14,
+                    "colors": {
+                        "background": { "normal": "#E06060FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
                 }
             ]
         }
