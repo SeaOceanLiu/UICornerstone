@@ -29,6 +29,10 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
         return nullptr;
     }
 
+    if (j.contains("theme") && j["theme"].is_object()) {
+        m_theme.parse(j["theme"]);
+    }
+
     if (!j.contains("controls") || !j["controls"].is_array()) {
         logError("'controls' array is required");
         return nullptr;
@@ -237,6 +241,8 @@ shared_ptr<Label> LayoutParser::parseLabel(const json& j, Control* parent) {
 
     auto label = make_shared<Label>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(label, "label");
+    m_theme.applyFont(label, "label");
     parseCommonProperties(label, j);
 
     // caption
@@ -326,6 +332,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
 
     auto btn = make_shared<Button>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(btn, "button");
     parseCommonProperties(btn, j);
 
     // captionLabel embedding (Phase 2): 使用完整 Label 配置
@@ -335,6 +342,9 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         const json& cl = j["captionLabel"];
 
         auto builder = LabelBuilder(btn.get(), SRect(0, 0, rect.width, rect.height));
+
+        builder.setFont(m_theme.getFontName("button"));
+        builder.setFontSize(m_theme.getFontSize("button"));
 
         if (cl.contains("caption") && cl["caption"].is_string()) {
             builder.setCaption(cl["caption"].get<string>());
@@ -386,6 +396,11 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         popJsonPath();
     } else {
         // 简单方式 (Phase 1): 仅 caption / captionSize / enableTextShadow
+        int themeFontSize = m_theme.getFontSize("button");
+        if (themeFontSize != 16) {
+            btn->setCaptionSize((float)themeFontSize);
+        }
+
         if (j.contains("caption") && j["caption"].is_string()) {
             btn->setCaption(j["caption"].get<string>());
         }
@@ -526,6 +541,9 @@ shared_ptr<EditBox> LayoutParser::parseEditBox(const json& j, Control* parent) {
 
     auto editBox = make_shared<EditBox>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(editBox, "editbox");
+    editBox->setFont(m_theme.getFontName("editbox"));
+    editBox->setFontSize(m_theme.getFontSize("editbox"));
     parseCommonProperties(editBox, j);
 
     if (j.contains("text") && j["text"].is_string()) {
@@ -592,6 +610,7 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
 
     auto panel = make_shared<Panel>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(panel, "panel");
     parseCommonProperties(panel, j);
 
     if (j.contains("transparent") && j["transparent"].is_boolean()) {
@@ -749,6 +768,7 @@ shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
     // 使用 nullptr parent：MenuBar 独立于控件树，调用方负责添加到 BENCH 顶层
     auto menuBar = make_shared<MenuBar>(nullptr, xScale, yScale);
 
+    m_theme.applyCommonColors(menuBar, "menubar");
     parseCommonProperties(menuBar, j);
 
     // font.size (static global setting)
@@ -868,6 +888,9 @@ shared_ptr<TextArea> LayoutParser::parseTextArea(const json& j, Control* parent)
 
     auto textArea = make_shared<TextArea>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(textArea, "textarea");
+    textArea->setFont(m_theme.getFontName("textarea"));
+    textArea->setFontSize(m_theme.getFontSize("textarea"));
     parseCommonProperties(textArea, j);
 
     if (j.contains("text") && j["text"].is_string()) {
@@ -958,11 +981,15 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
 
     auto checkBox = make_shared<CheckBox>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(checkBox, "checkbox");
     parseCommonProperties(checkBox, j);
 
     if (j.contains("caption") && j["caption"].is_string()) {
         checkBox->getCaption()->setCaption(j["caption"].get<string>());
     }
+
+    int cbFontSize = m_theme.getFontSize("checkbox");
+    checkBox->getCaption()->setFontSize(cbFontSize);
 
     if (j.contains("captionSize") && j["captionSize"].is_number()) {
         checkBox->getCaption()->setFontSize(j["captionSize"].get<int>());
@@ -992,7 +1019,21 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
         checkBox->setTriStateEnabled(j["triState"].get<bool>());
     }
 
-    // CheckBox-specific colors
+    // Theme CheckBox-specific colors (defaults)
+    SDL_Color themeCheck;
+    if (m_theme.getColorOpt("colors.checkbox.check", themeCheck))
+        checkBox->setCheckColor(themeCheck);
+    SDL_Color themeCross;
+    if (m_theme.getColorOpt("colors.checkbox.cross", themeCross))
+        checkBox->setCrossColor(themeCross);
+    SDL_Color themeIndet;
+    if (m_theme.getColorOpt("colors.checkbox.indeterminate", themeIndet))
+        checkBox->setIndeterminateColor(themeIndet);
+    SDL_Color themeBoxBorder;
+    if (m_theme.getColorOpt("colors.checkbox.boxBorder", themeBoxBorder))
+        checkBox->setBoxBorderColor(themeBoxBorder);
+
+    // CheckBox-specific colors (JSON overrides)
     if (j.contains("colors") && j["colors"].is_object()) {
         const json& colors = j["colors"];
         if (colors.contains("checkColor")) {
@@ -1045,6 +1086,9 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
 
     auto progressBar = make_shared<ProgressBar>(parent, rect, xScale, yScale);
 
+    m_theme.applyCommonColors(progressBar, "progressbar");
+    progressBar->setFont(m_theme.getFontName("progressbar"));
+    progressBar->setFontSize(m_theme.getFontSize("progressbar"));
     parseCommonProperties(progressBar, j);
 
     if (j.contains("value") && j["value"].is_number()) {
@@ -1089,7 +1133,15 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
         progressBar->setAlignmentMode(parseAlignment(j["alignment"].get<string>()));
     }
 
-    // ProgressBar-specific colors
+    // Theme ProgressBar-specific colors (defaults)
+    SDL_Color themeProgress;
+    if (m_theme.getColorOpt("colors.progressbar.progress", themeProgress))
+        progressBar->setProgressColor(themeProgress);
+    SDL_Color themeTrack;
+    if (m_theme.getColorOpt("colors.progressbar.track", themeTrack))
+        progressBar->setBackgroundColor(themeTrack);
+
+    // ProgressBar-specific colors (JSON overrides)
     if (j.contains("colors") && j["colors"].is_object()) {
         const json& colors = j["colors"];
         if (colors.contains("progressColor")) {
@@ -1135,6 +1187,7 @@ shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* paren
 
     auto scrollBar = make_shared<ScrollBar>(parent, rect, orientation, xScale, yScale);
 
+    m_theme.applyCommonColors(scrollBar, "scrollbar");
     parseCommonProperties(scrollBar, j);
 
     if (j.contains("value") && j["value"].is_number()) {

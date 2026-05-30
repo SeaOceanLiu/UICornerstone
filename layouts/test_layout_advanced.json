@@ -2,15 +2,54 @@
     "version": "1.0",
     "viewport": { "width": 800, "height": 1000 },
     "theme": {
-        "fonts": {
-            "default": "HarmonyOS_Sans_SC_Regular",
-            "size": 16,
-            "style": "NORMAL"
-        },
         "colors": {
-            "background": "#282828FF",
-            "text":       "#FFFFFFFF",
-            "border":     "#808080FF"
+            "window": {
+                "bg": { "normal": "#282828FF" }
+            },
+            "panel": {
+                "bg": { "normal": "#282828FF" },
+                "border": { "normal": "#505050FF" }
+            },
+            "label": {
+                "bg": { "normal": "#282828FF" },
+                "text": { "normal": "#DDDDDDFF" }
+            },
+            "button": {
+                "bg": { "normal": "#3C3C3CFF", "hover": "#4C4C4CFF", "pressed": "#2C2C2CFF", "disabled": "#282828FF" },
+                "border": { "normal": "#505050FF" },
+                "text": { "normal": "#FFFFFFFF" }
+            },
+            "editbox": {
+                "bg": { "normal": "#1E1E1EFF" },
+                "border": { "normal": "#505050FF" },
+                "text": { "normal": "#FFFFFFFF" }
+            },
+            "checkbox": {
+                "text": { "normal": "#DDDDDDFF" },
+                "check": { "normal": "#00C853FF" },
+                "cross": { "normal": "#FF5252FF" },
+                "indeterminate": { "normal": "#9E9E9EFF" },
+                "boxBorder": { "normal": "#757575FF" }
+            },
+            "progressbar": {
+                "bg": { "normal": "#424242FF" },
+                "text": { "normal": "#FFFFFFFF" },
+                "border": { "normal": "#616161FF" },
+                "progress": "#66BB6AFF",
+                "track": "#333333FF"
+            },
+            "menubar": {
+                "bg": { "normal": "#1E1E1EFF" },
+                "text": { "normal": "#DDDDDDFF" },
+                "border": { "normal": "#424242FF" }
+            }
+        },
+        "fonts": {
+            "default": { "name": "HarmonyOS_Sans_SC_Regular", "size": 16 },
+            "button": { "size": 16 },
+            "label": { "size": 16 },
+            "editbox": { "size": 16 },
+            "progressbar": { "size": 16 }
         }
     },
     "controls": [

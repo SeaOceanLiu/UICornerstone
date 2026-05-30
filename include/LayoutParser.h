@@ -21,6 +21,7 @@
 #include "Panel.h"
 #include "Dialog.h"
 #include "Menu.h"
+#include "Theme.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -48,6 +49,8 @@ public:
     void reset();
 
 private:
+    Theme m_theme;
+
     unordered_map<string, shared_ptr<Control>> m_controlsById;
     unordered_map<string, function<void(shared_ptr<Control>)>> m_handlers;
     vector<shared_ptr<MenuBar>> m_menuBars;

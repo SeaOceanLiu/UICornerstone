@@ -107,7 +107,7 @@
 | 百分比尺寸         | 如`"w": "50%"`，相对父容器自动计算实际尺寸    | ✅   |
 | 窗口 resize 响应   | Panel 自身 rect 变化时自动重排子控件          | ✅   |
 | 热加载             | 文件变化监听 → 自动重建控件树                | ⬜   |
-| 全局主题系统       | theme 继承与覆盖                              | ⬜   |
+| 全局主题系统       | theme 继承与覆盖                              | ✅   |
 | 数据绑定           | 控件属性绑定到数据源                          | ⬜   |
 
 ## 4. 配置文件格式设计
@@ -1931,6 +1931,98 @@ Margin LayoutParser::parseMargin(const json& j) {
     return margin;
 }
 ```
+
+## 5. 全局主题系统
+
+### 5.1 概述
+
+主题系统提供布局文件级别的颜色和字体默认值。每个布局文件的顶层 `"theme"` 块定义了按控件类型分类的默认样式，控件自己的 JSON 属性优先级高于主题。
+
+### 5.2 JSON 格式
+
+```json
+{
+    "theme": {
+        "colors": {
+            "button": {
+                "bg": { "normal": "#3C3C3CFF", "hover": "#4C4C4CFF", "pressed": "#2C2C2CFF" },
+                "border": { "normal": "#505050FF" },
+                "text": { "normal": "#FFFFFFFF" }
+            },
+            "label": {
+                "text": { "normal": "#DDDDDDFF" }
+            },
+            "checkbox": {
+                "text": { "normal": "#DDDDDDFF" },
+                "check": { "normal": "#00C853FF" },
+                "cross": { "normal": "#FF5252FF" },
+                "boxBorder": { "normal": "#757575FF" }
+            },
+            "progressbar": {
+                "progress": "#66BB6AFF",
+                "track": "#333333FF"
+            }
+        },
+        "fonts": {
+            "default": { "name": "HarmonyOS_Sans_SC_Regular", "size": 16 },
+            "button": { "size": 16 },
+            "label": { "size": 14 }
+        }
+    }
+}
+```
+
+### 5.3 控件类型与颜色属性映射
+
+| 控件 | Theme Category | 通用颜色属性 (StateColor) | 专用颜色属性 (plain SDL_Color) |
+|------|---------------|--------------------------|-------------------------------|
+| Button | `button` | bg, border, text, textShadow | — |
+| Label | `label` | bg, border, text, textShadow | — |
+| EditBox | `editbox` | bg, border, text, textShadow | — |
+| TextArea | `textarea` | bg, border, text, textShadow | — |
+| CheckBox | `checkbox` | bg, border, text, textShadow | check, cross, indeterminate, boxBorder |
+| ProgressBar | `progressbar` | bg, border, text, textShadow | progress, track |
+| Panel | `panel` | bg, border, text, textShadow | — |
+| ScrollBar | `scrollbar` | bg, border, text, textShadow | — |
+| MenuBar | `menubar` | bg, border, text, textShadow | — |
+
+### 5.4 应用顺序
+
+主题在布局解析时按以下顺序应用，后者的优先级高于前者：
+
+1. **Theme 默认值**（`Theme::applyCommonColors()` / `getFontSize()` / `getFontName()`）
+2. **公共 `colors` 属性**（`parseCommonProperties()` 中的 `colors.background/border/text/textShadow`）
+3. **控件专用颜色属性**（如 CheckBox 的 `colors.checkColor`、ProgressBar 的 `colors.progressColor`）
+4. **控件专用字体属性**（各控件的 `font` 对象中的 `name/size`）
+
+### 5.5 Theme 类
+
+**位置**: `include/Theme.h`, `src/Theme.cpp`
+
+| 方法 | 说明 |
+|------|------|
+| `parse(json j)` | 从 JSON 对象加载主题 |
+| `has(path)` | 检查 `"colors.button.bg"` 这类点分隔路径是否存在 |
+| `getStateColor(path, type)` | 返回 StateColor（含 normal/hover/pressed/disabled 四态） |
+| `getColor(path)` / `getColorOpt(path, out)` | 返回单个 SDL_Color |
+| `getFontName(category)` | 返回字体名称，`category` 为控件类型 |
+| `getFontSize(category)` | 返回字体大小，`category` 为控件类型 |
+| `applyCommonColors(ctrl, category)` | 将主题的 bg/border/text/textShadow 四态颜色应用到控件 |
+| `applyFont(label, category)` | 将主题字体应用到 Label 控件 |
+
+### 5.6 继承规则
+
+- 若某 `category` 的字体值未在主题中定义，则回退到 `"default"` 类别
+- 若 `"default"` 也未定义，回退到硬编码默认值：`FontName::HarmonyOS_Sans_SC_Regular` + size 16
+- 颜色没有继承回退——未在主题中定义的颜色保留控件的硬编码默认值
+
+### 5.7 相关文件
+
+- `include/Theme.h` — Theme 类声明
+- `src/Theme.cpp` — Theme 类实现（含独立颜色/字体解析，不依赖 LayoutParser 内部函数）
+- `include/LayoutParser.h` — 新增 `m_theme` 成员
+- `src/LayoutParser.cpp` — `parseLayout()` 中解析 theme block；每个 per-control parser 调用 `applyCommonColors()` 等
+- `layouts/test_layout_advanced.json` — 完整的 dark theme 演示（定义 button/label/editbox/checkbox/progressbar 等各控件默认颜色和字体）
 
 ## 6. 错误处理策略
 
