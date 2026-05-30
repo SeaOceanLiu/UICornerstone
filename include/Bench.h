@@ -47,6 +47,7 @@ public:
     void setOnInitial(OnInitialHandler handler);
 
     void resized(SRect newRect) override;
+    void addControl(shared_ptr<Control> control) override;
 
     void drawCenteredRectangle(SDL_Renderer* renderer, int windowWidth, int windowHeight);
 };

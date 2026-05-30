@@ -136,6 +136,14 @@ void Bench::resized(SRect newRect) {
     }
 }
 
+void Bench::addControl(shared_ptr<Control> control) {
+    Panel::addControl(control);
+    auto panel = dynamic_pointer_cast<Panel>(control);
+    if (panel) {
+        panel->resized(m_rect);
+    }
+}
+
 // Draw a centered rectangle
 void Bench::drawCenteredRectangle(SDL_Renderer* renderer, int windowWidth, int windowHeight) {
     // Calculate rectangle size (60% of window size)
