@@ -18,6 +18,7 @@ private:
     shared_ptr<LayoutEngine> m_layoutEngine;
     unordered_map<Control*, FlowItemProps> m_flowItemProps;
     unordered_map<Control*, AnchorInfo> m_anchorItemProps;
+    unordered_map<Control*, GridItemProps> m_gridItemProps;
 public:
     Panel(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
     void update(void) override;
@@ -30,6 +31,7 @@ public:
     shared_ptr<LayoutEngine> getLayoutEngine() const { return m_layoutEngine; }
     void setChildFlowProps(Control* child, FlowItemProps props) { m_flowItemProps[child] = props; }
     void setChildAnchorProps(Control* child, AnchorInfo props) { m_anchorItemProps[child] = props; }
+    void setChildGridProps(Control* child, GridItemProps props) { m_gridItemProps[child] = props; }
     void reflowChildren();
 };
 class PanelBuilder {

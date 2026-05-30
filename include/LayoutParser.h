@@ -87,6 +87,7 @@ private:
     FontName   parseFontName(const string& name);
     AlignmentMode parseAlignment(const string& align);
     TTF_FontStyleFlags parseFontStyle(const string& style);
+    GridSize parseGridSize(const json& j);
 };
 
 #endif

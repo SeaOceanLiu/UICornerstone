@@ -29,7 +29,10 @@ void Panel::addControl(shared_ptr<Control> control){
 
 void Panel::reflowChildren() {
     if (!m_layoutEngine) return;
-    if (m_layoutEngine->getType() == "Anchor") {
+    string type = m_layoutEngine->getType();
+    if (type == "Grid") {
+        m_layoutEngine->applyGrid(m_rect, m_children, m_gridItemProps);
+    } else if (type == "Anchor") {
         m_layoutEngine->applyAnchor(m_rect, m_children, m_anchorItemProps);
     } else {
         m_layoutEngine->apply(m_rect, m_children, m_flowItemProps);

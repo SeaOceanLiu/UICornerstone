@@ -1,6 +1,6 @@
 {
     "version": "1.0",
-    "viewport": { "width": 800, "height": 640 },
+    "viewport": { "width": 800, "height": 900 },
     "theme": {
         "fonts": {
             "default": "HarmonyOS_Sans_SC_Regular",
@@ -17,7 +17,7 @@
         {
             "type": "Panel",
             "id": "rootPanel",
-            "rect": { "x": 0, "y": 0, "w": 800, "h": 640 },
+            "rect": { "x": 0, "y": 0, "w": 800, "h": 900 },
             "colors": {
                 "background": { "normal": "#282828FF" }
             },
@@ -295,6 +295,114 @@
                             "captionSize": 12,
                             "colors": {
                                 "background": { "normal": "#60A0A0FF", "hover": "#70B0B0FF", "pressed": "#509090FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "id": "gridTitle",
+                    "rect": { "x": 10, "y": 640, "w": 780, "h": 24 },
+                    "caption": "--- Grid (网格布局: 列[1fr,2fr,100px] 行[30px,1fr,30px]) ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Panel",
+                    "id": "gridPanel",
+                    "rect": { "x": 10, "y": 670, "w": 780, "h": 200 },
+                    "bgColor": "#353535FF",
+                    "borderColor": "#606060FF",
+                    "layout": {
+                        "type": "Grid",
+                        "columns": ["1fr", "2fr", "100px"],
+                        "rows": ["30px", "1fr", "30px"],
+                        "gap": 4,
+                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+                    },
+                    "children": [
+                        {
+                            "type": "Button",
+                            "id": "grid0_0",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 0, "col": 0 },
+                            "caption": "(0,0)",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#E06060FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "gridSpan",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 0, "col": 1, "colSpan": 2 },
+                            "caption": "(0,1) span2",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#60A060FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "grid1_0",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 1, "col": 0 },
+                            "caption": "(1,0)",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#6080C0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "grid1_1",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 1, "col": 1 },
+                            "caption": "(1,1) mid",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#C0A060FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "gridSpan2",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 1, "col": 2, "rowSpan": 2 },
+                            "caption": "(1,2)\nrowSpan2",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#A060C0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "grid2_0",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 2, "col": 0 },
+                            "caption": "(2,0)",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#60A0A0FF" },
+                                "text": { "normal": "#FFFFFFFF" }
+                            }
+                        },
+                        {
+                            "type": "Button",
+                            "id": "grid2_1",
+                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+                            "grid": { "row": 2, "col": 1 },
+                            "caption": "(2,1)",
+                            "captionSize": 12,
+                            "colors": {
+                                "background": { "normal": "#C06080FF" },
                                 "text": { "normal": "#FFFFFFFF" }
                             }
                         }

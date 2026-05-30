@@ -637,6 +637,23 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
             engine = make_shared<VFlowLayout>(gap, padding);
         } else if (layoutType == "Anchor") {
             engine = make_shared<AnchorLayout>(padding);
+        } else if (layoutType == "Grid") {
+            auto gridEngine = make_shared<GridLayout>(gap, padding);
+            if (layoutJson.contains("columns") && layoutJson["columns"].is_array()) {
+                vector<GridSize> cols;
+                for (const auto& c : layoutJson["columns"]) {
+                    cols.push_back(parseGridSize(c));
+                }
+                gridEngine->setColumns(cols);
+            }
+            if (layoutJson.contains("rows") && layoutJson["rows"].is_array()) {
+                vector<GridSize> rows;
+                for (const auto& r : layoutJson["rows"]) {
+                    rows.push_back(parseGridSize(r));
+                }
+                gridEngine->setRows(rows);
+            }
+            engine = gridEngine;
         } else {
             engine = make_shared<HFlowLayout>(gap, padding);
         }
@@ -660,6 +677,15 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
                         info.offset = parseMargin(children[i]["anchorOffset"]);
                     }
                     panel->setChildAnchorProps(panelChildren[i].get(), info);
+                }
+                if (children[i].contains("grid") && children[i]["grid"].is_object()) {
+                    const json& g = children[i]["grid"];
+                    GridItemProps props;
+                    props.row = g.value("row", 0);
+                    props.col = g.value("col", 0);
+                    props.rowSpan = g.value("rowSpan", 1);
+                    props.colSpan = g.value("colSpan", 1);
+                    panel->setChildGridProps(panelChildren[i].get(), props);
                 }
             }
         }
@@ -1486,4 +1512,27 @@ TTF_FontStyleFlags LayoutParser::parseFontStyle(const string& style) {
     if (it != styleMap.end()) return it->second;
 
     return TTF_STYLE_NORMAL;
+}
+
+GridSize LayoutParser::parseGridSize(const json& j) {
+    GridSize gs;
+    if (j.is_string()) {
+        string s = j.get<string>();
+        if (s == "auto") {
+            gs.type = GridSize::Auto;
+        } else if (s.size() > 2 && s.substr(s.size() - 2) == "fr") {
+            gs.type = GridSize::Flex;
+            gs.value = stof(s.substr(0, s.size() - 2));
+        } else if (s.size() > 2 && s.substr(s.size() - 2) == "px") {
+            gs.type = GridSize::Fixed;
+            gs.value = stof(s.substr(0, s.size() - 2));
+        } else {
+            gs.type = GridSize::Fixed;
+            gs.value = stof(s);
+        }
+    } else if (j.is_number()) {
+        gs.type = GridSize::Fixed;
+        gs.value = j.get<float>();
+    }
+    return gs;
 }

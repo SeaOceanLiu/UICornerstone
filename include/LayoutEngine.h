@@ -17,6 +17,8 @@ struct AnchorInfo {
     Margin offset;
 };
 
+struct GridItemProps;
+
 class LayoutEngine {
 public:
     virtual ~LayoutEngine() = default;
@@ -26,6 +28,9 @@ public:
     virtual void applyAnchor(const SRect& containerRect,
                              vector<shared_ptr<Control>>& children,
                              unordered_map<Control*, AnchorInfo>& anchorProps) {}
+    virtual void applyGrid(const SRect& containerRect,
+                           vector<shared_ptr<Control>>& children,
+                           unordered_map<Control*, GridItemProps>& gridProps) {}
     virtual string getType() const = 0;
 };
 
@@ -58,6 +63,40 @@ public:
 };
 
 // ==================== AnchorLayout ====================
+
+// ==================== GridLayout ====================
+
+struct GridSize {
+    enum Type { Fixed, Flex, Auto };
+    Type type = Fixed;
+    float value = 0.0f;
+};
+
+struct GridItemProps {
+    int row = 0;
+    int col = 0;
+    int rowSpan = 1;
+    int colSpan = 1;
+};
+
+class GridLayout : public LayoutEngine {
+private:
+    vector<GridSize> m_columns;
+    vector<GridSize> m_rows;
+    float m_gap;
+    Margin m_padding;
+public:
+    GridLayout(float gap = 0, Margin padding = Margin{0,0,0,0});
+    void setColumns(const vector<GridSize>& cols) { m_columns = cols; }
+    void setRows(const vector<GridSize>& rows) { m_rows = rows; }
+    void applyGrid(const SRect& containerRect,
+                   vector<shared_ptr<Control>>& children,
+                   unordered_map<Control*, GridItemProps>& gridProps);
+    void apply(const SRect& containerRect,
+               vector<shared_ptr<Control>>& children,
+               unordered_map<Control*, FlowItemProps>& itemProps) override {}
+    string getType() const override { return "Grid"; }
+};
 
 class AnchorLayout : public LayoutEngine {
 private:

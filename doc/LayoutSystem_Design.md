@@ -103,7 +103,7 @@
 | Button Actor       | 按钮状态动画（normal/hover/pressed/disabled） | ✅   |
 | HFlow / VFlow 布局 | 流式布局引擎                                  | ✅   |
 | Anchor 布局        | 锚点布局引擎                                  | ✅   |
-| Grid 布局          | 网格布局引擎                                  | ⬜   |
+| Grid 布局          | 网格布局引擎                                  | ✅   |
 | 百分比尺寸         | 如`"w": "50%"`                                | ⬜   |
 | 窗口 resize 响应   | 布局引擎重新计算                              | ⬜   |
 | 热加载             | 文件变化监听 → 自动重建控件树                | ⬜   |
@@ -721,7 +721,8 @@ if (editBox) {
 - `HFlowLayout` — 水平流式布局（子控件从左到右排列）
 - `VFlowLayout` — 垂直流式布局（子控件从上到下排列）
 - `AnchorLayout` — 锚点布局（子控件相对于容器边角/中心定位）
-- 可扩展：实现 `LayoutEngine` 接口即可添加新布局类型（Grid 等）
+- `GridLayout` — 网格布局（子控件按行列网格排列，支持跨行列）
+- 可扩展：实现 `LayoutEngine` 接口即可添加新布局类型
 
 #### 4.9.2 JSON 配置方式
 
@@ -952,6 +953,114 @@ Panel::reflowChildren()
 ```
 
 子控件锚点信息存储于 `Panel::m_anchorItemProps`（`unordered_map<Control*, AnchorInfo>`），通过 `Panel::setChildAnchorProps()` 设置。Anchor 模式不涉及 flex 权重计算，子控件的 `rect.w` 和 `rect.h` 保持初始值（FILL/STRETCH 模式除外，它们会覆盖对应方向的尺寸）。
+
+#### 4.9.9 Grid 布局（网格布局）
+
+Grid 布局将容器划分为行列网格，子控件通过 `grid` 属性指定所在单元格（支持跨行列）。适用于表格、仪表盘、图标网格等规整布局。
+
+##### JSON 配置
+
+```jsonc
+{
+    "type": "Panel",
+    "layout": {
+        "type": "Grid",
+        "columns": ["1fr", "2fr", "100px"],      // 列定义
+        "rows": ["30px", "1fr", "auto"],          // 行定义
+        "gap": 4,
+        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+    },
+    "children": [
+        {
+            "type": "Button",
+            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
+            "grid": { "row": 0, "col": 0, "rowSpan": 1, "colSpan": 1 },
+            "caption": "Cell (0,0)"
+        }
+    ]
+}
+```
+
+##### 行列尺寸类型
+
+| 类型 | JSON 格式 | 含义 |
+|------|----------|------|
+| `Fixed` | `"100px"` 或 `100` | 固定像素尺寸 |
+| `Flex` | `"1fr"` | 弹性比例，占用剩余空间的对应权重 |
+| `Auto` | `"auto"` | 由子控件内容决定（取该列/行所有子控件的最大初始尺寸） |
+
+##### 子控件 grid 属性
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `row` | int | 0 | 网格行索引（从0开始） |
+| `col` | int | 0 | 网格列索引（从0开始） |
+| `rowSpan` | int | 1 | 跨行数 |
+| `colSpan` | int | 1 | 跨列数 |
+
+##### 算法流程
+
+```
+1. 解析列尺寸：
+   - Fixed: 直接使用像素值
+   - Auto: 遍历该列所有子控件，取最大初始宽 / colSpan
+   - Flex: sum(fixed+auto) → 剩余宽度 → 按 flex 权重分配
+
+2. 解析行尺寸（同列的逻辑）
+
+3. 构建累积偏移数组 colX[] / rowY[]
+
+4. 定位子控件：
+   x = colX[col]
+   y = rowY[row]
+   w = colX[col+colSpan] - colX[col] - gap
+   h = rowY[row+rowSpan] - rowY[row] - gap
+```
+
+##### 完整示例
+
+```jsonc
+{
+    "type": "Panel",
+    "rect": { "x": 10, "y": 670, "w": 780, "h": 200 },
+    "layout": {
+        "type": "Grid",
+        "columns": ["1fr", "2fr", "100px"],
+        "rows": ["30px", "1fr", "30px"],
+        "gap": 4,
+        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
+    },
+    "children": [
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 0, "col": 0 }, "caption": "(0,0)" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 0, "col": 1, "colSpan": 2 }, "caption": "(0,1) span2" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 1, "col": 0 }, "caption": "(1,0)" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 1, "col": 1 }, "caption": "(1,1)" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 1, "col": 2, "rowSpan": 2 }, "caption": "span\n2rows" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 2, "col": 0 }, "caption": "(2,0)" },
+        { "type": "Button", "rect": { "w": 0, "h": 0 },
+          "grid": { "row": 2, "col": 1 }, "caption": "(2,1)" }
+    ]
+}
+```
+
+##### 架构说明
+
+Grid 布局通过 `LayoutEngine::applyGrid()` 虚方法实现，与 Flow/Anchor 共用 `reflowChildren()` 调度入口：
+
+```
+Panel::reflowChildren()
+  ├─ getType() == "Grid"   → applyGrid(containerRect, children, gridProps)
+  ├─ getType() == "Anchor" → applyAnchor(containerRect, children, anchorProps)
+  └─ 其他                  → apply(containerRect, children, flowProps)
+```
+
+子控件网格信息存储于 `Panel::m_gridItemProps`（`unordered_map<Control*, GridItemProps>`），通过 `Panel::setChildGridProps()` 设置。GridSize 解析在 `LayoutParser::parseGridSize()` 中处理三种类型（`"1fr"` → Flex、`"100px"` → Fixed、`"auto"` → Auto）。行列定义在 `GridLayout` 对象中，通过 `setColumns()` / `setRows()` 注入。
 
 ### 5.1 头文件完整定义
 
