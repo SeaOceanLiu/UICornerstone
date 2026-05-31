@@ -1,3 +1,4 @@
+// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "WinFrame.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

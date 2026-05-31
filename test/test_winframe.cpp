@@ -1,3 +1,4 @@
+// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
