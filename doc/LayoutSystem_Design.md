@@ -1946,13 +1946,83 @@ Margin LayoutParser::parseMargin(const json& j) {
 }
 ```
 
-## 5. 全局主题系统
+## 5. 组件系统（Component System）
 
 ### 5.1 概述
 
+组件系统允许在 JSON 布局中通过组合现有控件（Panel、EditBox、Button 等）定义可复用的 UI 组件模板，并在多处按需实例化，支持属性注入和事件重映射。
+
+这是布局系统在 JSON 层级的扩展——不改动 C++ 控件类，完全基于现有 `LayoutParser` 流程实现。详细设计见 `ComponentSystem_Design.md`。
+
+### 5.2 快速示例
+
+```json
+{
+  "components": {
+    "SearchBar": {
+      "props": {
+        "placeholder": { "type": "string", "default": "Search..." },
+        "buttonText":  { "type": "string", "default": "Go" }
+      },
+      "template": {
+        "type": "Panel",
+        "children": [
+          {
+            "type": "EditBox",
+            "rect": { "x": 0, "y": 0, "w": "75%", "h": 40 },
+            "placeholder": "{{placeholder}}",
+            "events": { "onEnter": "_comp_onSearch" }
+          },
+          {
+            "type": "Button",
+            "rect": { "x": "78%", "y": 0, "w": "22%", "h": 40 },
+            "caption": "{{buttonText}}",
+            "events": { "onClick": "_comp_onSearch" }
+          }
+        ]
+      }
+    }
+  },
+
+  "layouts": [
+    {
+      "type": "Panel",
+      "children": [
+        {
+          "type": "SearchBar",
+          "id": "mySearch",
+          "rect": { "x": 50, "y": 50 },
+          "placeholder": "Type keyword...",
+          "events": { "onSearch": "handleSearch" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 5.3 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| **组合复用** | 任意控件组合打包为模板，一次定义多处引用 |
+| **属性注入** | `{{propName}}` 插值语法，支持 string/number/bool 类型转换 |
+| **事件重映射** | 内部 `_comp_onXxx` 约定，实例 `events` 映射到外部 handler |
+| **嵌套组件** | 模板内可引用其他已注册组件 |
+| **热加载** | 模板变更通过 JSON 文件整体重载生效 |
+| **行号追溯** | 报错时同时输出模板定义位置和实例化位置 |
+
+### 5.4 设计文档
+
+完整的语法定义、处理流程、错误处理策略、变更清单及设计决策详见 `doc/ComponentSystem_Design.md`。
+
+## 6. 全局主题系统
+
+### 6.1 概述
+
 主题系统提供布局文件级别的颜色和字体默认值。每个布局文件的顶层 `"theme"` 块定义了按控件类型分类的默认样式，控件自己的 JSON 属性优先级高于主题。
 
-### 5.2 JSON 格式
+### 6.2 JSON 格式
 
 ```json
 {
@@ -1986,7 +2056,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 }
 ```
 
-### 5.3 控件类型与颜色属性映射
+### 6.3 控件类型与颜色属性映射
 
 | 控件 | Theme Category | 通用颜色属性 (StateColor) | 专用颜色属性 (plain SDL_Color) |
 |------|---------------|--------------------------|-------------------------------|
@@ -2000,7 +2070,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 | ScrollBar | `scrollbar` | bg, border, text, textShadow | — |
 | MenuBar | `menubar` | bg, border, text, textShadow | — |
 
-### 5.4 应用顺序
+### 6.4 应用顺序
 
 主题在布局解析时按以下顺序应用，后者的优先级高于前者：
 
@@ -2009,7 +2079,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 3. **控件专用颜色属性**（如 CheckBox 的 `colors.checkColor`、ProgressBar 的 `colors.progressColor`）
 4. **控件专用字体属性**（各控件的 `font` 对象中的 `name/size`）
 
-### 5.5 Theme 类
+### 6.5 Theme 类
 
 **位置**: `include/Theme.h`, `src/Theme.cpp`
 
@@ -2024,13 +2094,13 @@ Margin LayoutParser::parseMargin(const json& j) {
 | `applyCommonColors(ctrl, category)` | 将主题的 bg/border/text/textShadow 四态颜色应用到控件 |
 | `applyFont(label, category)` | 将主题字体应用到 Label 控件 |
 
-### 5.6 继承规则
+### 6.6 继承规则
 
 - 若某 `category` 的字体值未在主题中定义，则回退到 `"default"` 类别
 - 若 `"default"` 也未定义，回退到硬编码默认值：`FontName::HarmonyOS_Sans_SC_Regular` + size 16
 - 颜色没有继承回退——未在主题中定义的颜色保留控件的硬编码默认值
 
-### 5.7 相关文件
+### 6.7 相关文件
 
 - `include/Theme.h` — Theme 类声明
 - `src/Theme.cpp` — Theme 类实现（含独立颜色/字体解析，不依赖 LayoutParser 内部函数）
@@ -2038,7 +2108,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 - `src/LayoutParser.cpp` — `parseLayout()` 中解析 theme block；每个 per-control parser 调用 `applyCommonColors()` 等
 - `layouts/test_layout_advanced.json` — 完整的 dark theme 演示（定义 button/label/editbox/checkbox/progressbar 等各控件默认颜色和字体）
 
-### 5.8 与 Phase 4 状态
+### 6.8 与 Phase 4 状态
 
 | 功能 | 状态 |
 |------|------|
@@ -2052,13 +2122,13 @@ Margin LayoutParser::parseMargin(const json& j) {
 | 热加载 | ✅ |
 | 数据绑定 | ⬜ |
 
-## 6. 热加载系统
+## 7. 热加载系统
 
-### 6.1 概述
+### 7.1 概述
 
 热加载系统允许在布局 JSON 文件被修改后自动重建控件树，无需重启应用程序。系统通过轮询文件的最后修改时间检测变化，在检测到变化时触发控件树的完全重建。
 
-### 6.2 HotReloader 类
+### 7.2 HotReloader 类
 
 **位置**: `include/HotReloader.h`, `src/HotReloader.cpp`
 
@@ -2069,7 +2139,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 | `reload()` | 手动触发重新加载 |
 | `setPollInterval(frames)` | 设置轮询间隔（帧数，默认 30 帧≈0.5秒@60fps） |
 
-### 6.3 使用方式
+### 7.3 使用方式
 
 ```cpp
 // 全局变量
@@ -2092,7 +2162,7 @@ g_reloader = HotReloader(g_layoutPath, reloadLayout);
 g_reloader.poll();
 ```
 
-### 6.4 重建流程
+### 7.4 重建流程
 
 热加载的完整重建顺序：
 
@@ -2104,23 +2174,23 @@ g_reloader.poll();
 
 事件处理器（通过 `registerHandler` 注册）在 `clear()` 之后保持不变，新控件自动绑定到已注册的处理器。
 
-### 6.5 辅助接口
+### 7.5 辅助接口
 
 **`Panel::removeAllControls()`** — 清除面板的所有子控件及相关布局属性（flow props、anchor props、grid props），用于热加载前的控件树清理。
 
-### 6.6 限制
+### 7.6 限制
 
 - 当前采取完全重建策略，不保留控件状态（如输入框内容、按钮悬停状态）
 - 采用轮询方式检测文件变化（而非操作系统文件事件通知），延迟约 0.5 秒
 - 只支持单文件监视，不支持目录监视
 
-## 7. 数据绑定系统
+## 8. 数据绑定系统
 
-### 7.1 概述
+### 8.1 概述
 
 数据绑定系统允许将控件属性连接到 DataContext 中的命名数据源，实现数据到 UI 的单向更新（data → UI）和双向同步（UI ↔ data）。绑定在布局解析时通过 JSON 的 `"bind"` 属性配置。
 
-### 7.2 DataValue
+### 8.2 DataValue
 
 `DataValue` 类 (`include/DataContext.h`) 是一个 variant 类型，支持三种数据类型：
 
@@ -2132,7 +2202,7 @@ g_reloader.poll();
 
 构造方式：`DataValue("abc")`、`DataValue(42.0)`、`DataValue(true)`。
 
-### 7.3 DataContext
+### 8.3 DataContext
 
 `DataContext` 类 (`include/DataContext.h`) 是一个单例，提供全局的数据存储和变更通知：
 
@@ -2146,7 +2216,7 @@ g_reloader.poll();
 | `unwatchAll(key)` / `unwatchAll()` | 清除 watcher |
 | `clear()` | 清除所有数据和 watcher |
 
-### 7.4 JSON 绑定配置
+### 8.4 JSON 绑定配置
 
 每个控件可包含 `"bind"` 对象，定义一个或多个属性绑定：
 
@@ -2176,13 +2246,13 @@ g_reloader.poll();
 | `visible` | `setVisible()` | 所有控件 | ❌ |
 | `enabled` | `setEnable()` | 所有控件 | ❌ |
 
-### 7.5 绑定生命周期
+### 8.5 绑定生命周期
 
 - 绑定在 `parseLayout()` 解析控件时创建，watcher 注册到 DataContext
 - 当 `LayoutParser::clear()` 被调用（如热加载前），自动调用 `DataContext::instance()->unwatchAll()` 清除所有 watcher
 - 绑定使用 `weak_ptr<ControlImpl>` 捕获控件引用，控件销毁后 watcher 自动失效
 
-### 7.6 使用示例
+### 8.6 使用示例
 
 **C++ 设置绑定数据：**
 
@@ -2218,7 +2288,7 @@ ctx->set("sharedText", string("World!"));
 2. DataContext 通知 watcher → Label 的 `setCaption()` 更新显示
 3. 从其他代码修改共享数据 → `DataContext::set("sharedText", "新值")` → EditBox 的 `setText()` + Label 的 `setCaption()` 同步更新
 
-### 7.7 相关文件
+### 8.7 相关文件
 
 - `include/DataContext.h` — DataValue + DataContext 类声明
 - `src/DataContext.cpp` — 实现（含 singleton make_shared 辅助技巧）
@@ -2226,7 +2296,7 @@ ctx->set("sharedText", string("World!"));
 - `layouts/test_layout_advanced.json` — 演示 EditBox ↔ Label 双向绑定 + ProgressBar 数据绑定
 - `test/test_layout_advanced.cpp` — 设置初始数据；添加 +/- 按钮操作 DataContext
 
-### 7.8 与 Phase 4 状态
+### 8.8 与 Phase 4 状态
 
 | 功能 | 状态 |
 |------|------|
@@ -2242,9 +2312,9 @@ ctx->set("sharedText", string("World!"));
 
 Phase 4 全部完成 🎉
 
-## 8. 错误处理策略
+## 9. 错误处理策略
 
-### 8.1 核心原则
+### 9.1 核心原则
 
 所有解析错误和警告的日志输出 **必须包含**以下信息：
 
@@ -2258,7 +2328,7 @@ Phase 4 全部完成 🎉
 [LayoutParser] [Line 85] [controls[1].colors.background.normal] WARN: invalid color format "#GGG", using default
 ```
 
-### 8.2 行号获取机制
+### 9.2 行号获取机制
 
 `nlohmann/json` 在 v3.11+ 提供了 `get_token_start_location()` 方法返回 `json::parse_event_t` 的位置信息。通过结合 `parser` 回调，可以在解析时获取每个 JSON token 的行号。
 
@@ -2307,7 +2377,7 @@ void LayoutParser::parseControl(const json& j, Control* parent) {
 }
 ```
 
-### 8.3 日志辅助函数
+### 9.3 日志辅助函数
 
 ```cpp
 void LayoutParser::logError(const string& message) const {
@@ -2325,7 +2395,7 @@ void LayoutParser::logWarn(const string& message) const {
 }
 ```
 
-### 8.4 pushJsonPath / popJsonPath 实现
+### 9.4 pushJsonPath / popJsonPath 实现
 
 ```cpp
 void LayoutParser::pushJsonPath(const string& segment) {
@@ -2346,7 +2416,7 @@ void LayoutParser::popJsonPath() {
 }
 ```
 
-### 8.5 行号映射辅助函数
+### 9.5 行号映射辅助函数
 
 ```cpp
 // 将 JSON 字符串和字节偏移转换为行号
@@ -2359,7 +2429,7 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 }
 ```
 
-### 8.6 错误分级
+### 9.6 错误分级
 
 
 | 级别 | 处理方式                  | 日志格式     | 场景                                    |
@@ -2368,7 +2438,7 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 | 警告 | 使用默认值继续解析        | `WARN: ...`  | 颜色格式错误、未知 type、未知 font name |
 | 静默 | 跳过不处理                | 不输出日志   | 缺失可选字段、未注册的 handler 名称     |
 
-### 8.7 常见错误场景与日志示例
+### 9.7 常见错误场景与日志示例
 
 
 | 错误                | 级别 | 日志示例                                                                                                                 |
@@ -2385,9 +2455,9 @@ int byteOffsetToLineNo(const string& content, size_t byteOffset) {
 | 字体名称不存在      | 警告 | `[LayoutParser] [Line 33] [controls[0].font.name] WARN: unknown font name "NonExistentFont", using default`              |
 | 控件创建失败        | 严重 | `[LayoutParser] [Line 50] [controls[2]] ERROR: failed to create Label control`                                           |
 
-## 9. 模板代码与宏
+## 10. 模板代码与宏
 
-### 9.1 parseCommonProperties 实现模板
+### 10.1 parseCommonProperties 实现模板
 
 ```cpp
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
@@ -2445,7 +2515,7 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
 }
 ```
 
-### 9.2 parseChildren 实现模板
+### 10.2 parseChildren 实现模板
 
 ```cpp
 void LayoutParser::parseChildren(shared_ptr<Control> container, const json& j) {
@@ -2466,7 +2536,7 @@ void LayoutParser::parseChildren(shared_ptr<Control> container, const json& j) {
 }
 ```
 
-### 9.3 解析结果使用者指南
+### 10.3 解析结果使用者指南
 
 ```cpp
 // 使用示例
@@ -2499,9 +2569,9 @@ void testBenchInitialize(void) {
 }
 ```
 
-## 10. 构建系统变更
+## 11. 构建系统变更
 
-### 10.1 CMakeLists.txt (根目录)
+### 11.1 CMakeLists.txt (根目录)
 
 在 `set(SOURCES ...)` 中添加 `src/LayoutParser.cpp`：
 
@@ -2534,7 +2604,7 @@ set(SOURCES
 )
 ```
 
-### 10.2 test/CMakeLists.txt
+### 11.2 test/CMakeLists.txt
 
 ```cmake
 # 在底部添加（或与其他 test_xxx 并列的区域添加）：
@@ -2554,7 +2624,7 @@ add_custom_command(TARGET test_layout POST_BUILD
 )
 ```
 
-## 11. 完整示例配置文件
+## 12. 完整示例配置文件
 
 文件路径：`layouts/test_layout.json`
 
@@ -2701,9 +2771,9 @@ add_custom_command(TARGET test_layout POST_BUILD
 }
 ```
 
-## 12. 测试计划
+## 13. 测试计划
 
-### 12.1 test_layout 测试场景
+### 13.1 test_layout 测试场景
 
 测试文件：`test/test_layout.cpp`
 
@@ -2738,9 +2808,9 @@ add_custom_command(TARGET test_layout POST_BUILD
 - [X]  两种颜色格式均正常解析
 - [ ]  窗口缩放后控件跟随缩放（继承现有 scale 系统）
 
-## 13. 入口关系与共存策略
+## 14. 入口关系与共存策略
 
-### 13.1 当前硬编码入口
+### 14.1 当前硬编码入口
 
 ```
 SDL_AppInit()
@@ -2756,7 +2826,7 @@ SDL_AppInit()
 
 每个测试文件在 `testBenchInitialize()` 中依次创建控件、设置属性、绑定事件、添加到 Bench。
 
-### 13.2 配置文件化入口
+### 14.2 配置文件化入口
 
 ```
 SDL_AppInit()
@@ -2772,7 +2842,7 @@ SDL_AppInit()
                  btn->setOnClick(...);
 ```
 
-### 13.3 两种入口的关系
+### 14.3 两种入口的关系
 
 ```
                     ┌──────────────────────────────────────┐
@@ -2798,7 +2868,7 @@ SDL_AppInit()
               └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-### 13.4 三种模式详解
+### 14.4 三种模式详解
 
 #### 模式 1：纯硬编码（现有模式）
 
@@ -2868,7 +2938,7 @@ void testMixedInitialize() {
 - 适用于：渐进式迁移，将稳定部分逐步抽取到配置文件中
 - 两者同时存在时，硬编码控件按添加到 Bench 的顺序排在配置控件的上方
 
-### 13.5 迁移路径
+### 14.5 迁移路径
 
 ```
 Phase 1:  test_layout 纯配置文件模式         ← 新建测试，验证功能
@@ -2880,16 +2950,16 @@ Phase 3:  test_checkbox 等 纯配置文件模式    ← 完全替换
 
 整个迁移过程可逐步进行，随时可以退回到硬编码模式。
 
-## 14. 向后兼容与安全性
+## 15. 向后兼容与安全性
 
-### 14.1 向后兼容
+### 15.1 向后兼容
 
 - 现有 C++ 创建控件的方式完全不受影响
 - LayoutParser 仅作为新增工具，不修改任何现有控件类
 - 现有测试用例无需改动
 - nlohmann/json 已是子模块，无需新增依赖
 
-### 14.2 安全性
+### 15.2 安全性
 
 - 所有 `json` 访问均使用 `.value()` 或 `contains()` + 默认值的方式，不会因字段缺失而崩溃
 - 错误信息通过 `SDL_LogError/SDL_LogWarn` 输出，不抛出异常
