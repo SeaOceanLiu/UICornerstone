@@ -65,6 +65,18 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onMenuUndo", onMenuUndo);
     g_parser.registerHandler("onMenuRedo", onMenuRedo);
     g_parser.registerHandler("onMenuAbout", onMenuAbout);
+    g_parser.registerHandler("onDecProgress", [](shared_ptr<Control>) {
+        auto ctx = DataContext::instance();
+        double v = ctx->get("progressValue").asDouble() - 10.0;
+        if (v < 0) v = 100.0;
+        ctx->set("progressValue", v);
+    });
+    g_parser.registerHandler("onIncProgress", [](shared_ptr<Control>) {
+        auto ctx = DataContext::instance();
+        double v = ctx->get("progressValue").asDouble() + 10.0;
+        if (v > 100) v = 0.0;
+        ctx->set("progressValue", v);
+    });
 
     string basePath = string(SDL_GetBasePath());
     g_layoutPath = fs::path(basePath) / "layouts" / "test_layout_advanced.json";
@@ -96,45 +108,6 @@ void testBenchInitialize(void) {
     auto ctx = DataContext::instance();
     ctx->set("sharedText", string("Hello from DataContext!"));
     ctx->set("progressValue", 42.0);
-
-    // Dynamic buttons to manipulate progressValue (parent=BENCH, positioned at progress bar)
-    auto decBtn = make_shared<Button>(BENCH, SRect(0, 0, 50, 18));
-    decBtn->setCaption("-10");
-    decBtn->setCaptionSize(11);
-    decBtn->setNormalStateBGColor(SDL_Color{200, 80, 80, 255});
-    decBtn->setOnClick([](shared_ptr<Button>) {
-        auto ctx = DataContext::instance();
-        double v = ctx->get("progressValue").asDouble() - 10.0;
-        if (v < 0) v = 100.0;
-        ctx->set("progressValue", v);
-    });
-
-    auto incBtn = make_shared<Button>(BENCH, SRect(0, 0, 50, 18));
-    incBtn->setCaption("+10");
-    incBtn->setCaptionSize(11);
-    incBtn->setNormalStateBGColor(SDL_Color{80, 200, 80, 255});
-    incBtn->setOnClick([](shared_ptr<Button>) {
-        auto ctx = DataContext::instance();
-        double v = ctx->get("progressValue").asDouble() + 10.0;
-        if (v > 100) v = 0.0;
-        ctx->set("progressValue", v);
-    });
-
-    // Position +/- buttons inline at the right of the progress bar
-    auto progressCtrl = g_parser.findControlById("bindingProgress");
-    if (progressCtrl) {
-        SRect pr = progressCtrl->getRect();
-        decBtn->setRect(SRect{pr.left + pr.width + 6, pr.top, 50, 18});
-        incBtn->setRect(SRect{pr.left + pr.width + 60, pr.top, 50, 18});
-    } else {
-        decBtn->setRect(SRect{800, 970, 50, 18});
-        incBtn->setRect(SRect{854, 970, 50, 18});
-    }
-
-    decBtn->create();
-    incBtn->create();
-    BENCH->addControl(decBtn);
-    BENCH->addControl(incBtn);
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {

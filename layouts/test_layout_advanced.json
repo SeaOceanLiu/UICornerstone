@@ -506,6 +506,30 @@
                     "bind": { "value": "progressValue" }
                 },
                 {
+                    "type": "Button",
+                    "id": "btnDec",
+                    "rect": { "x": "83%", "y": 970, "w": "7%", "h": 18 },
+                    "caption": "-10",
+                    "captionSize": 11,
+                    "events": { "onClick": "onDecProgress" },
+                    "colors": {
+                        "background": { "normal": "#CC5050FF", "hover": "#DD6060FF", "pressed": "#BB4040FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
+                },
+                {
+                    "type": "Button",
+                    "id": "btnInc",
+                    "rect": { "x": "91%", "y": 970, "w": "7%", "h": 18 },
+                    "caption": "+10",
+                    "captionSize": 11,
+                    "events": { "onClick": "onIncProgress" },
+                    "colors": {
+                        "background": { "normal": "#50AA50FF", "hover": "#60BB60FF", "pressed": "#409940FF" },
+                        "text": { "normal": "#FFFFFFFF" }
+                    }
+                },
+                {
                     "type": "Label",
                     "id": "themeTitle",
                     "rect": { "x": "2%", "y": 940, "w": "46%", "h": 16 },
