@@ -245,6 +245,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
             if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
                 m_resizing = true;
                 m_resizeFlags = edgeFlags;
+                setResizeCursor(edgeFlags);
                 m_startScreenRect = getDrawRect();
                 m_startLocalRect = m_rect;
                 m_resizeStartMouse = mousePos;
