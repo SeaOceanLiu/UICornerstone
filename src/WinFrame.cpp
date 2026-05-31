@@ -145,9 +145,15 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     SPoint mousePos;
     bool hasPos = false;
     if (EventQueue::isPositionEvent(event->m_eventName)) {
-        auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-        mousePos = *pos;
-        hasPos = true;
+        if (!event->m_eventParam.has_value()) return false;
+        try {
+            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (!pos) return false;
+            mousePos = *pos;
+            hasPos = true;
+        } catch (const std::bad_any_cast&) {
+            return false;
+        }
     }
 
     // Step 0: Focus-to-front on any MOUSE_LBUTTON_DOWN within WinFrame
