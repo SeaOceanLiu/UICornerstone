@@ -26,7 +26,7 @@ void onSubmitClicked(shared_ptr<Control> c) {
     }
 }
 
-void onTextChanged(string text) {
+void onTextChanged(shared_ptr<Control>, string text) {
     SDL_Log("Text changed via manual binding: %s", text.c_str());
 }
 

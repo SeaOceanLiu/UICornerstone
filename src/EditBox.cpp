@@ -253,7 +253,7 @@ void EditBox::insertText(const std::string& text) {
     updateTextOffset();
 
     if (m_onTextChanged) {
-        m_onTextChanged(m_text);
+        m_onTextChanged(getThis(), m_text);
     }
 }
 
@@ -487,7 +487,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                         createTextObjects();
                         updateTextOffset();
                         if (m_onTextChanged) {
-                            m_onTextChanged(m_text);
+                            m_onTextChanged(getThis(), m_text);
                         }
                     }
                 }
@@ -505,7 +505,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                         m_text.erase(m_cursorPosition, charLen);
                         createTextObjects();
                         if (m_onTextChanged) {
-                            m_onTextChanged(m_text);
+                            m_onTextChanged(getThis(), m_text);
                         }
                     }
                 }
@@ -572,7 +572,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 return true;
             } else if (keyData.keycode == SDLK_RETURN || keyData.keycode == SDLK_RETURN2) {
                 if (m_onEnter) {
-                    m_onEnter();
+                    m_onEnter(getThis());
                 }
                 return true;
             }

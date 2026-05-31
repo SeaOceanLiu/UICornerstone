@@ -32,7 +32,7 @@ enum class CheckBoxVerticalAlign {
 class CheckBox : public ControlImpl {
     friend class CheckBoxBuilder;
 public:
-    using OnCheckChangedHandler = std::function<void (shared_ptr<CheckBox>, CheckState)>;
+    using OnCheckChangedHandler = std::function<void (shared_ptr<CheckBox>, CheckState, CheckState)>;
 
 private:
     CheckState m_checkState;

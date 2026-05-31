@@ -67,7 +67,7 @@ void testBenchInitialize(void) {
 
     g_progressbar1 = make_shared<ProgressBar>(nullptr, SRect(50, 50, 300, 30));
     g_progressbar1->setValue(50.0f);
-    g_progressbar1->setOnValueChanged([](float value) {
+    g_progressbar1->setOnValueChanged([](shared_ptr<ProgressBar>, float, float value) {
         cout << "ProgressBar1 value changed to: " << value << endl;
     });
     g_progressbar1->create();
@@ -96,7 +96,7 @@ void testBenchInitialize(void) {
         .setTextMode(ProgressBarTextMode::Percent)
         .setProgressColor({0, 128, 0, 255})
         .setBackgroundColor({50, 50, 50, 255})
-        .setOnValueChanged([](float value) {
+        .setOnValueChanged([](shared_ptr<ProgressBar>, float, float value) {
             cout << "ProgressBar3 value changed to: " << value << endl;
         })
         .build();
@@ -113,7 +113,7 @@ void testBenchInitialize(void) {
         .setTextMode(ProgressBarTextMode::Custom)
         .setCustomText("Loading...")
         .setProgressColor({0, 100, 200, 255})
-        .setOnValueChanged([](float value) {
+        .setOnValueChanged([](shared_ptr<ProgressBar>, float, float value) {
             cout << "ProgressBar4 value changed to: " << value << endl;
         })
         .build();

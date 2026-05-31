@@ -1298,6 +1298,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // Label: onClick (supports hyperlink mode)
+    if (auto label = dynamic_pointer_cast<Label>(ctrl)) {
+        if (events.contains("onClick") && events["onClick"].is_string()) {
+            string handlerName = events["onClick"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                label->setOnClick([handler](shared_ptr<Label> sender) {
+                    handler(sender);
+                });
+            }
+        }
+    }
+
     // EditBox & TextArea: onTextChanged, onEnter
     if (auto editBox = dynamic_pointer_cast<EditBox>(ctrl)) {
         if (events.contains("onTextChanged") && events["onTextChanged"].is_string()) {
@@ -1305,8 +1319,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 auto handler = it->second;
-                editBox->setOnTextChanged([handler](string text) {
-                    handler(nullptr);
+                editBox->setOnTextChanged([handler](shared_ptr<Control> sender, string) {
+                    handler(sender);
                 });
             }
         }
@@ -1316,8 +1330,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 auto handler = it->second;
-                editBox->setOnEnter([handler]() {
-                    handler(nullptr);
+                editBox->setOnEnter([handler](shared_ptr<Control> sender) {
+                    handler(sender);
                 });
             }
         }
@@ -1330,7 +1344,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 auto handler = it->second;
-                cb->setOnCheckChanged([handler](shared_ptr<CheckBox> sender, CheckState state) {
+                cb->setOnCheckChanged([handler](shared_ptr<CheckBox> sender, CheckState, CheckState) {
                     handler(sender);
                 });
             }
@@ -1344,8 +1358,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 auto handler = it->second;
-                pb->setOnValueChanged([handler](float val) {
-                    handler(nullptr);
+                pb->setOnValueChanged([handler](shared_ptr<ProgressBar> sender, float, float) {
+                    handler(sender);
                 });
             }
         }
@@ -1358,8 +1372,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
                 auto handler = it->second;
-                sb->setOnPositionChanged([handler](float value, float min, float max) {
-                    handler(nullptr);
+                sb->setOnPositionChanged([handler](shared_ptr<ScrollBar> sender, float, float, float, float) {
+                    handler(sender);
                 });
             }
         }
@@ -1426,7 +1440,7 @@ static void bindProperty(shared_ptr<ControlImpl> ctrl, const string& prop, const
         if (prop == "text") {
             if (auto eb = dynamic_pointer_cast<EditBox>(ctrl)) {
                 auto s = source;
-                eb->setOnTextChanged([s](string text) {
+                eb->setOnTextChanged([s](shared_ptr<Control>, string text) {
                     DataContext::instance()->set(s, text);
                 });
             }
@@ -1435,10 +1449,10 @@ static void bindProperty(shared_ptr<ControlImpl> ctrl, const string& prop, const
             if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
                 auto s = source;
                 shared_ptr<CheckBox> weakCB = cb;
-                cb->setOnCheckChanged([s, weakCB](shared_ptr<CheckBox> sender, CheckState state) {
+                cb->setOnCheckChanged([s, weakCB](shared_ptr<CheckBox>, CheckState, CheckState newState) {
                     string vs = "Unchecked";
-                    if (state == CheckState::Checked) vs = "Checked";
-                    else if (state == CheckState::Indeterminate) vs = "Indeterminate";
+                    if (newState == CheckState::Checked) vs = "Checked";
+                    else if (newState == CheckState::Indeterminate) vs = "Indeterminate";
                     DataContext::instance()->set(s, vs);
                 });
             }
@@ -1446,8 +1460,8 @@ static void bindProperty(shared_ptr<ControlImpl> ctrl, const string& prop, const
         if (prop == "value") {
             if (auto sb = dynamic_pointer_cast<ScrollBar>(ctrl)) {
                 auto s = source;
-                sb->setOnPositionChanged([s](float value, float min, float max) {
-                    DataContext::instance()->set(s, (double)value);
+                sb->setOnPositionChanged([s](shared_ptr<ScrollBar>, float, float newValue, float, float) {
+                    DataContext::instance()->set(s, (double)newValue);
                 });
             }
         }

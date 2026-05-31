@@ -116,9 +116,9 @@ bool ScrollBar::isPointInTrack(float x, float y) {
            localY >= 0 && localY <= m_trackRect.height;
 }
 
-void ScrollBar::notifyPositionChanged() {
+void ScrollBar::notifyPositionChanged(float oldValue) {
     if (m_onPositionChanged) {
-        m_onPositionChanged(m_value, m_minValue, m_maxValue);
+        m_onPositionChanged(dynamic_pointer_cast<ScrollBar>(getThis()), oldValue, m_value, m_minValue, m_maxValue);
     }
 }
 
@@ -266,9 +266,10 @@ void ScrollBar::onMouseLeave(float x, float y) {
 }
 
 void ScrollBar::setValue(float value) {
+    float oldValue = m_value;
     m_value = std::max(m_minValue, std::min(value, m_maxValue));
     calculateThumbRect();
-    notifyPositionChanged();
+    notifyPositionChanged(oldValue);
 }
 
 float ScrollBar::getValue() const {
@@ -276,17 +277,19 @@ float ScrollBar::getValue() const {
 }
 
 void ScrollBar::setRange(float minValue, float maxValue) {
+    float oldValue = m_value;
     m_minValue = minValue;
     m_maxValue = maxValue;
     m_value = std::max(m_minValue, std::min(m_value, m_maxValue));
     calculateThumbRect();
-    notifyPositionChanged();
+    notifyPositionChanged(oldValue);
 }
 
 void ScrollBar::setPageSize(float pageSize) {
+    float oldValue = m_value;
     m_pageSize = pageSize;
     calculateThumbRect();
-    notifyPositionChanged();
+    notifyPositionChanged(oldValue);
 }
 
 void ScrollBar::setStepSize(float stepSize) {

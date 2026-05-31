@@ -29,9 +29,9 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     m_vScrollBar->setRange(0, 100);
     m_vScrollBar->setPageSize(rect.height);
     m_vScrollBar->setVisible(false);
-    m_vScrollBar->setOnPositionChanged([this](float value, float min, float max) {
+    m_vScrollBar->setOnPositionChanged([this](shared_ptr<ScrollBar>, float, float newValue, float, float) {
         if (!m_updatingScrollBar) {
-            setScrollY((int)value);
+            setScrollY((int)newValue);
         }
     });
 
@@ -48,9 +48,9 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     m_hScrollBar->setRange(0, 100);
     m_hScrollBar->setPageSize(rect.width);
     m_hScrollBar->setVisible(false);
-    m_hScrollBar->setOnPositionChanged([this](float value, float min, float max) {
+    m_hScrollBar->setOnPositionChanged([this](shared_ptr<ScrollBar>, float, float newValue, float, float) {
         if (!m_updatingScrollBar) {
-            setScrollX((int)value);
+            setScrollX((int)newValue);
         }
     });
 
@@ -726,7 +726,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 updateVScrollBar();
                 ensureCursorVisible();
                 if (m_onTextChanged) {
-                    m_onTextChanged(m_text);
+                    m_onTextChanged(getThis(), m_text);
                 }
                 return true;
             }
@@ -1265,7 +1265,7 @@ void TextArea::deleteSelectedText() {
     ensureCursorVisible();
 
     if (m_onTextChanged) {
-        m_onTextChanged(m_text);
+        m_onTextChanged(getThis(), m_text);
     }
 }
 

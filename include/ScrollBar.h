@@ -14,7 +14,7 @@ enum class ScrollBarOrientation {
 class ScrollBar: public ControlImpl {
     friend class ScrollBarBuilder;
 public:
-    using OnPositionChangedHandler = std::function<void (float, float, float)>;
+    using OnPositionChangedHandler = std::function<void (shared_ptr<ScrollBar>, float, float, float, float)>;
 private:
     ScrollBarOrientation m_orientation;
     float m_minValue;
@@ -42,7 +42,7 @@ private:
     float positionToValue(float position) const;
     bool isPointInThumb(float x, float y);
     bool isPointInTrack(float x, float y);
-    void notifyPositionChanged();
+    void notifyPositionChanged(float oldValue = 0);
 
 public:
     ScrollBar(Control *parent, SRect rect, ScrollBarOrientation orientation = ScrollBarOrientation::Vertical,

@@ -201,33 +201,36 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
             if (getDrawRect().contains(pos->x, pos->y)) {
                 switch (event->m_eventName) {
                     case EventName::MOUSE_LBUTTON_UP:
-                        if (m_triStateEnabled) {
-                            switch (m_checkState) {
-                                case CheckState::Unchecked:
-                                    setCheckState(CheckState::Checked);
-                                    break;
-                                case CheckState::Checked:
-                                    setCheckState(CheckState::Indeterminate);
-                                    break;
-                                case CheckState::Indeterminate:
-                                    setCheckState(CheckState::Unchecked);
-                                    break;
+                        {
+                            CheckState oldState = m_checkState;
+                            if (m_triStateEnabled) {
+                                switch (m_checkState) {
+                                    case CheckState::Unchecked:
+                                        setCheckState(CheckState::Checked);
+                                        break;
+                                    case CheckState::Checked:
+                                        setCheckState(CheckState::Indeterminate);
+                                        break;
+                                    case CheckState::Indeterminate:
+                                        setCheckState(CheckState::Unchecked);
+                                        break;
+                                }
+                            } else {
+                                switch (m_checkState) {
+                                    case CheckState::Unchecked:
+                                        setCheckState(CheckState::Checked);
+                                        break;
+                                    case CheckState::Checked:
+                                        setCheckState(CheckState::Unchecked);
+                                        break;
+                                    case CheckState::Indeterminate:
+                                        setCheckState(CheckState::Unchecked);
+                                        break;
+                                }
                             }
-                        } else {
-                            switch (m_checkState) {
-                                case CheckState::Unchecked:
-                                    setCheckState(CheckState::Checked);
-                                    break;
-                                case CheckState::Checked:
-                                    setCheckState(CheckState::Unchecked);
-                                    break;
-                                case CheckState::Indeterminate:
-                                    setCheckState(CheckState::Unchecked);
-                                    break;
+                            if (m_onCheckChanged) {
+                                m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()), oldState, m_checkState);
                             }
-                        }
-                        if (m_onCheckChanged) {
-                            m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()), m_checkState);
                         }
                         return true;
                     case EventName::MOUSE_MOVING:

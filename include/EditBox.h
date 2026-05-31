@@ -33,8 +33,8 @@ struct FocusEventData {
 class EditBox: public ControlImpl {
     friend class EditBoxBuilder;
 public:
-    using OnTextChangedHandler = std::function<void (std::string)>;
-    using OnEnterHandler = std::function<void (void)>;
+    using OnTextChangedHandler = std::function<void (shared_ptr<Control>, std::string)>;
+    using OnEnterHandler = std::function<void (shared_ptr<Control>)>;
 protected:
     std::string m_text;
     std::string m_placeholderText;

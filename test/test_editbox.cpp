@@ -28,10 +28,10 @@ void testBenchInitialize(void) {
 
     g_editBox1 = make_shared<EditBox>(nullptr, SRect(50, 50, 300, 40));
     g_editBox1->setPlaceholder("Single line input...");
-    g_editBox1->setOnTextChanged([](string text) {
+    g_editBox1->setOnTextChanged([](shared_ptr<Control>, string text) {
         cout << "EditBox1 text changed: " << text << endl;
     });
-    g_editBox1->setOnEnter([]() {
+    g_editBox1->setOnEnter([](shared_ptr<Control>) {
         cout << "EditBox1 Enter pressed" << endl;
     });
     BENCH->addControl(g_editBox1);
@@ -40,7 +40,7 @@ void testBenchInitialize(void) {
     g_editBox2 = make_shared<EditBox>(nullptr, SRect(50, 100, 300, 40));
     g_editBox2->setPlaceholder("Password input...");
     g_editBox2->setPasswordMode(true);
-    g_editBox2->setOnTextChanged([](string text) {
+    g_editBox2->setOnTextChanged([](shared_ptr<Control>, string text) {
         cout << "EditBox2 (password) text changed, length: " << text.length() << endl;
     });
     BENCH->addControl(g_editBox2);
@@ -56,7 +56,7 @@ void testBenchInitialize(void) {
     g_editBox4 = EditBoxBuilder(nullptr, SRect(50, 430, 300, 80), 2.0f, 2.0f)
         .setPlaceholder("2x scale editbox (builder)...")
         .setAlignmentMode(AlignmentMode::AM_CENTER)
-        .setOnTextChanged([](string text) {
+        .setOnTextChanged([](shared_ptr<Control>, string text) {
             cout << "EditBox4 (2x scale) text changed: " << text << endl;
         })
         .build();
@@ -65,7 +65,7 @@ void testBenchInitialize(void) {
 
     g_textArea = make_shared<TextArea>(nullptr, SRect(50, 210, 400, 200));
     g_textArea->setPlaceholder("Multi-line text area...\nTry typing here!");
-    g_textArea->setOnTextChanged([](string text) {
+    g_textArea->setOnTextChanged([](shared_ptr<Control>, string text) {
         cout << "TextArea text changed, length: " << text.length() << endl;
     });
     BENCH->addControl(g_textArea);
@@ -78,7 +78,7 @@ void testBenchInitialize(void) {
         "This is a long text that should wrap to multiple lines automatically. "
         "Line wrapping allows text to flow within the boundaries of the text area.");
     g_textAreaWrap->setPlaceholder("Line wrapping TextArea. Type long text here!");
-    g_textAreaWrap->setOnTextChanged([](string text) {
+    g_textAreaWrap->setOnTextChanged([](shared_ptr<Control>, string text) {
         cout << "TextAreaWrap text changed, length: " << text.length() << endl;
     });
     BENCH->addControl(g_textAreaWrap);
@@ -87,7 +87,7 @@ void testBenchInitialize(void) {
     g_textAreaBuilder2x = TextAreaBuilder(nullptr, SRect(750, 360, 200, 100), 2.0f, 2.0f)
         .setText("This is a 2x scaled TextArea created with Builder pattern. Try typing long text here to test horizontal scrolling!")
         .setPlaceholder("2x scaled TextArea (Builder)...")
-        .setOnTextChanged([](string text) {
+        .setOnTextChanged([](shared_ptr<Control>, string text) {
             cout << "TextAreaBuilder2x text changed, length: " << text.length() << endl;
         })
         .build();

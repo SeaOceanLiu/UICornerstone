@@ -97,7 +97,7 @@ void ProgressBar::setValue(float value) {
     float oldValue = m_value;
     m_value = std::max(m_minValue, std::min(m_maxValue, value));
     if (oldValue != m_value && m_onValueChanged) {
-        m_onValueChanged(m_animatedValue);
+        m_onValueChanged(dynamic_pointer_cast<ProgressBar>(getThis()), oldValue, m_value);
     }
 }
 

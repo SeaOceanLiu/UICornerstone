@@ -52,7 +52,7 @@ void testBenchInitialize(void) {
 
     g_checkbox1 = make_shared<CheckBox>(nullptr, SRect(50, 50, 100, 30));
     g_checkbox1->getCaption()->setCaption("1. Accept Terms");
-    g_checkbox1->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+    g_checkbox1->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
         cout << "Checkbox1 state changed to: " << (int)state << endl;
     });
     g_checkbox1->create();
@@ -61,7 +61,7 @@ void testBenchInitialize(void) {
     g_checkbox2 = make_shared<CheckBox>(nullptr, SRect(50, 100, 200, 30));
     g_checkbox2->getCaption()->setCaption("2. Enable Feature");
     g_checkbox2->setCheckState(CheckState::Checked);
-    g_checkbox2->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+    g_checkbox2->setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
         cout << "Checkbox2 state changed to: " << (int)state << endl;
     });
     g_checkbox2->create();
@@ -71,7 +71,7 @@ void testBenchInitialize(void) {
         .setStyle(CheckBoxStyle::Cross)
         .setCaptionText("3. Cross Style")
         .setBorderStateColor(redBorder)
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
             cout << "Checkbox3 (Cross) state: " << (int)state << endl;
         })
         .build();
@@ -81,7 +81,7 @@ void testBenchInitialize(void) {
         .setStyle(CheckBoxStyle::Circle)
         .setCaptionText("4. Circle Style")
         .setBorderStateColor(redBorder)
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
             cout << "Checkbox4 (Circle) state: " << (int)state << endl;
         })
         .build();
@@ -91,7 +91,7 @@ void testBenchInitialize(void) {
         .setLayout(CheckBoxLayout::TextLeft)
         .setCaptionText("5. Text on Left")
         .setBorderStateColor(redBorder)
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
             cout << "Checkbox5 (TextLeft) state: " << (int)state << endl;
         })
         .build();
@@ -101,7 +101,7 @@ void testBenchInitialize(void) {
         .setCaptionText("6. Tri-state Checkbox")
         .setCheckState(CheckState::Indeterminate)
         .setBorderStateColor(redBorder)
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState, CheckState state) {
             cout << "Checkbox6 (Tri-state) state: " << (int)state << endl;
         })
         .build();
