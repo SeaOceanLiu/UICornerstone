@@ -6,7 +6,7 @@ set UICONTROLS_ROOT=%~dp0..
 if "%1"=="" (
     echo Usage: build_test.bat [test_name]
     echo Example: build_test.bat test_label
-    echo Available tests: test_menu, test_label, test_editbox, test_checkbox, test_progressbar
+    echo Available tests: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe
     pause
     exit /b 1
 )

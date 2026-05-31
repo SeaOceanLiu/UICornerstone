@@ -22,6 +22,7 @@ set(UI_TEST_EXECUTABLES
     test_graphtool
     test_layout
     test_layout_advanced
+    test_winframe
 )
 
 foreach(test_name ${UI_TEST_EXECUTABLES})

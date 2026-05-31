@@ -12,7 +12,7 @@
 - **Build library**: Run `build_scripts\build.bat Debug` (requires Visual Studio 2022 environment)
 - **Build all tests**: `build_scripts\build_test.bat`
 - **Build single test**: `build_scripts\build_test.bat test_label`
-- **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar
+- **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced
 
 ## Running Tests
 
