@@ -688,7 +688,7 @@ if (btn) {
 
 auto editBox = dynamic_pointer_cast<EditBox>(parser.findControlById("nameEdit"));
 if (editBox) {
-    editBox->setOnTextChanged([](string text) {
+    editBox->setOnTextChanged([](shared_ptr<Control>, string text) {
         SDL_Log("Text changed: %s", text.c_str());
     });
 }
@@ -699,17 +699,18 @@ if (editBox) {
 ### 4.8 事件类型
 
 
-| 控件        | JSON 事件名         | C++ 绑定方法             | 回调签名                    |
-| ----------- | ------------------- | ------------------------ | --------------------------- |
-| Button      | `onClick`           | `setOnClick()`           | `void(shared_ptr<Button>)`  |
-| EditBox     | `onTextChanged`     | `setOnTextChanged()`     | `void(string)`              |
-| EditBox     | `onEnter`           | `setOnEnter()`           | `void()`                    |
-| TextArea    | `onTextChanged`     | `setOnTextChanged()`     | `void(string)`              |
-| TextArea    | `onEnter`           | `setOnEnter()`           | `void()`                    |
-| CheckBox    | `onCheckChanged`    | `setOnCheckChanged()`    | `void(shared_ptr<Control>)` |
-| ProgressBar | `onValueChanged`    | `setOnValueChanged()`    | `void(shared_ptr<Control>)` |
-| ScrollBar   | `onPositionChanged` | `setOnPositionChanged()` | `void(shared_ptr<Control>)` |
-| MenuItem    | `onClick`           | `setOnClick()`           | `void(shared_ptr<Control>)` |
+| 控件        | JSON 事件名         | C++ 绑定方法             | 回调签名                                                    |
+| ----------- | ------------------- | ------------------------ | ----------------------------------------------------------- |
+| Button      | `onClick`           | `setOnClick()`           | `void(shared_ptr<Button>)`                                  |
+| Label       | `onClick`           | `setOnClick()`           | `void(shared_ptr<Label>)`                                   |
+| EditBox     | `onTextChanged`     | `setOnTextChanged()`     | `void(shared_ptr<Control>, string)`                         |
+| EditBox     | `onEnter`           | `setOnEnter()`           | `void(shared_ptr<Control>)`                                 |
+| TextArea    | `onTextChanged`     | `setOnTextChanged()`     | `void(shared_ptr<Control>, string)`                         |
+| TextArea    | `onEnter`           | `setOnEnter()`           | `void(shared_ptr<Control>)`                                 |
+| CheckBox    | `onCheckChanged`    | `setOnCheckChanged()`    | `void(shared_ptr<CheckBox>, CheckState, CheckState)`        |
+| ProgressBar | `onValueChanged`    | `setOnValueChanged()`    | `void(shared_ptr<ProgressBar>, float, float)`               |
+| ScrollBar   | `onPositionChanged` | `setOnPositionChanged()` | `void(shared_ptr<ScrollBar>, float, float, float, float)`   |
+| MenuItem    | `onClick`           | `setOnClick()`           | `void(shared_ptr<Control>)`                                 |
 
 ### 4.9 布局引擎（Layout Engine）
 
@@ -1673,14 +1674,27 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // Label: onClick (supports hyperlink mode)
+    if (auto label = dynamic_pointer_cast<Label>(ctrl)) {
+        if (events.contains("onClick") && events["onClick"].is_string()) {
+            string handlerName = events["onClick"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                label->setOnClick([this, handlerName](shared_ptr<Label> sender) {
+                    m_handlers[handlerName](sender);
+                });
+            }
+        }
+    }
+
     // EditBox & TextArea: onTextChanged, onEnter
     if (auto editBox = dynamic_pointer_cast<EditBox>(ctrl)) {
         if (events.contains("onTextChanged") && events["onTextChanged"].is_string()) {
             string handlerName = events["onTextChanged"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
-                editBox->setOnTextChanged([this, handlerName](string text) {
-                    m_handlers[handlerName](nullptr);
+                editBox->setOnTextChanged([this, handlerName](shared_ptr<Control> sender, string) {
+                    m_handlers[handlerName](sender);
                 });
             }
         }
@@ -1689,8 +1703,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             string handlerName = events["onEnter"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
-                editBox->setOnEnter([this, handlerName]() {
-                    m_handlers[handlerName](nullptr);
+                editBox->setOnEnter([this, handlerName](shared_ptr<Control> sender) {
+                    m_handlers[handlerName](sender);
                 });
             }
         }
@@ -1702,8 +1716,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             string handlerName = events["onCheckChanged"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
-                cb->setOnCheckChanged([this, handlerName](CheckState state) {
-                    m_handlers[handlerName](nullptr);
+                cb->setOnCheckChanged([this, handlerName](shared_ptr<CheckBox> sender, CheckState, CheckState) {
+                    m_handlers[handlerName](sender);
                 });
             }
         }
@@ -1715,8 +1729,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             string handlerName = events["onValueChanged"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
-                pb->setOnValueChanged([this, handlerName](float val) {
-                    m_handlers[handlerName](nullptr);
+                pb->setOnValueChanged([this, handlerName](shared_ptr<ProgressBar> sender, float, float) {
+                    m_handlers[handlerName](sender);
                 });
             }
         }
@@ -1728,8 +1742,8 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             string handlerName = events["onPositionChanged"].get<string>();
             auto it = m_handlers.find(handlerName);
             if (it != m_handlers.end()) {
-                sb->setOnPositionChanged([this, handlerName](float value, float min, float max) {
-                    m_handlers[handlerName](nullptr);
+                sb->setOnPositionChanged([this, handlerName](shared_ptr<ScrollBar> sender, float, float, float, float) {
+                    m_handlers[handlerName](sender);
                 });
             }
         }
@@ -2477,7 +2491,7 @@ void testBenchInitialize(void) {
         auto editBox = dynamic_pointer_cast<EditBox>(
             parser.findControlById("nameEdit"));
         if (editBox) {
-            editBox->setOnTextChanged([](string text) {
+            editBox->setOnTextChanged([](shared_ptr<Control>, string text) {
                 SDL_Log("Text changed: %s", text.c_str());
             });
         }

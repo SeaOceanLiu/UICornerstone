@@ -39,7 +39,7 @@ enum class ProgressBarTextMode {
 class ProgressBar : public ControlImpl {
     friend class ProgressBarBuilder;
 public:
-    using OnValueChangedHandler = std::function<void (float)>;
+    using OnValueChangedHandler = std::function<void (shared_ptr<ProgressBar>, float, float)>;
     
 private:
     float m_minValue;

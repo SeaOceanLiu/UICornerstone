@@ -31,7 +31,7 @@ enum class ScrollBarOrientation {
 class ScrollBar: public ControlImpl {
     friend class ScrollBarBuilder;
 public:
-    using OnPositionChangedHandler = std::function<void (float, float, float)>;
+    using OnPositionChangedHandler = std::function<void (shared_ptr<ScrollBar>, float, float, float, float)>;
     
 private:
     ScrollBarOrientation m_orientation;
