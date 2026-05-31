@@ -12,13 +12,17 @@
 
 using namespace std;
 
-shared_ptr<WinFrame> g_winFrame;
+shared_ptr<WinFrame> g_winFrame1;
+shared_ptr<WinFrame> g_winFrame2;
+shared_ptr<Button> g_btn1;
+shared_ptr<Button> g_btn2;
 
 void testBenchInitialize(void) {
     SDL_Log("testWinFrameInitialize");
 
-    g_winFrame = WinFrameBuilder(nullptr, SRect(200, 150, 500, 350))
-        .setTitle("Minimal Test")
+    // WinFrame 1: resizable (default)
+    g_winFrame1 = WinFrameBuilder(nullptr, SRect(100, 100, 400, 300))
+        .setTitle("Resizable WinFrame")
         .setTitleFontSize(24)
         .setTitleTextColor(SColor((uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255))
         .setTitleBarBGColor(SColor((uint8_t)70, (uint8_t)130, (uint8_t)180, (uint8_t)255))
@@ -27,15 +31,72 @@ void testBenchInitialize(void) {
         .setClientBGColor(SColor((uint8_t)60, (uint8_t)60, (uint8_t)60, (uint8_t)255))
         .setEdgeMargin(6.0f)
         .setOnClose([](shared_ptr<Control>) {
-            SDL_Log("Close button clicked");
+            g_btn1->setCaption("Show WinFrame 1");
+            SDL_Log("WinFrame 1 closed");
         })
         .build();
 
-    SDL_Log("Adding WinFrame to BENCH...");
-    BENCH->addControl(g_winFrame);
-    SDL_Log("Showing WinFrame...");
-    g_winFrame->show();
-    SDL_Log("Initialization complete - after show()");
+    // WinFrame 2: NOT resizable
+    g_winFrame2 = WinFrameBuilder(nullptr, SRect(350, 250, 400, 300))
+        .setTitle("Unresizable WinFrame")
+        .setTitleFontSize(24)
+        .setTitleTextColor(SColor((uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255))
+        .setTitleBarBGColor(SColor((uint8_t)180, (uint8_t)70, (uint8_t)70, (uint8_t)255))
+        .setWinFrameBGColor(SColor((uint8_t)50, (uint8_t)50, (uint8_t)50, (uint8_t)255))
+        .setWinFrameBorderColor(SColor((uint8_t)100, (uint8_t)100, (uint8_t)100, (uint8_t)255))
+        .setClientBGColor(SColor((uint8_t)60, (uint8_t)60, (uint8_t)60, (uint8_t)255))
+        .setEdgeMargin(6.0f)
+        .setResizable(false)
+        .setOnClose([](shared_ptr<Control>) {
+            g_btn2->setCaption("Show WinFrame 2");
+            SDL_Log("WinFrame 2 closed");
+        })
+        .build();
+
+    SDL_Log("Adding WinFrames to BENCH...");
+    BENCH->addControl(g_winFrame1);
+    BENCH->addControl(g_winFrame2);
+    // Both start hidden — user must click buttons to show them
+
+    // Toggle button for WinFrame 1
+    BENCH->addControl(g_btn1 = ButtonBuilder(BENCH, SRect(20, 20, 180, 40))
+        .setCaption("Show WinFrame 1")
+        .setBackgroundStateColor(
+            StateColor(StateColor::Type::Background)
+                .setNormal({100,100,100,255})
+                .setHover({130,130,130,255})
+                .setPressed({80,80,80,255}))
+        .setOnClick([](shared_ptr<Button>) {
+            if (g_winFrame1->getVisible()) {
+                g_winFrame1->hide();
+                g_btn1->setCaption("Show WinFrame 1");
+            } else {
+                g_winFrame1->show();
+                g_btn1->setCaption("Hide WinFrame 1");
+            }
+        })
+        .build());
+
+    // Toggle button for WinFrame 2
+    BENCH->addControl(g_btn2 = ButtonBuilder(BENCH, SRect(220, 20, 190, 40))
+        .setCaption("Show WinFrame 2")
+        .setBackgroundStateColor(
+            StateColor(StateColor::Type::Background)
+                .setNormal({100,100,100,255})
+                .setHover({130,130,130,255})
+                .setPressed({80,80,80,255}))
+        .setOnClick([](shared_ptr<Button>) {
+            if (g_winFrame2->getVisible()) {
+                g_winFrame2->hide();
+                g_btn2->setCaption("Show WinFrame 2");
+            } else {
+                g_winFrame2->show();
+                g_btn2->setCaption("Hide WinFrame 2");
+            }
+        })
+        .build());
+
+    SDL_Log("Initialization complete");
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
@@ -66,7 +127,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             if (event->button.button == SDL_BUTTON_LEFT) {
-                SDL_Log("MOUSE_DOWN: %f,%f", event->button.x, event->button.y);
                 gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_DOWN,
                     make_shared<SPoint>((float)event->button.x, (float)event->button.y));
                 BENCH->inputControl(gameEvent);
@@ -74,7 +134,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (event->button.button == SDL_BUTTON_LEFT) {
-                SDL_Log("MOUSE_UP: %f,%f", event->button.x, event->button.y);
                 gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_UP,
                     make_shared<SPoint>((float)event->button.x, (float)event->button.y));
                 BENCH->inputControl(gameEvent);
