@@ -97,8 +97,8 @@ void testBenchInitialize(void) {
     ctx->set("sharedText", string("Hello from DataContext!"));
     ctx->set("progressValue", 42.0);
 
-    // Dynamic buttons to manipulate progressValue
-    auto decBtn = make_shared<Button>(root.get(), SRect(0, 0, 50, 18));
+    // Dynamic buttons to manipulate progressValue (parent=BENCH, positioned at progress bar)
+    auto decBtn = make_shared<Button>(BENCH, SRect(0, 0, 50, 18));
     decBtn->setCaption("-10");
     decBtn->setCaptionSize(11);
     decBtn->setNormalStateBGColor(SDL_Color{200, 80, 80, 255});
@@ -109,7 +109,7 @@ void testBenchInitialize(void) {
         ctx->set("progressValue", v);
     });
 
-    auto incBtn = make_shared<Button>(root.get(), SRect(0, 0, 50, 18));
+    auto incBtn = make_shared<Button>(BENCH, SRect(0, 0, 50, 18));
     incBtn->setCaption("+10");
     incBtn->setCaptionSize(11);
     incBtn->setNormalStateBGColor(SDL_Color{80, 200, 80, 255});
@@ -131,6 +131,8 @@ void testBenchInitialize(void) {
         incBtn->setRect(SRect{854, 970, 50, 18});
     }
 
+    decBtn->create();
+    incBtn->create();
     BENCH->addControl(decBtn);
     BENCH->addControl(incBtn);
 }

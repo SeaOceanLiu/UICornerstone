@@ -450,7 +450,7 @@
                 {
                     "type": "Label",
                     "id": "pctTitle",
-                    "rect": { "x": "2%", "y": 870, "w": "96%", "h": 20 },
+                    "rect": { "x": "2%", "y": 870, "w": "46%", "h": 20 },
                     "caption": "--- 百分比尺寸: (x:2%, w:96%) 窗口拉宽后自动变宽 ---",
                     "font": { "size": 14 },
                     "alignment": "MID_LEFT"
@@ -458,7 +458,7 @@
                 {
                     "type": "Button",
                     "id": "pctBtn",
-                    "rect": { "x": "2%", "y": 894, "w": "96%", "h": 32 },
+                    "rect": { "x": "2%", "y": 894, "w": "46%", "h": 32 },
                     "caption": "宽度=96% × 窗口宽，拉宽窗口试试",
                     "captionSize": 14,
                     "colors": {
