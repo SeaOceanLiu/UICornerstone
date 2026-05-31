@@ -108,7 +108,7 @@
 | 窗口 resize 响应   | Panel 自身 rect 变化时自动重排子控件          | ✅   |
 | 热加载             | 文件变化监听 → 自动重建控件树                | ✅   |
 | 全局主题系统       | theme 继承与覆盖                              | ✅   |
-| 数据绑定           | 控件属性绑定到数据源                          | ⬜   |
+| 数据绑定           | 控件属性绑定到数据源                          | ✅   |
 
 ## 4. 配置文件格式设计
 
@@ -2099,6 +2099,134 @@ g_reloader.poll();
 - 当前采取完全重建策略，不保留控件状态（如输入框内容、按钮悬停状态）
 - 采用轮询方式检测文件变化（而非操作系统文件事件通知），延迟约 0.5 秒
 - 只支持单文件监视，不支持目录监视
+
+## 7. 数据绑定系统
+
+### 7.1 概述
+
+数据绑定系统允许将控件属性连接到 DataContext 中的命名数据源，实现数据到 UI 的单向更新（data → UI）和双向同步（UI ↔ data）。绑定在布局解析时通过 JSON 的 `"bind"` 属性配置。
+
+### 7.2 DataValue
+
+`DataValue` 类 (`include/DataContext.h`) 是一个 variant 类型，支持三种数据类型：
+
+| 类型 | C++ 类型 | JSON 对应 |
+|------|---------|-----------|
+| 字符串 | `string` | 自动推断 |
+| 数字 | `double` | 自动推断 |
+| 布尔 | `bool` | 自动推断 |
+
+构造方式：`DataValue("abc")`、`DataValue(42.0)`、`DataValue(true)`。
+
+### 7.3 DataContext
+
+`DataContext` 类 (`include/DataContext.h`) 是一个单例，提供全局的数据存储和变更通知：
+
+| 方法 | 说明 |
+|------|------|
+| `instance()` | 获取全局单例 |
+| `set(key, value)` | 存储值并通知所有 watcher |
+| `get(key)` | 获取值 |
+| `has(key)` | 检查 key 是否存在 |
+| `watch(key, callback)` | 注册变更回调 |
+| `unwatchAll(key)` / `unwatchAll()` | 清除 watcher |
+| `clear()` | 清除所有数据和 watcher |
+
+### 7.4 JSON 绑定配置
+
+每个控件可包含 `"bind"` 对象，定义一个或多个属性绑定：
+
+```json
+{
+    "type": "EditBox",
+    "rect": { "x": 10, "y": 10, "w": 200, "h": 30 },
+    "bind": {
+        "text": { "source": "userName", "mode": "twoWay" },
+        "visible": "isEditable"
+    }
+}
+```
+
+- 简单写法（`"property": "source"`）：等价于 `{ "source": "source", "mode": "oneWay" }`
+- 对象写法（`"property": { "source": "...", "mode": "..." }`）：可指定 `"oneWay"` 或 `"twoWay"`
+
+支持的可绑定属性：
+
+| 属性 | setter | 控件类型 | 双向绑定支持 |
+|------|--------|---------|------------|
+| `caption` | `setCaption()` | Label, Button | ❌ |
+| `text` | `setText()` | EditBox, TextArea | ✅ (通过 onTextChanged) |
+| `placeholder` | `setPlaceholder()` | EditBox | ❌ |
+| `value` | `setValue()` | ProgressBar, ScrollBar | ✅ ScrollBar (通过 onPositionChanged) |
+| `checkState` | `setCheckState()` | CheckBox | ✅ (通过 onCheckChanged) |
+| `visible` | `setVisible()` | 所有控件 | ❌ |
+| `enabled` | `setEnable()` | 所有控件 | ❌ |
+
+### 7.5 绑定生命周期
+
+- 绑定在 `parseLayout()` 解析控件时创建，watcher 注册到 DataContext
+- 当 `LayoutParser::clear()` 被调用（如热加载前），自动调用 `DataContext::instance()->unwatchAll()` 清除所有 watcher
+- 绑定使用 `weak_ptr<ControlImpl>` 捕获控件引用，控件销毁后 watcher 自动失效
+
+### 7.6 使用示例
+
+**C++ 设置绑定数据：**
+
+```cpp
+auto ctx = DataContext::instance();
+ctx->set("sharedText", string("Hello!"));
+ctx->set("progressValue", 42.0);
+
+// 数据变更时自动更新所有绑定的控件
+ctx->set("sharedText", string("World!"));
+```
+
+**JSON 绑定配置：**
+
+```json
+{
+    "type": "EditBox",
+    "bind": { "text": { "source": "sharedText", "mode": "twoWay" } }
+},
+{
+    "type": "Label",
+    "bind": { "caption": "sharedText" }
+},
+{
+    "type": "ProgressBar",
+    "bind": { "value": "progressValue" }
+}
+```
+
+**双向绑定流程：**
+
+1. 用户在 EditBox 中输入 → `onTextChanged` → `DataContext::set("sharedText", 新值)`
+2. DataContext 通知 watcher → Label 的 `setCaption()` 更新显示
+3. 从其他代码修改共享数据 → `DataContext::set("sharedText", "新值")` → EditBox 的 `setText()` + Label 的 `setCaption()` 同步更新
+
+### 7.7 相关文件
+
+- `include/DataContext.h` — DataValue + DataContext 类声明
+- `src/DataContext.cpp` — 实现（含 singleton make_shared 辅助技巧）
+- `src/LayoutParser.cpp` — `parseBindings()` 解析 `"bind"` JSON；`clear()` 中清理 watcher
+- `layouts/test_layout_advanced.json` — 演示 EditBox ↔ Label 双向绑定 + ProgressBar 数据绑定
+- `test/test_layout_advanced.cpp` — 设置初始数据；添加 +/- 按钮操作 DataContext
+
+### 7.8 与 Phase 4 状态
+
+| 功能 | 状态 |
+|------|------|
+| Button Actor ScaleType | ✅ |
+| HFlow / VFlow 布局 | ✅ |
+| Anchor 布局 | ✅ |
+| Grid 布局 | ✅ |
+| 百分比尺寸 | ✅ |
+| 窗口 resize 响应 | ✅ |
+| 全局主题系统 | ✅ |
+| 热加载 | ✅ |
+| 数据绑定 | ✅ |
+
+Phase 4 全部完成 🎉
 
 ## 8. 错误处理策略
 

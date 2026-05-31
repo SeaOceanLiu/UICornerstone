@@ -22,6 +22,7 @@
 #include "Dialog.h"
 #include "Menu.h"
 #include "Theme.h"
+#include "DataContext.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -46,6 +47,7 @@ public:
     const vector<shared_ptr<MenuBar>>& getMenuBars() const;
 
     void clear();
+
     void reset();
 
 private:
@@ -81,6 +83,8 @@ private:
 
     void parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseEvents(shared_ptr<ControlImpl> ctrl, const json& j);
+    void parseBindings(shared_ptr<ControlImpl> ctrl, const json& j);
+    void clearBindings();
     void parseChildren(shared_ptr<Control> container, const json& j);
 
     SRect      parseRect(const json& j);

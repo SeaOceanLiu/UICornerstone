@@ -7,6 +7,7 @@
 #include "Bench.h"
 #include "MainWindow.h"
 #include "HotReloader.h"
+#include "DataContext.h"
 #include <iostream>
 #include <string>
 #include <memory>
@@ -90,6 +91,44 @@ void testBenchInitialize(void) {
 
     g_reloader = HotReloader(g_layoutPath, reloadLayout);
     SDL_Log("[HotReload] Watching: %s", g_layoutPath.filename().string().c_str());
+
+    // Data binding: set initial values
+    auto ctx = DataContext::instance();
+    ctx->set("sharedText", string("Hello from DataContext!"));
+    ctx->set("progressValue", 42.0);
+
+    // Dynamic buttons to manipulate progressValue
+    auto decBtn = make_shared<Button>(root.get(), SRect(0, 0, 60, 30));
+    decBtn->setCaption("-10");
+    decBtn->setNormalStateBGColor(SDL_Color{200, 80, 80, 255});
+    decBtn->setOnClick([](shared_ptr<Button>) {
+        auto ctx = DataContext::instance();
+        double v = ctx->get("progressValue").asDouble() - 10.0;
+        if (v < 0) v = 100.0;
+        ctx->set("progressValue", v);
+    });
+
+    auto incBtn = make_shared<Button>(root.get(), SRect(70, 0, 60, 30));
+    incBtn->setCaption("+10");
+    incBtn->setNormalStateBGColor(SDL_Color{80, 200, 80, 255});
+    incBtn->setOnClick([](shared_ptr<Button>) {
+        auto ctx = DataContext::instance();
+        double v = ctx->get("progressValue").asDouble() + 10.0;
+        if (v > 100) v = 0.0;
+        ctx->set("progressValue", v);
+    });
+
+    // Position them inside the progress bar area: below the binding section
+    // Find the bindingProgress control by ID and position relative to it
+    auto progressCtrl = g_parser.findControlById("bindingProgress");
+    if (progressCtrl) {
+        SRect pr = progressCtrl->getRect();
+        decBtn->setRect(SRect{pr.left, pr.top + pr.height + 4, 60, 30});
+        incBtn->setRect(SRect{pr.left + 70, pr.top + pr.height + 4, 60, 30});
+    }
+
+    BENCH->addControl(decBtn);
+    BENCH->addControl(incBtn);
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {

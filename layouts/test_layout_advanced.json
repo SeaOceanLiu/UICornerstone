@@ -490,6 +490,42 @@
                     "id": "themeBtn3",
                     "rect": { "x": "66%", "y": 1010, "w": "32%", "h": 36 },
                     "caption": "主题按钮 C"
+                },
+                {
+                    "type": "Label",
+                    "id": "bindingTitle",
+                    "rect": { "x": "2%", "y": 1060, "w": "96%", "h": 24 },
+                    "caption": "--- 数据绑定演示 (EditBox ↔ Label → sharedText) ---",
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "EditBox",
+                    "id": "bindingEdit",
+                    "rect": { "x": "2%", "y": 1090, "w": "46%", "h": 40 },
+                    "placeholder": "输入文字同步到下方 Label...",
+                    "bind": { "text": { "source": "sharedText", "mode": "twoWay" } }
+                },
+                {
+                    "type": "Label",
+                    "id": "bindingLabel",
+                    "rect": { "x": "51%", "y": 1090, "w": "47%", "h": 40 },
+                    "alignment": "MID_LEFT",
+                    "bind": { "caption": "sharedText" }
+                },
+                {
+                    "type": "Label",
+                    "id": "bindingProgressTitle",
+                    "rect": { "x": "2%", "y": 1140, "w": "96%", "h": 24 },
+                    "caption": "--- 数据绑定演示 (ProgressBar ← progressValue + 按钮设置) ---",
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "ProgressBar",
+                    "id": "bindingProgress",
+                    "rect": { "x": "2%", "y": 1170, "w": "96%", "h": 24 },
+                    "range": { "min": 0, "max": 100 },
+                    "textMode": "Percent",
+                    "bind": { "value": "progressValue" }
                 }
             ]
         }

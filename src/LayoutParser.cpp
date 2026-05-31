@@ -116,6 +116,7 @@ void LayoutParser::clearHandlers() {
 // ==================== 状态管理 ====================
 
 void LayoutParser::clear() {
+    DataContext::instance()->unwatchAll();
     m_controlsById.clear();
     m_menuBars.clear();
     m_currentJsonPath.clear();
@@ -306,6 +307,7 @@ shared_ptr<Label> LayoutParser::parseLabel(const json& j, Control* parent) {
 
     // events
     parseEvents(label, j);
+    parseBindings(label, j);
 
     // id
     if (j.contains("id") && j["id"].is_string()) {
@@ -517,6 +519,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
     }
 
     parseEvents(btn, j);
+    parseBindings(btn, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = btn;
@@ -586,6 +589,7 @@ shared_ptr<EditBox> LayoutParser::parseEditBox(const json& j, Control* parent) {
     }
 
     parseEvents(editBox, j);
+    parseBindings(editBox, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = editBox;
@@ -934,6 +938,7 @@ shared_ptr<TextArea> LayoutParser::parseTextArea(const json& j, Control* parent)
     }
 
     parseEvents(textArea, j);
+    parseBindings(textArea, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = textArea;
@@ -1051,6 +1056,7 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
     }
 
     parseEvents(checkBox, j);
+    parseBindings(checkBox, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = checkBox;
@@ -1153,6 +1159,7 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
     }
 
     parseEvents(progressBar, j);
+    parseBindings(progressBar, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = progressBar;
@@ -1213,6 +1220,7 @@ shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* paren
     }
 
     parseEvents(scrollBar, j);
+    parseBindings(scrollBar, j);
 
     if (j.contains("id") && j["id"].is_string()) {
         m_controlsById[j["id"].get<string>()] = scrollBar;
@@ -1371,6 +1379,99 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    popJsonPath();
+}
+
+static void applyBinding(shared_ptr<ControlImpl> ctrl, const string& prop, const DataValue& val) {
+    if (prop == "visible") { ctrl->setVisible(val.asBool()); return; }
+    if (prop == "enabled") { ctrl->setEnable(val.asBool()); return; }
+
+    if (prop == "caption") {
+        if (auto label = dynamic_pointer_cast<Label>(ctrl)) { label->setCaption(val.asString()); return; }
+        if (auto btn = dynamic_pointer_cast<Button>(ctrl)) { btn->setCaption(val.asString()); return; }
+    }
+    if (prop == "text") {
+        if (auto eb = dynamic_pointer_cast<EditBox>(ctrl)) { eb->setText(val.asString()); return; }
+        if (auto ta = dynamic_pointer_cast<TextArea>(ctrl)) { ta->setText(val.asString()); return; }
+    }
+    if (prop == "placeholder") {
+        if (auto eb = dynamic_pointer_cast<EditBox>(ctrl)) { eb->setPlaceholder(val.asString()); return; }
+    }
+    if (prop == "value") {
+        if (auto pb = dynamic_pointer_cast<ProgressBar>(ctrl)) { pb->setValue((float)val.asDouble()); return; }
+        if (auto sb = dynamic_pointer_cast<ScrollBar>(ctrl)) { sb->setValue((float)val.asDouble()); return; }
+    }
+    if (prop == "checkState") {
+        if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
+            CheckState s = CheckState::Unchecked;
+            string vs = val.asString();
+            if (vs == "Checked") s = CheckState::Checked;
+            else if (vs == "Indeterminate") s = CheckState::Indeterminate;
+            cb->setCheckState(s);
+            return;
+        }
+    }
+}
+
+static void bindProperty(shared_ptr<ControlImpl> ctrl, const string& prop, const string& source, const string& mode) {
+    auto ctx = DataContext::instance();
+    weak_ptr<ControlImpl> weakCtrl = ctrl;
+    if (mode == "oneWay" || mode == "twoWay") {
+        ctx->watch(source, [weakCtrl, prop](const DataValue& val) {
+            auto locked = dynamic_pointer_cast<ControlImpl>(weakCtrl.lock());
+            if (locked) applyBinding(locked, prop, val);
+        });
+    }
+    if (mode == "twoWay") {
+        if (prop == "text") {
+            if (auto eb = dynamic_pointer_cast<EditBox>(ctrl)) {
+                auto s = source;
+                eb->setOnTextChanged([s](string text) {
+                    DataContext::instance()->set(s, text);
+                });
+            }
+        }
+        if (prop == "checkState") {
+            if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
+                auto s = source;
+                shared_ptr<CheckBox> weakCB = cb;
+                cb->setOnCheckChanged([s, weakCB](shared_ptr<CheckBox> sender, CheckState state) {
+                    string vs = "Unchecked";
+                    if (state == CheckState::Checked) vs = "Checked";
+                    else if (state == CheckState::Indeterminate) vs = "Indeterminate";
+                    DataContext::instance()->set(s, vs);
+                });
+            }
+        }
+        if (prop == "value") {
+            if (auto sb = dynamic_pointer_cast<ScrollBar>(ctrl)) {
+                auto s = source;
+                sb->setOnPositionChanged([s](float value, float min, float max) {
+                    DataContext::instance()->set(s, (double)value);
+                });
+            }
+        }
+    }
+}
+
+void LayoutParser::parseBindings(shared_ptr<ControlImpl> ctrl, const json& j) {
+    if (!j.contains("bind") || !j["bind"].is_object()) return;
+    pushJsonPath("bind");
+    const json& bind = j["bind"];
+    for (auto it = bind.begin(); it != bind.end(); ++it) {
+        string prop = it.key();
+        string source;
+        string mode = "oneWay";
+        if (it.value().is_string()) {
+            source = it.value().get<string>();
+        } else if (it.value().is_object()) {
+            source = it.value().value("source", "");
+            mode = it.value().value("mode", "oneWay");
+        } else {
+            continue;
+        }
+        bindProperty(ctrl, prop, source, mode);
+    }
     popJsonPath();
 }
 
