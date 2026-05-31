@@ -93,6 +93,8 @@ void WinFrame::setResizeCursor(uint8_t flags) {
     int idx = flags & 0x0F;
     if (!cursors[idx]) {
         switch (idx) {
+            case 0:
+                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT); break;
             case kLeft|kTop: case kRight|kBottom:
                 cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE); break;
             case kRight|kTop: case kLeft|kBottom:
@@ -109,7 +111,9 @@ void WinFrame::setResizeCursor(uint8_t flags) {
                 cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT); break;
         }
     }
-    SDL_SetCursor(cursors[idx]);
+    if (cursors[idx]) {
+        SDL_SetCursor(cursors[idx]);
+    }
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
@@ -180,7 +184,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         }
         if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
             m_resizing = false;
-            SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT));
+            setResizeCursor(0);
             return true;
         }
     }
@@ -208,7 +212,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
         } else if (event->m_eventName == EventName::MOUSE_MOVING) {
-            SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT));
+            setResizeCursor(0);
         }
     }
 
@@ -237,6 +241,27 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     }
 
     return consumed;
+}
+
+void WinFrame::setRect(SRect rect) {
+    Panel::setRect(rect);
+
+    float titleH = ConstDef::WINDOW_TITLE_HEIGHT;
+    float newTitleWidth = (m_rect.width > titleH) ? (m_rect.width - titleH) : 0.0f;
+    float newClientHeight = (m_rect.height > titleH) ? (m_rect.height - titleH) : 0.0f;
+
+    if (m_titleBar) {
+        m_titleBar->setRect({0, 0, newTitleWidth, titleH});
+    }
+    if (m_titleLabel) {
+        m_titleLabel->setRect({0, 0, newTitleWidth, titleH});
+    }
+    if (m_closeButton) {
+        m_closeButton->setRect({newTitleWidth, 0, titleH, titleH});
+    }
+    if (m_clientPanel) {
+        m_clientPanel->setRect({0, titleH, m_rect.width, newClientHeight});
+    }
 }
 
 void WinFrame::show(void) {
