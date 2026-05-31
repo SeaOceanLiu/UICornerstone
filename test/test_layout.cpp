@@ -11,18 +11,18 @@
 #include "TextArea.h"
 #include "Button.h"
 #include "EditBox.h"
-#include "Dialog.h"
+#include "WinFrame.h"
 #include <SDL3_ttf/SDL_ttf.h>
 
 using namespace std;
 
 static LayoutParser g_parser;
-static shared_ptr<Dialog> g_resultDialog;
+static shared_ptr<WinFrame> g_resultWinFrame;
 
 void onSubmitClicked(shared_ptr<Control> c) {
     SDL_Log("Button clicked via auto-binding!");
-    if (g_resultDialog) {
-        g_resultDialog->show();
+    if (g_resultWinFrame) {
+        g_resultWinFrame->show();
     }
 }
 
@@ -132,11 +132,11 @@ void testBenchInitialize(void) {
             SDL_Log("  - ID: %s", ids[i].c_str());
         }
 
-        auto resultCtrl = g_parser.findControlById("resultDialog");
+        auto resultCtrl = g_parser.findControlById("resultWinFrame");
         if (resultCtrl) {
-            g_resultDialog = dynamic_pointer_cast<Dialog>(resultCtrl);
-            if (g_resultDialog) {
-                SDL_Log("Dialog parsed from JSON: id=resultDialog");
+            g_resultWinFrame = dynamic_pointer_cast<WinFrame>(resultCtrl);
+            if (g_resultWinFrame) {
+                SDL_Log("WinFrame parsed from JSON: id=resultWinFrame");
             }
         }
 

@@ -107,7 +107,6 @@ bool Button::handleEvent(shared_ptr<Event> event){
             if (!pos) return false;
             SRect drawRect = getDrawRect();
             if (drawRect.contains(pos->x, pos->y)){
-                SDL_Log("Button::handleEvent: %d", event->m_eventName);
                 switch(event->m_eventName){
                     case EventName::FINGER_DOWN:
                     case EventName::FINGER_MOTION:
@@ -120,7 +119,6 @@ bool Button::handleEvent(shared_ptr<Event> event){
                         setState(ControlState::Pressed);
                         return true;
                     case EventName::MOUSE_LBUTTON_UP:
-                        SDL_Log("Button::handleEvent m_onClick = 0x%0X, m_state = %d", m_onClick, m_state);
                         if (m_onClick != nullptr && m_state == ControlState::Pressed){
                             m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
                         }

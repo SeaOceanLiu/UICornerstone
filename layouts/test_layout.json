@@ -362,12 +362,19 @@
                     }
                 },
                 {
-                    "type": "Dialog",
-                    "id": "resultDialog",
+                    "type": "WinFrame",
+                    "id": "resultWinFrame",
                     "rect": { "x": 200, "y": 100, "w": 400, "h": 300 },
                     "title": "Submitted",
-                    "text": "Form submitted successfully!\n\nThis is a Dialog with TextArea.\n\nThe TextArea has built-in scrollbar support, so long text can be viewed without page-turning buttons.\n\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20",
-                    "okBtnCaption": "Close"
+                    "edgeMargin": 4.0,
+                    "children": [
+                        {
+                            "type": "Label",
+                            "rect": { "x": 10, "y": 10, "w": 380, "h": 140 },
+                            "caption": "Form submitted successfully!\n\nThis is a WinFrame with ClientPanel.\n\nYou can add any controls to the client area.\n\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10",
+                            "font": { "size": 14 }
+                        }
+                    ]
                 }
             ]
         }

@@ -1,6 +1,6 @@
 // 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
-#include "Dialog.h"
+#include "WinFrame.h"
 #include "LayoutEngine.h"
 #include <fstream>
 #include <sstream>
@@ -223,8 +223,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseScrollBar(j, parent);
     } else if (type == "Panel") {
         result = parsePanel(j, parent);
-    } else if (type == "Dialog") {
-        result = parseDialog(j, parent);
+    } else if (type == "WinFrame") {
+        result = parseWinFrame(j, parent);
     } else if (type == "MenuBar") {
         // MenuBar 不加入控件树（会被父容器裁剪），独立存储后再由调用方加入 BENCH 顶层
         auto menuBar = parseMenuBar(j, parent);
@@ -744,9 +744,9 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
     return panel;
 }
 
-// ==================== Dialog ====================
+// ==================== WinFrame ====================
 
-shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
+shared_ptr<WinFrame> LayoutParser::parseWinFrame(const json& j, Control* parent) {
     pushJsonPath("rect");
     SRect rect = parseRect(j["rect"]);
     popJsonPath();
@@ -757,27 +757,53 @@ shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
         yScale = j["scale"].value("y", 1.0f);
     }
 
-    auto dialog = make_shared<Dialog>(parent, rect, xScale, yScale);
+    auto winFrame = make_shared<WinFrame>(parent, rect, xScale, yScale);
 
     if (j.contains("title") && j["title"].is_string()) {
-        dialog->setTitle(j["title"].get<string>());
+        winFrame->setTitle(j["title"].get<string>());
     }
 
-    if (j.contains("text") && j["text"].is_string()) {
-        dialog->setText(j["text"].get<string>());
+    if (j.contains("edgeMargin") && j["edgeMargin"].is_number()) {
+        winFrame->setEdgeMargin(j["edgeMargin"].get<float>());
     }
 
-    if (j.contains("okBtnCaption") && j["okBtnCaption"].is_string()) {
-        dialog->setOkBtnCaption(j["okBtnCaption"].get<string>());
+    // Color parsing
+    if (j.contains("colors") && j["colors"].is_object()) {
+        const json& colors = j["colors"];
+        if (colors.contains("background") && colors["background"].is_object()) {
+            winFrame->setBackgroundStateColor(parseStateColor(colors["background"], StateColor::Type::Background));
+        }
+        if (colors.contains("border") && colors["border"].is_object()) {
+            winFrame->setBorderStateColor(parseStateColor(colors["border"], StateColor::Type::Border));
+        }
+        if (colors.contains("titleBar") && colors["titleBar"].is_object()) {
+            const json& tb = colors["titleBar"];
+            if (tb.contains("bg") && tb["bg"].is_object()) {
+                winFrame->getTitleBar()->setBackgroundStateColor(
+                    parseStateColor(tb["bg"], StateColor::Type::Background));
+            }
+        }
+        if (colors.contains("titleText") && colors["titleText"].is_object()) {
+            winFrame->getTitleLabel()->setTextStateColor(
+                parseStateColor(colors["titleText"], StateColor::Type::Text));
+        }
+    }
+
+    // Children go into ClientPanel
+    if (j.contains("children")) {
+        parseChildren(static_pointer_cast<Control>(winFrame->getClientPanel()), j);
     }
 
     if (j.contains("id") && j["id"].is_string()) {
-        m_controlsById[j["id"].get<string>()] = dialog;
+        m_controlsById[j["id"].get<string>()] = winFrame;
     }
 
-    dialog->create();
-    dialog->hide();
-    return dialog;
+    // Events
+    parseEvents(static_pointer_cast<ControlImpl>(winFrame), j);
+
+    winFrame->create();
+    winFrame->hide();
+    return winFrame;
 }
 
 // ==================== MenuBar ====================
@@ -1758,7 +1784,7 @@ void LayoutParser::parseComponents(const json& j) {
     // Known control type names to check against
     unordered_set<string> knownTypes = {
         "Label", "Button", "EditBox", "TextArea", "CheckBox",
-        "ProgressBar", "ScrollBar", "Panel", "Dialog", "MenuBar"
+        "ProgressBar", "ScrollBar", "Panel", "WinFrame", "MenuBar"
     };
 
     for (auto it = comps.begin(); it != comps.end(); ++it) {

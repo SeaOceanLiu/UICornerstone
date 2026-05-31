@@ -4,7 +4,7 @@
 #include "ResourceLoader.h"
 #include "Panel.h"
 #include "Label.h"
-#include "Dialog.h"
+#include "WinFrame.h"
 #include "LuotiAni.h"
 
 #define BENCH (Bench::getInstance())

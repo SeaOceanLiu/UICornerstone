@@ -19,7 +19,7 @@
 #include "ProgressBar.h"
 #include "ScrollBar.h"
 #include "Panel.h"
-#include "Dialog.h"
+#include "WinFrame.h"
 #include "Menu.h"
 #include "Theme.h"
 #include "DataContext.h"
@@ -88,7 +88,7 @@ private:
     shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);
     shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
-    shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);
+    shared_ptr<WinFrame>    parseWinFrame(const json& j, Control* parent);
     shared_ptr<MenuBar>     parseMenuBar(const json& j, Control* parent);
     void populateMenuPanel(shared_ptr<MenuPanel> panel, const json& items, float xScale, float yScale);
 

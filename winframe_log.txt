@@ -1,0 +1,2 @@
+Test Phase 0: Click title bar
+Injecting 4 at 450,165

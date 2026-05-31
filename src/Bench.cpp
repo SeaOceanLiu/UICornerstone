@@ -131,7 +131,10 @@ void Bench::resized(SRect newRect) {
         if (!child->getVisible()) continue;
         auto panel = dynamic_pointer_cast<Panel>(child);
         if (panel) {
-            panel->resized(newRect);
+            panel->resolveChildPercentages();
+            if (panel->getLayoutEngine()) {
+                panel->reflowChildren();
+            }
         }
     }
 }
@@ -140,7 +143,10 @@ void Bench::addControl(shared_ptr<Control> control) {
     Panel::addControl(control);
     auto panel = dynamic_pointer_cast<Panel>(control);
     if (panel) {
-        panel->resized(m_rect);
+        panel->resolveChildPercentages();
+        if (panel->getLayoutEngine()) {
+            panel->reflowChildren();
+        }
     }
 }
 
