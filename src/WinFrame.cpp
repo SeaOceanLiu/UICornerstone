@@ -160,6 +160,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     // Step 1: During drag, intercept movement
     if (m_dragging && hasPos) {
         if (event->m_eventName == EventName::MOUSE_MOVING) {
+            setResizeCursor(0);
             Control* parent = getParent();
             SRect parentDraw = parent->getDrawRect();
             float parentX = (mousePos.x - parentDraw.left) / parent->getScaleXX();
@@ -177,6 +178,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     // During resize, intercept movement
     if (m_resizing && hasPos) {
         if (event->m_eventName == EventName::MOUSE_MOVING) {
+            setResizeCursor(m_resizeFlags);
             SRect newScreenRect = m_startScreenRect;
             float dx = mousePos.x - m_resizeStartMouse.x;
             float dy = mousePos.y - m_resizeStartMouse.y;
