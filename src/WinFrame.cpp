@@ -152,7 +152,9 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
             mousePos = *pos;
             hasPos = true;
         } catch (const std::bad_any_cast&) {
-            return false;
+            // Not an SPoint event (e.g. MOUSE_WHEEL uses MouseWheelEventData).
+            // Leave hasPos=false so position checks are skipped,
+            // but the event still propagates to children below.
         }
     }
 
