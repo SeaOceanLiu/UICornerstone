@@ -37,8 +37,13 @@ private:
     SPoint  m_resizeStartMouse;
 
     float   m_edgeMargin;
-    SDL_Cursor* m_currentCursor;
     bool    m_resizable;
+
+    SDL_Cursor *m_cursorDefault;
+    SDL_Cursor *m_cursorSizeWE;
+    SDL_Cursor *m_cursorSizeNS;
+    SDL_Cursor *m_cursorSizeNWSE;
+    SDL_Cursor *m_cursorSizeNESW;
 
     void bringToFront();
     SPoint screenToLocal(float screenX, float screenY);
@@ -46,6 +51,7 @@ private:
 
 public:
     WinFrame(Control* parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
+    ~WinFrame();
 
     bool handleEvent(shared_ptr<Event> event) override;
     void show(void) override;

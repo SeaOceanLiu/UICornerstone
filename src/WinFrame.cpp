@@ -1,8 +1,4 @@
 #include "WinFrame.h"
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     Panel(parent, rect, xScale, yScale),
@@ -15,8 +11,12 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     m_resizing(false),
     m_resizeFlags(0),
     m_edgeMargin(4.0f),
-    m_currentCursor(nullptr),
-    m_resizable(true)
+    m_resizable(true),
+    m_cursorDefault(SDL_GetCursor()),
+    m_cursorSizeWE(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE)),
+    m_cursorSizeNS(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE)),
+    m_cursorSizeNWSE(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE)),
+    m_cursorSizeNESW(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NESW_RESIZE))
 {
     if (m_rect.width < MIN_WIDTH)  m_rect.width = MIN_WIDTH;
     if (m_rect.height < MIN_HEIGHT) m_rect.height = MIN_HEIGHT;
@@ -67,6 +67,13 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
         .build());
 }
 
+WinFrame::~WinFrame() {
+    if (m_cursorSizeWE)   { SDL_DestroyCursor(m_cursorSizeWE);   m_cursorSizeWE = nullptr; }
+    if (m_cursorSizeNS)   { SDL_DestroyCursor(m_cursorSizeNS);   m_cursorSizeNS = nullptr; }
+    if (m_cursorSizeNWSE) { SDL_DestroyCursor(m_cursorSizeNWSE); m_cursorSizeNWSE = nullptr; }
+    if (m_cursorSizeNESW) { SDL_DestroyCursor(m_cursorSizeNESW); m_cursorSizeNESW = nullptr; }
+}
+
 void WinFrame::bringToFront() {
     Control* p = getParent();
     if (!p) return;
@@ -94,50 +101,20 @@ SPoint WinFrame::screenToLocal(float screenX, float screenY) {
 }
 
 void WinFrame::setResizeCursor(uint8_t flags) {
-    static SDL_Cursor* cursors[16] = {nullptr};
-    int idx = flags & 0x0F;
-#ifdef _WIN32
-    static HCURSOR nativeCursors[16] = {NULL};
-    if (!nativeCursors[idx]) {
-        switch (idx) {
-            case 0: nativeCursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
-            case kLeft|kTop: case kRight|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
-            case kRight|kTop: case kLeft|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
-            case kLeft|kRight: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-            case kTop|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-            case kLeft: case kRight: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-            case kTop: case kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-            default: nativeCursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
-        }
+    SDL_Cursor* cursor = m_cursorDefault;
+    switch (flags & 0x0F) {
+        case 0:                                     cursor = m_cursorDefault; break;
+        case kLeft|kRight:                          cursor = m_cursorSizeWE;  break;
+        case kTop|kBottom:                          cursor = m_cursorSizeNS;  break;
+        case kLeft:  case kRight:                   cursor = m_cursorSizeWE;  break;
+        case kTop:   case kBottom:                  cursor = m_cursorSizeNS;  break;
+        case kLeft|kTop:      case kRight|kBottom:  cursor = m_cursorSizeNWSE; break;
+        case kRight|kTop:     case kLeft|kBottom:   cursor = m_cursorSizeNESW; break;
+        case kLeft|kRight|kTop|kBottom:             cursor = m_cursorSizeWE;  break;
     }
-    if (nativeCursors[idx]) {
-        SetCursor(nativeCursors[idx]);
+    if (cursor) {
+        SDL_SetCursor(cursor);
     }
-#else
-    if (!cursors[idx]) {
-        switch (idx) {
-            case 0:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT); break;
-            case kLeft|kTop: case kRight|kBottom:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE); break;
-            case kRight|kTop: case kLeft|kBottom:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NESW_RESIZE); break;
-            case kLeft|kRight:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE); break;
-            case kTop|kBottom:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE); break;
-            case kLeft: case kRight:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE); break;
-            case kTop: case kBottom:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE); break;
-            default:
-                cursors[idx] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT); break;
-        }
-    }
-    if (cursors[idx]) {
-        SDL_SetCursor(cursors[idx]);
-    }
-#endif
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
