@@ -120,6 +120,13 @@ void WinFrame::setResizeCursor(uint8_t flags) {
     if (cursor) {
 #ifdef _WIN32
         // SDL_SetCursor doesn't persist against WM_SETCURSOR on this SDL3 fork.
+        // WM_SETCURSOR fires before the corresponding mouse-move event is
+        // processed from our async event queue, so SDL's handler restores the
+        // default cursor before we have a chance to set the resize cursor.
+        //
+        // See: https://github.com/libsdl-org/SDL/issues/12163
+        //      https://github.com/libsdl-org/SDL/issues/12564
+        //
         // Use Win32 SetCursor for reliable cursor display.
         (void)cursor; // mark as unused
         static HCURSOR hcursors[16] = {NULL};
