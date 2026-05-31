@@ -1,6 +1,73 @@
 {
     "version": "1.0",
     "viewport": { "width": 800, "height": 1000 },
+
+    "components": {
+        "Greeter": {
+            "props": {
+                "name": { "type": "string", "default": "World" },
+                "buttonText": { "type": "string", "default": "Click" }
+            },
+            "template": {
+                "type": "Panel",
+                "rect": { "x": 0, "y": 0, "w": 200, "h": 60 },
+                "children": [
+                    {
+                        "type": "Label",
+                        "id": "greeting",
+                        "rect": { "x": 10, "y": 5, "w": 180, "h": 24 },
+                        "caption": "Hello, {{name}}!",
+                        "font": { "size": 14 },
+                        "alignment": "CENTER"
+                    },
+                    {
+                        "type": "Button",
+                        "id": "btn",
+                        "rect": { "x": 50, "y": 32, "w": 100, "h": 24 },
+                        "caption": "{{buttonText}}",
+                        "events": { "onClick": "_comp_onGreet" }
+                    }
+                ]
+            }
+        },
+        "FramedGreeter": {
+            "props": {
+                "name": { "type": "string", "default": "World" },
+                "buttonText": { "type": "string", "default": "Click" }
+            },
+            "template": {
+                "type": "Panel",
+                "rect": { "x": 0, "y": 0, "w": 220, "h": 80 },
+                "bgColor": "#3A3A3AFF",
+                "borderColor": "#808080FF",
+                "children": [
+                    {
+                        "type": "Greeter",
+                        "id": "nestedGreeter",
+                        "rect": { "x": 10, "y": 10, "w": 200, "h": 60 },
+                        "name": "{{name}}",
+                        "buttonText": "{{buttonText}}",
+                        "events": { "onGreet": "_comp_onGreet" }
+                    }
+                ]
+            }
+        },
+        "SelfRef": {
+            "template": {
+                "type": "Panel",
+                "rect": { "x": 0, "y": 0, "w": 200, "h": 100 },
+                "bgColor": "#3A3A3AFF",
+                "children": [
+                    {
+                        "type": "SelfRef",
+                        "id": "child",
+                        "rect": { "x": 10, "y": 10, "w": 180, "h": 80 }
+                    }
+                ]
+            }
+        }
+    },
+
     "theme": {
         "colors": {
             "window": {
@@ -61,6 +128,14 @@
                 "background": { "normal": "#282828FF" }
             },
             "children": [
+                {
+                    "type": "Greeter",
+                    "id": "greeter1",
+                    "rect": { "x": 10, "y": 10, "w": 200, "h": 60 },
+                    "name": "组件系统",
+                    "buttonText": "问候",
+                    "events": { "onGreet": "onGreeterClick" }
+                },
                 {
                     "type": "Label",
                     "id": "titleLabel",
@@ -554,6 +629,33 @@
                     "id": "themeBtn3",
                     "rect": { "x": "2%", "y": 1020, "w": "46%", "h": 26 },
                     "caption": "主题按钮 C"
+                },
+                {
+                    "type": "Label",
+                    "id": "compTitle",
+                    "rect": { "x": "2%", "y": 1060, "w": "96%", "h": 20 },
+                    "caption": "--- 组件(V1): 嵌套 / Props默认值 / 循环引用 ---",
+                    "font": { "size": 14 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "FramedGreeter",
+                    "id": "framedGreeter1",
+                    "rect": { "x": 10, "y": 1090, "w": 220, "h": 80 },
+                    "name": "嵌套组件",
+                    "buttonText": "点我",
+                    "events": { "onGreet": "onFramedGreet" }
+                },
+                {
+                    "type": "Greeter",
+                    "id": "greeterDefaults",
+                    "rect": { "x": 250, "y": 1090, "w": 200, "h": 60 },
+                    "name": "默认按钮"
+                },
+                {
+                    "type": "SelfRef",
+                    "id": "selfRef1",
+                    "rect": { "x": 470, "y": 1090, "w": 200, "h": 100 }
                 }
             ]
         }

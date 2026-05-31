@@ -50,12 +50,23 @@ public:
 
     void reset();
 
+    struct ComponentSource {
+        string name;
+        int lineStart;
+        int lineEnd;
+    };
+
 private:
     Theme m_theme;
 
     unordered_map<string, shared_ptr<Control>> m_controlsById;
     unordered_map<string, function<void(shared_ptr<Control>)>> m_handlers;
     vector<shared_ptr<MenuBar>> m_menuBars;
+
+    // Component system
+    unordered_map<string, json> m_components;
+    unordered_map<string, ComponentSource> m_componentSourceLines;
+    vector<string> m_instantiationStack;
 
     int m_currentLineNo;
     string m_currentJsonPath;
@@ -86,6 +97,13 @@ private:
     void parseBindings(shared_ptr<ControlImpl> ctrl, const json& j);
     void clearBindings();
     void parseChildren(shared_ptr<Control> container, const json& j);
+
+    // Component system
+    void parseComponents(const json& j);
+    shared_ptr<Control> instantiateComponent(const string& name, const json& instanceJ, Control* parent, int index);
+    void replacePlaceholders(json& node, const json& props, const json& instanceJ);
+    void remapEvents(json& node, const json& instanceEvents);
+    void prefixIds(json& node, const string& prefix);
 
     SRect      parseRect(const json& j);
     Margin     parseMargin(const json& j);

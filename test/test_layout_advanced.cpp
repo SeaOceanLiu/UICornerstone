@@ -65,6 +65,12 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onMenuUndo", onMenuUndo);
     g_parser.registerHandler("onMenuRedo", onMenuRedo);
     g_parser.registerHandler("onMenuAbout", onMenuAbout);
+    g_parser.registerHandler("onGreeterClick", [](shared_ptr<Control>) {
+        SDL_Log("[Component] Greeter button clicked!");
+    });
+    g_parser.registerHandler("onFramedGreet", [](shared_ptr<Control>) {
+        SDL_Log("[Component] FramedGreeter button clicked! (nested component test)");
+    });
     g_parser.registerHandler("onDecProgress", [](shared_ptr<Control>) {
         auto ctx = DataContext::instance();
         double v = ctx->get("progressValue").asDouble() - 10.0;

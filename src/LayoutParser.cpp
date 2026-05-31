@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <unordered_set>
 
 LayoutParser::LayoutParser()
     : m_currentLineNo(0)
@@ -33,14 +34,27 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
         m_theme.parse(j["theme"]);
     }
 
-    if (!j.contains("controls") || !j["controls"].is_array()) {
-        logError("'controls' array is required");
+    // Component system: parse components before layouts
+    if (j.contains("components")) {
+        parseComponents(j);
+    }
+
+    // Support both "layouts" (component system) and "controls" (original)
+    const json* controlsArray = nullptr;
+    if (j.contains("layouts") && j["layouts"].is_array()) {
+        controlsArray = &j["layouts"];
+    } else if (j.contains("controls") && j["controls"].is_array()) {
+        controlsArray = &j["controls"];
+    }
+
+    if (!controlsArray) {
+        logError("'controls' or 'layouts' array is required");
         return nullptr;
     }
 
-    const json& controls = j["controls"];
+    const json& controls = *controlsArray;
     if (controls.empty()) {
-        logWarn("'controls' array is empty");
+        logWarn("'controls' or 'layouts' array is empty");
         return nullptr;
     }
 
@@ -122,6 +136,9 @@ void LayoutParser::clear() {
     m_currentJsonPath.clear();
     m_currentLineNo = 0;
     m_rawJsonContent.clear();
+    m_components.clear();
+    m_componentSourceLines.clear();
+    m_instantiationStack.clear();
 }
 
 void LayoutParser::reset() {
@@ -217,6 +234,9 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = nullptr;
         popJsonPath();
         return nullptr;
+    } else if (m_components.find(type) != m_components.end()) {
+        // Component type: instantiate from template
+        result = instantiateComponent(type, j, parent, index);
     } else {
         logWarn("unknown control type \"" + type + "\", skipping");
         popJsonPath();
@@ -1725,4 +1745,252 @@ GridSize LayoutParser::parseGridSize(const json& j) {
         gs.value = j.get<float>();
     }
     return gs;
+}
+
+// ==================== 组件系统 ====================
+
+void LayoutParser::parseComponents(const json& j) {
+    if (!j.contains("components") || !j["components"].is_object()) return;
+
+    pushJsonPath("components");
+    const json& comps = j["components"];
+
+    // Known control type names to check against
+    unordered_set<string> knownTypes = {
+        "Label", "Button", "EditBox", "TextArea", "CheckBox",
+        "ProgressBar", "ScrollBar", "Panel", "Dialog", "MenuBar"
+    };
+
+    for (auto it = comps.begin(); it != comps.end(); ++it) {
+        const string& name = it.key();
+        const json& def = it.value();
+
+        if (knownTypes.find(name) != knownTypes.end()) {
+            logWarn("component name \"" + name + "\" conflicts with built-in control type");
+            continue;
+        }
+
+        if (!def.contains("template") || !def["template"].is_object()) {
+            logWarn("component \"" + name + "\" is missing 'template' object");
+            continue;
+        }
+
+        if (def.contains("props") && !def["props"].is_object()) {
+            logWarn("component \"" + name + "\" 'props' must be an object");
+            continue;
+        }
+
+        // Validate props
+        if (def.contains("props")) {
+            const json& props = def["props"];
+            bool propsValid = true;
+            for (auto p = props.begin(); p != props.end(); ++p) {
+                if (!p.value().contains("type") || !p.value()["type"].is_string()) {
+                    logWarn("component \"" + name + "\" prop \"" + p.key() + "\" missing 'type' field");
+                    propsValid = false;
+                } else {
+                    string ptype = p.value()["type"].get<string>();
+                    if (ptype != "string" && ptype != "number" && ptype != "bool") {
+                        logWarn("component \"" + name + "\" prop \"" + p.key() + "\" invalid type \"" + ptype + "\"");
+                        propsValid = false;
+                    }
+                }
+            }
+            if (!propsValid) continue;
+        }
+
+        m_components[name] = def;
+
+        // Record source line number (approximate from JSON content position)
+        ComponentSource src;
+        src.name = name;
+        // Try to get the component's approximate position in the raw content
+        string searchStr = "\"" + name + "\"";
+        size_t pos = m_rawJsonContent.find(searchStr);
+        if (pos != string::npos) {
+            src.lineStart = byteOffsetToLineNo(m_rawJsonContent, pos);
+            src.lineEnd = src.lineStart;  // approximate
+        } else {
+            src.lineStart = 0;
+            src.lineEnd = 0;
+        }
+        m_componentSourceLines[name] = src;
+    }
+
+    popJsonPath();
+}
+
+void LayoutParser::replacePlaceholders(json& node, const json& props, const json& instanceJ) {
+    if (node.is_string()) {
+        string val = node.get<string>();
+        size_t start = val.find("{{");
+        if (start != string::npos) {
+            size_t end = val.find("}}", start);
+            if (end != string::npos) {
+                string propName = val.substr(start + 2, end - start - 2);
+                // Look up in instanceJ first, then props default
+                if (instanceJ.contains(propName)) {
+                    const json& propVal = instanceJ[propName];
+                    if (propVal.is_string()) {
+                        val.replace(start, end - start + 2, propVal.get<string>());
+                        node = val;
+                    } else if (propVal.is_number()) {
+                        val.replace(start, end - start + 2, to_string(propVal.get<double>()));
+                        node = val;
+                    } else if (propVal.is_boolean()) {
+                        val.replace(start, end - start + 2, propVal.get<bool>() ? "true" : "false");
+                        node = val;
+                    }
+                } else if (props.contains(propName) && props[propName].contains("default")) {
+                    // Use default value
+                    const json& def = props[propName]["default"];
+                    if (def.is_string()) {
+                        val.replace(start, end - start + 2, def.get<string>());
+                        node = val;
+                    } else if (def.is_number()) {
+                        val.replace(start, end - start + 2, to_string(def.get<double>()));
+                        node = val;
+                    } else if (def.is_boolean()) {
+                        val.replace(start, end - start + 2, def.get<bool>() ? "true" : "false");
+                        node = val;
+                    }
+                } else {
+                    logWarn("placeholder \"{{" + propName + "}}\" not provided and no default");
+                }
+            }
+        }
+    } else if (node.is_object()) {
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            replacePlaceholders(it.value(), props, instanceJ);
+        }
+    } else if (node.is_array()) {
+        for (auto& item : node) {
+            replacePlaceholders(item, props, instanceJ);
+        }
+    }
+}
+
+void LayoutParser::remapEvents(json& node, const json& instanceEvents) {
+    if (node.is_object()) {
+        // Check if this node has events
+        if (node.contains("events") && node["events"].is_object()) {
+            json& events = node["events"];
+            vector<string> keysToRemove;
+            for (auto it = events.begin(); it != events.end(); ++it) {
+                if (it.value().is_string()) {
+                    string handlerName = it.value().get<string>();
+                    if (handlerName.find("_comp_") == 0) {
+                        // Internal event: _comp_onSearch -> look for onSearch in instanceEvents
+                        string eventKey = handlerName.substr(6);  // Remove "_comp_"
+                        if (instanceEvents.contains(eventKey) && instanceEvents[eventKey].is_string()) {
+                            it.value() = instanceEvents[eventKey].get<string>();
+                        } else {
+                            logWarn("event \"_comp_" + eventKey + "\" has no mapping in instance events");
+                        }
+                    }
+                }
+            }
+        }
+
+        // Recurse into children
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            remapEvents(it.value(), instanceEvents);
+        }
+    } else if (node.is_array()) {
+        for (auto& item : node) {
+            remapEvents(item, instanceEvents);
+        }
+    }
+}
+
+void LayoutParser::prefixIds(json& node, const string& prefix) {
+    if (node.is_object()) {
+        // Prefix the id if present
+        if (node.contains("id") && node["id"].is_string()) {
+            string originalId = node["id"].get<string>();
+            node["id"] = prefix + "__" + originalId;
+        }
+
+        // Recurse
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            prefixIds(it.value(), prefix);
+        }
+    } else if (node.is_array()) {
+        for (auto& item : node) {
+            prefixIds(item, prefix);
+        }
+    }
+}
+
+shared_ptr<Control> LayoutParser::instantiateComponent(const string& name, const json& instanceJ, Control* parent, int index) {
+    string indexPath = "controls[" + to_string(index) + "]";
+    pushJsonPath(indexPath);
+
+    // Detect circular reference
+    if (find(m_instantiationStack.begin(), m_instantiationStack.end(), name) != m_instantiationStack.end()) {
+        logWarn("circular component reference detected: \"" + name + "\"");
+        popJsonPath();
+        return nullptr;
+    }
+
+    m_instantiationStack.push_back(name);
+
+    auto compIt = m_components.find(name);
+    if (compIt == m_components.end()) {
+        logWarn("component \"" + name + "\" not found");
+        m_instantiationStack.pop_back();
+        popJsonPath();
+        return nullptr;
+    }
+
+    const json& compDef = compIt->second;
+    const json& templateJ = compDef["template"];
+    const json props = compDef.contains("props") ? compDef["props"] : json::object();
+
+    // Get source line info for better error messages
+    auto srcIt = m_componentSourceLines.find(name);
+    string srcInfo = "";
+    if (srcIt != m_componentSourceLines.end() && srcIt->second.lineStart > 0) {
+        srcInfo = " [defined at line " + to_string(srcIt->second.lineStart) + "]";
+    }
+
+    pushJsonPath("component:" + name + srcInfo + " instantiated at");
+
+    // Deep copy the template JSON
+    json expanded = templateJ;
+
+    // Replace placeholders
+    replacePlaceholders(expanded, props, instanceJ);
+
+    // Remap events: _comp_xxx -> instance events
+    json instanceEvents = instanceJ.contains("events") ? instanceJ["events"] : json::object();
+    remapEvents(expanded, instanceEvents);
+
+    // Prefix IDs for uniqueness (BEFORE injecting instance id/rect, so root ID isn't double-prefixed)
+    string idPrefix = instanceJ.contains("id") && instanceJ["id"].is_string()
+        ? instanceJ["id"].get<string>()
+        : "_comp_" + name;
+    prefixIds(expanded, idPrefix);
+
+    // Inject instance attributes LAST so they override template/defaults without double-prefixing
+    if (instanceJ.contains("id") && instanceJ["id"].is_string()) {
+        expanded["id"] = instanceJ["id"].get<string>();
+    }
+    if (instanceJ.contains("rect") && instanceJ["rect"].is_object()) {
+        expanded["rect"] = instanceJ["rect"];
+    }
+    // Forward other standard control attributes
+    for (const string& attr : {"xScale", "yScale", "enable", "visible"}) {
+        if (instanceJ.contains(attr)) {
+            expanded[attr] = instanceJ[attr];
+        }
+    }
+
+    // Parse the expanded template
+    shared_ptr<Control> result = parseControl(expanded, parent, index);
+
+    m_instantiationStack.pop_back();
+    popJsonPath();
+    popJsonPath();
+    return result;
 }
