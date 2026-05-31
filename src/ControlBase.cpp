@@ -246,7 +246,9 @@ bool ControlImpl::handleEvent(shared_ptr<Event> event){
     // 检查当前控件是否可见且启用
     if (getVisible() && getEnable()){
         // 逆向遍历当前控件的所有子控件，保证后添加的控件先处理事件，因为后添加的控件在屏幕上位于上层
-        for (auto it = m_children.rbegin(); it != m_children.rend(); ++it){
+        // 使用副本遍历，防止子控件的 bringToFront 等操作修改 m_children 导致迭代器失效
+        auto childrenCopy = m_children;
+        for (auto it = childrenCopy.rbegin(); it != childrenCopy.rend(); ++it){
             // 调用子控件的handleEvent函数处理事件
             if ((*it)->handleEvent(event)){
                 // 如果子控件处理了事件，则返回true

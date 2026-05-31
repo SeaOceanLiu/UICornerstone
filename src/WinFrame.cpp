@@ -194,10 +194,10 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         SPoint localMouse = screenToLocal(mousePos.x, mousePos.y);
 
         uint8_t edgeFlags = 0;
-        if (localMouse.x - 0             < m_edgeMargin) edgeFlags |= kLeft;
-        if (m_rect.width  - localMouse.x < m_edgeMargin) edgeFlags |= kRight;
-        if (localMouse.y - 0             < m_edgeMargin) edgeFlags |= kTop;
-        if (m_rect.height - localMouse.y < m_edgeMargin) edgeFlags |= kBottom;
+        if (localMouse.x >= 0        && localMouse.x - 0             < m_edgeMargin) edgeFlags |= kLeft;
+        if (m_rect.width - localMouse.x >= 0 && m_rect.width  - localMouse.x < m_edgeMargin) edgeFlags |= kRight;
+        if (localMouse.y >= 0        && localMouse.y - 0             < m_edgeMargin) edgeFlags |= kTop;
+        if (m_rect.height - localMouse.y >= 0 && m_rect.height - localMouse.y < m_edgeMargin) edgeFlags |= kBottom;
 
         if (edgeFlags) {
             if (event->m_eventName == EventName::MOUSE_MOVING) {
