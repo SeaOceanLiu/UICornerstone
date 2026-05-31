@@ -1,4 +1,8 @@
 #include "WinFrame.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     Panel(parent, rect, xScale, yScale),
@@ -91,6 +95,24 @@ SPoint WinFrame::screenToLocal(float screenX, float screenY) {
 void WinFrame::setResizeCursor(uint8_t flags) {
     static SDL_Cursor* cursors[16] = {nullptr};
     int idx = flags & 0x0F;
+#ifdef _WIN32
+    static HCURSOR nativeCursors[16] = {NULL};
+    if (!nativeCursors[idx]) {
+        switch (idx) {
+            case 0: nativeCursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+            case kLeft|kTop: case kRight|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
+            case kRight|kTop: case kLeft|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
+            case kLeft|kRight: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+            case kTop|kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+            case kLeft: case kRight: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+            case kTop: case kBottom: nativeCursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+            default: nativeCursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+        }
+    }
+    if (nativeCursors[idx]) {
+        SetCursor(nativeCursors[idx]);
+    }
+#else
     if (!cursors[idx]) {
         switch (idx) {
             case 0:
@@ -114,6 +136,7 @@ void WinFrame::setResizeCursor(uint8_t flags) {
     if (cursors[idx]) {
         SDL_SetCursor(cursors[idx]);
     }
+#endif
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
