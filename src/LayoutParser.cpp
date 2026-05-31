@@ -767,6 +767,10 @@ shared_ptr<WinFrame> LayoutParser::parseWinFrame(const json& j, Control* parent)
         winFrame->setEdgeMargin(j["edgeMargin"].get<float>());
     }
 
+    if (j.contains("resizable") && j["resizable"].is_boolean()) {
+        winFrame->setResizable(j["resizable"].get<bool>());
+    }
+
     // Color parsing
     if (j.contains("colors") && j["colors"].is_object()) {
         const json& colors = j["colors"];

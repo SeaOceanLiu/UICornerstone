@@ -38,6 +38,7 @@ private:
 
     float   m_edgeMargin;
     SDL_Cursor* m_currentCursor;
+    bool    m_resizable;
 
     void bringToFront();
     SPoint screenToLocal(float screenX, float screenY);
@@ -66,6 +67,9 @@ public:
     void setTitle(const string& title);
     string getTitle() const { return m_title; }
     void addToClient(shared_ptr<Control> control);
+
+    void setResizable(bool resizable) { m_resizable = resizable; }
+    bool isResizable() const { return m_resizable; }
 };
 
 class WinFrameBuilder
@@ -87,6 +91,7 @@ public:
     WinFrameBuilder& setTitleAlignment(AlignmentMode align);
 
     WinFrameBuilder& setEdgeMargin(float margin);
+    WinFrameBuilder& setResizable(bool resizable);
 
     WinFrameBuilder& addToClient(shared_ptr<Control> control);
 

@@ -67,6 +67,7 @@ private:
     SPoint  m_resizeStartMouse;         // 缩放开始时的鼠标位置（屏幕坐标）
 
     float   m_edgeMargin;                // 边缘热区宽度（默认为 4.0f）
+    bool    m_resizable;                 // 是否允许用户调整大小（默认为 true）
 
     SDL_Cursor* m_currentCursor;         // 当前光标
 ```
@@ -99,6 +100,10 @@ void show() override;  // 调用 Panel::show() 后，将自身从父容器移除
 // ===== 边缘热区 =====
 void  setEdgeMargin(float margin);
 float getEdgeMargin() const;
+
+// ===== 缩放控制 =====
+void  setResizable(bool resizable);
+bool  isResizable() const;
 
 // ===== 便捷方法 =====
 void setTitle(const string& title);
@@ -658,6 +663,7 @@ m_rect.left = (screenX - parentDrawRect.left) / parentScaleX - m_dragOffset.x
 
 - `"title"`：标题栏文字（可选，默认 "WinFrame"）
 - `"edgeMargin"`：边缘热区宽度，parent-local 单位（可选，默认 4.0）
+- `"resizable"`：是否允许用户调整大小（可选，默认 true）
 - `"colors"`：颜色配置（可选）
   - `"background"` / `"border"`：WinFrame 整体背景/边框色（标准 Panel 颜色格式）
   - `"titleBar"`：标题栏面板颜色（`"bg"` 等，传递给 `m_titleBar`）

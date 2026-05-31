@@ -15,7 +15,8 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     m_resizing(false),
     m_resizeFlags(0),
     m_edgeMargin(4.0f),
-    m_currentCursor(nullptr)
+    m_currentCursor(nullptr),
+    m_resizable(true)
 {
     if (m_rect.width < MIN_WIDTH)  m_rect.width = MIN_WIDTH;
     if (m_rect.height < MIN_HEIGHT) m_rect.height = MIN_HEIGHT;
@@ -232,7 +233,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         if (localMouse.y >= 0        && localMouse.y - 0             < m_edgeMargin) edgeFlags |= kTop;
         if (m_rect.height - localMouse.y >= 0 && m_rect.height - localMouse.y < m_edgeMargin) edgeFlags |= kBottom;
 
-        if (edgeFlags) {
+        if (edgeFlags && m_resizable) {
             if (event->m_eventName == EventName::MOUSE_MOVING) {
                 setResizeCursor(edgeFlags);
             }
@@ -399,6 +400,11 @@ WinFrameBuilder& WinFrameBuilder::setTitleAlignment(AlignmentMode align) {
 
 WinFrameBuilder& WinFrameBuilder::setEdgeMargin(float margin) {
     m_winFrame->setEdgeMargin(margin);
+    return *this;
+}
+
+WinFrameBuilder& WinFrameBuilder::setResizable(bool resizable) {
+    m_winFrame->setResizable(resizable);
     return *this;
 }
 
