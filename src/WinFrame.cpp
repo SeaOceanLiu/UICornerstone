@@ -118,27 +118,31 @@ void WinFrame::setResizeCursor(uint8_t flags) {
         case kLeft|kRight|kTop|kBottom:             cursor = m_cursorSizeWE;  break;
     }
     if (cursor) {
-        SDL_SetCursor(cursor);
-    }
 #ifdef _WIN32
-    static HCURSOR hcursors[16] = {NULL};
-    int idx = flags & 0x0F;
-    if (!hcursors[idx]) {
-        switch (idx) {
-            case 0:                                     hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
-            case kLeft|kRight:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-            case kTop|kBottom:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-            case kLeft:  case kRight:                   hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-            case kTop:   case kBottom:                  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-            case kLeft|kTop:      case kRight|kBottom:  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
-            case kRight|kTop:     case kLeft|kBottom:   hcursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
-            default:                                    hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+        // SDL_SetCursor doesn't persist against WM_SETCURSOR on this SDL3 fork.
+        // Use Win32 SetCursor for reliable cursor display.
+        (void)cursor; // mark as unused
+        static HCURSOR hcursors[16] = {NULL};
+        int idx = flags & 0x0F;
+        if (!hcursors[idx]) {
+            switch (idx) {
+                case 0:                                     hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+                case kLeft|kRight:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+                case kTop|kBottom:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+                case kLeft:  case kRight:                   hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+                case kTop:   case kBottom:                  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+                case kLeft|kTop:      case kRight|kBottom:  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
+                case kRight|kTop:     case kLeft|kBottom:   hcursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
+                default:                                    hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+            }
         }
-    }
-    if (hcursors[idx]) {
-        SetCursor(hcursors[idx]);
-    }
+        if (hcursors[idx]) {
+            SetCursor(hcursors[idx]);
+        }
+#else
+        SDL_SetCursor(cursor);
 #endif
+    }
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
