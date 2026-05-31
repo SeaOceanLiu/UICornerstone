@@ -98,8 +98,9 @@ void testBenchInitialize(void) {
     ctx->set("progressValue", 42.0);
 
     // Dynamic buttons to manipulate progressValue
-    auto decBtn = make_shared<Button>(root.get(), SRect(0, 0, 60, 30));
+    auto decBtn = make_shared<Button>(root.get(), SRect(0, 0, 50, 18));
     decBtn->setCaption("-10");
+    decBtn->setCaptionSize(11);
     decBtn->setNormalStateBGColor(SDL_Color{200, 80, 80, 255});
     decBtn->setOnClick([](shared_ptr<Button>) {
         auto ctx = DataContext::instance();
@@ -108,8 +109,9 @@ void testBenchInitialize(void) {
         ctx->set("progressValue", v);
     });
 
-    auto incBtn = make_shared<Button>(root.get(), SRect(70, 0, 60, 30));
+    auto incBtn = make_shared<Button>(root.get(), SRect(0, 0, 50, 18));
     incBtn->setCaption("+10");
+    incBtn->setCaptionSize(11);
     incBtn->setNormalStateBGColor(SDL_Color{80, 200, 80, 255});
     incBtn->setOnClick([](shared_ptr<Button>) {
         auto ctx = DataContext::instance();
@@ -118,13 +120,15 @@ void testBenchInitialize(void) {
         ctx->set("progressValue", v);
     });
 
-    // Position them inside the progress bar area: below the binding section
-    // Find the bindingProgress control by ID and position relative to it
+    // Position +/- buttons inline at the right of the progress bar
     auto progressCtrl = g_parser.findControlById("bindingProgress");
     if (progressCtrl) {
         SRect pr = progressCtrl->getRect();
-        decBtn->setRect(SRect{pr.left, pr.top + pr.height + 4, 60, 30});
-        incBtn->setRect(SRect{pr.left + 70, pr.top + pr.height + 4, 60, 30});
+        decBtn->setRect(SRect{pr.left + pr.width + 6, pr.top, 50, 18});
+        incBtn->setRect(SRect{pr.left + pr.width + 60, pr.top, 50, 18});
+    } else {
+        decBtn->setRect(SRect{800, 970, 50, 18});
+        incBtn->setRect(SRect{854, 970, 50, 18});
     }
 
     BENCH->addControl(decBtn);

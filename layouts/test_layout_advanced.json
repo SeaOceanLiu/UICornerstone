@@ -450,7 +450,7 @@
                 {
                     "type": "Label",
                     "id": "pctTitle",
-                    "rect": { "x": "2%", "y": 900, "w": "96%", "h": 24 },
+                    "rect": { "x": "2%", "y": 870, "w": "96%", "h": 20 },
                     "caption": "--- 百分比尺寸: (x:2%, w:96%) 窗口拉宽后自动变宽 ---",
                     "font": { "size": 14 },
                     "alignment": "MID_LEFT"
@@ -458,7 +458,7 @@
                 {
                     "type": "Button",
                     "id": "pctBtn",
-                    "rect": { "x": "2%", "y": 930, "w": "96%", "h": 40 },
+                    "rect": { "x": "2%", "y": 894, "w": "96%", "h": 32 },
                     "caption": "宽度=96% × 窗口宽，拉宽窗口试试",
                     "captionSize": 14,
                     "colors": {
@@ -468,64 +468,68 @@
                 },
                 {
                     "type": "Label",
-                    "id": "themeTitle",
-                    "rect": { "x": "2%", "y": 980, "w": "96%", "h": 24 },
-                    "caption": "--- 全局主题演示 (以下控件无显式颜色，使用 theme 默认值) ---",
-                    "alignment": "MID_LEFT"
-                },
-                {
-                    "type": "Button",
-                    "id": "themeBtn1",
-                    "rect": { "x": "2%", "y": 1010, "w": "30%", "h": 36 },
-                    "caption": "主题按钮 A"
-                },
-                {
-                    "type": "Button",
-                    "id": "themeBtn2",
-                    "rect": { "x": "34%", "y": 1010, "w": "30%", "h": 36 },
-                    "caption": "主题按钮 B"
-                },
-                {
-                    "type": "Button",
-                    "id": "themeBtn3",
-                    "rect": { "x": "66%", "y": 1010, "w": "32%", "h": 36 },
-                    "caption": "主题按钮 C"
-                },
-                {
-                    "type": "Label",
                     "id": "bindingTitle",
-                    "rect": { "x": "2%", "y": 1060, "w": "96%", "h": 24 },
-                    "caption": "--- 数据绑定演示 (EditBox ↔ Label → sharedText) ---",
+                    "rect": { "x": "52%", "y": 870, "w": "46%", "h": 16 },
+                    "caption": "数据绑定: 输入→同步",
+                    "font": { "size": 12 },
                     "alignment": "MID_LEFT"
                 },
                 {
                     "type": "EditBox",
                     "id": "bindingEdit",
-                    "rect": { "x": "2%", "y": 1090, "w": "46%", "h": 40 },
-                    "placeholder": "输入文字同步到下方 Label...",
+                    "rect": { "x": "52%", "y": 890, "w": "46%", "h": 26 },
+                    "placeholder": "输入同步到右侧 Label...",
                     "bind": { "text": { "source": "sharedText", "mode": "twoWay" } }
                 },
                 {
                     "type": "Label",
                     "id": "bindingLabel",
-                    "rect": { "x": "51%", "y": 1090, "w": "47%", "h": 40 },
+                    "rect": { "x": "52%", "y": 920, "w": "46%", "h": 26 },
                     "alignment": "MID_LEFT",
+                    "font": { "size": 14 },
                     "bind": { "caption": "sharedText" }
                 },
                 {
                     "type": "Label",
                     "id": "bindingProgressTitle",
-                    "rect": { "x": "2%", "y": 1140, "w": "96%", "h": 24 },
-                    "caption": "--- 数据绑定演示 (ProgressBar ← progressValue + 按钮设置) ---",
+                    "rect": { "x": "52%", "y": 954, "w": "30%", "h": 14 },
+                    "caption": "DataContext Value ⇢ ProgressBar",
+                    "font": { "size": 11 },
                     "alignment": "MID_LEFT"
                 },
                 {
                     "type": "ProgressBar",
                     "id": "bindingProgress",
-                    "rect": { "x": "2%", "y": 1170, "w": "96%", "h": 24 },
+                    "rect": { "x": "52%", "y": 970, "w": "30%", "h": 18 },
                     "range": { "min": 0, "max": 100 },
                     "textMode": "Percent",
                     "bind": { "value": "progressValue" }
+                },
+                {
+                    "type": "Label",
+                    "id": "themeTitle",
+                    "rect": { "x": "2%", "y": 940, "w": "46%", "h": 16 },
+                    "caption": "主题默认色 (无显式颜色配置)",
+                    "font": { "size": 12 },
+                    "alignment": "MID_LEFT"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn1",
+                    "rect": { "x": "2%", "y": 960, "w": "46%", "h": 26 },
+                    "caption": "主题按钮 A"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn2",
+                    "rect": { "x": "2%", "y": 990, "w": "46%", "h": 26 },
+                    "caption": "主题按钮 B"
+                },
+                {
+                    "type": "Button",
+                    "id": "themeBtn3",
+                    "rect": { "x": "2%", "y": 1020, "w": "46%", "h": 26 },
+                    "caption": "主题按钮 C"
                 }
             ]
         }
