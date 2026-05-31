@@ -38,6 +38,7 @@ private:
 
     float   m_edgeMargin;
     bool    m_resizable;
+    uint8_t m_lastEdgeFlags;
 
     SDL_Cursor *m_cursorDefault;
     SDL_Cursor *m_cursorSizeWE;

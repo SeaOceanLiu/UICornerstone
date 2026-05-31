@@ -16,6 +16,7 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     m_resizeFlags(0),
     m_edgeMargin(4.0f),
     m_resizable(true),
+    m_lastEdgeFlags(0),
     m_cursorDefault(SDL_GetCursor()),
     m_cursorSizeWE(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE)),
     m_cursorSizeNS(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE)),
@@ -248,10 +249,23 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         } else if (event->m_eventName == EventName::MOUSE_MOVING) {
             setResizeCursor(0);
         }
+        // Capture edgeFlags for cursor re-application after Step 3
+        // (children may overwrite the cursor, e.g. Label sets hand cursor on hover)
+        if (event->m_eventName == EventName::MOUSE_MOVING) {
+            m_lastEdgeFlags = edgeFlags;
+        }
     }
 
     // Step 3: Children
     bool consumed = ControlImpl::handleEvent(event);
+
+    // Step 3b: Re-apply edge cursor (children may have overwritten it)
+    if (hasPos && !m_dragging && !m_resizing && event->m_eventName == EventName::MOUSE_MOVING) {
+        if (m_lastEdgeFlags && m_resizable)
+            setResizeCursor(m_lastEdgeFlags);
+        else
+            setResizeCursor(0);
+    }
 
     // Step 4: Title bar drag (if no child consumed MOUSE_LBUTTON_DOWN)
     if (hasPos && !consumed && !m_dragging && !m_resizing) {
