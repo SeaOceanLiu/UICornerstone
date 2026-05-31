@@ -1,4 +1,8 @@
 #include "WinFrame.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     Panel(parent, rect, xScale, yScale),
@@ -115,6 +119,25 @@ void WinFrame::setResizeCursor(uint8_t flags) {
     if (cursor) {
         SDL_SetCursor(cursor);
     }
+#ifdef _WIN32
+    static HCURSOR hcursors[16] = {NULL};
+    int idx = flags & 0x0F;
+    if (!hcursors[idx]) {
+        switch (idx) {
+            case 0:                                     hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+            case kLeft|kRight:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+            case kTop|kBottom:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+            case kLeft:  case kRight:                   hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
+            case kTop:   case kBottom:                  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
+            case kLeft|kTop:      case kRight|kBottom:  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
+            case kRight|kTop:     case kLeft|kBottom:   hcursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
+            default:                                    hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
+        }
+    }
+    if (hcursors[idx]) {
+        SetCursor(hcursors[idx]);
+    }
+#endif
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
