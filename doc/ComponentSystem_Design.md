@@ -15,7 +15,6 @@
 
 - 不支持组件继承（`extends`），未来可按需添加
 - 不支持组件间通信（props 向下，events 向上，单向数据流即可）
-- 不支持 slot / children 透传（暂定 v1 简化版）
 
 ---
 
@@ -38,13 +37,14 @@
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `components` | object | 否 | 组件定义集合，key 为组件名 |
-| `props` | object | 否 | 声明组件对外暴露的可注入属性 |
-| `props.*.type` | string | 是 | 属性类型：`string` / `number` / `bool` |
-| `props.*.default` | 同 type | 否 | 缺省时的默认值 |
-| `template` | object | 是 | 控件定义（`type` + `children` 等），**type 不能是已有控件名** |
+
+| 字段              | 类型    | 必填 | 说明                                                          |
+| ----------------- | ------- | ---- | ------------------------------------------------------------- |
+| `components`      | object  | 否   | 组件定义集合，key 为组件名                                    |
+| `props`           | object  | 否   | 声明组件对外暴露的可注入属性                                  |
+| `props.*.type`    | string  | 是   | 属性类型：`string` / `number` / `bool`                        |
+| `props.*.default` | 同 type | 否   | 缺省时的默认值                                                |
+| `template`        | object  | 是   | 控件定义（`type` + `children` 等），**type 不能是已有控件名** |
 
 ### 2.2 模板内插值语法
 
@@ -87,13 +87,14 @@
 }
 ```
 
-| 字段 | 说明 |
-|------|------|
-| `type` | 组件名（已在 `components` 中注册） |
-| `id` | 实例 ID，注入到根 Panel |
-| `rect` | 尺寸，注入到根 Panel |
-| 其他 | 同名 props 值（如 `placeholder`），覆盖模板 defaults |
-| `events` | 事件重映射表，key = 去掉 `_comp_` 前缀的内部事件名 |
+
+| 字段     | 说明                                                |
+| -------- | --------------------------------------------------- |
+| `type`   | 组件名（已在`components` 中注册）                   |
+| `id`     | 实例 ID，注入到根 Panel                             |
+| `rect`   | 尺寸，注入到根 Panel                                |
+| 其他     | 同名 props 值（如`placeholder`），覆盖模板 defaults |
+| `events` | 事件重映射表，key = 去掉`_comp_` 前缀的内部事件名   |
 
 ---
 
@@ -118,11 +119,16 @@ parseComponents(j)
   │
   ├─ 校验 j 包含 "components" 且为 object
   │
-  └─ 遍历每个 entry:
-       ├─ 组件名不能与已有控件 type (Button/Panel/EditBox/...) 重复
-       ├─ template 必须存在且为 object
-       ├─ props 验证每个 entry 有 type 字段
-       └─ 存入 m_components[name] = { props, template }
+  ├─ 遍历每个 entry:
+  │    ├─ 组件名不能与已有控件 type (Button/Panel/EditBox/...) 重复
+  │    ├─ template 必须存在且为 object
+  │    ├─ props 验证每个 entry 有 type 字段
+  │    ├─ 记录模板在原始文件中的行号范围 → m_componentSourceLines
+  │    └─ 存入 m_components[name] = { props, template }
+  │
+  └─ 全部注册完成后，二次遍历检测模板内部引用的组件名是否已注册
+       ├─ 未注册 → logWarn
+       └─ 已注册 → 记录依赖关系用于循环引用检测
 ```
 
 ### 3.3 instantiateComponent()
@@ -130,22 +136,31 @@ parseComponents(j)
 ```
 instantiateComponent(name, instanceJ, parent)
   │
-  ├─ 从 m_components 获取模板定义
+  ├─ 检测循环引用：name 是否已在 m_instantiationStack 中？
+  │    ├─ 是 → logWarn + return nullptr
+  │    └─ 否 → m_instantiationStack.push_back(name)
   │
-  ├─ 深拷贝 template JSON（nlohmann::json::parse(dump())）
-  │   ├─ 替换所有 {{propName}} 为 instanceJ 中的值（或 props.default）
+  ├─ 从 m_components 获取模板定义 + m_componentSourceLines 获取定义行号
+  │
+  ├─ pushJsonPath("component:" + name + " [line " + lineStart + "-" + lineEnd + "]")
+  │
+  ├─ 深拷贝 template JSON
+  │
+  ├─ 替换所有 {{propName}} 为 instanceJ 中的值（或 props.default）
+  │   ├─ 属性不存在且无 default → logWarn + 保留原文
   │   └─ 类型转换：string→number/bool 按 props.type
   │
   ├─ 注入实例属性：id → 根节点、rect → 根节点
   │
-  ├─ 事件重映射：
-  │   ├─ 遍历模板全部子节点
-  │   ├─ 查找 events 中值为 "_comp_xxx" 的项
-  │   └─ 将 "_comp_xxx" 替换为 instanceJ.events["xxx"] 的值
+  ├─ 事件重映射（详见 3.4）
   │
-  ├─ ID 前缀化：组件内所有控件的 id 前加 "<实例id>__"
+  ├─ ID 前缀化（详见 3.5）
   │
-  └─ 走正常解析路径 parseControl(modifiedTemplate, parent)
+  ├─ 走正常解析路径 parseControl(modifiedTemplate, parent)
+  │   ├─ 解析时遇到嵌套组件 → 递归调用 instantiateComponent()
+  │   └─ 解析过程通过 m_currentJsonPath 带双路径上下文
+  │
+  └─ popJsonPath() + m_instantiationStack.pop_back()
 ```
 
 ### 3.4 事件重映射详细规则
@@ -171,11 +186,12 @@ instantiateComponent(name, instanceJ, parent)
 
 ### 4.1 props.type 转换规则
 
-| type | JSON 类型 | 注入示例 | 说明 |
-|------|-----------|----------|------|
-| `string` | string | `"hello"` | 直接替换 |
-| `number` | number | `42` | 转字符串后替换 `{{prop}}`，或用于 rect 数值字段 |
-| `bool` | bool | `true` | 转 `"true"` / `"false"` 替换 |
+
+| type     | JSON 类型 | 注入示例  | 说明                                           |
+| -------- | --------- | --------- | ---------------------------------------------- |
+| `string` | string    | `"hello"` | 直接替换                                       |
+| `number` | number    | `42`      | 转字符串后替换`{{prop}}`，或用于 rect 数值字段 |
+| `bool`   | bool      | `true`    | 转`"true"` / `"false"` 替换                    |
 
 ### 4.2 约束
 
@@ -183,19 +199,49 @@ instantiateComponent(name, instanceJ, parent)
 - **组件名大小写敏感**，首字母大写惯例（如 `SearchBar`），不与现有控件名冲突
 - **props 声明必须在模板使用前定义**，未声明的 props 在注入时给出 warning 并跳过
 - **仅支持一层插值**：`{{prop}}`，不支持 `{{prop.nested}}` 或表达式
+- **嵌套组件**：模板的 `children` 中可引用其他已注册组件（通过 `instantiateComponent` 递归实现）
+- **实例缺省尺寸**：若实例未提供 `rect`，将 `w` 和 `h` 的百分比传递为父容器可用尺寸带入计算
 
 ---
 
 ## 5. 错误处理
 
-| 场景 | 行为 |
-|------|------|
-| 组件名与已有控件 type 冲突 | `logWarn` + 跳过注册 |
-| 模板中 `{{unknownProp}}` 未声明 | `logWarn` + 保留原文 `{{unknownProp}}` |
-| 实例未提供必要 props（无 default） | `logWarn` + 保留原文 `{{propName}}` |
-| 事件映射 `_comp_onXxx` 在实例 events 中找不到 | `logWarn` + 保留 `_comp_onXxx` |
-| 循环引用（A↔B） | `logWarn` + 中断解析（该组件不可用） |
-| 未注册的 type 且非已知控件 | 走现有未知 type 逻辑（`logWarn` + 跳过） |
+### 5.1 错误场景
+
+| 场景                                         | 行为                                     |
+| -------------------------------------------- | ---------------------------------------- |
+| 组件名与已有控件 type 冲突                   | `logWarn` + 跳过注册                     |
+| 模板中`{{unknownProp}}` 未声明               | `logWarn` + 保留原文 `{{unknownProp}}`   |
+| 实例未提供必要 props（无 default）           | `logWarn` + 保留原文 `{{propName}}`      |
+| 事件映射`_comp_onXxx` 在实例 events 中找不到 | `logWarn` + 保留 `_comp_onXxx`           |
+| 循环引用（A↔B）                             | `logWarn` + 中断解析（该组件不可用）     |
+| 未注册的 type 且非已知控件                   | 走现有未知 type 逻辑（`logWarn` + 跳过） |
+
+### 5.2 行号追溯
+
+组件模板在 `components` 区块中定义，实例化时深拷贝模板 JSON 并在内存中做属性注入/事件重映射。展开后的节点不在原始文件中有对应行号，因此需追溯回原始定义位置。
+
+**实现方法**：
+
+1. **注册时记录定义位置**：`parseComponents()` 在将模板存入 `m_components` 的同时，记录该模板在原始文件中的行号范围（起始行 + 结束行）到 `m_componentSourceLines`：
+   ```cpp
+   struct ComponentSource {
+       string name;
+       int lineStart;   // components.SearchBar 的起始行号
+       int lineEnd;     // template 结尾的行号
+   };
+   ```
+
+2. **实例化时绑定位置信息**：`instantiateComponent()` 在展开模板时，将每个子节点的错误上下文关联到原始定义位置。
+
+3. **报错格式**：
+   - 组件定义阶段的错误（props 校验等）：`components.SearchBar.props.buttonText: ... (line 42)`
+   - 实例化阶段的错误（属性注入、事件映射）：`instantiate SearchBar at layouts[0].children[1]: ... (line 120)`
+   - 组件内部模板解析错误：`` component `SearchBar` (defined at line 35) instantiated at layouts[0].children[1] (line 120): ... ``
+
+4. **`m_currentJsonPath` 管理**：进入组件实例化时，`pushJsonPath("component:SearchBar")` + `pushJsonPath("instance:layouts[0].children[1]")`；处理完弹出。这样 `logWarn` 可以同时看到定义位置和实例位置。
+
+> **设计原则**：所有报错信息必须引用原 `test_layout_advanced.json` 中的行号，不引用展开后的虚拟位置。
 
 ---
 
@@ -310,28 +356,48 @@ g_parser.registerHandler("handleSearch", [](shared_ptr<Control>) {
 
 ### 7.1 LayoutParser 新增
 
-| 方法 | 可见性 | 说明 |
-|------|--------|------|
-| `parseComponents(const json& j)` | private | 解析根级 `"components"`，填充 `m_components` |
-| `instantiateComponent(const string& name, const json& j, Control* parent)` | private | 实例化组件模板，返回解析后的根控件 |
-| `replacePlaceholders(json& node, const json& props)` | private | 递归替换 `{{propName}}` |
-| `remapEvents(json& node, const json& instanceEvents)` | private | 递归重映射 `_comp_xxx` 事件 |
-| `prefixIds(json& node, const string& prefix)` | private | 递归前缀化子控件 ID |
+
+| 方法                                                                       | 可见性  | 说明                                        |
+| -------------------------------------------------------------------------- | ------- | ------------------------------------------- |
+| `parseComponents(const json& j)`                                           | private | 解析根级`"components"`，填充 `m_components` |
+| `instantiateComponent(const string& name, const json& j, Control* parent)` | private | 实例化组件模板，返回解析后的根控件          |
+| `replacePlaceholders(json& node, const json& props)`                       | private | 递归替换`{{propName}}`                      |
+| `remapEvents(json& node, const json& instanceEvents)`                      | private | 递归重映射`_comp_xxx` 事件                  |
+| `prefixIds(json& node, const string& prefix)`                              | private | 递归前缀化子控件 ID                         |
 
 ### 7.2 LayoutParser 新增成员
 
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| `m_components` | `unordered_map<string, json>` | 组件名 → 模板定义（已校验） |
-| `m_instantiationStack` | `vector<string>` | 递归实例化栈，检测循环引用 |
+
+| 成员                      | 类型                                   | 说明                                       |
+| ------------------------- | -------------------------------------- | ------------------------------------------ |
+| `m_components`            | `unordered_map<string, json>`          | 组件名 → 模板定义（已校验）               |
+| `m_componentSourceLines`  | `unordered_map<string, ComponentSource>` | 组件名 → 在原始文件中的行号范围 |
+| `m_instantiationStack`    | `vector<string>`                       | 递归实例化栈，检测循环引用                 |
+
+```cpp
+struct ComponentSource {
+    string name;
+    int lineStart;
+    int lineEnd;
+};
+```
 
 ### 7.3 LayoutParser 修改
 
-| 位置 | 修改 |
-|------|------|
-| `LayoutParser::parseLayoutFile()` | 解析 `"components"` 后调用 `parseComponents()` |
-| `LayoutParser::parseControl()` | 遇到未知 type 时，在 logWarn/return nullptr 前先查 `m_components`，找到则调用 `instantiateComponent()` |
-| `LayoutParser::clear()` | 新增 `m_components.clear()`, `m_instantiationStack.clear()` |
+
+| 位置                              | 修改                                                                                                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LayoutParser::parseLayoutFile()` | 解析`"components"` 后调用 `parseComponents()`                                                                                                                                           |
+| `LayoutParser::parseControl()`    | 遇到未知 type 时，在 logWarn/return nullptr 前先查`m_components`，找到则调用 `instantiateComponent()`                                                                                  |
+| `LayoutParser::clear()`           | 新增`m_components.clear()`, `m_componentSourceLines.clear()`, `m_instantiationStack.clear()`                                                                                            |
+
+**热加载支持**：`HotReloader` 检测到 JSON 文件变更后调用 `reloadLayout()`，该函数会依次：
+1. `g_parser.clear()` — 清理所有组件注册和实例
+2. `BENCH->removeAllControls()` — 清除旧控件树
+3. `g_parser.parseLayoutFile(...)` — 重新解析（重新注册组件）
+4. `BENCH->addControl(root)` — 重建 UI
+
+> **注意**：组件模板本身存储在 `m_components`（C++ 内存中），无需额外文件监视。模板变更通过 JSON 文件整体重载生效，子控件 ID 重新生成，旧控件树完整替换。此流程与现有热加载机制完全一致。
 
 ### 7.4 新增文件
 
@@ -339,12 +405,15 @@ g_parser.registerHandler("handleSearch", [](shared_ptr<Control>) {
 
 ---
 
-## 8. 未解决的问题 / 待决策
+## 8. 设计决策记录
 
-1. **嵌套组件**：模板的 `children` 中能否引用其他已注册组件？技术上可递归实现，但需明确支持
-2. **布局属性传递**：实例的 `rect` 注入到根 Panel，但 `w` 用 `"75%"` 这种相对值时是否应传递父容器可用尺寸？
-3. **`enabled` / `visible` 等状态属性**：实例能否覆盖模板子控件的初始状态？
-4. **Slot 插槽**：是否需要在 v1 支持？当前设计不支持将实例的 children 透传到模板内部
-5. **热加载**：组件模板变更时如何增量刷新所有已实例化的组件？
+以下决策对应 v1 实现范围，基于架构评审讨论形成。
 
-建议 v1 支持 **嵌套引用**（决策 1 为"是"）、**rect 按比例缩放**（决策 2）、**不引入 slot**（决策 4 为"否"）。决策 3/5 可后续补充。
+| # | 议题 | 决策 | 理由 |
+|---|------|------|------|
+| 1 | **嵌套组件** | ✅ 支持。`instantiateComponent()` 递归调用 | 模板 `children` 中可引用其他已注册组件，通过 `m_instantiationStack` 检测循环引用 |
+| 2 | **百分比尺寸传递** | ✅ 实例未提供 `rect` 时，`w`/`h` 的百分比值以父容器可用尺寸带入计算 | 根 Panel 的 `rect` 优先用实例提供的值，缺省时父 Panel 通过 `resized()` 传入可用尺寸 |
+| 3 | **enabled / visible 覆盖** | ⏸ 暂不特殊处理。现有解析逻辑已覆盖子控件初始状态 | 实例化时模板自带的状态属性不变，如需覆盖可在 props 中增加 `enabled`/`visible` 参数 |
+| 4 | **Slot 插槽** | ⏸ 标记为**下一阶段**（v2） | 当前需求（搜索栏、工具栏、卡片等）用 props + 事件重映射已足够覆盖 |
+| 5 | **热加载** | ✅ 支持。通过 JSON 文件整体重载触发 | 现有 `HotReloader` → `reloadLayout()` 流程自然覆盖组件模板更新 |
+| 6 | **行号追溯** | ✅ 组件内部错误同时报告**定义位置**和**实例化位置** | `m_componentSourceLines` 记录模板在原始文件中的行号范围，`m_currentJsonPath` 叠加双路径 |
