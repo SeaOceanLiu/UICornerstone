@@ -5,15 +5,18 @@
 #include "ConstDef.h"
 #include "EventQueue.h"
 #include "Utility.h"
+#include "RenderDevice.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
 #define GET_RENDERER (MAINWIN->getRenderer())
+#define GET_RENDERDEVICE (MAINWIN->getRenderDevice())
 
 class MainWindow {
 private:
     SDL_Window *m_window;
     SDL_Renderer *m_renderer;
+    RenderDevice *m_renderDevice;
     SSize m_size;
     SPoint m_pos;
 
@@ -29,15 +32,17 @@ private:
     MainWindow():
         m_window(nullptr),
         m_renderer(nullptr),
+        m_renderDevice(nullptr),
         m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
         m_pos({INITIAL_POSX, INITIAL_POSY})
     {
         // 创建SDL3窗口和渲染器
         if (!SDL_CreateWindowAndRenderer(APP_NAME, INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG, &m_window, &m_renderer)) {
             SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
-            // throw ("Couldn't create window/renderer");
             return;
         }
+
+        m_renderDevice = CreateSDL3RenderDevice(m_renderer);
 
         //设置窗口位置
         if(!SDL_SetWindowPosition(m_window, INITIAL_POSX, INITIAL_POSY)){
@@ -53,14 +58,12 @@ private:
         SDL_DisplayID m_displayId = SDL_GetPrimaryDisplay();
         if (m_displayId == 0) {
             SDL_Log("SDL_GetPrimaryDisplay Error: %s\n", SDL_GetError());
-            // throw ("SDL_GetPrimaryDisplay Error");
             return;
         }
 
         const SDL_DisplayMode *displayMode = SDL_GetCurrentDisplayMode(m_displayId);
         if (displayMode == nullptr) {
             SDL_Log("SDL_GetCurrentDisplayMode Error: %s\n", SDL_GetError());
-            // throw ("SDL_GetCurrentDisplayMode Error");
             return;
         }
         m_displayWidth = (float)displayMode->w * displayMode->pixel_density;
@@ -73,6 +76,12 @@ private:
             DEBUG_STREAM << "Couldn't get window size: " << SDL_GetError() << std::endl;
         }
         m_size = SSize{(float)windowWidth, (float)windowHeight};
+    }
+
+    ~MainWindow() {
+        delete m_renderDevice;
+        if (m_renderer) SDL_DestroyRenderer(m_renderer);
+        if (m_window) SDL_DestroyWindow(m_window);
     }
 public:
     static MainWindow* getInstance(void){
@@ -98,6 +107,7 @@ public:
 
     SDL_Window* getWindow(void) { return m_window; }
     SDL_Renderer* getRenderer(void) { return m_renderer; }
+    RenderDevice* getRenderDevice(void) { return m_renderDevice; }
     SSize getWindowSize(void) { return m_size; }
     SPoint getWindowPos(void) { return m_pos; }
     // SDL_PixelFormat getPixelFormat(void) { return m_pixelFormat; }

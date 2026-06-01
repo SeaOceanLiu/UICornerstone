@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include "ControlBase.h"
+#include "SColor.h"
 #include "Actor.h"
 #include "LayoutEngine.h"
 
@@ -43,8 +44,8 @@ private:
     shared_ptr<Panel> m_panel;
 public:
     PanelBuilder(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
-    PanelBuilder& setBGColor(SDL_Color color);
-    PanelBuilder& setBorderColor(SDL_Color color);
+    PanelBuilder& setBGColor(SColor color);
+    PanelBuilder& setBorderColor(SColor color);
     PanelBuilder& setTransparent(bool isTransparent);
     PanelBuilder& setBorderVisible(bool isBorderVisible);
     PanelBuilder& addControl(shared_ptr<Control> control);

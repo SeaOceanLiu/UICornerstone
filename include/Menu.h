@@ -134,10 +134,10 @@ private:
     shared_ptr<MenuPanel> m_openSubMenu;
 
     // 颜色
-    SDL_Color m_bgColor;
-    SDL_Color m_borderColor;
-    SDL_Color m_hoverColor;
-    SDL_Color m_separatorColor;
+    SColor m_bgColor;
+    SColor m_borderColor;
+    SColor m_hoverColor;
+    SColor m_separatorColor;
     float m_shadowRadius;
 
     void layoutItems();
@@ -196,11 +196,11 @@ private:
     bool m_menuMode;
 
     // 颜色
-    SDL_Color m_bgColor;
-    SDL_Color m_textColor;
-    SDL_Color m_hoverBgColor;
-    SDL_Color m_hoverTextColor;
-    SDL_Color m_activeBgColor;
+    SColor m_bgColor;
+    SColor m_textColor;
+    SColor m_hoverBgColor;
+    SColor m_hoverTextColor;
+    SColor m_activeBgColor;
 
     void layoutEntries();
     int hitTest(float x, float y);

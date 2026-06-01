@@ -2,36 +2,36 @@
 #include "Theme.h"
 #include <algorithm>
 
-static SDL_Color parseHexColor(const json& j) {
-    SDL_Color color = {255, 255, 255, 255};
+static SColor parseHexColor(const json& j) {
     if (j.is_string()) {
         string hex = j.get<string>();
-        if (hex.empty() || hex[0] != '#') return color;
+        if (hex.empty() || hex[0] != '#') return SColor(255, 255, 255, 255);
         hex = hex.substr(1);
         if (hex.length() == 3) {
-            string r(2, hex[0]), g(2, hex[1]), b(2, hex[2]);
-            color.r = (uint8_t)stoi(r, nullptr, 16);
-            color.g = (uint8_t)stoi(g, nullptr, 16);
-            color.b = (uint8_t)stoi(b, nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(string(2, hex[0]), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(string(2, hex[1]), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(string(2, hex[2]), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 6) {
-            color.r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 8) {
-            color.r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
-            color.a = (uint8_t)stoi(hex.substr(6, 2), nullptr, 16);
+            uint8_t r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
+            uint8_t a = (uint8_t)stoi(hex.substr(6, 2), nullptr, 16);
+            return SColor(r, g, b, a);
         }
     } else if (j.is_object()) {
-        color.r = j.value("r", 255);
-        color.g = j.value("g", 255);
-        color.b = j.value("b", 255);
-        color.a = j.value("a", 255);
+        uint8_t r = (uint8_t)j.value("r", 255);
+        uint8_t g = (uint8_t)j.value("g", 255);
+        uint8_t b = (uint8_t)j.value("b", 255);
+        uint8_t a = (uint8_t)j.value("a", 255);
+        return SColor(r, g, b, a);
     }
-    return color;
+    return SColor(255, 255, 255, 255);
 }
 
 static FontName parseFontName(const string& name) {
@@ -92,14 +92,14 @@ StateColor Theme::getStateColor(const string& path, StateColor::Type type) const
     return sc;
 }
 
-SDL_Color Theme::getColor(const string& path) const {
-    SDL_Color c = {255, 255, 255, 255};
+SColor Theme::getColor(const string& path) const {
+    SColor c(255, 255, 255, 255);
     const json* j = navigate(m_data, path);
     if (j) c = parseHexColor(*j);
     return c;
 }
 
-bool Theme::getColorOpt(const string& path, SDL_Color& out) const {
+bool Theme::getColorOpt(const string& path, SColor& out) const {
     const json* j = navigate(m_data, path);
     if (!j) return false;
     out = parseHexColor(*j);

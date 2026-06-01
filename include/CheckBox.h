@@ -3,6 +3,7 @@
 #define CheckBoxH
 #include <functional>
 #include "ConstDef.h"
+#include "SColor.h"
 #include "ControlBase.h"
 #include "Label.h"
 
@@ -86,15 +87,15 @@ public:
 
     void setOnCheckChanged(OnCheckChangedHandler handler);
 
-    void setCheckColor(SDL_Color color);
-    SDL_Color getCheckColor();
-    void setCrossColor(SDL_Color color);
-    SDL_Color getCrossColor();
-    void setIndeterminateColor(SDL_Color color);
-    SDL_Color getIndeterminateColor();
+    void setCheckColor(SColor color);
+    SColor getCheckColor();
+    void setCrossColor(SColor color);
+    SColor getCrossColor();
+    void setIndeterminateColor(SColor color);
+    SColor getIndeterminateColor();
 
-    void setBoxBorderColor(SDL_Color color);
-    SDL_Color getBoxBorderColor();
+    void setBoxBorderColor(SColor color);
+    SColor getBoxBorderColor();
 
 private:
     void setBoxSize(void);
@@ -127,10 +128,10 @@ public:
     CheckBoxBuilder& setCaptionSize(float size);
     CheckBoxBuilder& setTriStateEnabled(bool enabled);
     CheckBoxBuilder& setOnCheckChanged(CheckBox::OnCheckChangedHandler handler);
-    CheckBoxBuilder& setCheckColor(SDL_Color color);
-    CheckBoxBuilder& setCrossColor(SDL_Color color);
-    CheckBoxBuilder& setIndeterminateColor(SDL_Color color);
-    CheckBoxBuilder& setBoxBorderColor(SDL_Color color);
+    CheckBoxBuilder& setCheckColor(SColor color);
+    CheckBoxBuilder& setCrossColor(SColor color);
+    CheckBoxBuilder& setIndeterminateColor(SColor color);
+    CheckBoxBuilder& setBoxBorderColor(SColor color);
     CheckBoxBuilder& setBackgroundStateColor(StateColor stateColor);
     CheckBoxBuilder& setBorderStateColor(StateColor stateColor);
     CheckBoxBuilder& setTextStateColor(StateColor stateColor);

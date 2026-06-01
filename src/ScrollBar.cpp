@@ -144,13 +144,13 @@ void ScrollBar::draw(void) {
 
     SRect drawRect = getDrawRect();
 
-    SDL_SetRenderDrawColor(renderer, ConstDef::SCROLLBAR_TRACK_COLOR.r,
-                           ConstDef::SCROLLBAR_TRACK_COLOR.g,
-                           ConstDef::SCROLLBAR_TRACK_COLOR.b,
-                           ConstDef::SCROLLBAR_TRACK_COLOR.a);
+    SDL_SetRenderDrawColor(renderer, ConstDef::SCROLLBAR_TRACK_COLOR.redByte(),
+                           ConstDef::SCROLLBAR_TRACK_COLOR.greenByte(),
+                           ConstDef::SCROLLBAR_TRACK_COLOR.blueByte(),
+                           ConstDef::SCROLLBAR_TRACK_COLOR.alphaByte());
     SDL_RenderFillRect(renderer, drawRect.toSDLFRect());
 
-    SDL_Color thumbColor = ConstDef::SCROLLBAR_THUMB_COLOR;
+    SColor thumbColor = ConstDef::SCROLLBAR_THUMB_COLOR;
     if (m_dragging) {
         thumbColor = ConstDef::SCROLLBAR_THUMB_PRESSED_COLOR;
     } else if (m_thumbHovered) {
@@ -165,7 +165,7 @@ void ScrollBar::draw(void) {
         m_thumbRect.height * scale
     };
 
-    SDL_SetRenderDrawColor(renderer, thumbColor.r, thumbColor.g, thumbColor.b, thumbColor.a);
+    SDL_SetRenderDrawColor(renderer, thumbColor.redByte(), thumbColor.greenByte(), thumbColor.blueByte(), thumbColor.alphaByte());
     SDL_RenderFillRect(renderer, &thumbDrawRect);
 }
 

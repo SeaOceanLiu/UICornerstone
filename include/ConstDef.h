@@ -8,8 +8,8 @@
 // using namespace std; // 先不使用 using namespace std，避免在Windows下编译因命名冲突而失败
 namespace fs = std::filesystem;
 
-// 前向声明
-struct SDL_Color;
+#include "SColor.h"
+
 class Margin; // 前向声明Margin类
 
 // ********************************在这里定义创建主窗体的初始参数********************************
@@ -44,50 +44,50 @@ public:
     static const fs::path pathPrefix;     // 资源路径前缀
 
     // 缺省彩色定义
-    static const SDL_Color DEFAULT_DISABLED_COLOR;
-    static const SDL_Color DEFAULT_NORMAL_COLOR;
-    static const SDL_Color DEFAULT_HOVER_COLOR;
-    static const SDL_Color DEFAULT_DOWN_COLOR;
+    static const SColor DEFAULT_DISABLED_COLOR;
+    static const SColor DEFAULT_NORMAL_COLOR;
+    static const SColor DEFAULT_HOVER_COLOR;
+    static const SColor DEFAULT_DOWN_COLOR;
 
-    static const SDL_Color DEFAULT_BORDER_DISABLED_COLOR;
-    static const SDL_Color DEFAULT_BORDER_NORMAL_COLOR;
-    static const SDL_Color DEFAULT_BORDER_HOVER_COLOR;
-    static const SDL_Color DEFAULT_BORDER_DOWN_COLOR;
+    static const SColor DEFAULT_BORDER_DISABLED_COLOR;
+    static const SColor DEFAULT_BORDER_NORMAL_COLOR;
+    static const SColor DEFAULT_BORDER_HOVER_COLOR;
+    static const SColor DEFAULT_BORDER_DOWN_COLOR;
 
-    static const SDL_Color DEFAULT_TEXT_DISABLED_COLOR;
-    static const SDL_Color DEFAULT_TEXT_NORMAL_COLOR;
-    static const SDL_Color DEFAULT_TEXT_HOVER_COLOR;
-    static const SDL_Color DEFAULT_TEXT_DOWN_COLOR;
+    static const SColor DEFAULT_TEXT_DISABLED_COLOR;
+    static const SColor DEFAULT_TEXT_NORMAL_COLOR;
+    static const SColor DEFAULT_TEXT_HOVER_COLOR;
+    static const SColor DEFAULT_TEXT_DOWN_COLOR;
 
-    static const SDL_Color DEFAULT_TEXT_SHADOW_DISABLED_COLOR;
-    static const SDL_Color DEFAULT_TEXT_SHADOW_NORMAL_COLOR;
-    static const SDL_Color DEFAULT_TEXT_SHADOW_HOVER_COLOR;
-    static const SDL_Color DEFAULT_TEXT_SHADOW_DOWN_COLOR;
+    static const SColor DEFAULT_TEXT_SHADOW_DISABLED_COLOR;
+    static const SColor DEFAULT_TEXT_SHADOW_NORMAL_COLOR;
+    static const SColor DEFAULT_TEXT_SHADOW_HOVER_COLOR;
+    static const SColor DEFAULT_TEXT_SHADOW_DOWN_COLOR;
 
     // 按钮相关常量
     static const float BUTTON_CAPTION_SIZE;
-    static const SDL_Color BUTTON_NORMAL_COLOR;
-    static const SDL_Color BUTTON_HOVER_COLOR;
-    static const SDL_Color BUTTON_DOWN_COLOR;
+    static const SColor BUTTON_NORMAL_COLOR;
+    static const SColor BUTTON_HOVER_COLOR;
+    static const SColor BUTTON_DOWN_COLOR;
 
-    static const SDL_Color BUTTON_NORMAL_TEXT_COLOR;
-    static const SDL_Color BUTTON_HOVER_TEXT_COLOR;
-    static const SDL_Color BUTTON_DOWN_TEXT_COLOR;
+    static const SColor BUTTON_NORMAL_TEXT_COLOR;
+    static const SColor BUTTON_HOVER_TEXT_COLOR;
+    static const SColor BUTTON_DOWN_TEXT_COLOR;
 
     // 文本标签相关常量
     static const Margin LABEL_CAPTION_MARGIN;
 
     // 菜单相关常量
     static const float MENU_BAR_HEIGHT;
-    static const SDL_Color MENU_BORDER_COLOR;
-    static const SDL_Color MENU_NORMAL_COLOR;
-    static const SDL_Color MENU_HOVER_COLOR;
-    static const SDL_Color MENU_DOWN_COLOR;
-    static const SDL_Color MENU_DISABLED_COLOR;
-    static const SDL_Color MENU_TEXT_NORMAL_COLOR;
-    static const SDL_Color MENU_TEXT_HOVER_COLOR;
-    static const SDL_Color MENU_TEXT_DOWN_COLOR;
-    static const SDL_Color MENU_TEXT_DISABLED_COLOR;
+    static const SColor MENU_BORDER_COLOR;
+    static const SColor MENU_NORMAL_COLOR;
+    static const SColor MENU_HOVER_COLOR;
+    static const SColor MENU_DOWN_COLOR;
+    static const SColor MENU_DISABLED_COLOR;
+    static const SColor MENU_TEXT_NORMAL_COLOR;
+    static const SColor MENU_TEXT_HOVER_COLOR;
+    static const SColor MENU_TEXT_DOWN_COLOR;
+    static const SColor MENU_TEXT_DISABLED_COLOR;
     static const float MENU_MAIN_MENU_HEIGHT;
     static const float MENU_TEXT_SIZE;
 
@@ -105,10 +105,10 @@ public:
     // 滚动条相关常量
     static const float SCROLLBAR_WIDTH;
     static const float SCROLLBAR_MIN_THUMB_SIZE;
-    static const SDL_Color SCROLLBAR_TRACK_COLOR;
-    static const SDL_Color SCROLLBAR_THUMB_COLOR;
-    static const SDL_Color SCROLLBAR_THUMB_HOVER_COLOR;
-    static const SDL_Color SCROLLBAR_THUMB_PRESSED_COLOR;
+    static const SColor SCROLLBAR_TRACK_COLOR;
+    static const SColor SCROLLBAR_THUMB_COLOR;
+    static const SColor SCROLLBAR_THUMB_HOVER_COLOR;
+    static const SColor SCROLLBAR_THUMB_PRESSED_COLOR;
 
     // 编辑框相关常量
     static const float EDITBOX_DEFAULT_HEIGHT;
@@ -116,7 +116,7 @@ public:
     static const float EDITBOX_PADDING;
     static const float EDITBOX_CURSOR_WIDTH;
     static const int32_t EDITBOX_CURSOR_BLINK_INTERVAL;
-    static const SDL_Color EDITBOX_SELECTION_COLOR;
+    static const SColor EDITBOX_SELECTION_COLOR;
     static const char EDITBOX_DEFAULT_PASSWORD_CHAR;
 
     // 复选框相关常量
@@ -126,19 +126,19 @@ public:
     static const float CHECKBOX_SIZE_RATIO;
     static const Margin CHECKBOX_BOX_MARGIN;
     static const float CHECKBOX_DEFAULT_CAPTION_SIZE;
-    static const SDL_Color CHECKBOX_CHECK_COLOR;
-    static const SDL_Color CHECKBOX_CROSS_COLOR;
-    static const SDL_Color CHECKBOX_INDETERMINATE_COLOR;
+    static const SColor CHECKBOX_CHECK_COLOR;
+    static const SColor CHECKBOX_CROSS_COLOR;
+    static const SColor CHECKBOX_INDETERMINATE_COLOR;
 
     // 进度条相关常量
     static const float PROGRESSBAR_DEFAULT_HEIGHT;
     static const float PROGRESSBAR_MIN_HEIGHT;
-    static const SDL_Color PROGRESSBAR_DEFAULT_PROGRESS_COLOR;
-    static const SDL_Color PROGRESSBAR_DEFAULT_BACKGROUND_COLOR;
+    static const SColor PROGRESSBAR_DEFAULT_PROGRESS_COLOR;
+    static const SColor PROGRESSBAR_DEFAULT_BACKGROUND_COLOR;
     static const float PROGRESSBAR_DEFAULT_ANIMATION_SPEED;
-    static const SDL_Color PROGRESSBAR_PROGRESS_COLOR;
-    static const SDL_Color PROGRESSBAR_BACKGROUND_COLOR;
-    static const SDL_Color PROGRESSBAR_TEXT_COLOR;
+    static const SColor PROGRESSBAR_PROGRESS_COLOR;
+    static const SColor PROGRESSBAR_BACKGROUND_COLOR;
+    static const SColor PROGRESSBAR_TEXT_COLOR;
     static const float PROGRESSBAR_ANIMATION_SPEED;
     static const float PROGRESSBAR_DEFAULT_FONT_SIZE;
     static const float PROGRESSBAR_TEXT_MARGIN;

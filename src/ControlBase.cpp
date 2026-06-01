@@ -22,6 +22,7 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
 
     m_surface(nullptr),
     m_renderer(nullptr),
+    m_renderDevice(nullptr),
     m_texture(nullptr),
     m_rect({0, 0, 0, 0}),
     m_mouseInside(false)
@@ -51,6 +52,7 @@ ControlImpl::ControlImpl(const ControlImpl &other):
     m_textColor(other.m_textColor),
 
     m_renderer(other.m_renderer),
+    m_renderDevice(other.m_renderDevice),
     m_surface(other.m_surface),
     m_texture(other.m_texture),
     m_rect(other.m_rect),
@@ -174,7 +176,7 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
         }
 
         // 背景色
-        SDL_Color bgColor;
+        SColor bgColor;
         switch (m_state){
             case ControlState::Disabled:
                 bgColor = m_bgColor.getDisabled();
@@ -189,7 +191,7 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
                 bgColor = m_bgColor.getNormal();
                 break;
         }
-        if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.r, bgColor.g, bgColor.b, bgColor.a)){
+        if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.redByte(), bgColor.greenByte(), bgColor.blueByte(), bgColor.alphaByte())){
             SDL_Log("ControlImpl::drawBackground: failed to set grid render color: %s", SDL_GetError());
         }
         if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
@@ -208,7 +210,7 @@ void ControlImpl::drawBorder(const SRect *pDrawRect){
             drawRect = *pDrawRect;
         }
 
-        SDL_Color borderColor;
+        SColor borderColor;
         switch (m_state){
             case ControlState::Disabled:
                 borderColor = m_borderColor.getDisabled();
@@ -224,7 +226,7 @@ void ControlImpl::drawBorder(const SRect *pDrawRect){
                 borderColor = m_borderColor.getNormal();
                 break;
         }
-        if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.r, borderColor.g, borderColor.b, borderColor.a)){
+        if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.redByte(), borderColor.greenByte(), borderColor.blueByte(), borderColor.alphaByte())){
             SDL_Log("ControlImpl::drawBorder: failed to set border color: %s", SDL_GetError());
         }
         if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
@@ -394,6 +396,31 @@ void ControlImpl::setRenderer(SDL_Renderer* renderer){
     }
 }
 
+RenderDevice* ControlImpl::getRenderDevice(void) {
+    if (m_renderDevice != nullptr) {
+        return m_renderDevice;
+    }
+    if (m_parent != nullptr) {
+        m_renderDevice = m_parent->getRenderDevice();
+    } else {
+        m_renderDevice = GET_RENDERDEVICE;
+        if (m_renderDevice == nullptr) {
+            SDL_Log("ControlImpl::getRenderDevice: No render device found!");
+            return nullptr;
+        }
+    }
+    return m_renderDevice;
+}
+
+void ControlImpl::setRenderDevice(RenderDevice* device) {
+    if (m_renderDevice == device) return;
+
+    m_renderDevice = device;
+    for (auto& child : m_children){
+        child->setRenderDevice(device);
+    }
+}
+
 SRect ControlImpl::getDrawRect(void){
     Control *parent = getParent();
     SRect parentDrawRect;
@@ -466,52 +493,52 @@ StateColor ControlImpl::getTextShadowStateColor(void){
     return m_textShadowColor;
 }
 
-void ControlImpl::setNormalStateBGColor(SDL_Color color){
+void ControlImpl::setNormalStateBGColor(SColor color){
     m_bgColor.setNormal(color);
 }
-void ControlImpl::setHoverStateBGColor(SDL_Color color){
+void ControlImpl::setHoverStateBGColor(SColor color){
     m_bgColor.setHover(color);
 }
-void ControlImpl::setPressedStateBGColor(SDL_Color color){
+void ControlImpl::setPressedStateBGColor(SColor color){
     m_bgColor.setPressed(color);
 }
-void ControlImpl::setDisabledStateBGColor(SDL_Color color){
+void ControlImpl::setDisabledStateBGColor(SColor color){
     m_bgColor.setDisabled(color);
 }
-void ControlImpl::setNormalStateBDColor(SDL_Color color){
+void ControlImpl::setNormalStateBDColor(SColor color){
     m_borderColor.setNormal(color);
 }
-void ControlImpl::setHoverStateBDColor(SDL_Color color){
+void ControlImpl::setHoverStateBDColor(SColor color){
     m_borderColor.setHover(color);
 }
-void ControlImpl::setPressedStateBDColor(SDL_Color color){
+void ControlImpl::setPressedStateBDColor(SColor color){
     m_borderColor.setPressed(color);
 }
-void ControlImpl::setDisabledStateBDColor(SDL_Color color){
+void ControlImpl::setDisabledStateBDColor(SColor color){
     m_borderColor.setDisabled(color);
 }
-void ControlImpl::setTextNormalStateColor(SDL_Color color){
+void ControlImpl::setTextNormalStateColor(SColor color){
     m_textColor.setNormal(color);
 }
-void ControlImpl::setTextHoverStateColor(SDL_Color color){
+void ControlImpl::setTextHoverStateColor(SColor color){
     m_textColor.setHover(color);
 }
-void ControlImpl::setTextPressedStateColor(SDL_Color color){
+void ControlImpl::setTextPressedStateColor(SColor color){
     m_textColor.setPressed(color);
 }
-void ControlImpl::setTextDisabledStateColor(SDL_Color color){
+void ControlImpl::setTextDisabledStateColor(SColor color){
     m_textColor.setDisabled(color);
 }
-void ControlImpl::setTextShadowNormalStateColor(SDL_Color color){
+void ControlImpl::setTextShadowNormalStateColor(SColor color){
     m_textShadowColor.setNormal(color);
 }
-void ControlImpl::setTextShadowHoverStateColor(SDL_Color color){
+void ControlImpl::setTextShadowHoverStateColor(SColor color){
     m_textShadowColor.setHover(color);
 }
-void ControlImpl::setTextShadowPressedStateColor(SDL_Color color){
+void ControlImpl::setTextShadowPressedStateColor(SColor color){
     m_textShadowColor.setPressed(color);
 }
-void ControlImpl::setTextShadowDisabledStateColor(SDL_Color color){
+void ControlImpl::setTextShadowDisabledStateColor(SColor color){
     m_textShadowColor.setDisabled(color);
 }
 
@@ -528,12 +555,9 @@ void ControlImpl::triggerEvent(shared_ptr<Event> event){
 
 void ControlImpl::inheritRenderer(void) {
     if (m_renderer == nullptr){
-        // if (m_parent == nullptr) {
-        //     SDL_Log("ControlImpl::draw() Error: m_renderer is nullptr and can't get it from m_parent for is's nullptr too!");
-        //     // throw("ControlImpl::draw() Error: m_renderer is nullptr and can't get it from m_parent for is's nullptr too!");
-        //     return;
-        // }
-        // m_renderer = m_parent->getRenderer();
         m_renderer = GET_RENDERER;
+    }
+    if (m_renderDevice == nullptr) {
+        m_renderDevice = GET_RENDERDEVICE;
     }
 }

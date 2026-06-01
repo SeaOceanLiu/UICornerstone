@@ -642,14 +642,14 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
     }
 
     if (j.contains("bgColor")) {
-        SDL_Color bgColor = parseColor(j["bgColor"]);
+        SColor bgColor = parseColor(j["bgColor"]);
         StateColor sc(StateColor::Type::Background);
         sc.setNormal(bgColor);
         panel->setBackgroundStateColor(sc);
     }
 
     if (j.contains("borderColor")) {
-        SDL_Color borderColor = parseColor(j["borderColor"]);
+        SColor borderColor = parseColor(j["borderColor"]);
         StateColor sc(StateColor::Type::Border);
         sc.setNormal(borderColor);
         panel->setBorderStateColor(sc);
@@ -1075,16 +1075,16 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
     }
 
     // Theme CheckBox-specific colors (defaults)
-    SDL_Color themeCheck;
+    SColor themeCheck;
     if (m_theme.getColorOpt("colors.checkbox.check", themeCheck))
         checkBox->setCheckColor(themeCheck);
-    SDL_Color themeCross;
+    SColor themeCross;
     if (m_theme.getColorOpt("colors.checkbox.cross", themeCross))
         checkBox->setCrossColor(themeCross);
-    SDL_Color themeIndet;
+    SColor themeIndet;
     if (m_theme.getColorOpt("colors.checkbox.indeterminate", themeIndet))
         checkBox->setIndeterminateColor(themeIndet);
-    SDL_Color themeBoxBorder;
+    SColor themeBoxBorder;
     if (m_theme.getColorOpt("colors.checkbox.boxBorder", themeBoxBorder))
         checkBox->setBoxBorderColor(themeBoxBorder);
 
@@ -1190,10 +1190,10 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
     }
 
     // Theme ProgressBar-specific colors (defaults)
-    SDL_Color themeProgress;
+    SColor themeProgress;
     if (m_theme.getColorOpt("colors.progressbar.progress", themeProgress))
         progressBar->setProgressColor(themeProgress);
-    SDL_Color themeTrack;
+    SColor themeTrack;
     if (m_theme.getColorOpt("colors.progressbar.track", themeTrack))
         progressBar->setBackgroundColor(themeTrack);
 
@@ -1628,44 +1628,43 @@ Margin LayoutParser::parseMargin(const json& j) {
     return margin;
 }
 
-SDL_Color LayoutParser::parseColor(const json& j) {
-    SDL_Color color = {255, 255, 255, 255};
-
+SColor LayoutParser::parseColor(const json& j) {
     if (j.is_string()) {
         string hex = j.get<string>();
         if (hex.empty() || hex[0] != '#') {
             logWarn("invalid color format \"" + hex + "\", using default white");
-            return color;
+            return SColor(255, 255, 255, 255);
         }
         hex = hex.substr(1);
 
         if (hex.length() == 3) {
-            string r(2, hex[0]), g(2, hex[1]), b(2, hex[2]);
-            color.r = (uint8_t)stoi(r, nullptr, 16);
-            color.g = (uint8_t)stoi(g, nullptr, 16);
-            color.b = (uint8_t)stoi(b, nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(string(2, hex[0]), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(string(2, hex[1]), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(string(2, hex[2]), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 6) {
-            color.r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 8) {
-            color.r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
-            color.a = (uint8_t)stoi(hex.substr(6, 2), nullptr, 16);
+            uint8_t r = (uint8_t)stoi(hex.substr(0, 2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2, 2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4, 2), nullptr, 16);
+            uint8_t a = (uint8_t)stoi(hex.substr(6, 2), nullptr, 16);
+            return SColor(r, g, b, a);
         } else {
             logWarn("invalid hex color length \"" + hex + "\", using default white");
         }
     } else if (j.is_object()) {
-        color.r = j.value("r", 255);
-        color.g = j.value("g", 255);
-        color.b = j.value("b", 255);
-        color.a = j.value("a", 255);
+        uint8_t r = (uint8_t)j.value("r", 255);
+        uint8_t g = (uint8_t)j.value("g", 255);
+        uint8_t b = (uint8_t)j.value("b", 255);
+        uint8_t a = (uint8_t)j.value("a", 255);
+        return SColor(r, g, b, a);
     }
 
-    return color;
+    return SColor(255, 255, 255, 255);
 }
 
 StateColor LayoutParser::parseStateColor(const json& j, StateColor::Type type) {

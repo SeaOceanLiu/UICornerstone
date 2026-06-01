@@ -153,7 +153,7 @@ void testBenchInitialize(void) {
 }
 void testGraphToolInitialize(void){
     SDL_Log("testGraphToolInitialize");
-    g_dc = make_shared<GraphTool::DrawingContext>(BENCH->getRenderer());
+    g_dc = make_shared<GraphTool::DrawingContext>(BENCH->getRenderDevice());
     g_dc->setPenColor(GraphTool::SColor((uint8_t)255, 0, 0));
     g_dc->setCornerStyle(GraphTool::CornerStyle::Hard);
     g_dc->setPenWidth(20);
@@ -293,26 +293,14 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     BENCH->eventLoopEntry();
     BENCH->update();
 
-    /* clear the window to the draw color. */
-    SDL_SetRenderDrawColor(MainWindow::getInstance()->getRenderer(), 40, 40, 40, 255);  // 深灰色背景
-    SDL_RenderClear(MainWindow::getInstance()->getRenderer());
+    // 清屏
+    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+    GET_RENDERDEVICE->clear();
 
     BENCH->draw();
-    // testGraphTool();
-
-    // SDL_FRect rect = { 102.000000, 157.000000, 182.000000, 44.000000};
-    // SDL_RenderRect(MainWindow::getInstance()->getRenderer(), &rect);
-
-    // SDL_SetRenderDrawColor(MainWindow::getInstance()->getRenderer(), 255, 0, 0, 0); // White
-    // SDL_FRect rect2 = { 257.000000, 157.000000, 22.000000, 44.000000};
-    // SDL_RenderRect(MainWindow::getInstance()->getRenderer(), &rect2);
-
-    // SDL_SetRenderDrawColor(MainWindow::getInstance()->getRenderer(), 0, 0, 255, 0); // White
-    // SDL_FRect rect3 = { 417.000000, 167.000000, 12.000000, 24.000000};
-    // SDL_RenderRect(MainWindow::getInstance()->getRenderer(), &rect3);
 
     // Present rendering
-    SDL_RenderPresent(GET_RENDERER);
+    GET_RENDERDEVICE->present();
     return SDL_APP_CONTINUE;
 }
 

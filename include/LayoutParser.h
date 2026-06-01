@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <functional>
 #include <filesystem>
-#include <SDL3/SDL.h>
+#include "SColor.h"
 #include "nlohmann/json.hpp"
 #include "ControlBase.h"
 #include "Label.h"
@@ -107,7 +107,7 @@ private:
 
     SRect      parseRect(const json& j);
     Margin     parseMargin(const json& j);
-    SDL_Color  parseColor(const json& j);
+    SColor  parseColor(const json& j);
     StateColor parseStateColor(const json& j, StateColor::Type type);
     FontName   parseFontName(const string& name);
     AlignmentMode parseAlignment(const string& align);

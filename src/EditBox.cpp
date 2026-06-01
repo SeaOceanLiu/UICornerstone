@@ -325,14 +325,14 @@ void EditBox::draw(void) {
     }
 
     if (!m_text.empty() && m_textObj) {
-        SDL_Color textColor = m_textColor.getNormal();
-        TTF_SetTextColor(m_textObj, textColor.r, textColor.g, textColor.b, textColor.a);
+        SColor textColor = m_textColor.getNormal();
+        TTF_SetTextColor(m_textObj, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
 
         SDL_FPoint position = {drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY};
         TTF_DrawRendererText(m_textObj, position.x, position.y);
     } else if (!m_placeholderText.empty() && m_placeholderTextObj) {
-        SDL_Color placeholderColor = {128, 128, 128, 255};
-        TTF_SetTextColor(m_placeholderTextObj, placeholderColor.r, placeholderColor.g, placeholderColor.b, placeholderColor.a);
+        SColor placeholderColor(128, 128, 128, 255);
+        TTF_SetTextColor(m_placeholderTextObj, placeholderColor.redByte(), placeholderColor.greenByte(), placeholderColor.blueByte(), placeholderColor.alphaByte());
 
         SDL_FPoint position = {drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY};
         TTF_DrawRendererText(m_placeholderTextObj, position.x, position.y);
@@ -350,8 +350,8 @@ void EditBox::draw(void) {
             scaledFontSize
         };
 
-        SDL_Color cursorColor = m_textColor.getNormal();
-        SDL_SetRenderDrawColor(renderer, cursorColor.r, cursorColor.g, cursorColor.b, cursorColor.a);
+        SColor cursorColor = m_textColor.getNormal();
+        SDL_SetRenderDrawColor(renderer, cursorColor.redByte(), cursorColor.greenByte(), cursorColor.blueByte(), cursorColor.alphaByte());
         SDL_RenderFillRect(renderer, &cursorRect);
     }
 }

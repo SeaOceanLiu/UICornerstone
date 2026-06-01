@@ -4,6 +4,7 @@
 
 #include <functional>
 #include "ConstDef.h"
+#include "SColor.h"
 #include "ControlBase.h"
 #include "Label.h"
 
@@ -33,9 +34,9 @@ private:
     ProgressBarTextMode m_textMode;
     string m_customText;
 
-    SDL_Color m_progressColor;
-    SDL_Color m_backgroundColor;
-    SDL_Color m_textColor;
+    SColor m_progressColor;
+    SColor m_backgroundColor;
+    SColor m_textColor;
     float m_animationSpeed;
 
     FontName m_fontName;
@@ -69,12 +70,12 @@ public:
     void setCustomText(string text);
     string getCustomText() const { return m_customText; }
 
-    void setProgressColor(SDL_Color color);
-    SDL_Color getProgressColor() const { return m_progressColor; }
-    void setBackgroundColor(SDL_Color color);
-    SDL_Color getBackgroundColor() const { return m_backgroundColor; }
-    void setTextColor(SDL_Color color);
-    SDL_Color getTextColor() const { return m_textColor; }
+    void setProgressColor(SColor color);
+    SColor getProgressColor() const { return m_progressColor; }
+    void setBackgroundColor(SColor color);
+    SColor getBackgroundColor() const { return m_backgroundColor; }
+    void setTextColor(SColor color);
+    SColor getTextColor() const { return m_textColor; }
     void setAnimationSpeed(float speed);
     float getAnimationSpeed() const { return m_animationSpeed; }
 
@@ -98,9 +99,9 @@ public:
     ProgressBarBuilder& setStyle(ProgressBarStyle style);
     ProgressBarBuilder& setTextMode(ProgressBarTextMode mode);
     ProgressBarBuilder& setCustomText(string text);
-    ProgressBarBuilder& setProgressColor(SDL_Color color);
-    ProgressBarBuilder& setBackgroundColor(SDL_Color color);
-    ProgressBarBuilder& setTextColor(SDL_Color color);
+    ProgressBarBuilder& setProgressColor(SColor color);
+    ProgressBarBuilder& setBackgroundColor(SColor color);
+    ProgressBarBuilder& setTextColor(SColor color);
     ProgressBarBuilder& setAnimationSpeed(float speed);
     ProgressBarBuilder& setFont(FontName fontName);
     ProgressBarBuilder& setFontSize(int fontSize);

@@ -27,13 +27,13 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     if (m_rect.width < MIN_WIDTH)  m_rect.width = MIN_WIDTH;
     if (m_rect.height < MIN_HEIGHT) m_rect.height = MIN_HEIGHT;
 
-    setNormalStateBGColor(SDL_Color{0x30, 0x30, 0x30, 0xFF});
+    setNormalStateBGColor(SColor(0x30, 0x30, 0x30, 0xFF));
     setBorderVisible(true);
     setBorderStateColor(StateColor(
-        SDL_Color{0x60, 0x60, 0x60, 0xFF},
-        SDL_Color{0x80, 0x80, 0x80, 0xFF},
-        SDL_Color{0x60, 0x60, 0x60, 0xFF},
-        SDL_Color{0x60, 0x60, 0x60, 0xFF}));
+        SColor(0x60, 0x60, 0x60, 0xFF),
+        SColor(0x80, 0x80, 0x80, 0xFF),
+        SColor(0x60, 0x60, 0x60, 0xFF),
+        SColor(0x60, 0x60, 0x60, 0xFF)));
 
     float titleH = ConstDef::WINDOW_TITLE_HEIGHT;
 
@@ -43,17 +43,17 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
         .setHoverStateActor(     make_shared<Actor>(this, ResourceLoader::RID_cross_over_png, true))
         .setPressedStateActor(   make_shared<Actor>(this, ResourceLoader::RID_cross_down_png, true))
         .setBackgroundStateColor(StateColor(
-            SDL_Color{0x50,0x50,0x50,0xFF},
-            SDL_Color{0x60,0x60,0x60,0xFF},
-            SDL_Color{0x40,0x40,0x40,0xFF},
-            SDL_Color{0x50,0x50,0x50,0xFF}))
+            SColor(0x50,0x50,0x50,0xFF),
+            SColor(0x60,0x60,0x60,0xFF),
+            SColor(0x40,0x40,0x40,0xFF),
+            SColor(0x50,0x50,0x50,0xFF)))
         .setOnClick([this](shared_ptr<Button>) { hide(); })
         .setTransparent(false)
         .build());
 
     SRect titleRect = {0, 0, m_rect.width - titleH, titleH};
     addControl(m_titleBar = PanelBuilder(this, titleRect)
-        .setBGColor(SDL_Color{173, 216, 230, 255})
+        .setBGColor(SColor(173, 216, 230, 255))
         .setBorderVisible(false)
         .build());
 
@@ -67,7 +67,7 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
 
     SRect clientRect = {0, titleH, m_rect.width, m_rect.height - titleH};
     addControl(m_clientPanel = PanelBuilder(this, clientRect)
-        .setBGColor(SDL_Color{48, 48, 48, 255})
+        .setBGColor(SColor(48, 48, 48, 255))
         .setTransparent(false)
         .setBorderVisible(false)
         .build());
@@ -331,23 +331,22 @@ void WinFrame::show(void) {
 }
 
 void WinFrame::setWinFrameBGColor(const SColor& color) {
-    setNormalStateBGColor(color.toSDLColor());
+    setNormalStateBGColor(color);
 }
 
 void WinFrame::setWinFrameBorderColor(const SColor& color) {
-    SDL_Color c = color.toSDLColor();
-    setBorderStateColor(StateColor(c, c, c, c));
+    setBorderStateColor(StateColor(color, color, color, color));
 }
 
 void WinFrame::setTitleBarBGColor(const SColor& color) {
     if (m_titleBar) {
-        m_titleBar->setNormalStateBGColor(color.toSDLColor());
+        m_titleBar->setNormalStateBGColor(color);
     }
 }
 
 void WinFrame::setTitleTextColor(const SColor& color) {
     if (m_titleLabel) {
-        m_titleLabel->setTextNormalStateColor(color.toSDLColor());
+        m_titleLabel->setTextNormalStateColor(color);
     }
 }
 
@@ -389,7 +388,7 @@ WinFrameBuilder& WinFrameBuilder::setTitleBarBGColor(const SColor& color) {
 
 WinFrameBuilder& WinFrameBuilder::setClientBGColor(const SColor& color) {
     if (m_winFrame->m_clientPanel) {
-        m_winFrame->m_clientPanel->setNormalStateBGColor(color.toSDLColor());
+        m_winFrame->m_clientPanel->setNormalStateBGColor(color);
     }
     return *this;
 }

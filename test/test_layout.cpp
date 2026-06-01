@@ -276,12 +276,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     BENCH->eventLoopEntry();
     BENCH->update();
 
-    SDL_SetRenderDrawColor(MainWindow::getInstance()->getRenderer(), 40, 40, 40, 255);
-    SDL_RenderClear(MainWindow::getInstance()->getRenderer());
+    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+    GET_RENDERDEVICE->clear();
 
     BENCH->draw();
 
-    SDL_RenderPresent(GET_RENDERER);
+    GET_RENDERDEVICE->present();
     return SDL_APP_CONTINUE;
 }
 

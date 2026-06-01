@@ -74,11 +74,11 @@ PanelBuilder::PanelBuilder(Control *parent, SRect rect, float xScale, float ySca
 {
     m_panel = make_shared<Panel>(parent, rect, xScale, yScale);
 }
-PanelBuilder& PanelBuilder::setBGColor(SDL_Color color){
+PanelBuilder& PanelBuilder::setBGColor(SColor color){
     m_panel->setNormalStateBGColor(color);
     return *this;
 }
-PanelBuilder& PanelBuilder::setBorderColor(SDL_Color color){
+PanelBuilder& PanelBuilder::setBorderColor(SColor color){
     m_panel->setNormalStateBDColor(color);
     return *this;
 }

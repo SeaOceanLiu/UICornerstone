@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <SDL3/SDL.h>
+#include "SColor.h"
 #include "nlohmann/json.hpp"
 #include "ControlBase.h"
 #include "Label.h"
@@ -22,8 +22,8 @@ public:
     void parse(const json& j);
 
     StateColor getStateColor(const string& path, StateColor::Type type) const;
-    SDL_Color getColor(const string& path) const;
-    bool getColorOpt(const string& path, SDL_Color& out) const;
+    SColor getColor(const string& path) const;
+    bool getColorOpt(const string& path, SColor& out) const;
 
     FontName getFontName(const string& category) const;
     int getFontSize(const string& category) const;

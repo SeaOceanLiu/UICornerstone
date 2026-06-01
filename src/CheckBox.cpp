@@ -331,35 +331,35 @@ void CheckBox::setOnCheckChanged(OnCheckChangedHandler handler) {
     m_onCheckChanged = handler;
 }
 
-void CheckBox::setCheckColor(SDL_Color color) {
+void CheckBox::setCheckColor(SColor color) {
     m_checkStateColor.setNormal(color);
 }
 
-SDL_Color CheckBox::getCheckColor() {
+SColor CheckBox::getCheckColor() {
     return m_checkStateColor.getNormal();
 }
 
-void CheckBox::setCrossColor(SDL_Color color) {
+void CheckBox::setCrossColor(SColor color) {
     m_crossStateColor.setNormal(color);
 }
 
-SDL_Color CheckBox::getCrossColor() {
+SColor CheckBox::getCrossColor() {
     return m_crossStateColor.getNormal();
 }
 
-void CheckBox::setIndeterminateColor(SDL_Color color) {
+void CheckBox::setIndeterminateColor(SColor color) {
     m_indeterminateStateColor.setNormal(color);
 }
 
-SDL_Color CheckBox::getIndeterminateColor() {
+SColor CheckBox::getIndeterminateColor() {
     return m_indeterminateStateColor.getNormal();
 }
 
-void CheckBox::setBoxBorderColor(SDL_Color color) {
+void CheckBox::setBoxBorderColor(SColor color) {
     m_boxBorderStateColor.setNormal(color);
 }
 
-SDL_Color CheckBox::getBoxBorderColor() {
+SColor CheckBox::getBoxBorderColor() {
     return m_boxBorderStateColor.getNormal();
 }
 
@@ -408,11 +408,9 @@ void CheckBox::drawCheckBoxFrame() {
 
     SRect boxDrawRect = getBoxDrawRect();
 
-    SDL_Color borderColor = getEnable() ? m_boxBorderStateColor.getNormal() : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
+    SColor borderColor = getEnable() ? m_boxBorderStateColor.getNormal() : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
 
-    if (!SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, borderColor.a)) {
-        return;
-    }
+    getRenderDevice()->setDrawColor(borderColor);
 
     float penWidth = ConstDef::BOX_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
 
@@ -424,8 +422,8 @@ void CheckBox::drawCheckBoxFrame() {
             SPoint bottomRight(boxDrawRect.left + boxDrawRect.width - penWidth / 2, boxDrawRect.top + boxDrawRect.height - penWidth / 2);
             SPoint bottomLeft(boxDrawRect.left + penWidth / 2, boxDrawRect.top + boxDrawRect.height - penWidth / 2);
 
-            GraphTool::DrawingContext dc(renderer);
-            dc.setPenColor(GraphTool::SColor(borderColor.r / 255.0f, borderColor.g / 255.0f, borderColor.b / 255.0f, borderColor.a / 255.0f));
+            GraphTool::DrawingContext dc(getRenderDevice());
+            dc.setPenColor(GraphTool::SColor(borderColor.red(), borderColor.green(), borderColor.blue(), borderColor.alpha()));
             dc.setPenWidth(penWidth);
 
             dc.drawLine(topLeft, topRight);
@@ -439,8 +437,8 @@ void CheckBox::drawCheckBoxFrame() {
             float radius = boxDrawRect.width / 2 - penWidth / 2;
 
             const int numPoints = 36;
-            GraphTool::DrawingContext dc(renderer);
-            dc.setPenColor(GraphTool::SColor(borderColor.r / 255.0f, borderColor.g / 255.0f, borderColor.b / 255.0f, borderColor.a / 255.0f));
+            GraphTool::DrawingContext dc(getRenderDevice());
+            dc.setPenColor(GraphTool::SColor(borderColor.red(), borderColor.green(), borderColor.blue(), borderColor.alpha()));
             // dc.setPenColor(GraphTool::SColor(1.0f, 1.0f, 1.0f, 1.0f));
             dc.setPenWidth(penWidth);
 
@@ -455,10 +453,10 @@ void CheckBox::drawCheckMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
 
-    SDL_Color checkColor = getEnable() ? m_checkStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
+    SColor checkColor = getEnable() ? m_checkStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
-    GraphTool::DrawingContext dc(renderer);
-    dc.setPenColor(GraphTool::SColor(checkColor.r / 255.0f, checkColor.g / 255.0f, checkColor.b / 255.0f, checkColor.a / 255.0f));
+    GraphTool::DrawingContext dc(getRenderDevice());
+    dc.setPenColor(GraphTool::SColor(checkColor.red(), checkColor.green(), checkColor.blue(), checkColor.alpha()));
     float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
     dc.setPenWidth(penWidth);
 
@@ -479,10 +477,10 @@ void CheckBox::drawCrossMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
 
-    SDL_Color crossColor = getEnable() ? m_crossStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
+    SColor crossColor = getEnable() ? m_crossStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
-    GraphTool::DrawingContext dc(renderer);
-    dc.setPenColor(GraphTool::SColor(crossColor.r / 255.0f, crossColor.g / 255.0f, crossColor.b / 255.0f, crossColor.a / 255.0f));
+    GraphTool::DrawingContext dc(getRenderDevice());
+    dc.setPenColor(GraphTool::SColor(crossColor.red(), crossColor.green(), crossColor.blue(), crossColor.alpha()));
     float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
     dc.setPenWidth(penWidth);
 
@@ -502,10 +500,10 @@ void CheckBox::drawIndeterminateMark() {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
 
-    SDL_Color indColor = getEnable() ? m_indeterminateStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
+    SColor indColor = getEnable() ? m_indeterminateStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
-    GraphTool::DrawingContext dc(renderer);
-    dc.setPenColor(GraphTool::SColor(indColor.r / 255.0f, indColor.g / 255.0f, indColor.b / 255.0f, indColor.a / 255.0f));
+    GraphTool::DrawingContext dc(getRenderDevice());
+    dc.setPenColor(GraphTool::SColor(indColor.red(), indColor.green(), indColor.blue(), indColor.alpha()));
     float penWidth = ConstDef::MARK_PEN_WIDTH * getScaleXX();  // 根据X轴缩放比例调整线宽
     dc.setPenWidth(penWidth);
 
@@ -572,22 +570,22 @@ CheckBoxBuilder& CheckBoxBuilder::setOnCheckChanged(CheckBox::OnCheckChangedHand
     return *this;
 }
 
-CheckBoxBuilder& CheckBoxBuilder::setCheckColor(SDL_Color color) {
+CheckBoxBuilder& CheckBoxBuilder::setCheckColor(SColor color) {
     m_checkBox->setCheckColor(color);
     return *this;
 }
 
-CheckBoxBuilder& CheckBoxBuilder::setCrossColor(SDL_Color color) {
+CheckBoxBuilder& CheckBoxBuilder::setCrossColor(SColor color) {
     m_checkBox->setCrossColor(color);
     return *this;
 }
 
-CheckBoxBuilder& CheckBoxBuilder::setIndeterminateColor(SDL_Color color) {
+CheckBoxBuilder& CheckBoxBuilder::setIndeterminateColor(SColor color) {
     m_checkBox->setIndeterminateColor(color);
     return *this;
 }
 
-CheckBoxBuilder& CheckBoxBuilder::setBoxBorderColor(SDL_Color color) {
+CheckBoxBuilder& CheckBoxBuilder::setBoxBorderColor(SColor color) {
     m_checkBox->setBoxBorderColor(color);
     return *this;
 }

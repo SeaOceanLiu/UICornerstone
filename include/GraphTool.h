@@ -2,7 +2,8 @@
 #ifndef GRAPHTOOL_H
 #define GRAPHTOOL_H
 
-#include "SDL3/SDL.h"
+#include "RenderDevice.h"
+#include "SColor.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,106 +25,7 @@
 namespace GraphTool {
 
 // ==================== 颜色系统 ====================
-
-// 基础颜色类 - 抽象的颜色表示（使用SColor避免命名冲突）
-class SColor {
-public:
-    // 构造函数 - 支持多种格式
-    SColor() : m_r(0.0f), m_g(0.0f), m_b(0.0f), m_a(1.0f) {} // 默认黑色
-
-    SColor(float r, float g, float b, float a = 1.0f) :
-        m_r(clamp(r)), m_g(clamp(g)), m_b(clamp(b)), m_a(clamp(a)) {}
-
-    SColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) :
-        m_r(r / 255.0f), m_g(g / 255.0f), m_b(b / 255.0f), m_a(a / 255.0f) {}
-
-    SColor(uint32_t rgba) {
-        m_r = ((rgba >> 24) & 0xFF) / 255.0f;
-        m_g = ((rgba >> 16) & 0xFF) / 255.0f;
-        m_b = ((rgba >> 8) & 0xFF) / 255.0f;
-        m_a = (rgba & 0xFF) / 255.0f;
-    }
-
-    // 静态工厂方法 - 常用颜色
-    static SColor Black(float alpha = 1.0f) { return SColor(0.0f, 0.0f, 0.0f, alpha); }
-    static SColor White(float alpha = 1.0f) { return SColor(1.0f, 1.0f, 1.0f, alpha); }
-    static SColor Red(float alpha = 1.0f) { return SColor(1.0f, 0.0f, 0.0f, alpha); }
-    static SColor Green(float alpha = 1.0f) { return SColor(0.0f, 1.0f, 0.0f, alpha); }
-    static SColor Blue(float alpha = 1.0f) { return SColor(0.0f, 0.0f, 1.0f, alpha); }
-    static SColor Yellow(float alpha = 1.0f) { return SColor(1.0f, 1.0f, 0.0f, alpha); }
-    static SColor Cyan(float alpha = 1.0f) { return SColor(0.0f, 1.0f, 1.0f, alpha); }
-    static SColor Magenta(float alpha = 1.0f) { return SColor(1.0f, 0.0f, 1.0f, alpha); }
-    static SColor Gray(float brightness = 0.5f, float alpha = 1.0f) {
-        return SColor(brightness, brightness, brightness, alpha);
-    }
-    static SColor Transparent() { return SColor(0.0f, 0.0f, 0.0f, 0.0f); }
-
-    // 获取颜色分量
-    float red() const { return m_r; }
-    float green() const { return m_g; }
-    float blue() const { return m_b; }
-    float alpha() const { return m_a; }
-
-    uint8_t redByte() const { return static_cast<uint8_t>(m_r * 255); }
-    uint8_t greenByte() const { return static_cast<uint8_t>(m_g * 255); }
-    uint8_t blueByte() const { return static_cast<uint8_t>(m_b * 255); }
-    uint8_t alphaByte() const { return static_cast<uint8_t>(m_a * 255); }
-
-    // 颜色操作 - alpha调整、变亮/变暗、混合
-    SColor withAlpha(float alpha) const {
-        return SColor(m_r, m_g, m_b, clamp(alpha));
-    }
-
-    // 颜色变亮 - factor控制变亮程度，0.1表示变亮10%，0.5表示变亮50%
-    SColor brighter(float factor = 0.1f) const {
-        float f = 1.0f + clamp(factor);
-        return SColor(clamp(m_r * f), clamp(m_g * f), clamp(m_b * f), m_a);
-    }
-
-    // 颜色变暗 - factor控制变暗程度，0.1表示变暗10%，0.5表示变暗50%
-    SColor darker(float factor = 0.1f) const {
-        float f = 1.0f - clamp(factor);
-        return SColor(clamp(m_r * f), clamp(m_g * f), clamp(m_b * f), m_a);
-    }
-
-    // 颜色混合 - 线性插值
-    SColor blend(const SColor& other, float ratio = 0.5f) const {
-        float r = clamp(ratio);
-        float invR = 1.0f - r;
-        return SColor(
-            m_r * invR + other.m_r * r,
-            m_g * invR + other.m_g * r,
-            m_b * invR + other.m_b * r,
-            m_a * invR + other.m_a * r
-        );
-    }
-
-    // 转换为平台特定格式
-    SDL_Color toSDLColor() const {
-        return SDL_Color{redByte(), greenByte(), blueByte(), alphaByte()};
-    }
-    SDL_FColor toSDLFColor() const {
-        return SDL_FColor{m_r, m_g, m_b, m_a};
-    }
-
-    // 运算符重载
-    bool operator==(const SColor& other) const {
-        return m_r == other.m_r && m_g == other.m_g &&
-               m_b == other.m_b && m_a == other.m_a;
-    }
-
-    bool operator!=(const SColor& other) const {
-        return !(*this == other);
-    }
-
-private:
-    float m_r, m_g, m_b, m_a; // 0-1范围的浮点数值
-
-    // 静态工具函数 - 限制值在0-1之间
-    static float clamp(float value) {
-        return std::max<float>(0.0f, std::min<float>(1.0f, value));
-    }
-};
+using SColor = ::SColor;
 
 // ==================== 画笔样式枚举 ====================
 enum class PenStyle {
@@ -1139,7 +1041,7 @@ namespace Utils {
 // ==================== 绘图上下文 ====================
 class DrawingContext {
 public:
-    DrawingContext(SDL_Renderer* renderer);
+    DrawingContext(RenderDevice* device);
 
     // ==================== 画笔设置 ====================
     void setPen(const SPen& pen) { m_pen = pen; }
@@ -1214,9 +1116,9 @@ public:
     void drawText(const ::SPoint& position, const std::string& text);
     void drawText(const ::SRect& bounds, const std::string& text, TextAlignment alignment = TextAlignment::Left);
 
-    void drawImage(const ::SPoint& position, SDL_Texture* texture);
-    void drawImage(const ::SRect& destRect, SDL_Texture* texture);
-    void drawImage(const ::SRect& destRect, SDL_Texture* texture, const ::SRect& srcRect);
+    void drawImage(const ::SPoint& position, void* texture);
+    void drawImage(const ::SRect& destRect, void* texture);
+    void drawImage(const ::SRect& destRect, void* texture, const ::SRect& srcRect);
 
     void pushClipRect(const ::SRect& rect);
     void popClipRect();
@@ -1226,19 +1128,18 @@ public:
 
     void setCornerStyle(CornerStyle style) { m_cornerStyle = style; }
     CornerStyle getCornerStyle() const { return m_cornerStyle; }
-    SDL_Renderer* getRenderer() const { return m_renderer; }
+    RenderDevice* getRenderDevice() const { return m_renderDevice; }
 
     void scale(float sx, float sy);
 
 private:
-    SDL_Renderer* m_renderer;
+    RenderDevice* m_renderDevice;
     SPen m_pen;
     SBrush m_brush;
     std::string m_fontName;
     float m_fontSize;
     CornerStyle m_cornerStyle;
     std::vector<::SRect> m_clipStack;
-    std::vector<SDL_Renderer*> m_transformStack;
 };
 
 // ==================== 高级绘图功能 ====================

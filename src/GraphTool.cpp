@@ -1,22 +1,17 @@
-﻿// 由AI(GLM 5.1)生成，可能不完整或有错误，请自行检查和修改
-
-#include "GraphTool.h"
+﻿#include "GraphTool.h"
 
 namespace GraphTool {
 
 // ==================== DrawingContext 实现 ====================
 
 // 构造函数
-DrawingContext::DrawingContext(SDL_Renderer* renderer)
-    : m_renderer(renderer)
+DrawingContext::DrawingContext(RenderDevice* device)
+    : m_renderDevice(device)
     , m_pen(SColor::Black(), 1.0f)
     , m_brush(SColor::White())
     , m_fontSize(12.0f)
     , m_cornerStyle(CornerStyle::Round)
 {
-    if (!renderer) {
-        SDL_Log("DrawingContext: Invalid renderer provided");
-    }
 }
 
 // 字体设置
@@ -27,23 +22,21 @@ void DrawingContext::setFont(const std::string& fontName, float size) {
 
 // drawPoint - 浮点坐标
 void DrawingContext::drawPoint(float x, float y) {
-    if (!m_renderer) return;
-    SDL_Color color = m_pen.color().toSDLColor();
-    SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderPoint(m_renderer, x, y);
+    if (!m_renderDevice) return;
+    m_renderDevice->setDrawColor(m_pen.color());
+    m_renderDevice->drawPoint(x, y);
 }
 
 // drawPoint - 指定颜色
 void DrawingContext::drawPoint(float x, float y, const SColor& color) {
-    if (!m_renderer) return;
-    SDL_Color sdlColor = color.toSDLColor();
-    SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-    SDL_RenderPoint(m_renderer, x, y);
+    if (!m_renderDevice) return;
+    m_renderDevice->setDrawColor(color);
+    m_renderDevice->drawPoint(x, y);
 }
 
 // drawLine - 浮点坐标
 void DrawingContext::drawLine(float x1, float y1, float x2, float y2) {
-    if (!m_renderer || m_pen.width() <= 0) return;
+    if (!m_renderDevice || m_pen.width() <= 0) return;
 
     // 检查是否为虚线样式
     if (!m_pen.isSolid()) {
@@ -51,11 +44,10 @@ void DrawingContext::drawLine(float x1, float y1, float x2, float y2) {
         return;
     }
 
-    // 如果线宽为1或更小，使用SDL的默认绘制
+    // 如果线宽为1或更小，使用默认绘制
     if (m_pen.width() <= 1.0f) {
-        SDL_Color color = m_pen.color().toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-        SDL_RenderLine(m_renderer, x1, y1, x2, y2);
+        m_renderDevice->setDrawColor(m_pen.color());
+        m_renderDevice->drawLine(x1, y1, x2, y2);
         return;
     }
 
@@ -75,7 +67,7 @@ void DrawingContext::drawLine(float x1, float y1, float x2, float y2) {
 
 // 绘制虚线
 void DrawingContext::drawDashedLine(float x1, float y1, float x2, float y2) {
-    if (!m_renderer) return;
+    if (!m_renderDevice) return;
 
     std::vector<float> pattern = m_pen.getStandardDashPattern();
     if (pattern.empty()) {
@@ -120,9 +112,8 @@ void DrawingContext::drawDashedLine(float x1, float y1, float x2, float y2) {
             float ey = y1 + dy * drawEnd;
 
             if (m_pen.width() <= 1.0f) {
-                SDL_Color color = m_pen.color().toSDLColor();
-                SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-                SDL_RenderLine(m_renderer, sx, sy, ex, ey);
+                m_renderDevice->setDrawColor(m_pen.color());
+                m_renderDevice->drawLine(sx, sy, ex, ey);
             } else {
                 ::SPoint s(sx, sy);
                 ::SPoint e(ex, ey);
@@ -167,47 +158,28 @@ void DrawingContext::drawLine(int x1, int y1, int x2, int y2) {
 
 // drawLine - SLineRectPoints
 void DrawingContext::drawLine(const SLineRectPoints& rectPoints) {
-    if (!m_renderer || !rectPoints.isValid()) return;
+    if (!m_renderDevice || !rectPoints.isValid()) return;
 
-    SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-    SDL_Vertex vertices[4];
-
-    vertices[0].position = SDL_FPoint{rectPoints.startLeft.x, rectPoints.startLeft.y};
-    vertices[0].color = fcolor;
-    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-    vertices[1].position = SDL_FPoint{rectPoints.startRight.x, rectPoints.startRight.y};
-    vertices[1].color = fcolor;
-    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-    vertices[2].position = SDL_FPoint{rectPoints.endRight.x, rectPoints.endRight.y};
-    vertices[2].color = fcolor;
-    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-    vertices[3].position = SDL_FPoint{rectPoints.endLeft.x, rectPoints.endLeft.y};
-    vertices[3].color = fcolor;
-    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-    int indices[6] = {0, 1, 2, 0, 2, 3};
-    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+    m_renderDevice->drawQuad(
+        rectPoints.startLeft.x, rectPoints.startLeft.y,
+        rectPoints.startRight.x, rectPoints.startRight.y,
+        rectPoints.endRight.x, rectPoints.endRight.y,
+        rectPoints.endLeft.x, rectPoints.endLeft.y,
+        m_pen.color()
+    );
 }
 
 // drawRect
 void DrawingContext::drawRect(const ::SRect& rect, bool filled) {
-    if (!m_renderer) return;
+    if (!m_renderDevice) return;
 
     if (filled) {
-        SDL_Color color = m_brush.color().toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-        SDL_FRect sdlRect = {rect.left, rect.top, rect.width, rect.height};
-        SDL_RenderFillRect(m_renderer, &sdlRect);
+        m_renderDevice->setDrawColor(m_brush.color());
+        m_renderDevice->fillRect(SRect(rect.left, rect.top, rect.width, rect.height));
     } else {
         if (m_pen.width() <= 1.0f) {
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-            SDL_FRect sdlRect = {rect.left, rect.top, rect.width, rect.height};
-            SDL_RenderRect(m_renderer, &sdlRect);
+            m_renderDevice->setDrawColor(m_pen.color());
+            m_renderDevice->drawRect(SRect(rect.left, rect.top, rect.width, rect.height));
         } else {
             float halfWidth = m_pen.width() / 2.0f;
 
@@ -233,44 +205,39 @@ void DrawingContext::drawRect(const ::SRect& rect, bool filled) {
                 return;
             }
 
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             // 上边区域
-            SDL_FRect topRect = {
+            m_renderDevice->fillRect(SRect(
                 outerRect.left,
                 outerRect.top,
                 outerRect.width,
                 halfWidth * 2
-            };
-            SDL_RenderFillRect(m_renderer, &topRect);
+            ));
 
             // 下边区域
-            SDL_FRect bottomRect = {
+            m_renderDevice->fillRect(SRect(
                 outerRect.left,
                 outerRect.top + outerRect.height - halfWidth * 2,
                 outerRect.width,
                 halfWidth * 2
-            };
-            SDL_RenderFillRect(m_renderer, &bottomRect);
+            ));
 
             // 左边区域
-            SDL_FRect leftRect = {
+            m_renderDevice->fillRect(SRect(
                 outerRect.left,
                 outerRect.top + halfWidth * 2,
                 halfWidth * 2,
                 outerRect.height - halfWidth * 4
-            };
-            SDL_RenderFillRect(m_renderer, &leftRect);
+            ));
 
             // 右边区域
-            SDL_FRect rightRect = {
+            m_renderDevice->fillRect(SRect(
                 outerRect.left + outerRect.width - halfWidth * 2,
                 outerRect.top + halfWidth * 2,
                 halfWidth * 2,
                 outerRect.height - halfWidth * 4
-            };
-            SDL_RenderFillRect(m_renderer, &rightRect);
+            ));
         }
     }
 }
@@ -282,32 +249,22 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, float radius, bool fil
 
 // drawRoundedRect - 完整版本
 void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners& corners, bool filled) {
-    if (!m_renderer) return;
+    if (!m_renderDevice) return;
 
     if (filled) {
         auto points = Utils::generateRoundedRectPoints(rect, corners);
         if (points.empty()) return;
 
         SColor currentColor = m_brush.color();
-        SDL_Color sdlColor = currentColor.toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
 
         if (points.size() >= 3) {
             for (size_t i = 1; i < points.size() - 1; ++i) {
-                SDL_Vertex vertices[3];
-                vertices[0].position = SDL_FPoint{points[0].x, points[0].y};
-                vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                m_renderDevice->drawTriangle(
+                    points[0].x, points[0].y,
+                    points[i].x, points[i].y,
+                    points[i + 1].x, points[i + 1].y,
+                    currentColor
+                );
             }
         }
     } else {
@@ -315,12 +272,11 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners&
             auto points = Utils::generateRoundedRectPoints(rect, corners);
             if (points.empty()) return;
 
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             for (size_t i = 0; i < points.size(); ++i) {
                 size_t next = (i + 1) % points.size();
-                SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
+                m_renderDevice->drawLine(points[i].x, points[i].y, points[next].x, points[next].y);
             }
         } else {
             float halfWidth = m_pen.width() / 2.0f;
@@ -366,8 +322,7 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners&
 
             if (outerPoints.empty() || innerPoints.empty()) return;
 
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             int segmentsPerCorner = 8;
             int verticesPerCorner = segmentsPerCorner + 1;
@@ -383,27 +338,13 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners&
 
                 for (int i = startIdx; i < endIdx - 1; ++i) {
                     int next = i + 1;
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[next].x, outerPoints[next].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[next].x, innerPoints[next].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                    m_renderDevice->drawQuad(
+                        innerPoints[i].x, innerPoints[i].y,
+                        outerPoints[i].x, outerPoints[i].y,
+                        outerPoints[next].x, outerPoints[next].y,
+                        innerPoints[next].x, innerPoints[next].y,
+                        m_pen.color()
+                    );
                 }
             }
 
@@ -412,27 +353,13 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners&
                 for (int i = start; i < end; ++i) {
                     if (i + 1 >= (int)outerPoints.size() || i + 1 >= (int)innerPoints.size()) break;
 
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                    m_renderDevice->drawQuad(
+                        innerPoints[i].x, innerPoints[i].y,
+                        outerPoints[i].x, outerPoints[i].y,
+                        outerPoints[i + 1].x, outerPoints[i + 1].y,
+                        innerPoints[i + 1].x, innerPoints[i + 1].y,
+                        m_pen.color()
+                    );
                 }
             };
 
@@ -447,27 +374,13 @@ void DrawingContext::drawRoundedRect(const ::SRect& rect, const SRoundedCorners&
             if (outerPoints.size() > 0 && innerPoints.size() > 0) {
                 int last = (int)outerPoints.size() - 1;
 
-                SDL_Vertex vertices[4];
-                SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                vertices[0].position = SDL_FPoint{innerPoints[last].x, innerPoints[last].y};
-                vertices[0].color = fcolor;
-                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[1].position = SDL_FPoint{outerPoints[last].x, outerPoints[last].y};
-                vertices[1].color = fcolor;
-                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[2].position = SDL_FPoint{outerPoints[0].x, outerPoints[0].y};
-                vertices[2].color = fcolor;
-                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[3].position = SDL_FPoint{innerPoints[0].x, innerPoints[0].y};
-                vertices[3].color = fcolor;
-                vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                int indices[6] = {0, 1, 2, 0, 2, 3};
-                SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                m_renderDevice->drawQuad(
+                    innerPoints[last].x, innerPoints[last].y,
+                    outerPoints[last].x, outerPoints[last].y,
+                    outerPoints[0].x, outerPoints[0].y,
+                    innerPoints[0].x, innerPoints[0].y,
+                    m_pen.color()
+                );
             }
         }
     }
@@ -484,7 +397,7 @@ void DrawingContext::drawRoundedRectWithBorder(const ::SRect& rect, float radius
 void DrawingContext::drawRoundedRectWithBorder(const ::SRect& rect, const SRoundedCorners& corners,
                                               float borderWidth, const SColor& borderColor,
                                               const SColor& fillColor) {
-    if (!m_renderer || borderWidth <= 0) return;
+    if (!m_renderDevice || borderWidth <= 0) return;
 
     SColor oldPenColor = m_pen.color();
     SColor oldFillColor = m_brush.color();
@@ -503,7 +416,7 @@ void DrawingContext::drawRoundedRectWithBorder(const ::SRect& rect, const SRound
 // drawFilledCircleWithStroke - 核心圆形绘制方法
 void DrawingContext::drawFilledCircleWithStroke(int cx, int cy, float R, float thickness,
                                                 const SColor& fillColor, const SColor& strokeColor) {
-    if (!m_renderer || R <= 0) return;
+    if (!m_renderDevice || R <= 0) return;
 
     float Ro = R + thickness * 0.5f;
     float Ri = R - thickness * 0.5f;
@@ -575,7 +488,7 @@ void DrawingContext::drawCircleWithThickness(float cx, float cy, float radius, f
 
 // drawCircle - 根据filled参数
 void DrawingContext::drawCircle(const ::SPoint &center, float radius, bool filled) {
-    if (!m_renderer || radius <= 0) return;
+    if (!m_renderDevice || radius <= 0) return;
 
     if (filled) {
         drawFilledCircleWithStroke(
@@ -590,7 +503,7 @@ void DrawingContext::drawCircle(const ::SPoint &center, float radius, bool fille
 
 // drawCircle - 指定填充色和描边色
 void DrawingContext::drawCircle(const ::SPoint &center, float radius, const SColor& fillColor, const SColor& strokeColor, float strokeWidth) {
-    if (!m_renderer || radius <= 0) return;
+    if (!m_renderDevice || radius <= 0) return;
     drawFilledCircleWithStroke(
         static_cast<int>(center.x), static_cast<int>(center.y),
         radius, strokeWidth, fillColor, strokeColor);
@@ -598,31 +511,22 @@ void DrawingContext::drawCircle(const ::SPoint &center, float radius, const SCol
 
 // drawEllipse
 void DrawingContext::drawEllipse(const ::SPoint& center, float radiusX, float radiusY, bool filled) {
-    if (!m_renderer || radiusX <= 0 || radiusY <= 0) return;
+    if (!m_renderDevice || radiusX <= 0 || radiusY <= 0) return;
 
     if (filled) {
         auto points = Utils::generateEllipsePoints(center, radiusX, radiusY);
         if (points.empty()) return;
 
         SColor currentColor = m_brush.color();
-        SDL_Color sdlColor = currentColor.toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
 
         if (points.size() >= 3) {
             for (size_t i = 1; i < points.size() - 1; ++i) {
-                SDL_Vertex vertices[3];
-                vertices[0].position = SDL_FPoint{center.x, center.y};
-                vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[2].tex_coord = SDL_FPoint{0, 0};
-                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                m_renderDevice->drawTriangle(
+                    center.x, center.y,
+                    points[i].x, points[i].y,
+                    points[i + 1].x, points[i + 1].y,
+                    currentColor
+                );
             }
         }
     } else {
@@ -630,12 +534,11 @@ void DrawingContext::drawEllipse(const ::SPoint& center, float radiusX, float ra
             auto points = Utils::generateEllipsePoints(center, radiusX, radiusY);
             if (points.empty()) return;
 
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             for (size_t i = 0; i < points.size(); ++i) {
                 size_t next = (i + 1) % points.size();
-                SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
+                m_renderDevice->drawLine(points[i].x, points[i].y, points[next].x, points[next].y);
             }
         } else {
             float innerRadiusX = radiusX - m_pen.width() / 2.0f;
@@ -654,27 +557,13 @@ void DrawingContext::drawEllipse(const ::SPoint& center, float radiusX, float ra
                 for (size_t i = 0; i < innerPoints.size(); ++i) {
                     size_t next = (i + 1) % innerPoints.size();
 
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[next].x, outerPoints[next].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[next].x, innerPoints[next].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                    m_renderDevice->drawQuad(
+                        innerPoints[i].x, innerPoints[i].y,
+                        outerPoints[i].x, outerPoints[i].y,
+                        outerPoints[next].x, outerPoints[next].y,
+                        innerPoints[next].x, innerPoints[next].y,
+                        m_pen.color()
+                    );
                 }
             }
         }
@@ -683,31 +572,22 @@ void DrawingContext::drawEllipse(const ::SPoint& center, float radiusX, float ra
 
 // drawArc
 void DrawingContext::drawArc(const ::SPoint& center, float radius, float startAngle, float endAngle, bool filled) {
-    if (!m_renderer || radius <= 0) return;
+    if (!m_renderDevice || radius <= 0) return;
 
     if (filled) {
         auto points = Utils::generateArcPoints(center, radius, startAngle, endAngle);
         if (points.size() < 2) return;
 
         SColor currentColor = m_brush.color();
-        SDL_Color sdlColor = currentColor.toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
 
         if (points.size() >= 2) {
             for (size_t i = 0; i < points.size() - 1; ++i) {
-                SDL_Vertex vertices[3];
-                vertices[0].position = SDL_FPoint{center.x, center.y};
-                vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[2].tex_coord = SDL_FPoint{0, 0};
-                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                m_renderDevice->drawTriangle(
+                    center.x, center.y,
+                    points[i].x, points[i].y,
+                    points[i + 1].x, points[i + 1].y,
+                    currentColor
+                );
             }
         }
     } else {
@@ -715,11 +595,10 @@ void DrawingContext::drawArc(const ::SPoint& center, float radius, float startAn
             auto points = Utils::generateArcPoints(center, radius, startAngle, endAngle);
             if (points.size() < 2) return;
 
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             for (size_t i = 0; i < points.size() - 1; ++i) {
-                SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+                m_renderDevice->drawLine(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
             }
         } else {
             float innerRadius = radius - m_pen.width() / 2.0f;
@@ -730,19 +609,12 @@ void DrawingContext::drawArc(const ::SPoint& center, float radius, float startAn
                 if (points.size() < 2) return;
 
                 for (size_t i = 0; i < points.size() - 1; ++i) {
-                    SDL_Vertex vertices[3];
-                    vertices[0].position = SDL_FPoint{center.x, center.y};
-                    vertices[0].color = SDL_FColor{m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                    vertices[1].color = SDL_FColor{m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                    vertices[2].color = SDL_FColor{m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                    m_renderDevice->drawTriangle(
+                        center.x, center.y,
+                        points[i].x, points[i].y,
+                        points[i + 1].x, points[i + 1].y,
+                        m_pen.color()
+                    );
                 }
             } else {
                 auto innerPoints = Utils::generateArcPoints(center, innerRadius, startAngle, endAngle, 72);
@@ -751,27 +623,13 @@ void DrawingContext::drawArc(const ::SPoint& center, float radius, float startAn
                 if (innerPoints.size() != outerPoints.size() || innerPoints.size() < 2) return;
 
                 for (size_t i = 0; i < innerPoints.size() - 1; ++i) {
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                    vertices[0].position = SDL_FPoint{innerPoints[i].x, innerPoints[i].y};
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = SDL_FPoint{outerPoints[i].x, outerPoints[i].y};
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = SDL_FPoint{outerPoints[i + 1].x, outerPoints[i + 1].y};
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = SDL_FPoint{innerPoints[i + 1].x, innerPoints[i + 1].y};
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                    m_renderDevice->drawQuad(
+                        innerPoints[i].x, innerPoints[i].y,
+                        outerPoints[i].x, outerPoints[i].y,
+                        outerPoints[i + 1].x, outerPoints[i + 1].y,
+                        innerPoints[i + 1].x, innerPoints[i + 1].y,
+                        m_pen.color()
+                    );
                 }
             }
         }
@@ -781,59 +639,36 @@ void DrawingContext::drawArc(const ::SPoint& center, float radius, float startAn
 // drawPolygon
 void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool filled,
                                 bool debugCorner, const SColor& debugColor) {
-#ifdef GRAPH_TOOL_DEBUG
-    SDL_Log("GraphTool::drawPolygon: points.size=%d, penWidth=%f, cornerStyle=%d", points.size(), m_pen.width(), static_cast<int>(m_cornerStyle));
-#endif
-    if (!m_renderer || points.size() < 3) return;
+    if (!m_renderDevice || points.size() < 3) return;
 
     if (filled) {
         SColor currentColor = m_brush.color();
-        SDL_Color sdlColor = currentColor.toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
 
         if (points.size() >= 3) {
             for (size_t i = 1; i < points.size() - 1; ++i) {
-                SDL_Vertex vertices[3];
-                vertices[0].position = SDL_FPoint{points[0].x, points[0].y};
-                vertices[0].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[1].position = SDL_FPoint{points[i].x, points[i].y};
-                vertices[1].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                vertices[2].position = SDL_FPoint{points[i + 1].x, points[i + 1].y};
-                vertices[2].color = SDL_FColor{currentColor.red(), currentColor.green(), currentColor.blue(), currentColor.alpha()};
-                vertices[2].tex_coord = SDL_FPoint{0, 0};
-                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                m_renderDevice->drawTriangle(
+                    points[0].x, points[0].y,
+                    points[i].x, points[i].y,
+                    points[i + 1].x, points[i + 1].y,
+                    currentColor
+                );
             }
         }
     } else {
         if (m_pen.width() <= 1.0f) {
-            SDL_Color color = m_pen.color().toSDLColor();
-            SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+            m_renderDevice->setDrawColor(m_pen.color());
 
             for (size_t i = 0; i < points.size(); ++i) {
                 size_t next = (i + 1) % points.size();
-                SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[next].x, points[next].y);
+                m_renderDevice->drawLine(points[i].x, points[i].y, points[next].x, points[next].y);
             }
         } else {
             for (size_t i = 0; i < points.size(); ++i) {
                 size_t next = (i + 1) % points.size();
                 auto rectPoints = Utils::generateLineRectPoints(points[i], points[next], m_pen.width());
                 drawLine(rectPoints);
-#ifdef GRAPH_TOOL_DEBUG
-                SDL_Log("GraphTool::drawPolygon(%d): rectPoints from (%f, %f) to (%f, %f), from (%f, %f) to (%f, %f)", static_cast<int>(i),
-                         rectPoints.startLeft.x, rectPoints.startLeft.y, rectPoints.endLeft.x, rectPoints.endLeft.y,
-                         rectPoints.startRight.x, rectPoints.startRight.y, rectPoints.endRight.x, rectPoints.endRight.y);
-#endif
                 size_t prev = (i == 0) ? points.size() - 1 : i - 1;
                 auto prevRectPoints = Utils::generateLineRectPoints(points[prev], points[i], m_pen.width());
-#ifdef GRAPH_TOOL_DEBUG
-                SDL_Log("GraphTool::drawPolygon(%d): prevRectPoints from (%f, %f) to (%f, %f), from (%f, %f) to (%f, %f)", static_cast<int>(i),
-                         prevRectPoints.startLeft.x, prevRectPoints.startLeft.y, prevRectPoints.endLeft.x, prevRectPoints.endLeft.y,
-                         prevRectPoints.startRight.x, prevRectPoints.startRight.y, prevRectPoints.endRight.x, prevRectPoints.endRight.y);
-#endif
                 SPoint intersectPoint1 = Utils::lineIntersection(rectPoints.startLeft, rectPoints.endLeft,
                                                                 prevRectPoints.startLeft, prevRectPoints.endLeft);
                 SPoint intersectPoint2 = Utils::lineIntersection(rectPoints.startLeft, rectPoints.endLeft,
@@ -842,11 +677,6 @@ void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool fille
                                                                 prevRectPoints.startLeft, prevRectPoints.endLeft);
                 SPoint intersectPoint4 = Utils::lineIntersection(rectPoints.startRight, rectPoints.endRight,
                                                                 prevRectPoints.startRight, prevRectPoints.endRight);
-#ifdef GRAPH_TOOL_DEBUG
-                SDL_Log("GraphTool::drawPolygon(%d): intersectPoints: (%f, %f), (%f, %f), (%f, %f), (%f, %f)", static_cast<int>(i),
-                         intersectPoint1.x, intersectPoint1.y, intersectPoint2.x, intersectPoint2.y,
-                         intersectPoint3.x, intersectPoint3.y, intersectPoint4.x, intersectPoint4.y);
-#endif
                 SRotatedRect currentRect = SRotatedRect(rectPoints.startLeft, rectPoints.startRight,
                                                         rectPoints.endRight, rectPoints.endLeft);
                 SRotatedRect prevRect = SRotatedRect(prevRectPoints.startLeft, prevRectPoints.startRight,
@@ -859,9 +689,6 @@ void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool fille
                 SPoint outerPoint;
                 bool hasOuterPoint = false;
                 for (const auto& point : candidatePoints) {
-                    SDL_Log("GraphTool::drawPolygon(%d): checking outerPoint candidate (%f, %f)", static_cast<int>(i), point.x, point.y);
-                    SDL_Log("    isPointOnPolygonSide()=%s",
-                            isPointOnPolygonSide(drawPolygon, point, false) ? "True" : "False");
                     if (isPointOnPolygonSide(drawPolygon, point, false)){
                         hasOuterPoint = true;
                         outerPoint = point;
@@ -870,7 +697,6 @@ void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool fille
                 }
 
                 if (hasOuterPoint == false) {
-                    SDL_Log("GraphTool::drawPolygon: not found outerPoint, maybe parallel lines or coinciding lines.");
                     throw("GraphTool::drawPolygon: not found outerPoint, maybe parallel lines or coinciding lines.");
                     return;
                 }
@@ -882,42 +708,17 @@ void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool fille
                 // This is the complex corner joining logic from the original
 
                 if (m_cornerStyle == CornerStyle::Round) {
-                    SDL_Log("GraphTool::drawPolygon: CornerStyle::Round");
                 } else {
                     // 硬角：直接绘制四边形连接两个外角点
-                    SDL_Vertex vertices[4];
-                    SDL_FColor fcolor;
-                    if (debugCorner) {
-                        fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-                    } else {
-                        fcolor = m_pen.color().toSDLFColor();
-                    }
+                    SColor fcolor = debugCorner ? debugColor : m_pen.color();
 
-#ifdef GRAPH_TOOL_DEBUG
-                    SDL_Log("GraphTool::drawPolygon(%d): position:{%f, %f}, cornerPoint1:{%f, %f}, outerPoint:{%f, %f}, cornerPoint2:{%f, %f}",i,
-                             points[i].x, points[i].y,
-                             cornerPoint1.x, cornerPoint1.y,
-                             outerPoint.x, outerPoint.y,
-                             cornerPoint1.x, cornerPoint1.y);
-#endif
-                    vertices[0].position = points[i].toSDLFPoint();
-                    vertices[0].color = fcolor;
-                    vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[1].position = cornerPoint1.toSDLFPoint();
-                    vertices[1].color = fcolor;
-                    vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[2].position = outerPoint.toSDLFPoint();
-                    vertices[2].color = fcolor;
-                    vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                    vertices[3].position = cornerPoint1.toSDLFPoint();
-                    vertices[3].color = fcolor;
-                    vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                    int indices[6] = {0, 1, 2, 0, 2, 3};
-                    SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                    m_renderDevice->drawQuad(
+                        points[i].x, points[i].y,
+                        cornerPoint1.x, cornerPoint1.y,
+                        outerPoint.x, outerPoint.y,
+                        cornerPoint1.x, cornerPoint1.y,
+                        fcolor
+                    );
                 }
             }
         }
@@ -926,14 +727,13 @@ void DrawingContext::drawPolygon(const std::vector<::SPoint>& points, bool fille
 
 // drawPolyline
 void DrawingContext::drawPolyline(const std::vector<::SPoint>& points, bool debugCorner, const SColor& debugColor) {
-    if (!m_renderer || points.size() < 2) return;
+    if (!m_renderDevice || points.size() < 2) return;
 
     if (m_pen.width() <= 1.0f) {
-        SDL_Color color = m_pen.color().toSDLColor();
-        SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
+        m_renderDevice->setDrawColor(m_pen.color());
 
         for (size_t i = 0; i < points.size() - 1; ++i) {
-            SDL_RenderLine(m_renderer, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+            m_renderDevice->drawLine(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
         }
     } else {
         for (size_t i = 0; i < points.size() - 1; ++i) {
@@ -1003,48 +803,24 @@ void DrawingContext::drawPolyline(const std::vector<::SPoint>& points, bool debu
                                 float arcX2 = points[i].x + halfWidth * std::cos(angle2_current);
                                 float arcY2 = points[i].y + halfWidth * std::sin(angle2_current);
 
-                                SDL_Vertex vertices[3];
-                                SDL_FColor fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-
-                                vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                vertices[0].color = fcolor;
-                                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                vertices[1].position = SDL_FPoint{arcX1, arcY1};
-                                vertices[1].color = fcolor;
-                                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                vertices[2].position = SDL_FPoint{arcX2, arcY2};
-                                vertices[2].color = fcolor;
-                                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                                m_renderDevice->drawTriangle(
+                                    points[i].x, points[i].y,
+                                    arcX1, arcY1,
+                                    arcX2, arcY2,
+                                    debugColor
+                                );
                             }
                         } else {
-                            SDL_Vertex vertices[4];
-                            SDL_FColor fcolor = {debugColor.red(), debugColor.green(), debugColor.blue(), debugColor.alpha()};
-
-                            vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                            vertices[0].color = fcolor;
-                            vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                            vertices[1].position = SDL_FPoint{offsetX1, offsetY1};
-                            vertices[1].color = fcolor;
-                            vertices[1].tex_coord = SDL_FPoint{0, 0};
-
                             float intersectX = (offsetX1 + offsetX2) / 2.0f;
                             float intersectY = (offsetY1 + offsetY2) / 2.0f;
 
-                            vertices[2].position = SDL_FPoint{intersectX, intersectY};
-                            vertices[2].color = fcolor;
-                            vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                            vertices[3].position = SDL_FPoint{offsetX2, offsetY2};
-                            vertices[3].color = fcolor;
-                            vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                            int indices[6] = {0, 1, 2, 0, 2, 3};
-                            SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                            m_renderDevice->drawQuad(
+                                points[i].x, points[i].y,
+                                offsetX1, offsetY1,
+                                intersectX, intersectY,
+                                offsetX2, offsetY2,
+                                debugColor
+                            );
                         }
 
                         setPenColor(oldPenColor);
@@ -1073,22 +849,12 @@ void DrawingContext::drawPolyline(const std::vector<::SPoint>& points, bool debu
                                 float arcX2 = points[i].x + halfWidth * std::cos(angle2_current);
                                 float arcY2 = points[i].y + halfWidth * std::sin(angle2_current);
 
-                                SDL_Vertex vertices[3];
-                                SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                                vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                                vertices[0].color = fcolor;
-                                vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                                vertices[1].position = SDL_FPoint{arcX1, arcY1};
-                                vertices[1].color = fcolor;
-                                vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                                vertices[2].position = SDL_FPoint{arcX2, arcY2};
-                                vertices[2].color = fcolor;
-                                vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                                SDL_RenderGeometry(m_renderer, nullptr, vertices, 3, nullptr, 0);
+                                m_renderDevice->drawTriangle(
+                                    points[i].x, points[i].y,
+                                    arcX1, arcY1,
+                                    arcX2, arcY2,
+                                    m_pen.color()
+                                );
                             }
                         } else {
                             // 硬角
@@ -1117,61 +883,18 @@ void DrawingContext::drawPolyline(const std::vector<::SPoint>& points, bool debu
                                     intersectX = (intersectX + intersectX2) / 2.0f;
                                     intersectY = (intersectY + intersectY2) / 2.0f;
                                 }
-
-                                float vx = intersectX - points[i].x;
-                                float vy = intersectY - points[i].y;
-
-                                float edge1x = -ux1;
-                                float edge1y = -uy1;
-                                float edge2x = ux2;
-                                float edge2y = uy2;
-
-                                float cross1 = edge1x * vy - edge1y * vx;
-                                float cross2 = edge2x * vy - edge2y * vx;
-
-                                bool isInsideAngle = (cross1 * cross2 > 0);
-
-                                if (isInsideAngle) {
-                                    t1 = -t1;
-                                    t2 = -t2;
-
-                                    intersectX = offsetX1 + t1 * ux1;
-                                    intersectY = offsetY1 + t1 * uy1;
-
-                                    intersectX2 = offsetX2 + t2 * ux2;
-                                    intersectY2 = offsetY2 + t2 * uy2;
-
-                                    if (std::abs(intersectX - intersectX2) > 0.1f || std::abs(intersectY - intersectY2) > 0.1f) {
-                                        intersectX = (intersectX + intersectX2) / 2.0f;
-                                        intersectY = (intersectY + intersectY2) / 2.0f;
-                                    }
-                                }
                             } else {
                                 intersectX = (offsetX1 + offsetX2) / 2.0f;
                                 intersectY = (offsetY1 + offsetY2) / 2.0f;
                             }
 
-                            SDL_Vertex vertices[4];
-                            SDL_FColor fcolor = {m_pen.color().red(), m_pen.color().green(), m_pen.color().blue(), m_pen.color().alpha()};
-
-                            vertices[0].position = SDL_FPoint{points[i].x, points[i].y};
-                            vertices[0].color = fcolor;
-                            vertices[0].tex_coord = SDL_FPoint{0, 0};
-
-                            vertices[1].position = SDL_FPoint{offsetX1, offsetY1};
-                            vertices[1].color = fcolor;
-                            vertices[1].tex_coord = SDL_FPoint{0, 0};
-
-                            vertices[2].position = SDL_FPoint{intersectX, intersectY};
-                            vertices[2].color = fcolor;
-                            vertices[2].tex_coord = SDL_FPoint{0, 0};
-
-                            vertices[3].position = SDL_FPoint{offsetX2, offsetY2};
-                            vertices[3].color = fcolor;
-                            vertices[3].tex_coord = SDL_FPoint{0, 0};
-
-                            int indices[6] = {0, 1, 2, 0, 2, 3};
-                            SDL_RenderGeometry(m_renderer, nullptr, vertices, 4, indices, 6);
+                            m_renderDevice->drawQuad(
+                                points[i].x, points[i].y,
+                                offsetX1, offsetY1,
+                                intersectX, intersectY,
+                                offsetX2, offsetY2,
+                                m_pen.color()
+                            );
                         }
                     }
                 }
@@ -1205,77 +928,58 @@ void DrawingContext::drawText(const ::SRect& bounds, const std::string& text, Te
 }
 
 // drawImage - SPoint版本
-void DrawingContext::drawImage(const ::SPoint& position, SDL_Texture* texture) {
-    if (!m_renderer || !texture) return;
+void DrawingContext::drawImage(const ::SPoint& position, void* texture) {
+    if (!m_renderDevice || !texture) return;
 
     float width, height;
-    SDL_GetTextureSize(texture, &width, &height);
-    SDL_FRect destRect = {position.x, position.y, width, height};
-    SDL_RenderTexture(m_renderer, texture, nullptr, &destRect);
+    m_renderDevice->getTextureSize(texture, width, height);
+    SRect destRect(position.x, position.y, width, height);
+    m_renderDevice->drawTexture(texture, nullptr, &destRect);
 }
 
 // drawImage - SRect版本
-void DrawingContext::drawImage(const ::SRect& destRect, SDL_Texture* texture) {
-    if (!m_renderer || !texture) return;
-    SDL_FRect sdlDestRect = {destRect.left, destRect.top, destRect.width, destRect.height};
-    SDL_RenderTexture(m_renderer, texture, nullptr, &sdlDestRect);
+void DrawingContext::drawImage(const ::SRect& destRect, void* texture) {
+    if (!m_renderDevice || !texture) return;
+    m_renderDevice->drawTexture(texture, nullptr, &destRect);
 }
 
 // drawImage - SRect+SRect版本
-void DrawingContext::drawImage(const ::SRect& destRect, SDL_Texture* texture, const ::SRect& srcRect) {
-    if (!m_renderer || !texture) return;
-    SDL_FRect sdlSrcRect = {srcRect.left, srcRect.top, srcRect.width, srcRect.height};
-    SDL_FRect sdlDestRect = {destRect.left, destRect.top, destRect.width, destRect.height};
-    SDL_RenderTexture(m_renderer, texture, &sdlSrcRect, &sdlDestRect);
+void DrawingContext::drawImage(const ::SRect& destRect, void* texture, const ::SRect& srcRect) {
+    if (!m_renderDevice || !texture) return;
+    m_renderDevice->drawTexture(texture, &srcRect, &destRect);
 }
 
 // pushClipRect
 void DrawingContext::pushClipRect(const ::SRect& rect) {
-    if (!m_renderer) return;
-    SDL_Rect sdlRect = {
-        static_cast<int>(rect.left),
-        static_cast<int>(rect.top),
-        static_cast<int>(rect.width),
-        static_cast<int>(rect.height)
-    };
-    SDL_SetRenderClipRect(m_renderer, &sdlRect);
+    if (!m_renderDevice) return;
+    m_renderDevice->setClipRect(rect);
     m_clipStack.push_back(rect);
 }
 
 // popClipRect
 void DrawingContext::popClipRect() {
-    if (!m_renderer || m_clipStack.empty()) return;
+    if (!m_renderDevice || m_clipStack.empty()) return;
     m_clipStack.pop_back();
     if (m_clipStack.empty()) {
-        SDL_SetRenderClipRect(m_renderer, nullptr);
+        m_renderDevice->clearClipRect();
     } else {
-        const ::SRect& rect = m_clipStack.back();
-        SDL_Rect sdlRect = {
-            static_cast<int>(rect.left),
-            static_cast<int>(rect.top),
-            static_cast<int>(rect.width),
-            static_cast<int>(rect.height)
-        };
-        SDL_SetRenderClipRect(m_renderer, &sdlRect);
+        m_renderDevice->setClipRect(m_clipStack.back());
     }
 }
 
 // pushTransform
 void DrawingContext::pushTransform() {
-    if (!m_renderer) return;
-    SDL_Renderer* renderer = m_renderer;
-    m_transformStack.push_back(renderer);
+    if (!m_renderDevice) return;
 }
 
 // popTransform
 void DrawingContext::popTransform() {
-    if (!m_renderer || m_transformStack.empty()) return;
-    m_transformStack.pop_back();
+    if (!m_renderDevice) return;
 }
 
 // scale
 void DrawingContext::scale(float sx, float sy) {
-    if (!m_renderer) return;
+    if (!m_renderDevice) return;
     (void)sx;
     (void)sy;
 }

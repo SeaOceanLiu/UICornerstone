@@ -3,16 +3,7 @@
 #ifndef GraphOperaAdapt2dH
 #define GraphOperaAdapt2dH
 
-#include <stdint.h>
-#include <SDL3/SDL.h>
-
-class SColor {
-public:
-    uint8_t r, g, b, a;
-    SDL_Color toSDLColor() {
-        return SDL_Color{r, g, b, a};
-    }
-};
+#include "SColor.h"
 
 class GOA2D {
 public:

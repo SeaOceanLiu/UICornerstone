@@ -141,6 +141,7 @@ void Bench::resized(SRect newRect) {
 
 void Bench::addControl(shared_ptr<Control> control) {
     Panel::addControl(control);
+    resolveChildPercentages();
     auto panel = dynamic_pointer_cast<Panel>(control);
     if (panel) {
         panel->resolveChildPercentages();

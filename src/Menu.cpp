@@ -6,25 +6,25 @@
 // ==================== VSCode Dark主题颜色 ====================
 namespace MenuColors {
     // 菜单栏
-    constexpr SDL_Color BAR_BG          = {60, 60, 60, 255};      // #3C3C3C
-    constexpr SDL_Color BAR_TEXT        = {204, 204, 204, 255};   // #CCCCCC
-    constexpr SDL_Color BAR_HOVER_BG    = {80, 80, 80, 255};     // #505050
-    constexpr SDL_Color BAR_ACTIVE_BG   = {9, 71, 113, 255};     // #094771
+    constexpr SColor BAR_BG(60, 60, 60, 255);
+    constexpr SColor BAR_TEXT(204, 204, 204, 255);
+    constexpr SColor BAR_HOVER_BG(80, 80, 80, 255);
+    constexpr SColor BAR_ACTIVE_BG(9, 71, 113, 255);
 
     // 下拉面板
-    constexpr SDL_Color PANEL_BG        = {37, 37, 38, 255};     // #252526
-    constexpr SDL_Color PANEL_BORDER    = {69, 69, 69, 255};     // #454545
-    constexpr SDL_Color PANEL_SHADOW    = {0, 0, 0, 102};        // rgba(0,0,0,0.4)
+    constexpr SColor PANEL_BG(37, 37, 38, 255);
+    constexpr SColor PANEL_BORDER(69, 69, 69, 255);
+    constexpr SColor PANEL_SHADOW(0, 0, 0, 102);
 
     // 菜单项
-    constexpr SDL_Color ITEM_TEXT       = {204, 204, 204, 255};   // #CCCCCC
-    constexpr SDL_Color ITEM_HOVER_BG   = {9, 71, 113, 255};     // #094771
-    constexpr SDL_Color ITEM_DISABLED   = {90, 90, 90, 255};     // #5A5A5A
-    constexpr SDL_Color SHORTCUT_TEXT   = {133, 133, 133, 255};  // #858585
-    constexpr SDL_Color ARROW_COLOR     = {204, 204, 204, 255};  // #CCCCCC
+    constexpr SColor ITEM_TEXT(204, 204, 204, 255);
+    constexpr SColor ITEM_HOVER_BG(9, 71, 113, 255);
+    constexpr SColor ITEM_DISABLED(90, 90, 90, 255);
+    constexpr SColor SHORTCUT_TEXT(133, 133, 133, 255);
+    constexpr SColor ARROW_COLOR(204, 204, 204, 255);
 
     // 分隔线
-    constexpr SDL_Color SEPARATOR       = {69, 69, 69, 255};     // #454545
+    constexpr SColor SEPARATOR(69, 69, 69, 255);
 
     // 尺寸（基于字体大小比例计算）
     inline float g_menuTextSize = 20.0f;
@@ -185,10 +185,10 @@ void MenuItem::draw() {
     // 绘制hover背景
     if (m_hovered) {
         SDL_SetRenderDrawColor(renderer,
-            MenuColors::ITEM_HOVER_BG.r,
-            MenuColors::ITEM_HOVER_BG.g,
-            MenuColors::ITEM_HOVER_BG.b,
-            MenuColors::ITEM_HOVER_BG.a);
+            MenuColors::ITEM_HOVER_BG.redByte(),
+            MenuColors::ITEM_HOVER_BG.greenByte(),
+            MenuColors::ITEM_HOVER_BG.blueByte(),
+            MenuColors::ITEM_HOVER_BG.alphaByte());
         SDL_FRect bgRect = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
         SDL_RenderFillRect(renderer, &bgRect);
     }
@@ -196,10 +196,10 @@ void MenuItem::draw() {
     // 绘制勾选标记
     if (m_checked) {
         SDL_SetRenderDrawColor(renderer,
-            MenuColors::ITEM_TEXT.r,
-            MenuColors::ITEM_TEXT.g,
-            MenuColors::ITEM_TEXT.b,
-            MenuColors::ITEM_TEXT.a);
+            MenuColors::ITEM_TEXT.redByte(),
+            MenuColors::ITEM_TEXT.greenByte(),
+            MenuColors::ITEM_TEXT.blueByte(),
+            MenuColors::ITEM_TEXT.alphaByte());
         // 绘制简单的勾选符号 "✓"
         float cx = drawRect.left + MenuColors::ICON_AREA_WIDTH / 2.0f;
         float cy = drawRect.top + drawRect.height / 2.0f;
@@ -500,12 +500,12 @@ void MenuPanel::drawShadow() {
     SRect drawRect = getDrawRect();
 
     // 使用GraphTool绘制阴影
-    GraphTool::DrawingContext dc(renderer);
+    GraphTool::DrawingContext dc(getRenderDevice());
     dc.setFillColor(GraphTool::SColor(
-        MenuColors::PANEL_SHADOW.r / 255.0f,
-        MenuColors::PANEL_SHADOW.g / 255.0f,
-        MenuColors::PANEL_SHADOW.b / 255.0f,
-        MenuColors::PANEL_SHADOW.a / 255.0f));
+        MenuColors::PANEL_SHADOW.red(),
+        MenuColors::PANEL_SHADOW.green(),
+        MenuColors::PANEL_SHADOW.blue(),
+        MenuColors::PANEL_SHADOW.alpha()));
 
     // 绘制阴影矩形（偏移+模糊区域）
     float offset = MenuColors::PANEL_SHADOW_OFFSET;
@@ -531,20 +531,20 @@ void MenuPanel::draw() {
 
     // 2. 绘制背景（圆角矩形）
     {
-        GraphTool::DrawingContext dc(renderer);
+        GraphTool::DrawingContext dc(getRenderDevice());
         dc.setFillColor(GraphTool::SColor(
-            m_bgColor.r / 255.0f, m_bgColor.g / 255.0f,
-            m_bgColor.b / 255.0f, m_bgColor.a / 255.0f));
+            m_bgColor.red(), m_bgColor.green(),
+            m_bgColor.blue(), m_bgColor.alpha()));
         dc.drawRoundedRect(::SRect(drawRect.left, drawRect.top,
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, true);
     }
 
     // 3. 绘制边框
     {
-        GraphTool::DrawingContext dc(renderer);
+        GraphTool::DrawingContext dc(getRenderDevice());
         dc.setPen(GraphTool::SPen(
-            GraphTool::SColor(m_borderColor.r / 255.0f, m_borderColor.g / 255.0f,
-                             m_borderColor.b / 255.0f, m_borderColor.a / 255.0f), 1.0f));
+            GraphTool::SColor(m_borderColor.red(), m_borderColor.green(),
+                             m_borderColor.blue(), m_borderColor.alpha()), 1.0f));
         dc.drawRoundedRect(::SRect(drawRect.left, drawRect.top,
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, false);
     }
@@ -556,8 +556,8 @@ void MenuPanel::draw() {
             // 绘制分隔线
             SRect itemRect = item->getDrawRect();
             SDL_SetRenderDrawColor(renderer,
-                m_separatorColor.r, m_separatorColor.g,
-                m_separatorColor.b, m_separatorColor.a);
+                m_separatorColor.redByte(), m_separatorColor.greenByte(),
+                m_separatorColor.blueByte(), m_separatorColor.alphaByte());
             SDL_FRect lineRect = {
                 drawRect.left + MenuColors::SEPARATOR_MARGIN,
                 itemRect.top + MenuColors::SEPARATOR_MARGIN,
@@ -570,8 +570,8 @@ void MenuPanel::draw() {
             if (item->m_hovered) {
                 SRect itemRect = item->getDrawRect();
                 SDL_SetRenderDrawColor(renderer,
-                    m_hoverColor.r, m_hoverColor.g,
-                    m_hoverColor.b, m_hoverColor.a);
+                    m_hoverColor.redByte(), m_hoverColor.greenByte(),
+                    m_hoverColor.blueByte(), m_hoverColor.alphaByte());
                 SDL_FRect bgRect = {drawRect.left, itemRect.top, drawRect.width, itemRect.height};
                 SDL_RenderFillRect(renderer, &bgRect);
             }
@@ -803,7 +803,7 @@ void MenuBar::draw() {
     SRect drawRect = getDrawRect();
 
     // 1. 绘制菜单栏背景
-    SDL_SetRenderDrawColor(renderer, m_bgColor.r, m_bgColor.g, m_bgColor.b, m_bgColor.a);
+    SDL_SetRenderDrawColor(renderer, m_bgColor.redByte(), m_bgColor.greenByte(), m_bgColor.blueByte(), m_bgColor.alphaByte());
     SDL_FRect bgRect = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
     SDL_RenderFillRect(renderer, &bgRect);
 
@@ -815,15 +815,15 @@ void MenuBar::draw() {
         // 绘制hover/active背景
         if ((int)i == m_activeIndex) {
             SDL_SetRenderDrawColor(renderer,
-                m_activeBgColor.r, m_activeBgColor.g,
-                m_activeBgColor.b, m_activeBgColor.a);
+                m_activeBgColor.redByte(), m_activeBgColor.greenByte(),
+                m_activeBgColor.blueByte(), m_activeBgColor.alphaByte());
             SDL_FRect itemBg = {drawRect.left + hitRect.left, drawRect.top,
                                 hitRect.width, hitRect.height};
             SDL_RenderFillRect(renderer, &itemBg);
         } else if ((int)i == m_hoveredIndex) {
             SDL_SetRenderDrawColor(renderer,
-                m_hoverBgColor.r, m_hoverBgColor.g,
-                m_hoverBgColor.b, m_hoverBgColor.a);
+                m_hoverBgColor.redByte(), m_hoverBgColor.greenByte(),
+                m_hoverBgColor.blueByte(), m_hoverBgColor.alphaByte());
             SDL_FRect itemBg = {drawRect.left + hitRect.left, drawRect.top,
                                 hitRect.width, hitRect.height};
             SDL_RenderFillRect(renderer, &itemBg);
@@ -838,9 +838,9 @@ void MenuBar::draw() {
     }
 
     // 3. 绘制底部分隔线
-    SDL_SetRenderDrawColor(renderer, MenuColors::PANEL_BORDER.r,
-        MenuColors::PANEL_BORDER.g, MenuColors::PANEL_BORDER.b,
-        MenuColors::PANEL_BORDER.a);
+    SDL_SetRenderDrawColor(renderer, MenuColors::PANEL_BORDER.redByte(),
+        MenuColors::PANEL_BORDER.greenByte(), MenuColors::PANEL_BORDER.blueByte(),
+        MenuColors::PANEL_BORDER.alphaByte());
     SDL_RenderLine(renderer, drawRect.left, drawRect.top + drawRect.height - 1,
                    drawRect.left + drawRect.width, drawRect.top + drawRect.height - 1);
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <typeinfo>
 #include <SDL3/SDL.h>
+#include "SColor.h"
 #include "MainWindow.h"
 #include "Utility.h"
 #include "EventQueue.h"
@@ -18,10 +19,10 @@ enum class ControlState {
 };
 class StateColor{
 protected:
-    SDL_Color normal;
-    SDL_Color hover;
-    SDL_Color pressed;
-    SDL_Color disabled;
+    SColor normal;
+    SColor hover;
+    SColor pressed;
+    SColor disabled;
 public:
     enum class Type{
         Background,
@@ -29,7 +30,7 @@ public:
         Text,
         TextShadow
     };
-    StateColor(SDL_Color n, SDL_Color h, SDL_Color a, SDL_Color d):normal(n), hover(h), pressed(a), disabled(d){}
+    StateColor(SColor n, SColor h, SColor a, SColor d):normal(n), hover(h), pressed(a), disabled(d){}
     StateColor(StateColor::Type colorType=StateColor::Type::Background):
         normal(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
                 colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
@@ -66,35 +67,35 @@ public:
         return *this;
     }
 
-    StateColor& setNormal(SDL_Color color){
+    StateColor& setNormal(SColor color){
         normal = color;
         return *this;
     }
-    SDL_Color getNormal(void){
+    SColor getNormal(void){
         return normal;
     }
-    StateColor& setHover(SDL_Color color){
+    StateColor& setHover(SColor color){
         hover = color;
         return *this;
     }
-    SDL_Color getHover(void){
+    SColor getHover(void){
         return hover;
     }
-    StateColor& setPressed(SDL_Color color){
+    StateColor& setPressed(SColor color){
         pressed = color;
         return *this;
     }
-    SDL_Color getPressed(void){
+    SColor getPressed(void){
         return pressed;
     }
-    StateColor& setDisabled(SDL_Color color){
+    StateColor& setDisabled(SColor color){
         disabled = color;
         return *this;
     }
-    SDL_Color getDisabled(void){
+    SColor getDisabled(void){
         return disabled;
     }
-    StateColor& set(StateColor::Type type, SDL_Color color){
+    StateColor& set(StateColor::Type type, SColor color){
         switch (type)
         {
         case StateColor::Type::Background:
@@ -111,7 +112,7 @@ public:
         }
         return *this;
     }
-    SDL_Color get(StateColor::Type type){
+    SColor get(StateColor::Type type){
         switch (type)
         {
         case StateColor::Type::Background:
@@ -165,6 +166,8 @@ public:
     virtual bool getEnable(void) = 0;
     virtual SDL_Renderer *getRenderer(void) = 0;
     virtual void setRenderer(SDL_Renderer *renderer) = 0;
+    virtual RenderDevice* getRenderDevice(void) = 0;
+    virtual void setRenderDevice(RenderDevice* device) = 0;
     virtual shared_ptr<Control> getThis(void) = 0;
     virtual SRect getDrawRect(void) = 0;
     virtual SRect mapToDrawRect(SRect rect) = 0;
@@ -189,25 +192,25 @@ public:
     virtual StateColor getTextStateColor(void) = 0;
     virtual StateColor getTextShadowStateColor(void) = 0;
 
-    virtual void setNormalStateBGColor(SDL_Color color) = 0;
-    virtual void setHoverStateBGColor(SDL_Color color) = 0;
-    virtual void setPressedStateBGColor(SDL_Color color) = 0;
-    virtual void setDisabledStateBGColor(SDL_Color color) = 0;
-    virtual void setNormalStateBDColor(SDL_Color color) = 0;
-    virtual void setHoverStateBDColor(SDL_Color color) = 0;
-    virtual void setPressedStateBDColor(SDL_Color color) = 0;
-    virtual void setDisabledStateBDColor(SDL_Color color) = 0;
-    virtual void setTextNormalStateColor(SDL_Color color) = 0;
-    virtual void setTextHoverStateColor(SDL_Color color) = 0;
-    virtual void setTextPressedStateColor(SDL_Color color) = 0;
-    virtual void setTextDisabledStateColor(SDL_Color color) = 0;
-    virtual void setTextShadowNormalStateColor(SDL_Color color) = 0;
-    virtual void setTextShadowHoverStateColor(SDL_Color color) = 0;
-    virtual void setTextShadowPressedStateColor(SDL_Color color) = 0;
-    virtual void setTextShadowDisabledStateColor(SDL_Color color) = 0;
+    virtual void setNormalStateBGColor(SColor color) = 0;
+    virtual void setHoverStateBGColor(SColor color) = 0;
+    virtual void setPressedStateBGColor(SColor color) = 0;
+    virtual void setDisabledStateBGColor(SColor color) = 0;
+    virtual void setNormalStateBDColor(SColor color) = 0;
+    virtual void setHoverStateBDColor(SColor color) = 0;
+    virtual void setPressedStateBDColor(SColor color) = 0;
+    virtual void setDisabledStateBDColor(SColor color) = 0;
+    virtual void setTextNormalStateColor(SColor color) = 0;
+    virtual void setTextHoverStateColor(SColor color) = 0;
+    virtual void setTextPressedStateColor(SColor color) = 0;
+    virtual void setTextDisabledStateColor(SColor color) = 0;
+    virtual void setTextShadowNormalStateColor(SColor color) = 0;
+    virtual void setTextShadowHoverStateColor(SColor color) = 0;
+    virtual void setTextShadowPressedStateColor(SColor color) = 0;
+    virtual void setTextShadowDisabledStateColor(SColor color) = 0;
 
-    virtual SDL_Color getBGColor(void) = 0;
-    virtual SDL_Color getBorderColor(void) = 0;
+    virtual SColor getBGColor(void) = 0;
+    virtual SColor getBorderColor(void) = 0;
     virtual void setBorderVisible(bool isVisible) = 0;
     virtual bool getBorderVisible(void) = 0;
     virtual Margin getMargin(void) const = 0;
@@ -231,6 +234,7 @@ protected:
 
     SDL_Surface *m_surface;
     SDL_Renderer *m_renderer;
+    RenderDevice *m_renderDevice;
     SDL_Texture *m_texture;
 
     SRect m_rect;
@@ -301,6 +305,8 @@ public:
     bool getEnable(void) override;
     SDL_Renderer *getRenderer(void) override;
     void setRenderer(SDL_Renderer *renderer) override;
+    RenderDevice* getRenderDevice(void) override;
+    void setRenderDevice(RenderDevice* device) override;
     shared_ptr<Control> getThis(void) override;
     SRect getDrawRect(void) override;
     SRect mapToDrawRect(SRect rect) override;
@@ -323,30 +329,30 @@ public:
     StateColor getTextStateColor(void) override;
     StateColor getTextShadowStateColor(void) override;
 
-    void setNormalStateBGColor(SDL_Color color) override;
-    void setHoverStateBGColor(SDL_Color color) override;
-    void setPressedStateBGColor(SDL_Color color) override;
-    void setDisabledStateBGColor(SDL_Color color) override;
-    void setNormalStateBDColor(SDL_Color color) override;
-    void setHoverStateBDColor(SDL_Color color) override;
-    void setPressedStateBDColor(SDL_Color color) override;
-    void setDisabledStateBDColor(SDL_Color color) override;
-    void setTextNormalStateColor(SDL_Color color) override;
-    void setTextHoverStateColor(SDL_Color color) override;
-    void setTextPressedStateColor(SDL_Color color) override;
-    void setTextDisabledStateColor(SDL_Color color) override;
-    void setTextShadowNormalStateColor(SDL_Color color) override;
-    void setTextShadowHoverStateColor(SDL_Color color) override;
-    void setTextShadowPressedStateColor(SDL_Color color) override;
-    void setTextShadowDisabledStateColor(SDL_Color color) override;
+    void setNormalStateBGColor(SColor color) override;
+    void setHoverStateBGColor(SColor color) override;
+    void setPressedStateBGColor(SColor color) override;
+    void setDisabledStateBGColor(SColor color) override;
+    void setNormalStateBDColor(SColor color) override;
+    void setHoverStateBDColor(SColor color) override;
+    void setPressedStateBDColor(SColor color) override;
+    void setDisabledStateBDColor(SColor color) override;
+    void setTextNormalStateColor(SColor color) override;
+    void setTextHoverStateColor(SColor color) override;
+    void setTextPressedStateColor(SColor color) override;
+    void setTextDisabledStateColor(SColor color) override;
+    void setTextShadowNormalStateColor(SColor color) override;
+    void setTextShadowHoverStateColor(SColor color) override;
+    void setTextShadowPressedStateColor(SColor color) override;
+    void setTextShadowDisabledStateColor(SColor color) override;
 
     // 根据控件状态绘制背景
     void drawBackground(const SRect *pDrawRect);
     // 根据控件状态绘制边框
     void drawBorder(const SRect *pDrawRect);
 
-    SDL_Color getBGColor(void) override { return m_bgColor.getNormal(); }
-    SDL_Color getBorderColor(void) override { return m_borderColor.getNormal(); }
+    SColor getBGColor(void) override { return m_bgColor.getNormal(); }
+    SColor getBorderColor(void) override { return m_borderColor.getNormal(); }
     void setBorderVisible(bool isVisible) override;
     bool getBorderVisible(void) override;
 

@@ -556,9 +556,9 @@ void TextArea::draw(void) {
                 }
             }
 
-            SDL_Color selColor = {173, 214, 255, 128};
+            SColor selColor(173, 214, 255, 128);
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer, selColor.r, selColor.g, selColor.b, selColor.a);
+            SDL_SetRenderDrawColor(renderer, selColor.redByte(), selColor.greenByte(), selColor.blueByte(), selColor.alphaByte());
             SDL_FRect selRect = {selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY};
             SDL_RenderFillRect(renderer, &selRect);
         }
@@ -579,8 +579,8 @@ void TextArea::draw(void) {
             if (textEngine && getFont()) {
                 TTF_Text *text = TTF_CreateText(textEngine, getFont(), displayLine.c_str(), (Uint32)displayLine.length());
                 if (text) {
-                    SDL_Color textColor = m_textColor.getNormal();
-                    TTF_SetTextColor(text, textColor.r, textColor.g, textColor.b, textColor.a);
+                    SColor textColor = m_textColor.getNormal();
+                    TTF_SetTextColor(text, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
 
                     float textStartX = drawRect.left + marginX - (float)m_scrollX;
                     SDL_FPoint position = {textStartX, y};
@@ -661,8 +661,8 @@ void TextArea::draw(void) {
     }
 
     if (m_focused && m_cursorVisible && cursorY >= drawRect.top && cursorY + cursorH <= drawRect.top + drawRect.height) {
-        SDL_Color textColor = m_textColor.getNormal();
-        SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b, textColor.a);
+        SColor textColor = m_textColor.getNormal();
+        SDL_SetRenderDrawColor(renderer, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
         SDL_FRect cursorRect{(float)cursorX, cursorY, 2.0f * scale, cursorH};
         SDL_RenderFillRect(renderer, &cursorRect);
     }

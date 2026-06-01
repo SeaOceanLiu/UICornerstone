@@ -55,8 +55,8 @@ void ProgressBar::draw(void) {
     SDL_Renderer *renderer = getRenderer();
     if (!renderer) return;
 
-    SDL_Color bgColor = getEnable() ? m_backgroundColor : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
-    if (!SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a)) {
+    SColor bgColor = getEnable() ? m_backgroundColor : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
+    if (!SDL_SetRenderDrawColor(renderer, bgColor.redByte(), bgColor.greenByte(), bgColor.blueByte(), bgColor.alphaByte())) {
         return;
     }
     SDL_RenderFillRect(renderer, drawRect.toSDLFRect());
@@ -73,8 +73,8 @@ void ProgressBar::draw(void) {
             progressRect.top = drawRect.top + drawRect.height - progressRect.height;
         }
 
-        SDL_Color progColor = getEnable() ? m_progressColor : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
-        if (!SDL_SetRenderDrawColor(renderer, progColor.r, progColor.g, progColor.b, progColor.a)) {
+        SColor progColor = getEnable() ? m_progressColor : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
+        if (!SDL_SetRenderDrawColor(renderer, progColor.redByte(), progColor.greenByte(), progColor.blueByte(), progColor.alphaByte())) {
             return;
         }
         SDL_RenderFillRect(renderer, progressRect.toSDLFRect());
@@ -135,15 +135,15 @@ void ProgressBar::setCustomText(string text) {
     updateTextLabel();
 }
 
-void ProgressBar::setProgressColor(SDL_Color color) {
+void ProgressBar::setProgressColor(SColor color) {
     m_progressColor = color;
 }
 
-void ProgressBar::setBackgroundColor(SDL_Color color) {
+void ProgressBar::setBackgroundColor(SColor color) {
     m_backgroundColor = color;
 }
 
-void ProgressBar::setTextColor(SDL_Color color) {
+void ProgressBar::setTextColor(SColor color) {
     m_textColor = color;
     if (m_textLabel != nullptr) {
         StateColor sc;
@@ -277,17 +277,17 @@ ProgressBarBuilder& ProgressBarBuilder::setCustomText(string text) {
     return *this;
 }
 
-ProgressBarBuilder& ProgressBarBuilder::setProgressColor(SDL_Color color) {
+ProgressBarBuilder& ProgressBarBuilder::setProgressColor(SColor color) {
     m_progressBar->setProgressColor(color);
     return *this;
 }
 
-ProgressBarBuilder& ProgressBarBuilder::setBackgroundColor(SDL_Color color) {
+ProgressBarBuilder& ProgressBarBuilder::setBackgroundColor(SColor color) {
     m_progressBar->setBackgroundColor(color);
     return *this;
 }
 
-ProgressBarBuilder& ProgressBarBuilder::setTextColor(SDL_Color color) {
+ProgressBarBuilder& ProgressBarBuilder::setTextColor(SColor color) {
     m_progressBar->setTextColor(color);
     return *this;
 }

@@ -385,7 +385,7 @@ void Label::draw(void){
         SDL_RenderRect(renderer, hotRectScaled.toSDLFRect());
     }
 
-    SDL_Color shadowColor;
+    SColor shadowColor;
     switch(getState()) {
         case ControlState::Disabled:
             shadowColor = m_textShadowColor.getDisabled();
@@ -401,7 +401,7 @@ void Label::draw(void){
             break;
     }
 
-    SDL_Color textColor;
+    SColor textColor;
     switch(getState()) {
         case ControlState::Disabled:
             textColor = m_textColor.getDisabled();
@@ -425,7 +425,7 @@ void Label::draw(void){
         if (m_shadowEnabled) {
             SPoint shadowDrawOffset = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
 
-            if(!TTF_SetTextColor(m_lineTexts[i], shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a)) {
+            if(!TTF_SetTextColor(m_lineTexts[i], shadowColor.redByte(), shadowColor.greenByte(), shadowColor.blueByte(), shadowColor.alphaByte())) {
                 SDL_Log("Label::draw: Failed to set shadow text color: %s", SDL_GetError());
             }
             if (!TTF_DrawRendererText(m_lineTexts[i],
@@ -435,7 +435,7 @@ void Label::draw(void){
             }
         }
 
-        if(!TTF_SetTextColor(m_lineTexts[i], textColor.r, textColor.g, textColor.b, textColor.a)) {
+        if(!TTF_SetTextColor(m_lineTexts[i], textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte())) {
             SDL_Log("Label::draw: Failed to set text color: %s", SDL_GetError());
         }
 

@@ -427,7 +427,7 @@ void testAdvancedDrawing(DrawingContext& dc) {
 
     // 阴影效果
     SRect shadowRect(450, 400, 120, 60);
-    AdvancedDrawing::drawShadow(dc, shadowRect, 5.0f, SColor(0, 0, 0, 0.3f), 5.0f);
+    AdvancedDrawing::drawShadow(dc, shadowRect, 5.0f, SColor(0.0f, 0.0f, 0.0f, 0.3f), 5.0f);
     dc.setFillColor(SColor::White());
     dc.drawRect(shadowRect, true);
     dc.setPen(SPen(SColor::Black(), 1.0f));
@@ -546,14 +546,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
-    SDL_Renderer* renderer = MainWindow::getInstance()->getRenderer();
-    if (!renderer) return SDL_APP_CONTINUE;
+    RenderDevice* device = MainWindow::getInstance()->getRenderDevice();
+    if (!device) return SDL_APP_FAILURE;
 
     // 清屏
-    SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
-    SDL_RenderClear(renderer);
+    device->setDrawColor(SColor(0.941f, 0.941f, 0.941f, 1.0f));
+    device->clear();
 
-    DrawingContext dc(renderer);
+    DrawingContext dc(device);
 
     // 自动切换步骤
     Uint64 now = SDL_GetTicks();
@@ -582,7 +582,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     dc.setFillColor(SColor::Black());
     dc.setPen(SPen(SColor::Black(), 1.0f));
 
-    SDL_RenderPresent(renderer);
+    device->present();
     return SDL_APP_CONTINUE;
 }
 
