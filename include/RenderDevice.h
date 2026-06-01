@@ -13,9 +13,6 @@ using SharedSurface = std::shared_ptr<Surface>;
 
 enum class BlendMode { None, Blend, Add, Mod, Mul };
 
-struct SDL_Renderer;
-struct SDL_Surface;
-
 class RenderDevice {
 public:
     virtual ~RenderDevice() = default;
@@ -52,10 +49,6 @@ public:
     virtual void destroyTexture(Texture* texture) = 0;
     virtual void drawTexture(Texture* texture, const SRect* srcRect, const SRect* dstRect) = 0;
     virtual void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) = 0;
-
-    // 临时桥接方法，Phase 3迁移完成前使用
-    virtual SharedTexture createTextureFromSDLSurface(SDL_Surface* surface) = 0;
-    virtual SDL_Renderer* getNativeRenderer() = 0;
 
     // === 渲染到纹理 ===
     virtual void setRenderTarget(Texture* texture) = 0;

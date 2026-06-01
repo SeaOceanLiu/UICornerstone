@@ -79,24 +79,6 @@ void Actor::loadFromResource(string resourceId) {
     loadTextureFromSurface(m_surface.get());
 }
 
-void Actor::loadTextureFromSurface(SDL_Surface *surface) {
-    m_rect.left = 0;
-    m_rect.top = 0;
-    if (!m_matchParentRect) {
-        m_rect.width = (float)surface->w;
-        m_rect.height = (float)surface->h;
-    } else {
-        m_rect.width = getParent()->getRect().width;
-        m_rect.height = getParent()->getRect().height;
-    }
-
-    m_texture = getRenderDevice()->createTextureFromSDLSurface(surface);
-    if (!m_texture) {
-        SDL_Log("createTextureFromSDLSurface failed\n");
-        return;
-    }
-}
-
 void Actor::loadTextureFromSurface(Surface* surface) {
     m_rect.left = 0;
     m_rect.top = 0;

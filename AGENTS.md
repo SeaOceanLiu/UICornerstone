@@ -94,21 +94,52 @@ test_label.exe
 
 **Status**: All 10 tests build successfully. Phase 2 core migration complete.
 
-### 2026-06-01: Phase 3 — Texture/Surface Abstraction (Core Types + m_texture Migration)
+### 2026-06-01: Phase 3 — Texture/Surface Abstraction (Complete)
 
 **Core Types**:
 - `include/Texture.h`: New abstract `Texture` class — `width()`, `height()`, `setBlendMode()`, `setAlphaMod()`, `getBlendMode()`, `getAlphaMod()`
-- `include/Surface.h`: New abstract `Surface` class — pixel ops (`getPixel`/`setPixel`), `blit()` (scaled + unscaled), `createTexture(RenderDevice*)`, factory statics (`create`/`loadFromFile`/`loadFromMemory`)
-- `include/RenderDevice.h`: Replaced `void*` texture API with `Texture*`/`SharedTexture`; added `createTextureFromSurface(Surface*)`, `createTextureFromSDLSurface(SDL_Surface*)` (temporary bridge), `getNativeRenderer()` (temporary bridge); added `SharedTexture`/`SharedSurface` type aliases
-- `src/RenderDevice.cpp`: Added `SDL3Texture` (wraps `SDL_Texture*`, implements all virtual methods with SDL3 calls internally); added `SDL3Surface` (wraps `SDL_Surface*`, implements pixel/format/blit ops); implemented all `Surface` factory statics; `SDL3RenderDevice` updated to use `Texture*`/`SharedTexture` throughout
+- `include/Surface.h`: New abstract `Surface` class — pixel ops (`getPixel`/`setPixel`), `blit()` (scaled + unscaled), `createTexture(RenderDevice*)`, `rotate()`, factory statics (`create`/`loadFromFile`/`loadFromMemory`)
+- `include/RenderDevice.h`: Replaced `void*` texture API with `Texture*`/`SharedTexture`; added `createTextureFromSurface(Surface*)`, `SharedTexture`/`SharedSurface` type aliases
+- `src/RenderDevice.cpp`: Added `SDL3Texture` (wraps `SDL_Texture*`), `SDL3Surface` (wraps `SDL_Surface*`, implements pixel/format/blit/rotate ops), all `Surface` factory statics; `SDL3RenderDevice` updated to use `Texture*`/`SharedTexture`
 
 **`m_texture` Migration (SDL_Texture* → SharedTexture)**:
-- `include/ControlBase.h`: Changed `SDL_Texture* m_texture` → `SharedTexture m_texture`
-- `include/Actor.h`: `getTexture()` returns `Texture*` (via `m_texture.get()`), `setTexture()` takes `SharedTexture`
-- `src/Material.cpp`: Removed destructor's `SDL_DestroyTexture` (SharedTexture auto-manages); `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod` → `m_texture->setBlendMode()`/`m_texture->setAlphaMod()`
-- `src/Actor.cpp`: `SDL_CreateTextureFromSurface(renderer, surface)` → `getRenderDevice()->createTextureFromSDLSurface(surface)`; `SDL_GetTextureSize(m_texture, ...)` → `m_texture->width()`/`m_texture->height()`
-- `include/GraphTool.h`: `drawImage()` signature changed from `void*` to `Texture*`
-- `src/GraphTool.cpp`: `getTextureSize(void*, ...)` removed; uses `texture->width()`/`height()` instead
-- `include/LuotiAni.h`: Minimal fix — uses `createTextureFromSDLSurface` + `setTexture(SharedTexture)` instead of raw SDL texture creation
+- `include/ControlBase.h`: `SDL_Texture* m_texture` → `SharedTexture m_texture`
+- `include/Actor.h`: `getTexture()` returns `Texture*`, `setTexture()` takes `SharedTexture`
+- `src/Material.cpp`: Removed `SDL_DestroyTexture`; `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod` → `m_texture->setBlendMode()`/`m_texture->setAlphaMod()`
+- `src/Actor.cpp`: Uses `surface->createTexture(device)` instead of bridge; texture size via `m_texture->width()`/`height()`
+- `include/GraphTool.h`: `drawImage()` takes `Texture*` instead of `void*`
 
-**Status**: All 10 tests build successfully. `m_texture` fully migrated. `m_surface` (SDL_Surface*) remains for Phase 3 continuation.
+**`m_surface` Migration (SDL_Surface* → SharedSurface)**:
+- `include/ControlBase.h`: `SDL_Surface* m_surface` → `SharedSurface m_surface`
+- `src/Actor.cpp`: `loadFromFile()`/`loadFromResource()` use `Surface::loadFromFile()`/`loadFromMemory()`; `setParent()` uses `m_surface->createTexture()`
+- `ControlBase.cpp`: Copy/assign semantics unchanged (shared_ptr handles refcounting)
+- Added `Surface::rotate()` for GPU-accelerated rotation (render-to-texture + readback, inside `SDL3Surface`)
+
+**`LuotiAni.h` Full Migration (~180 SDL calls)**:
+- Total rewrite: 1341-line header-only animation engine
+- `SDL_Surface*` → `SharedSurface` in `OpData`, `m_frameSurfaces`, all helpers
+- `SDL_BlendMode` → `BlendMode` enum; `SDL_GetTicks()` → `std::chrono::steady_clock`
+- `SDL_Log`/`SDL_GetError()` → `printf`; `Uint64`/`Uint8` → standard types
+- `SDL_CreateSurface`/`SDL_BlitSurfaceScaled`/`SDL_SetSurfaceAlphaMod`/`SDL_SetSurfaceBlendMode` → `Surface::create()`/`blit()`/`setAlphaMod()`/`setBlendMode()`
+- `IMG_Load_IO` → `Surface::loadFromMemory()`
+- Removed dead code: `normalRotateSurface`, `matrixRotateSurface`, `gpuRotateSurface`
+- GPU rotation → `Surface::rotate(angle, getRenderDevice())`
+- `loadFromStream(SDL_IOStream*)` replaced with `parseJsonDesc()` using `std::ifstream`
+- Pixel helpers simplified for RGBA8888 format
+
+**Bridge Removal**:
+- Removed `createTextureFromSDLSurface` and `getNativeRenderer` from `RenderDevice` (no longer used)
+- Removed `loadTextureFromSurface(SDL_Surface*)` from `Actor` (no longer used)
+- Removed `struct SDL_Renderer`/`struct SDL_Surface` forward declarations from `RenderDevice.h`
+
+**Animation Fixes**:
+- Frame actors in `LuotiAni::prepare()` now get non-zero rect via `frame->setRect()`
+- `LuotiAni::setRect()` propagates unconditionally to frame actors (removed `m_isPrepared` guard)
+- `Button::setLuotiAni()` syncs button rect to LuotiAni
+- `Button::setRect()` propagates to `m_luotiAni`
+
+**Testing**:
+- Added 2x scaled LuotiAni Button test (`g_button6` in `test_button.cpp`)
+- All 10 tests build successfully
+
+**Remaining**: SDL3/SDL.h still included in 10 non-backend headers (Actor.h, ControlBase.h, EditBox.h, MainWindow.h, Material.h, Menu.h, ResourceLoader.h, SColor.h, StateMachine.h, Utility.h) — needs Phase 4 to remove by eliminating remaining `Uint8`/`SDL_Renderer*`/`SDL_ALPHA_OPAQUE`/`SDL_Rect` usage in public APIs.

@@ -271,18 +271,6 @@ public:
         SDL_RenderPresent(m_renderer);
     }
 
-    SharedTexture createTextureFromSDLSurface(SDL_Surface* surface) override {
-        if (!m_renderer || !surface) return nullptr;
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(m_renderer, surface);
-        if (!tex) {
-            SDL_Log("createTextureFromSDLSurface: %s", SDL_GetError());
-            return nullptr;
-        }
-        return std::make_shared<SDL3Texture>(tex, surface->w, surface->h);
-    }
-
-    SDL_Renderer* getNativeRenderer() override { return m_renderer; }
-
     SDL_Renderer* getSDL3Renderer() const { return m_renderer; }
 
 private:
