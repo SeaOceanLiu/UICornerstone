@@ -52,14 +52,8 @@ void ProgressBar::draw(void) {
 
     SRect drawRect = getDrawRect();
 
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
-    SColor bgColor = getEnable() ? m_backgroundColor : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
-    if (!SDL_SetRenderDrawColor(renderer, bgColor.redByte(), bgColor.greenByte(), bgColor.blueByte(), bgColor.alphaByte())) {
-        return;
-    }
-    SDL_RenderFillRect(renderer, drawRect.toSDLFRect());
+    GET_RENDERDEVICE->setDrawColor(getEnable() ? m_backgroundColor : ConstDef::DEFAULT_BORDER_DISABLED_COLOR);
+    GET_RENDERDEVICE->fillRect(drawRect);
 
     float progressPercent = (m_animatedValue - m_minValue) / (m_maxValue - m_minValue);
     progressPercent = std::max(0.0f, std::min(1.0f, progressPercent));
@@ -73,11 +67,8 @@ void ProgressBar::draw(void) {
             progressRect.top = drawRect.top + drawRect.height - progressRect.height;
         }
 
-        SColor progColor = getEnable() ? m_progressColor : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
-        if (!SDL_SetRenderDrawColor(renderer, progColor.redByte(), progColor.greenByte(), progColor.blueByte(), progColor.alphaByte())) {
-            return;
-        }
-        SDL_RenderFillRect(renderer, progressRect.toSDLFRect());
+        GET_RENDERDEVICE->setDrawColor(getEnable() ? m_progressColor : ConstDef::DEFAULT_TEXT_DISABLED_COLOR);
+        GET_RENDERDEVICE->fillRect(progressRect);
     }
 
     ControlImpl::draw();

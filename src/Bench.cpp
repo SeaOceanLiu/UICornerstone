@@ -89,20 +89,10 @@ void Bench::draw(void){
         SRect rect = {0, m_rect.height / 2 - 50, m_rect.width, 100};
         SRect percentRect = {0, m_rect.height / 2 - 50, m_rect.width * ResourceLoader::getInstance()->getLoadingProgress(), 100};
 
-        // 使用橙色（orange）画进度
-        if(!SDL_SetRenderDrawColor(getRenderer(), 255, 165, 0, SDL_ALPHA_OPAQUE)){
-            SDL_Log("Failed to set grid render color: %s", SDL_GetError());
-        }
-        if (!SDL_RenderFillRect(getRenderer(), percentRect.toSDLFRect())){
-            SDL_Log("Failed to fill render rect: %s", SDL_GetError());
-        }
-        // 使用灰色（gray）画进度条外框
-        if(!SDL_SetRenderDrawColor(getRenderer(), 128, 128, 128, SDL_ALPHA_OPAQUE)){
-            SDL_Log("Failed to set grid render color: %s", SDL_GetError());
-        }
-        if (!SDL_RenderRect(getRenderer(), rect.toSDLFRect())){
-            SDL_Log("Failed to fill render rect: %s", SDL_GetError());
-        }
+        GET_RENDERDEVICE->setDrawColor(SColor(255, 165, 0, 255));
+        GET_RENDERDEVICE->fillRect(percentRect);
+        GET_RENDERDEVICE->setDrawColor(SColor(128, 128, 128, 255));
+        GET_RENDERDEVICE->drawRect(rect);
         return;
     }
 

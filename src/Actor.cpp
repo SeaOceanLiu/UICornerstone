@@ -128,7 +128,6 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
     targetRect.top = posy - m_anchorPoint.y;
 
     SRect drawRect = mapToDrawRect(targetRect);
-    SDL_FRect drawRectF = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
 
     if (!SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND)) {
         SDL_Log("SDL_SetTextureBlendMode Error: %s", SDL_GetError());
@@ -138,8 +137,7 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
     }
 
     if (m_scaleType == ScaleType::STRETCH) {
-        // 拉伸填满 — 原始行为
-        SDL_RenderTexture(getRenderer(), m_texture, nullptr, &drawRectF);
+        getRenderDevice()->drawTexture(m_texture, nullptr, &drawRect);
         return;
     }
 
@@ -149,36 +147,36 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
 
     switch (m_scaleType) {
         case ScaleType::FIT_CENTER: {
-            float scale = min(drawRectF.w / texW, drawRectF.h / texH);
+            float scale = min(drawRect.width / texW, drawRect.height / texH);
             float w = texW * scale;
             float h = texH * scale;
-            SDL_FRect fitRect = {
-                drawRectF.x + (drawRectF.w - w) * 0.5f,
-                drawRectF.y + (drawRectF.h - h) * 0.5f,
+            SRect fitRect(
+                drawRect.left + (drawRect.width - w) * 0.5f,
+                drawRect.top + (drawRect.height - h) * 0.5f,
                 w, h
-            };
-            SDL_RenderTexture(getRenderer(), m_texture, nullptr, &fitRect);
+            );
+            getRenderDevice()->drawTexture(m_texture, nullptr, &fitRect);
             break;
         }
         case ScaleType::CENTER_CROP: {
-            float scale = max(drawRectF.w / texW, drawRectF.h / texH);
-            float cropW = drawRectF.w / scale;
-            float cropH = drawRectF.h / scale;
-            SDL_FRect srcRect = {
+            float scale = max(drawRect.width / texW, drawRect.height / texH);
+            float cropW = drawRect.width / scale;
+            float cropH = drawRect.height / scale;
+            SRect srcRect(
                 (texW - cropW) * 0.5f,
                 (texH - cropH) * 0.5f,
                 cropW, cropH
-            };
-            SDL_RenderTexture(getRenderer(), m_texture, &srcRect, &drawRectF);
+            );
+            getRenderDevice()->drawTexture(m_texture, &srcRect, &drawRect);
             break;
         }
         case ScaleType::NONE: {
-            SDL_FRect naturalRect = {
-                drawRectF.x + (drawRectF.w - texW) * 0.5f,
-                drawRectF.y + (drawRectF.h - texH) * 0.5f,
+            SRect naturalRect(
+                drawRect.left + (drawRect.width - texW) * 0.5f,
+                drawRect.top + (drawRect.height - texH) * 0.5f,
                 texW, texH
-            };
-            SDL_RenderTexture(getRenderer(), m_texture, nullptr, &naturalRect);
+            );
+            getRenderDevice()->drawTexture(m_texture, nullptr, &naturalRect);
             break;
         }
         default:

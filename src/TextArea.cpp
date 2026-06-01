@@ -451,9 +451,6 @@ void TextArea::draw(void) {
 
     ControlImpl::preDraw();
 
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     if (m_lines.empty() || m_lineStartPositions.empty()) {
         rebuildLines();
     }
@@ -464,9 +461,6 @@ void TextArea::draw(void) {
     if (drawRect.width <= 0 || drawRect.height <= 0 || m_lineHeight <= 0) {
         return;
     }
-
-    // drawBackground(&drawRect);
-    // drawBorder(&drawRect);
 
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         m_hScrollBar->draw();
@@ -495,9 +489,9 @@ void TextArea::draw(void) {
     if (m_hScrollBar && m_hScrollBar->getVisible()) {
         clipHeight -= (int)(hThickness * scale);
     }
-    SDL_Rect clipRect = {(int)drawRect.left + (int)marginX, (int)drawRect.top + (int)marginY,
-                         clipWidth - (int)(marginX + marginRight), clipHeight};
-    SDL_SetRenderClipRect(renderer, &clipRect);
+    SRect clipRect(drawRect.left + marginX, drawRect.top + marginY,
+                   (float)(clipWidth - (int)(marginX + marginRight)), (float)clipHeight);
+    GET_RENDERDEVICE->setClipRect(clipRect);
 
     int startLine = 0;
     int endLine = getTotalLines();
@@ -516,8 +510,9 @@ void TextArea::draw(void) {
         int selStart = std::min(m_selectionStart, m_selectionEnd);
         int selEnd = std::max(m_selectionStart, m_selectionEnd);
 
+        GET_RENDERDEVICE->setBlendMode(BlendMode::Blend);
         for (int i = startLine; i < endLine && i < getTotalLines(); ++i) {
-        float y = drawRect.top + (i * m_lineHeight) * scale - m_scrollY * scale + marginY;
+            float y = drawRect.top + (i * m_lineHeight) * scale - m_scrollY * scale + marginY;
 
             if (i >= (int)m_lineStartPositions.size()) continue;
             int lineStartByte = m_lineStartPositions[i];
@@ -556,12 +551,11 @@ void TextArea::draw(void) {
                 }
             }
 
-            SColor selColor(173, 214, 255, 128);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer, selColor.redByte(), selColor.greenByte(), selColor.blueByte(), selColor.alphaByte());
-            SDL_FRect selRect = {selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY};
-            SDL_RenderFillRect(renderer, &selRect);
+            SRect selRect(selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY);
+            GET_RENDERDEVICE->setDrawColor(SColor(173, 214, 255, 128));
+            GET_RENDERDEVICE->fillRect(selRect);
         }
+        GET_RENDERDEVICE->setBlendMode(BlendMode::None);
     }
 
     for (int i = startLine; i < endLine; ++i) {
@@ -661,13 +655,12 @@ void TextArea::draw(void) {
     }
 
     if (m_focused && m_cursorVisible && cursorY >= drawRect.top && cursorY + cursorH <= drawRect.top + drawRect.height) {
-        SColor textColor = m_textColor.getNormal();
-        SDL_SetRenderDrawColor(renderer, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
-        SDL_FRect cursorRect{(float)cursorX, cursorY, 2.0f * scale, cursorH};
-        SDL_RenderFillRect(renderer, &cursorRect);
+        SRect cursorRect((float)cursorX, cursorY, 2.0f * scale, cursorH);
+        GET_RENDERDEVICE->setDrawColor(m_textColor.getNormal());
+        GET_RENDERDEVICE->fillRect(cursorRect);
     }
 
-    SDL_SetRenderClipRect(renderer, nullptr);
+    GET_RENDERDEVICE->clearClipRect();
 }
 
 bool TextArea::handleEvent(shared_ptr<Event> event) {

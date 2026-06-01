@@ -284,23 +284,17 @@ void EditBox::draw(void) {
 
     ControlImpl::preDraw();
 
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SRect drawRect = getDrawRect();
     float scaledFontSize = m_fontSize * getScaleXX();
-
-    // drawBackground(&drawRect);
-    // drawBorder(&drawRect);
 
     float scale = getScaleXX();
     float marginX = m_margin.left * scale;
     float marginY = m_margin.top * scale;
     float marginRight = m_margin.right * scale;
     float marginBottom = m_margin.bottom * scale;
-    SDL_Rect clipRect = {(int)(drawRect.left + marginX), (int)(drawRect.top + marginY),
-                         (int)(drawRect.width - marginX - marginRight), (int)(drawRect.height - marginY - marginBottom)};
-    SDL_SetRenderClipRect(renderer, &clipRect);
+    SRect clipRect(drawRect.left + marginX, drawRect.top + marginY,
+                   drawRect.width - marginX - marginRight, drawRect.height - marginY - marginBottom);
+    GET_RENDERDEVICE->setClipRect(clipRect);
 
     if (hasSelection() && m_focused) {
         int selStart = std::min(m_selectionStart, m_selectionEnd);
@@ -313,15 +307,10 @@ void EditBox::draw(void) {
         float startX = m_textOffsetX + getTextWidth(prefixForStart);
         float endX = m_textOffsetX + getTextWidth(prefixForEnd);
 
-        SDL_FRect selRect = {
-            drawRect.left + startX,
-            drawRect.top + m_textOffsetY,
-            endX - startX,
-            scaledFontSize
-        };
-
-        SDL_SetRenderDrawColor(renderer, 100, 149, 237, 128);
-        SDL_RenderFillRect(renderer, &selRect);
+        SRect selRect(drawRect.left + startX, drawRect.top + m_textOffsetY,
+                      endX - startX, scaledFontSize);
+        GET_RENDERDEVICE->setDrawColor(SColor(100, 149, 237, 128));
+        GET_RENDERDEVICE->fillRect(selRect);
     }
 
     if (!m_text.empty() && m_textObj) {
@@ -338,21 +327,16 @@ void EditBox::draw(void) {
         TTF_DrawRendererText(m_placeholderTextObj, position.x, position.y);
     }
 
-    SDL_SetRenderClipRect(renderer, nullptr);
+    GET_RENDERDEVICE->clearClipRect();
 
     if (m_focused && m_cursorVisible && m_selectionStart == m_selectionEnd) {
         float cursorX = getCursorX(m_cursorPosition);
 
-        SDL_FRect cursorRect = {
-            drawRect.left + cursorX,
-            drawRect.top + m_textOffsetY,
-            2.0f,
-            scaledFontSize
-        };
+        SRect cursorRect(drawRect.left + cursorX, drawRect.top + m_textOffsetY,
+                         2.0f, scaledFontSize);
 
-        SColor cursorColor = m_textColor.getNormal();
-        SDL_SetRenderDrawColor(renderer, cursorColor.redByte(), cursorColor.greenByte(), cursorColor.blueByte(), cursorColor.alphaByte());
-        SDL_RenderFillRect(renderer, &cursorRect);
+        GET_RENDERDEVICE->setDrawColor(m_textColor.getNormal());
+        GET_RENDERDEVICE->fillRect(cursorRect);
     }
 }
 

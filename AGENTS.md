@@ -59,7 +59,7 @@ test_label.exe
 
 **Status**: All 9 tests build successfully
 
-### 2026-06-01: Phase 2 — RenderDevice Abstraction (Infrastructure + GraphTool)
+### 2026-06-01: Phase 2 — RenderDevice Abstraction (Infrastructure + GraphTool + Control Migration)
 
 **Core Infrastructure**:
 - `include/RenderDevice.h`: Abstract interface with ~25 pure virtual methods covering state, primitives, textures, render targets, and frame ops. Includes convenience `drawTriangle()`/`drawQuad()` methods for common patterns. Forward-declares `SDL_Renderer` only in factory function.
@@ -76,17 +76,25 @@ test_label.exe
 **Test Migration**:
 - All 10 test files updated: `SDL_SetRenderDrawColor`/`SDL_RenderClear`/`SDL_RenderPresent` → `RenderDevice` equivalents. `DrawingContext(renderer)` → `DrawingContext(getRenderDevice())`.
 
-**Remaining SDL calls in controls (not yet migrated from `getRenderer()` to `RenderDevice*`)**:
-- `Menu.cpp`: 12 direct SDL calls (SetRenderDrawColor, RenderFillRect, RenderLine) in `MenuPanel::draw()` and `MenuBar::draw()`
-- `ControlBase.cpp`: 4 SDL calls in `drawBackground()`/`drawBorder()`
-- `Label.cpp`: 4 SDL calls in debug drawing
-- `EditBox.cpp`: 8 SDL calls (clip, fill, cursor drawing)
-- `TextArea.cpp`: 8 SDL calls (clip, fill, cursor drawing)
-- `ScrollBar.cpp`: 4 SDL calls
-- `ProgressBar.cpp`: 4 SDL calls
-- `Bench.cpp`: 8 SDL calls (grid drawing)
-- `LuotiAni.h`: Texture/render-target operations
-- `Actor.cpp`: Texture creation and rendering
-- `Material.cpp`: Texture rendering
+**Full Control Migration (54 SDL calls → RenderDevice)**:
+- `ControlBase.cpp`: `drawBackground()`/`drawBorder()` — 4 SDL calls → `getRenderDevice()->setDrawColor()`/`fillRect()`/`drawRect()`
+- `Bench.cpp`: Loading progress bar — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`fillRect()`/`drawRect()`
+- `Label.cpp`: Debug drawing — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`drawRect()`
+- `ScrollBar.cpp`: Track/thumb drawing — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`fillRect()`
+- `ProgressBar.cpp`: Background/progress fill — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`fillRect()`
+- `EditBox.cpp`: Clip rect, selection fill, cursor — 6 SDL calls → `setClipRect()`/`clearClipRect()`/`setDrawColor()`/`fillRect()`
+- `TextArea.cpp`: Clip rect, selection fill (with blend), cursor — 6 SDL calls → `setClipRect()`/`clearClipRect()`/`setBlendMode(BlendMode::Blend)`/`setDrawColor()`/`fillRect()`
+- `Menu.cpp`: MenuItem hover, checkmark, separator, MenuPanel items, MenuBar bg/items/border — 12 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`fillRect()`/`drawLine()`
+- `MenuPanel::drawShadow()`: Removed unused `getRenderer()` null-check
+- `CheckBox.cpp`: Removed 4 unused `getRenderer()` null-checks
+- `Actor.cpp`: 4 `SDL_RenderTexture` → `getRenderDevice()->drawTexture(m_texture, ...)`
+- `Material.cpp`: 1 `SDL_RenderTexture` → `getRenderDevice()->drawTexture(m_texture, ...)`
 
-**Status**: test_graphtool, test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe, test_button — all 10 build successfully
+**Interface Addition**: Added `BlendMode` enum + `setBlendMode()` to `RenderDevice` interface and `SDL3RenderDevice` impl (for TextArea selection alpha blending)
+
+**Remaining SDL calls outside control layer** (belongs to Phase 3 Texture/Surface abstraction):
+- `LuotiAni.h`: ~180 SDL calls (surface ops, pixel manipulation, render-target operations) — deeply tied to SDL3, deferred to Phase 3
+- `Actor.cpp`/`Material.cpp`: `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod`/`SDL_GetTextureSize` — texture state operations, deferred to Phase 3
+- `Bench.cpp::drawCenteredRectangle()`: Dead code (never called), left as-is
+
+**Status**: All 10 tests build successfully. Phase 2 core migration complete.

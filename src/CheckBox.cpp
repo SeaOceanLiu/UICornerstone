@@ -403,9 +403,6 @@ SRect CheckBox::getBoxDrawRect(){
 }
 
 void CheckBox::drawCheckBoxFrame() {
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SRect boxDrawRect = getBoxDrawRect();
 
     SColor borderColor = getEnable() ? m_boxBorderStateColor.getNormal() : ConstDef::DEFAULT_BORDER_DISABLED_COLOR;
@@ -450,9 +447,6 @@ void CheckBox::drawCheckBoxFrame() {
 }
 
 void CheckBox::drawCheckMark() {
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SColor checkColor = getEnable() ? m_checkStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
     GraphTool::DrawingContext dc(getRenderDevice());
@@ -474,9 +468,6 @@ void CheckBox::drawCheckMark() {
 }
 
 void CheckBox::drawCrossMark() {
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SColor crossColor = getEnable() ? m_crossStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
     GraphTool::DrawingContext dc(getRenderDevice());
@@ -497,9 +488,6 @@ void CheckBox::drawCrossMark() {
 }
 
 void CheckBox::drawIndeterminateMark() {
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SColor indColor = getEnable() ? m_indeterminateStateColor.getNormal() : ConstDef::DEFAULT_TEXT_DISABLED_COLOR;
 
     GraphTool::DrawingContext dc(getRenderDevice());

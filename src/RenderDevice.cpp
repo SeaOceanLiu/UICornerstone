@@ -18,6 +18,19 @@ public:
         SDL_SetRenderDrawColor(m_renderer, color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
     }
 
+    void setBlendMode(BlendMode mode) override {
+        SDL_BlendMode sdlMode;
+        switch (mode) {
+            case BlendMode::None:  sdlMode = SDL_BLENDMODE_NONE;  break;
+            case BlendMode::Blend: sdlMode = SDL_BLENDMODE_BLEND; break;
+            case BlendMode::Add:   sdlMode = SDL_BLENDMODE_ADD;   break;
+            case BlendMode::Mod:   sdlMode = SDL_BLENDMODE_MOD;   break;
+            case BlendMode::Mul:   sdlMode = SDL_BLENDMODE_MUL;   break;
+            default:               sdlMode = SDL_BLENDMODE_BLEND; break;
+        }
+        SDL_SetRenderDrawBlendMode(m_renderer, sdlMode);
+    }
+
     void setClipRect(const SRect& rect) override {
         SDL_Rect sdlRect = {
             static_cast<int>(rect.left),

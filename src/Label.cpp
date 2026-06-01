@@ -373,16 +373,13 @@ void Label::draw(void){
     // drawBorder(&drawRect);
 
     if (m_debugDraw) {
-        SDL_Renderer* renderer = getRenderer();
-
         SRect marginRectScaled = mapToDrawRect(getMarginedRect());
-
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        SDL_RenderRect(renderer, marginRectScaled.toSDLFRect());
+        GET_RENDERDEVICE->setDrawColor(SColor(0, 1, 0, 1));
+        GET_RENDERDEVICE->drawRect(marginRectScaled);
 
         SRect hotRectScaled = mapToDrawRect(m_hotRect);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-        SDL_RenderRect(renderer, hotRectScaled.toSDLFRect());
+        GET_RENDERDEVICE->setDrawColor(SColor(1, 1, 0, 1));
+        GET_RENDERDEVICE->drawRect(hotRectScaled);
     }
 
     SColor shadowColor;

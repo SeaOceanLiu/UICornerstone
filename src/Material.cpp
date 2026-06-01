@@ -53,8 +53,7 @@ void Material::draw(float posx, float posy, Uint8 alpha){
     targetRect.top = posy - m_anchorPoint.y;
 
 
-    SRect drawRect = mapToDrawRect(targetRect); //getDrawRect();
-    SDL_FRect drawRectF = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
+    SRect drawRect = mapToDrawRect(targetRect);
 
     if(!SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND)){
         SDL_Log("SDL_SetTextureBlendMode Error: %s", SDL_GetError());
@@ -64,10 +63,7 @@ void Material::draw(float posx, float posy, Uint8 alpha){
         SDL_Log("SDL_SetTextureAlphaMod Error: %s", SDL_GetError());
     }
 
-    if(!SDL_RenderTexture(getRenderer(), m_texture, nullptr, &drawRectF)){
-        SDL_Log("SDL_RenderTexture Error: %s", SDL_GetError());
-        // throw(SDL_GetError());
-    }
+    getRenderDevice()->drawTexture(m_texture, nullptr, &drawRect);
 }
 
 void Material::setAnchorPoint(AnchorType anchorType){

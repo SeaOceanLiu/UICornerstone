@@ -191,12 +191,8 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
                 bgColor = m_bgColor.getNormal();
                 break;
         }
-        if(!SDL_SetRenderDrawColor(getRenderer(), bgColor.redByte(), bgColor.greenByte(), bgColor.blueByte(), bgColor.alphaByte())){
-            SDL_Log("ControlImpl::drawBackground: failed to set grid render color: %s", SDL_GetError());
-        }
-        if (!SDL_RenderFillRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("ControlImpl::drawBackground: failed to fill render rect: %s", SDL_GetError());
-        }
+        getRenderDevice()->setDrawColor(bgColor);
+        getRenderDevice()->fillRect(drawRect);
     }
 }
 
@@ -226,12 +222,8 @@ void ControlImpl::drawBorder(const SRect *pDrawRect){
                 borderColor = m_borderColor.getNormal();
                 break;
         }
-        if(!SDL_SetRenderDrawColor(getRenderer(), borderColor.redByte(), borderColor.greenByte(), borderColor.blueByte(), borderColor.alphaByte())){
-            SDL_Log("ControlImpl::drawBorder: failed to set border color: %s", SDL_GetError());
-        }
-        if(!SDL_RenderRect(getRenderer(), drawRect.toSDLFRect())){
-            SDL_Log("ControlImpl::drawBorder: failed to draw border: %s", SDL_GetError());
-        }
+        getRenderDevice()->setDrawColor(borderColor);
+        getRenderDevice()->drawRect(drawRect);
     }
 }
 

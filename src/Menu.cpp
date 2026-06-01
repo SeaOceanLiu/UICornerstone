@@ -177,35 +177,21 @@ void MenuItem::draw() {
     if (!getVisible()) return;
     if (m_type == MenuItemType::Separator) return; // 分隔线由MenuPanel绘制
 
-    SDL_Renderer* renderer = getRenderer();
-    if (!renderer) return;
-
     SRect drawRect = getDrawRect();
 
     // 绘制hover背景
     if (m_hovered) {
-        SDL_SetRenderDrawColor(renderer,
-            MenuColors::ITEM_HOVER_BG.redByte(),
-            MenuColors::ITEM_HOVER_BG.greenByte(),
-            MenuColors::ITEM_HOVER_BG.blueByte(),
-            MenuColors::ITEM_HOVER_BG.alphaByte());
-        SDL_FRect bgRect = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
-        SDL_RenderFillRect(renderer, &bgRect);
+        GET_RENDERDEVICE->setDrawColor(MenuColors::ITEM_HOVER_BG);
+        GET_RENDERDEVICE->fillRect(SRect(drawRect.left, drawRect.top, drawRect.width, drawRect.height));
     }
 
     // 绘制勾选标记
     if (m_checked) {
-        SDL_SetRenderDrawColor(renderer,
-            MenuColors::ITEM_TEXT.redByte(),
-            MenuColors::ITEM_TEXT.greenByte(),
-            MenuColors::ITEM_TEXT.blueByte(),
-            MenuColors::ITEM_TEXT.alphaByte());
-        // 绘制简单的勾选符号 "✓"
+        GET_RENDERDEVICE->setDrawColor(MenuColors::ITEM_TEXT);
         float cx = drawRect.left + MenuColors::ICON_AREA_WIDTH / 2.0f;
         float cy = drawRect.top + drawRect.height / 2.0f;
-        // 简单的勾选线条
-        SDL_RenderLine(renderer, cx - 4, cy, cx - 1, cy + 3);
-        SDL_RenderLine(renderer, cx - 1, cy + 3, cx + 4, cy - 3);
+        GET_RENDERDEVICE->drawLine(cx - 4, cy, cx - 1, cy + 3);
+        GET_RENDERDEVICE->drawLine(cx - 1, cy + 3, cx + 4, cy - 3);
     }
 
     // 绘制标题
@@ -494,9 +480,6 @@ void MenuPanel::closeWithChildren() {
 }
 
 void MenuPanel::drawShadow() {
-    SDL_Renderer* renderer = getRenderer();
-    if (!renderer) return;
-
     SRect drawRect = getDrawRect();
 
     // 使用GraphTool绘制阴影
@@ -520,9 +503,6 @@ void MenuPanel::drawShadow() {
 
 void MenuPanel::draw() {
     if (!m_visible) return;
-
-    SDL_Renderer* renderer = getRenderer();
-    if (!renderer) return;
 
     SRect drawRect = getDrawRect();
 
@@ -553,27 +533,21 @@ void MenuPanel::draw() {
     for (size_t i = 0; i < m_items.size(); ++i) {
         auto& item = m_items[i];
         if (item->getType() == MenuItemType::Separator) {
-            // 绘制分隔线
             SRect itemRect = item->getDrawRect();
-            SDL_SetRenderDrawColor(renderer,
-                m_separatorColor.redByte(), m_separatorColor.greenByte(),
-                m_separatorColor.blueByte(), m_separatorColor.alphaByte());
-            SDL_FRect lineRect = {
+            SRect lineRect(
                 drawRect.left + MenuColors::SEPARATOR_MARGIN,
                 itemRect.top + MenuColors::SEPARATOR_MARGIN,
                 drawRect.width - 2 * MenuColors::SEPARATOR_MARGIN,
                 MenuColors::SEPARATOR_HEIGHT
-            };
-            SDL_RenderFillRect(renderer, &lineRect);
+            );
+            GET_RENDERDEVICE->setDrawColor(m_separatorColor);
+            GET_RENDERDEVICE->fillRect(lineRect);
         } else {
-            // 先绘制hover背景
             if (item->m_hovered) {
                 SRect itemRect = item->getDrawRect();
-                SDL_SetRenderDrawColor(renderer,
-                    m_hoverColor.redByte(), m_hoverColor.greenByte(),
-                    m_hoverColor.blueByte(), m_hoverColor.alphaByte());
-                SDL_FRect bgRect = {drawRect.left, itemRect.top, drawRect.width, itemRect.height};
-                SDL_RenderFillRect(renderer, &bgRect);
+                SRect bgRect(drawRect.left, itemRect.top, drawRect.width, itemRect.height);
+                GET_RENDERDEVICE->setDrawColor(m_hoverColor);
+                GET_RENDERDEVICE->fillRect(bgRect);
             }
             item->draw();
         }
@@ -797,39 +771,27 @@ float MenuBar::getFontSize() {
 void MenuBar::draw() {
     if (!getVisible()) return;
 
-    SDL_Renderer* renderer = getRenderer();
-    if (!renderer) return;
-
     SRect drawRect = getDrawRect();
 
     // 1. 绘制菜单栏背景
-    SDL_SetRenderDrawColor(renderer, m_bgColor.redByte(), m_bgColor.greenByte(), m_bgColor.blueByte(), m_bgColor.alphaByte());
-    SDL_FRect bgRect = {drawRect.left, drawRect.top, drawRect.width, drawRect.height};
-    SDL_RenderFillRect(renderer, &bgRect);
+    GET_RENDERDEVICE->setDrawColor(m_bgColor);
+    GET_RENDERDEVICE->fillRect(SRect(drawRect.left, drawRect.top, drawRect.width, drawRect.height));
 
     // 2. 绘制菜单项
     for (size_t i = 0; i < m_entries.size(); ++i) {
         auto& entry = m_entries[i];
         SRect hitRect = entry.hitRect;
 
-        // 绘制hover/active背景
         if ((int)i == m_activeIndex) {
-            SDL_SetRenderDrawColor(renderer,
-                m_activeBgColor.redByte(), m_activeBgColor.greenByte(),
-                m_activeBgColor.blueByte(), m_activeBgColor.alphaByte());
-            SDL_FRect itemBg = {drawRect.left + hitRect.left, drawRect.top,
-                                hitRect.width, hitRect.height};
-            SDL_RenderFillRect(renderer, &itemBg);
+            SRect itemBg(drawRect.left + hitRect.left, drawRect.top, hitRect.width, hitRect.height);
+            GET_RENDERDEVICE->setDrawColor(m_activeBgColor);
+            GET_RENDERDEVICE->fillRect(itemBg);
         } else if ((int)i == m_hoveredIndex) {
-            SDL_SetRenderDrawColor(renderer,
-                m_hoverBgColor.redByte(), m_hoverBgColor.greenByte(),
-                m_hoverBgColor.blueByte(), m_hoverBgColor.alphaByte());
-            SDL_FRect itemBg = {drawRect.left + hitRect.left, drawRect.top,
-                                hitRect.width, hitRect.height};
-            SDL_RenderFillRect(renderer, &itemBg);
+            SRect itemBg(drawRect.left + hitRect.left, drawRect.top, hitRect.width, hitRect.height);
+            GET_RENDERDEVICE->setDrawColor(m_hoverBgColor);
+            GET_RENDERDEVICE->fillRect(itemBg);
         }
 
-        // 绘制文字
         if (entry.label) {
             entry.label->setRect(SRect(drawRect.left + hitRect.left, drawRect.top,
                                        hitRect.width, hitRect.height));
@@ -838,11 +800,9 @@ void MenuBar::draw() {
     }
 
     // 3. 绘制底部分隔线
-    SDL_SetRenderDrawColor(renderer, MenuColors::PANEL_BORDER.redByte(),
-        MenuColors::PANEL_BORDER.greenByte(), MenuColors::PANEL_BORDER.blueByte(),
-        MenuColors::PANEL_BORDER.alphaByte());
-    SDL_RenderLine(renderer, drawRect.left, drawRect.top + drawRect.height - 1,
-                   drawRect.left + drawRect.width, drawRect.top + drawRect.height - 1);
+    GET_RENDERDEVICE->setDrawColor(MenuColors::PANEL_BORDER);
+    GET_RENDERDEVICE->drawLine(drawRect.left, drawRect.top + drawRect.height - 1,
+                               drawRect.left + drawRect.width, drawRect.top + drawRect.height - 1);
 
     // 4. 绘制打开的下拉菜单
     if (m_activeIndex >= 0 && m_activeIndex < (int)m_entries.size()) {

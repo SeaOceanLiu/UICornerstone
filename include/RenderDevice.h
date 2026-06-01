@@ -6,12 +6,15 @@
 #include <memory>
 #include <string>
 
+enum class BlendMode { None, Blend, Add, Mod, Mul };
+
 class RenderDevice {
 public:
     virtual ~RenderDevice() = default;
 
     // === 渲染状态 ===
     virtual void setDrawColor(SColor color) = 0;
+    virtual void setBlendMode(BlendMode mode) = 0;
     virtual void setClipRect(const SRect& rect) = 0;
     virtual void clearClipRect() = 0;
 

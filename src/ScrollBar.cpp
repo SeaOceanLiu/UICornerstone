@@ -139,16 +139,10 @@ void ScrollBar::draw(void) {
 
     ControlImpl::preDraw();
 
-    SDL_Renderer *renderer = getRenderer();
-    if (!renderer) return;
-
     SRect drawRect = getDrawRect();
 
-    SDL_SetRenderDrawColor(renderer, ConstDef::SCROLLBAR_TRACK_COLOR.redByte(),
-                           ConstDef::SCROLLBAR_TRACK_COLOR.greenByte(),
-                           ConstDef::SCROLLBAR_TRACK_COLOR.blueByte(),
-                           ConstDef::SCROLLBAR_TRACK_COLOR.alphaByte());
-    SDL_RenderFillRect(renderer, drawRect.toSDLFRect());
+    GET_RENDERDEVICE->setDrawColor(ConstDef::SCROLLBAR_TRACK_COLOR);
+    GET_RENDERDEVICE->fillRect(drawRect);
 
     SColor thumbColor = ConstDef::SCROLLBAR_THUMB_COLOR;
     if (m_dragging) {
@@ -158,15 +152,15 @@ void ScrollBar::draw(void) {
     }
 
     float scale = getScaleXX();
-    SDL_FRect thumbDrawRect = {
+    SRect thumbDrawRect(
         drawRect.left + m_thumbRect.left * scale,
         drawRect.top + m_thumbRect.top * scale,
         m_thumbRect.width * scale,
         m_thumbRect.height * scale
-    };
+    );
 
-    SDL_SetRenderDrawColor(renderer, thumbColor.redByte(), thumbColor.greenByte(), thumbColor.blueByte(), thumbColor.alphaByte());
-    SDL_RenderFillRect(renderer, &thumbDrawRect);
+    GET_RENDERDEVICE->setDrawColor(thumbColor);
+    GET_RENDERDEVICE->fillRect(thumbDrawRect);
 }
 
 bool ScrollBar::handleEvent(shared_ptr<Event> event) {
