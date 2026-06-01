@@ -909,7 +909,7 @@ public:
             for (size_t i = 0; i < m_frames.size() && i < m_frameSurfaces.size(); i++) {
                 Actor* frameActor = dynamic_cast<Actor*>(m_frames[i].get());
                 if (frameActor != nullptr && frameActor->getTexture() == nullptr && m_frameSurfaces[i] != nullptr) {
-                    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, m_frameSurfaces[i]);
+                    auto tex = frameActor->getRenderDevice()->createTextureFromSDLSurface(m_frameSurfaces[i]);
                     if (tex != nullptr) {
                         frameActor->setTexture(tex);
                     }

@@ -1,4 +1,5 @@
 ﻿#include "Material.h"
+#include "Texture.h"
 
 Material::Material(Control *parent, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale),
@@ -31,10 +32,6 @@ Material& Material::operator=(const Material& other){
 }
 
 Material::~Material(){
-    if(m_texture != nullptr){
-        SDL_DestroyTexture(m_texture);
-        m_texture = nullptr;
-    }
 }
 
 void Material::draw(void){
@@ -47,23 +44,18 @@ void Material::draw(SPoint pos, Uint8 alpha){
 void Material::draw(float posx, float posy, Uint8 alpha){
     inheritRenderer();
 
-
     SRect targetRect = getRect();
     targetRect.left = posx - m_anchorPoint.x;
     targetRect.top = posy - m_anchorPoint.y;
 
-
     SRect drawRect = mapToDrawRect(targetRect);
 
-    if(!SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND)){
-        SDL_Log("SDL_SetTextureBlendMode Error: %s", SDL_GetError());
-    }
+    if (!m_texture) return;
 
-    if(!SDL_SetTextureAlphaMod(m_texture, alpha)){
-        SDL_Log("SDL_SetTextureAlphaMod Error: %s", SDL_GetError());
-    }
+    m_texture->setBlendMode(BlendMode::Blend);
+    m_texture->setAlphaMod(alpha);
 
-    getRenderDevice()->drawTexture(m_texture, nullptr, &drawRect);
+    getRenderDevice()->drawTexture(m_texture.get(), nullptr, &drawRect);
 }
 
 void Material::setAnchorPoint(AnchorType anchorType){

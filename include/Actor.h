@@ -4,6 +4,7 @@
 #include <SDL3_image/SDL_image.h>
 
 #include "Material.h"
+#include "Texture.h"
 #include "ResourceLoader.h"
 
 // 图片在目标矩形中的缩放方式
@@ -31,8 +32,8 @@ public:
     void loadFromResource(string resourceId) override;
     void setParent(Control *parent) override;   // 由于要考虑匹配父控件绘图区域大小，所以需要重载该函数，以使其在设备父控件时匹配父控件绘图区域大小
     void loadTextureFromSurface(SDL_Surface *surface);
-    SDL_Texture* getTexture() const { return m_texture; }
-    void setTexture(SDL_Texture* texture) { m_texture = texture; }
+    Texture* getTexture() const { return m_texture.get(); }
+    void setTexture(SharedTexture texture) { m_texture = texture; }
 
     using Material::draw;
     void draw(float posx, float posy, Uint8 alpha=SDL_ALPHA_OPAQUE) override;

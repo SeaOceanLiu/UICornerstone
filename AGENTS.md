@@ -1,4 +1,4 @@
-# AGENTS.md - UIControls
+﻿# AGENTS.md - UIControls
 
 ## Design Rules
 
@@ -12,7 +12,7 @@
 - **Build library**: Run `build_scripts\build.bat Debug` (requires Visual Studio 2022 environment)
 - **Build all tests**: `build_scripts\build_test.bat`
 - **Build single test**: `build_scripts\build_test.bat test_label`
-- **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced
+- **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe, test_graphtool, test_button
 
 ## Running Tests
 
@@ -92,9 +92,23 @@ test_label.exe
 
 **Interface Addition**: Added `BlendMode` enum + `setBlendMode()` to `RenderDevice` interface and `SDL3RenderDevice` impl (for TextArea selection alpha blending)
 
-**Remaining SDL calls outside control layer** (belongs to Phase 3 Texture/Surface abstraction):
-- `LuotiAni.h`: ~180 SDL calls (surface ops, pixel manipulation, render-target operations) — deeply tied to SDL3, deferred to Phase 3
-- `Actor.cpp`/`Material.cpp`: `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod`/`SDL_GetTextureSize` — texture state operations, deferred to Phase 3
-- `Bench.cpp::drawCenteredRectangle()`: Dead code (never called), left as-is
-
 **Status**: All 10 tests build successfully. Phase 2 core migration complete.
+
+### 2026-06-01: Phase 3 — Texture/Surface Abstraction (Core Types + m_texture Migration)
+
+**Core Types**:
+- `include/Texture.h`: New abstract `Texture` class — `width()`, `height()`, `setBlendMode()`, `setAlphaMod()`, `getBlendMode()`, `getAlphaMod()`
+- `include/Surface.h`: New abstract `Surface` class — pixel ops (`getPixel`/`setPixel`), `blit()` (scaled + unscaled), `createTexture(RenderDevice*)`, factory statics (`create`/`loadFromFile`/`loadFromMemory`)
+- `include/RenderDevice.h`: Replaced `void*` texture API with `Texture*`/`SharedTexture`; added `createTextureFromSurface(Surface*)`, `createTextureFromSDLSurface(SDL_Surface*)` (temporary bridge), `getNativeRenderer()` (temporary bridge); added `SharedTexture`/`SharedSurface` type aliases
+- `src/RenderDevice.cpp`: Added `SDL3Texture` (wraps `SDL_Texture*`, implements all virtual methods with SDL3 calls internally); added `SDL3Surface` (wraps `SDL_Surface*`, implements pixel/format/blit ops); implemented all `Surface` factory statics; `SDL3RenderDevice` updated to use `Texture*`/`SharedTexture` throughout
+
+**`m_texture` Migration (SDL_Texture* → SharedTexture)**:
+- `include/ControlBase.h`: Changed `SDL_Texture* m_texture` → `SharedTexture m_texture`
+- `include/Actor.h`: `getTexture()` returns `Texture*` (via `m_texture.get()`), `setTexture()` takes `SharedTexture`
+- `src/Material.cpp`: Removed destructor's `SDL_DestroyTexture` (SharedTexture auto-manages); `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod` → `m_texture->setBlendMode()`/`m_texture->setAlphaMod()`
+- `src/Actor.cpp`: `SDL_CreateTextureFromSurface(renderer, surface)` → `getRenderDevice()->createTextureFromSDLSurface(surface)`; `SDL_GetTextureSize(m_texture, ...)` → `m_texture->width()`/`m_texture->height()`
+- `include/GraphTool.h`: `drawImage()` signature changed from `void*` to `Texture*`
+- `src/GraphTool.cpp`: `getTextureSize(void*, ...)` removed; uses `texture->width()`/`height()` instead
+- `include/LuotiAni.h`: Minimal fix — uses `createTextureFromSDLSurface` + `setTexture(SharedTexture)` instead of raw SDL texture creation
+
+**Status**: All 10 tests build successfully. `m_texture` fully migrated. `m_surface` (SDL_Surface*) remains for Phase 3 continuation.

@@ -1116,9 +1116,9 @@ public:
     void drawText(const ::SPoint& position, const std::string& text);
     void drawText(const ::SRect& bounds, const std::string& text, TextAlignment alignment = TextAlignment::Left);
 
-    void drawImage(const ::SPoint& position, void* texture);
-    void drawImage(const ::SRect& destRect, void* texture);
-    void drawImage(const ::SRect& destRect, void* texture, const ::SRect& srcRect);
+    void drawImage(const ::SPoint& position, Texture* texture);
+    void drawImage(const ::SRect& destRect, Texture* texture);
+    void drawImage(const ::SRect& destRect, Texture* texture, const ::SRect& srcRect);
 
     void pushClipRect(const ::SRect& rect);
     void popClipRect();

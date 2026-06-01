@@ -235,7 +235,7 @@ protected:
     SDL_Surface *m_surface;
     SDL_Renderer *m_renderer;
     RenderDevice *m_renderDevice;
-    SDL_Texture *m_texture;
+    SharedTexture m_texture;
 
     SRect m_rect;
     Margin m_margin;

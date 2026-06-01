@@ -1,4 +1,5 @@
 ﻿#include "GraphTool.h"
+#include "Texture.h"
 
 namespace GraphTool {
 
@@ -928,23 +929,23 @@ void DrawingContext::drawText(const ::SRect& bounds, const std::string& text, Te
 }
 
 // drawImage - SPoint版本
-void DrawingContext::drawImage(const ::SPoint& position, void* texture) {
+void DrawingContext::drawImage(const ::SPoint& position, Texture* texture) {
     if (!m_renderDevice || !texture) return;
 
-    float width, height;
-    m_renderDevice->getTextureSize(texture, width, height);
-    SRect destRect(position.x, position.y, width, height);
+    float w = (float)texture->width();
+    float h = (float)texture->height();
+    SRect destRect(position.x, position.y, w, h);
     m_renderDevice->drawTexture(texture, nullptr, &destRect);
 }
 
 // drawImage - SRect版本
-void DrawingContext::drawImage(const ::SRect& destRect, void* texture) {
+void DrawingContext::drawImage(const ::SRect& destRect, Texture* texture) {
     if (!m_renderDevice || !texture) return;
     m_renderDevice->drawTexture(texture, nullptr, &destRect);
 }
 
 // drawImage - SRect+SRect版本
-void DrawingContext::drawImage(const ::SRect& destRect, void* texture, const ::SRect& srcRect) {
+void DrawingContext::drawImage(const ::SRect& destRect, Texture* texture, const ::SRect& srcRect) {
     if (!m_renderDevice || !texture) return;
     m_renderDevice->drawTexture(texture, &srcRect, &destRect);
 }

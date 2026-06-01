@@ -94,25 +94,24 @@ void Actor::loadTextureFromSurface(SDL_Surface *surface) {
         m_rect.height = getParent()->getRect().height;
     }
 
-    m_texture = SDL_CreateTextureFromSurface(getRenderer(), surface); //创建纹理
-    if (m_texture == nullptr) {
-        SDL_Log("SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
+    m_texture = getRenderDevice()->createTextureFromSDLSurface(surface);
+    if (!m_texture) {
+        SDL_Log("createTextureFromSDLSurface failed\n");
         return;
     }
 }
 
 void Actor::setParent(Control *parent){
     Material::setParent(parent);
-    // m_parent = parent;
 
     if (m_matchParentRect) {
         m_rect.width = getParent()->getRect().width;
         m_rect.height = getParent()->getRect().height;
 
         if (m_surface != nullptr) {
-            m_texture = SDL_CreateTextureFromSurface(getRenderer(), m_surface); //创建纹理
-            if (m_texture == nullptr) {
-                SDL_Log("SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
+            m_texture = getRenderDevice()->createTextureFromSDLSurface(m_surface);
+            if (!m_texture) {
+                SDL_Log("createTextureFromSDLSurface failed\n");
                 return;
             }
         }
@@ -121,7 +120,7 @@ void Actor::setParent(Control *parent){
 
 void Actor::draw(float posx, float posy, Uint8 alpha) {
     inheritRenderer();
-    if (m_texture == nullptr) return;
+    if (!m_texture) return;
 
     SRect targetRect = getRect();
     targetRect.left = posx - m_anchorPoint.x;
@@ -129,21 +128,17 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
 
     SRect drawRect = mapToDrawRect(targetRect);
 
-    if (!SDL_SetTextureBlendMode(m_texture, SDL_BLENDMODE_BLEND)) {
-        SDL_Log("SDL_SetTextureBlendMode Error: %s", SDL_GetError());
-    }
-    if (!SDL_SetTextureAlphaMod(m_texture, alpha)) {
-        SDL_Log("SDL_SetTextureAlphaMod Error: %s", SDL_GetError());
-    }
+    m_texture->setBlendMode(BlendMode::Blend);
+    m_texture->setAlphaMod(alpha);
+
+    float texW = (float)m_texture->width();
+    float texH = (float)m_texture->height();
+    if (texW <= 0 || texH <= 0) return;
 
     if (m_scaleType == ScaleType::STRETCH) {
-        getRenderDevice()->drawTexture(m_texture, nullptr, &drawRect);
+        getRenderDevice()->drawTexture(m_texture.get(), nullptr, &drawRect);
         return;
     }
-
-    float texW, texH;
-    if (!SDL_GetTextureSize(m_texture, &texW, &texH)) return;
-    if (texW <= 0 || texH <= 0) return;
 
     switch (m_scaleType) {
         case ScaleType::FIT_CENTER: {
@@ -155,7 +150,7 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
                 drawRect.top + (drawRect.height - h) * 0.5f,
                 w, h
             );
-            getRenderDevice()->drawTexture(m_texture, nullptr, &fitRect);
+            getRenderDevice()->drawTexture(m_texture.get(), nullptr, &fitRect);
             break;
         }
         case ScaleType::CENTER_CROP: {
@@ -167,7 +162,7 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
                 (texH - cropH) * 0.5f,
                 cropW, cropH
             );
-            getRenderDevice()->drawTexture(m_texture, &srcRect, &drawRect);
+            getRenderDevice()->drawTexture(m_texture.get(), &srcRect, &drawRect);
             break;
         }
         case ScaleType::NONE: {
@@ -176,7 +171,7 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
                 drawRect.top + (drawRect.height - texH) * 0.5f,
                 texW, texH
             );
-            getRenderDevice()->drawTexture(m_texture, nullptr, &naturalRect);
+            getRenderDevice()->drawTexture(m_texture.get(), nullptr, &naturalRect);
             break;
         }
         default:
