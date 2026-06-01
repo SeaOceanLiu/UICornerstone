@@ -42,9 +42,9 @@ UIControls 当前硬编码绑定 SDL3，所有控件直接在头文件中引用 
 
 | Phase | 状态 | 完成内容 |
 |-------|------|---------|
-| 1 — SColor 统一 | ✅ **已完成** | SColor 独立头文件；所有控件 public API 迁移；ConstDef 常量迁移；StateColor → SColor；GraphTool SColor 别名；所有 9 个原始测试通过 |
-| 2 — RenderDevice 抽象 | 🔄 **进行中** | RenderDevice 接口定义 + SDL3RenderDevice 实现（src/RenderDevice.cpp）；MainWindow/ControlBase 集成 RenderDevice*；GraphTool.cpp 完整迁移（1452 行重写，零 SDL 调用）；10 个测试全部构建；**剩余 ~60 处 SDL 调用待迁移**（Menu/ControlBase/EditBox/TextArea/Bench 等 11 文件）|
-| 3 — Texture 抽象 | ⏳ **未开始** | |
+| 1 — SColor 统一 | ✅ **已完成** | SColor 独立头文件；所有控件 public API 迁移；ConstDef 常量迁移；StateColor → SColor；GraphTool SColor 别名 |
+| 2 — RenderDevice 抽象 | ✅ **已完成** | RenderDevice 接口 + SDL3RenderDevice 实现；MainWindow/ControlBase 集成 RenderDevice*；GraphTool.cpp 完整迁移（零 SDL 调用）；全 54 处控件层 SDL 调用迁移（Menu/ControlBase/EditBox/TextArea/Bench 等 11 文件）|
+| 3 — Texture / Surface 抽象 | ✅ **已完成** | Texture/Surface 抽象类；SDL3Texture/SDL3Surface 实现；`m_texture`: SDL_Texture* → SharedTexture；`m_surface`: SDL_Surface* → SharedSurface；GraphTool `void*` → `Texture*`；**LuotiAni.h ~180 SDL 调用延期处理** |
 | 4 — Font / TextRenderer | ⏳ **未开始** | |
 | 5 — Window / Application | ⏳ **未开始** | |
 | 6 — SFML 后端 | ⏳ **未开始** | |

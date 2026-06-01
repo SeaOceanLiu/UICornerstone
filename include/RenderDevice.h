@@ -20,7 +20,7 @@ class RenderDevice {
 public:
     virtual ~RenderDevice() = default;
 
-    // === 渲染状�?===
+    // === 渲染状态 ===
     virtual void setDrawColor(SColor color) = 0;
     virtual void setBlendMode(BlendMode mode) = 0;
     virtual void setClipRect(const SRect& rect) = 0;
@@ -53,16 +53,16 @@ public:
     virtual void drawTexture(Texture* texture, const SRect* srcRect, const SRect* dstRect) = 0;
     virtual void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) = 0;
 
-    // ��ʱ�Žӷ�����Phase 3Ǩ�����ǰʹ�ã�
+    // 临时桥接方法，Phase 3迁移完成前使用
     virtual SharedTexture createTextureFromSDLSurface(SDL_Surface* surface) = 0;
     virtual SDL_Renderer* getNativeRenderer() = 0;
 
-    // === 渲染到纹�?===
+    // === 渲染到纹理 ===
     virtual void setRenderTarget(Texture* texture) = 0;
     virtual void resetRenderTarget() = 0;
     virtual void readPixels(void* buffer, const SRect& rect) = 0;
 
-    // === 帧操�?===
+    // === 帧操作 ===
     virtual void clear() = 0;
     virtual void present() = 0;
 };

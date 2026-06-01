@@ -35,6 +35,7 @@ shared_ptr<Button> g_button2;
 shared_ptr<Button> g_button3;
 shared_ptr<Button> g_button4;
 shared_ptr<Button> g_button5;
+shared_ptr<Button> g_button6;
 
 void testBenchInitialize(void) {
     SDL_Log(u8"testButtonInitialize");
@@ -43,7 +44,7 @@ void testBenchInitialize(void) {
     redBorder.setNormal({255, 0, 0, 255});
 
     BENCH->addControl(LabelBuilder(nullptr, SRect(50, 50, 120, 50))
-        .setCaption(u8"普通按钮")
+        .setCaption(u8"应被遮挡的 Label")
         .build());
 
     // 1. 普通 button（只有背景，无文字无图片）
@@ -146,6 +147,24 @@ void testBenchInitialize(void) {
         .build();
     g_button5->create();
     BENCH->addControl(g_button5);
+
+    // 6. 2x缩放的动画 button（LuotiAni）
+    {
+        shared_ptr<LuotiAni> rotateAni2x = LuotiAniBuilder(BENCH)
+            .loadAniDesc(ResourceLoader::RID_rotateBtn_jsonc)
+            .prepare()
+            .setAutoStart()
+            .build();
+        g_button6 = ButtonBuilder(nullptr, SRect(530, 150, 240, 100), 2.0f, 2.0f)
+            .setLuotiAni(rotateAni2x)
+            .setTransparent(true)
+            .setOnClick([](shared_ptr<Button> btn) {
+                logOutput(u8"Button6 (2x缩放动画) clicked!");
+            })
+            .build();
+        g_button6->create();
+        BENCH->addControl(g_button6);
+    }
 
     logOutput(u8"Button test controls created");
 }

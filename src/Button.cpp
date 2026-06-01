@@ -160,6 +160,9 @@ void Button::setRect(SRect rect){
     if (m_caption != nullptr){
         m_caption->setRect({0, 0, m_rect.width, m_rect.height});
     }
+    if (m_luotiAni != nullptr){
+        m_luotiAni->setRect({0, 0, m_rect.width, m_rect.height});
+    }
 }
 
 /*********************************************************for Builder mode**********************************************************/
@@ -272,8 +275,8 @@ SRect Button::getCaptionRect(void) const{
 void Button::setLuotiAni(shared_ptr<LuotiAni>luotiAni){
     m_luotiAni = luotiAni;
     if (m_luotiAni != nullptr){
-        // 设置动画的父控件为当前控件
         m_luotiAni->setParent(this);
+        m_luotiAni->setRect({0, 0, m_rect.width, m_rect.height});
         m_luotiAni->setVisible(true);
     }
 }

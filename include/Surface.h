@@ -25,6 +25,7 @@ public:
     virtual void blit(Surface* src, int dstX, int dstY) = 0;
 
     virtual SharedTexture createTexture(RenderDevice* device) = 0;
+    virtual SharedSurface rotate(float angle, RenderDevice* device) = 0;
 
     static SharedSurface create(int width, int height);
     static SharedSurface loadFromFile(const std::string& path);

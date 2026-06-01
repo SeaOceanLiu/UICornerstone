@@ -365,6 +365,59 @@ public:
         return std::make_shared<SDL3Texture>(tex, m_surface->w, m_surface->h);
     }
 
+    SharedSurface rotate(float angle, RenderDevice* device) override {
+        if (!m_surface || !device) return nullptr;
+        SDL_Renderer* renderer = static_cast<SDL3RenderDevice*>(device)->getSDL3Renderer();
+        if (!renderer) return nullptr;
+
+        SDL_Texture* src_tex = SDL_CreateTextureFromSurface(renderer, m_surface);
+        if (!src_tex) {
+            SDL_Log("SDL3Surface::rotate: SDL_CreateTextureFromSurface failed: %s", SDL_GetError());
+            return nullptr;
+        }
+
+        SDL_Texture* dst_tex = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                                                  SDL_TEXTUREACCESS_TARGET, m_surface->w, m_surface->h);
+        if (!dst_tex) {
+            SDL_Log("SDL3Surface::rotate: SDL_CreateTexture failed: %s", SDL_GetError());
+            SDL_DestroyTexture(src_tex);
+            return nullptr;
+        }
+
+        bool success = false;
+        SDL_Surface* result = nullptr;
+
+        do {
+            if (!SDL_SetRenderTarget(renderer, dst_tex)) break;
+            if (!SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0)) break;
+            if (!SDL_RenderClear(renderer)) break;
+            if (!SDL_SetTextureBlendMode(src_tex, SDL_BLENDMODE_BLEND)) break;
+
+            SDL_FRect dst_rect = { 0, 0, (float)m_surface->w, (float)m_surface->h };
+            SDL_FPoint center = { (float)m_surface->w / 2, (float)m_surface->h / 2 };
+
+            if (!SDL_RenderTextureRotated(renderer, src_tex, nullptr, &dst_rect, -angle, &center, SDL_FLIP_NONE)) break;
+            if (!SDL_RenderPresent(renderer)) break;
+
+            result = SDL_RenderReadPixels(renderer, nullptr);
+            if (!result) break;
+
+            success = true;
+        } while (false);
+
+        SDL_SetRenderTarget(renderer, nullptr);
+        SDL_DestroyTexture(src_tex);
+        SDL_DestroyTexture(dst_tex);
+
+        if (!success) {
+            if (result) SDL_DestroySurface(result);
+            SDL_Log("SDL3Surface::rotate: GPU rotation failed: %s", SDL_GetError());
+            return nullptr;
+        }
+
+        return std::make_shared<SDL3Surface>(result);
+    }
+
     SDL_Surface* native() const { return m_surface; }
 
 private:
