@@ -232,7 +232,7 @@ protected:
     StateColor m_textColor; //文字颜色
     StateColor m_textShadowColor; //文字阴影颜色
 
-    SDL_Surface *m_surface;
+    SharedSurface m_surface;
     SDL_Renderer *m_renderer;
     RenderDevice *m_renderDevice;
     SharedTexture m_texture;

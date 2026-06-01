@@ -1,4 +1,5 @@
 ﻿#include "Actor.h"
+#include "Surface.h"
 
 Actor::Actor(Control *parent, float xScale, float yScale):
     Material(parent, xScale, yScale),
@@ -49,13 +50,13 @@ Actor& Actor::operator=(const Actor& other) {
 }
 
 void Actor::loadFromFile(fs::path filePath) {
-    m_surface = IMG_Load(filePath.string().c_str());
-    if (m_surface == nullptr) {
-        SDL_Log("LoadFromFile Error: %s\n", SDL_GetError());
+    m_surface = Surface::loadFromFile(filePath.string());
+    if (!m_surface) {
+        SDL_Log("LoadFromFile Error\n");
         return;
     }
 
-    loadTextureFromSurface(m_surface);
+    loadTextureFromSurface(m_surface.get());
 }
 
 void Actor::loadFromResource(string resourceId) {
@@ -69,18 +70,13 @@ void Actor::loadFromResource(string resourceId) {
         return;
     }
 
-    SDL_IOStream *resourceStream = SDL_IOFromConstMem(resource->pMem.get(), resource->resourceSize);
-    if( resourceStream == nullptr){
-        SDL_Log("Create IOStream Error: %s\n", SDL_GetError());
-        return;
-    }
-    m_surface = IMG_Load_IO(resourceStream, true);  // 这里传递了true给closeio参数，所以完成图片载入后，会自动关闭resourceStream
-    if (m_surface == nullptr) {
-        SDL_Log("loadFromResource Error: %s\n", SDL_GetError());
+    m_surface = Surface::loadFromMemory(resource->pMem.get(), resource->resourceSize);
+    if (!m_surface) {
+        SDL_Log("loadFromResource Error\n");
         return;
     }
 
-    loadTextureFromSurface(m_surface);
+    loadTextureFromSurface(m_surface.get());
 }
 
 void Actor::loadTextureFromSurface(SDL_Surface *surface) {
@@ -101,6 +97,24 @@ void Actor::loadTextureFromSurface(SDL_Surface *surface) {
     }
 }
 
+void Actor::loadTextureFromSurface(Surface* surface) {
+    m_rect.left = 0;
+    m_rect.top = 0;
+    if (!m_matchParentRect) {
+        m_rect.width = (float)surface->width();
+        m_rect.height = (float)surface->height();
+    } else {
+        m_rect.width = getParent()->getRect().width;
+        m_rect.height = getParent()->getRect().height;
+    }
+
+    m_texture = surface->createTexture(getRenderDevice());
+    if (!m_texture) {
+        SDL_Log("Surface::createTexture failed\n");
+        return;
+    }
+}
+
 void Actor::setParent(Control *parent){
     Material::setParent(parent);
 
@@ -108,10 +122,10 @@ void Actor::setParent(Control *parent){
         m_rect.width = getParent()->getRect().width;
         m_rect.height = getParent()->getRect().height;
 
-        if (m_surface != nullptr) {
-            m_texture = getRenderDevice()->createTextureFromSDLSurface(m_surface);
+        if (m_surface) {
+            m_texture = m_surface->createTexture(getRenderDevice());
             if (!m_texture) {
-                SDL_Log("createTextureFromSDLSurface failed\n");
+                SDL_Log("Surface::createTexture failed\n");
                 return;
             }
         }
