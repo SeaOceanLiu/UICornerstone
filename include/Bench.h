@@ -29,11 +29,11 @@ private:
     SDL_AppResult m_isExiting;
     OnInitialHandler m_onInitial;
 
-    Bench(Control *parent, SRect rect, SDL_Renderer *renderer, float xScale=1.0f, float yScale=1.0f);
+    Bench(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
 
 public:
     static Bench* getInstance(void){
-        static Bench instance = Bench(nullptr, {0, 0, INITIAL_WIDTH, INITIAL_HEIGHT}, GET_RENDERER); // 静态局部变量，程序运行期间只会被初始化一次
+        static Bench instance = Bench(nullptr, {0, 0, INITIAL_WIDTH, INITIAL_HEIGHT}); // 静态局部变量，程序运行期间只会被初始化一次
         instance.create(); // 确保在第一次获取实例时调用create方法进行初始化
         return &instance;
     }

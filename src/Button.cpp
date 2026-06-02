@@ -284,13 +284,6 @@ void Button::setOnClick(OnClickHandler onClick){
     m_onClick = onClick;
 }
 
-void Button::setRenderer(SDL_Renderer* renderer){
-    ControlImpl::setRenderer(renderer);
-    if (m_luotiAni != nullptr) {
-        m_luotiAni->setRenderer(renderer);
-    }
-}
-
 ButtonBuilder::ButtonBuilder(Control *parent, SRect rect, float xScale, float yScale):
     m_button(nullptr)
 {

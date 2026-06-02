@@ -583,18 +583,14 @@ public:
         m_lastFrameMsTick = getTicks();
     }
 
-    void setRenderer(SDL_Renderer* renderer) override {
-        if (m_renderer == renderer) return;
-        m_renderer = renderer;
-        for (auto& child : m_children) {
-            child->setRenderer(renderer);
-        }
+    void setRenderDevice(RenderDevice* device) override {
+        Material::setRenderDevice(device);
 
-        if (renderer != nullptr) {
+        if (device != nullptr) {
             for (size_t i = 0; i < m_frames.size() && i < m_frameSurfaces.size(); i++) {
                 Actor* frameActor = dynamic_cast<Actor*>(m_frames[i].get());
                 if (frameActor != nullptr && frameActor->getTexture() == nullptr && m_frameSurfaces[i] != nullptr) {
-                    auto tex = m_frameSurfaces[i]->createTexture(getRenderDevice());
+                    auto tex = m_frameSurfaces[i]->createTexture(device);
                     if (tex != nullptr) {
                         frameActor->setTexture(tex);
                     }

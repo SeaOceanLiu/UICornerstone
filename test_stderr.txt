@@ -1,0 +1,14 @@
+Loading resources.....................................
+Open config file: D:\GitSpace\UIControls\build\test\Debug\assets\config\config.jsonc
+currentResourceVersion: 1.2.0
+Open config file: D:\GitSpace\UIControls\build\test\Debug\assets\config\config.jsonc
+targetResourceVersion: 1.2.0
+--------------------Resource version NO changed, NO need to overwrite resource--------------------
+Set resource loading path to workforldPath
+Resource loading path: D:\GitSpace\UIControls\build\test\Debug\assets
+Get resource path: fonts
+Get resource path: images
+Get resource path: background
+Get resource path: animations
+Get resource path: music
+Get resource path: sounds

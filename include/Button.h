@@ -59,7 +59,7 @@ public:
 
     void setLuotiAni(shared_ptr<LuotiAni>luotiAni);
     void setOnClick(OnClickHandler onClick);
-    void setRenderer(SDL_Renderer* renderer) override;
+
 };
 
 class ButtonBuilder {

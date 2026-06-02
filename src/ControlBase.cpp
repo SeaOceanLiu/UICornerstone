@@ -276,6 +276,7 @@ void ControlImpl::addControl(shared_ptr<Control> child){
 
     child->setParent(this);
     child->setRenderer(getRenderer());
+    child->setRenderDevice(getRenderDevice());
 }
 
 void ControlImpl::removeControl(shared_ptr<Control> child){

@@ -12,7 +12,7 @@ void Bench::initial(void){
     }
 }
 
-Bench::Bench(Control *parent, SRect rect, SDL_Renderer *renderer, float xScale, float yScale):
+Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
     TopControl(),
     Panel(parent, rect, xScale, yScale),
     m_isLoading(true),
@@ -22,7 +22,6 @@ Bench::Bench(Control *parent, SRect rect, SDL_Renderer *renderer, float xScale, 
     m_isExiting(SDL_APP_CONTINUE),
     m_onInitial(nullptr)
 {
-    setRenderer(renderer);
     setTransparent(true);
 
     SDL_Log("Loading resources.....................................");

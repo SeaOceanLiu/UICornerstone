@@ -516,12 +516,6 @@ void EditBox::setRect(SRect rect) {
     updateTextOffset();
 }
 
-void EditBox::setRenderer(SDL_Renderer *renderer) {
-    if (m_renderer == renderer) return;
-
-    ControlImpl::setRenderer(renderer);
-}
-
 void EditBox::onMouseEnter(float x, float y) {
     m_mouseInside = true;
 }

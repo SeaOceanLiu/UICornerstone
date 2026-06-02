@@ -83,7 +83,7 @@ public:
     bool handleEvent(shared_ptr<Event> event) override;
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
-    void setRenderer(SDL_Renderer *renderer) override;
+
 
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;
