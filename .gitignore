@@ -420,3 +420,7 @@ FodyWeavers.xsd
 # Build output
 build/
 label_log.txt
+
+# Test output
+test_stdout.txt
+test_stderr.txt
