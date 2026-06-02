@@ -1738,19 +1738,19 @@ AlignmentMode LayoutParser::parseAlignment(const string& align) {
     return AlignmentMode::AM_TOP_LEFT;
 }
 
-TTF_FontStyleFlags LayoutParser::parseFontStyle(const string& style) {
-    static const unordered_map<string, TTF_FontStyleFlags> styleMap = {
-        {"NORMAL",        TTF_STYLE_NORMAL},
-        {"BOLD",          TTF_STYLE_BOLD},
-        {"ITALIC",        TTF_STYLE_ITALIC},
-        {"UNDERLINE",     TTF_STYLE_UNDERLINE},
-        {"STRIKETHROUGH", TTF_STYLE_STRIKETHROUGH},
+int LayoutParser::parseFontStyle(const string& style) {
+    static const unordered_map<string, int> styleMap = {
+        {"NORMAL",        0},
+        {"BOLD",          1},
+        {"ITALIC",        2},
+        {"UNDERLINE",     4},
+        {"STRIKETHROUGH", 8},
     };
 
     auto it = styleMap.find(style);
     if (it != styleMap.end()) return it->second;
 
-    return TTF_STYLE_NORMAL;
+    return 0;
 }
 
 GridSize LayoutParser::parseGridSize(const json& j) {

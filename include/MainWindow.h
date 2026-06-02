@@ -6,17 +6,25 @@
 #include "EventQueue.h"
 #include "Utility.h"
 #include "RenderDevice.h"
+#include "TextRenderer.h"
+#include "Window.h"
+#include "InputBackend.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
 #define GET_RENDERER (MAINWIN->getRenderer())
 #define GET_RENDERDEVICE (MAINWIN->getRenderDevice())
+#define GET_TEXTRENDERER (MAINWIN->getTextRenderer())
+#define GET_INPUTBACKEND (MAINWIN->getInputBackend())
+
 
 class MainWindow {
 private:
-    SDL_Window *m_window;
+    Window *m_window;
     SDL_Renderer *m_renderer;
     RenderDevice *m_renderDevice;
+    TextRenderer *m_textRenderer;
+    InputBackend *m_inputBackend;
     SSize m_size;
     SPoint m_pos;
 
@@ -27,32 +35,27 @@ private:
     uint64_t m_nextTick;
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
-    unordered_map<EventName, uint64_t> m_eventJitter; // jitter for each event
+    unordered_map<EventName, uint64_t> m_eventJitter;
 
     MainWindow():
         m_window(nullptr),
         m_renderer(nullptr),
         m_renderDevice(nullptr),
+        m_textRenderer(nullptr),
+        m_inputBackend(nullptr),
         m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
         m_pos({INITIAL_POSX, INITIAL_POSY})
     {
-        // 创建SDL3窗口和渲染器
-        if (!SDL_CreateWindowAndRenderer(APP_NAME, INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG, &m_window, &m_renderer)) {
-            SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
+        m_window = CreateSDL3Window(APP_NAME, INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG);
+        if (!m_window) {
+            SDL_Log("Couldn't create window");
             return;
         }
 
-        m_renderDevice = CreateSDL3RenderDevice(m_renderer);
-
-        //设置窗口位置
-        if(!SDL_SetWindowPosition(m_window, INITIAL_POSX, INITIAL_POSY)){
-            SDL_Log("Couldn't set window position: %s", SDL_GetError());
-        }
-
-        // 是否开启垂直同步
-        if(!SDL_SetRenderVSync(m_renderer, VSYNC_FLAG)){
-            SDL_Log("Couldn't set vsync: %s", SDL_GetError());
-        }
+        m_renderDevice = m_window->renderDevice();
+        m_renderer = static_cast<SDL_Renderer*>(m_renderDevice->getNativeHandle());
+        m_textRenderer = CreateSDL3TextRenderer(m_renderDevice);
+        m_inputBackend = CreateSDL3InputBackend(m_window);
 
         // 获取显示器信息
         SDL_DisplayID m_displayId = SDL_GetPrimaryDisplay();
@@ -72,24 +75,23 @@ private:
             // Get window size
         int windowWidth = INITIAL_WIDTH;
         int windowHeight = INITIAL_HEIGHT;
-        if(!SDL_GetWindowSize(m_window, &windowWidth, &windowHeight)){
+        if(!SDL_GetWindowSize(m_window ? static_cast<SDL_Window*>(m_window->nativeHandle()) : nullptr, &windowWidth, &windowHeight)){
             DEBUG_STREAM << "Couldn't get window size: " << SDL_GetError() << std::endl;
         }
         m_size = SSize{(float)windowWidth, (float)windowHeight};
     }
 
     ~MainWindow() {
-        delete m_renderDevice;
-        if (m_renderer) SDL_DestroyRenderer(m_renderer);
-        if (m_window) SDL_DestroyWindow(m_window);
+        delete m_textRenderer;
+        delete m_inputBackend;
+        delete m_window;
     }
 public:
     static MainWindow* getInstance(void){
-        static MainWindow instance; // 静态局部变量，程序运行期间只会被初始化一次
+        static MainWindow instance;
         return &instance;
     }
 
-     // Window resize event callback function
     static void handleWindowEvent(const SDL_WindowEvent& windowEvent) {
         switch (windowEvent.type) {
             case SDL_EVENT_WINDOW_RESIZED:
@@ -105,12 +107,16 @@ public:
         }
     }
 
-    SDL_Window* getWindow(void) { return m_window; }
+    SDL_Window* getWindow(void) {
+        return m_window ? static_cast<SDL_Window*>(m_window->nativeHandle()) : nullptr;
+    }
     SDL_Renderer* getRenderer(void) { return m_renderer; }
+    Window* getWindowObject(void) { return m_window; }
     RenderDevice* getRenderDevice(void) { return m_renderDevice; }
+    TextRenderer* getTextRenderer(void) { return m_textRenderer; }
+    InputBackend* getInputBackend(void) { return m_inputBackend; }
     SSize getWindowSize(void) { return m_size; }
     SPoint getWindowPos(void) { return m_pos; }
-    // SDL_PixelFormat getPixelFormat(void) { return m_pixelFormat; }
     float getDisplayWidth(void) { return m_displayWidth; }
     float getDisplayHeight(void) { return m_displayHeight; }
     SSize getDisplaySize(void) { return SSize{m_displayWidth, m_displayHeight}; }

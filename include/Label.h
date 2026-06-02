@@ -1,7 +1,6 @@
 ﻿#ifndef LabelH
 #define LabelH
 
-#include <SDL3_ttf/SDL_ttf.h>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -9,8 +8,10 @@
 #include "ConstDef.h"
 #include "ControlBase.h"
 #include "ResourceLoader.h"
+#include "Font.h"
 
-// #include "FontSuite.h"
+struct SDL_Cursor;
+
 enum class LabelState {
     Normal,
     Hover,
@@ -41,10 +42,9 @@ enum class LabelDirection: int{
 class Label: public ControlImpl {
     friend class LabelBuilder;
     using OnClickHandler = std::function<void (shared_ptr<Label>)>;
-    using OnPropertyChangedHandler = std::function<void (shared_ptr<Label>)>;//, const string& propertyName)>;
+    using OnPropertyChangedHandler = std::function<void (shared_ptr<Label>)>;
 private:
-    TTF_Font *m_font;
-    TTF_TextEngine *m_textEngin;
+    SharedFont m_font;
     SPoint m_translatedPos;
     SDL_Cursor *m_hoverCursor;
     SDL_Cursor *m_defaultCursor;
@@ -56,38 +56,33 @@ private:
     bool m_shadowEnabled;
     FontName m_fontName;
     fs::path m_fontFile;
-    TTF_FontStyleFlags m_fontStyle;
+    int m_fontStyle;
     SRect m_hotRect;
 
     OnClickHandler m_onClick;
     OnPropertyChangedHandler m_onPropertyChanged;
 
     std::vector<std::string> m_lines;
-    std::vector<TTF_Text*> m_lineTexts;
     std::vector<SPoint> m_lineOffsets;
-    int m_defaultLineHeight;    // 缺省行高，为0时使用字体的行高
+    int m_defaultLineHeight;
     int m_lineHeight;
     bool m_enableExpand;
     SRect m_originalRect;
     bool m_debugDraw;
-    float m_defaultLineSpacingRatio;  // 缺省行间距，缺省为0时使用0.2，即行高的20%
+    float m_defaultLineSpacingRatio;
     int m_lineSpacing;
 
-    int m_reentryCounter;   // 防止OnPropertyChangedHandler触发递归调用导致的死循环
+    int m_reentryCounter;
 
 private:
     void recreate() override;
     void releaseFont(void);
-    void releaseTextEngin(void);
-    void releaseTextObjects(void);
-    void releaseMultilineTexts(void);
     void loadFromFile(void);
     void loadFromResource(string resourceId);
-    void createTextEngine(void);
     void createMultilineText(void);
+    void computeLineOffsets(void);
     void truncateLine(string& line, float maxWidth);
-    SSize Label::getTextSize(TTF_Text* text);
-    void createLineTexts(void);
+    SSize getTextSize(const string& text);
     float getStringWidth(const string& text);
 
 public:
@@ -100,7 +95,6 @@ public:
     void setRect(SRect rect) override;
     void setParent(Control *parent) override;
     SRect getHotRect(void);
-    // SRect getMarginedRect(void);
 
     void setCaption(string caption);
     string getCaption(void) const;
@@ -127,7 +121,7 @@ public:
     void setEnableExpand(bool enable);
     bool getEnableExpand() const;
 
-    void SetFontStyle(TTF_FontStyleFlags fontStyle);
+    void SetFontStyle(int fontStyle);
 };
 
 class LabelBuilder {
@@ -156,7 +150,7 @@ public:
 
     LabelBuilder& setDebugDraw(bool enabled);
 
-    LabelBuilder& SetFontStyle(TTF_FontStyleFlags fontStyle);
+    LabelBuilder& SetFontStyle(int fontStyle);
 
     shared_ptr<Label> build(void);
 };

@@ -40,7 +40,9 @@ add_library(UIControls STATIC
     src/ProgressBar.cpp
     src/RenderDevice.cpp
     src/ScrollBar.cpp
+    src/TextRenderer.cpp
     src/TextArea.cpp
+    src/Window.cpp
     src/Theme.cpp
     ${DEBUG_TRACE_DIR}/DebugTrace.cpp
 )

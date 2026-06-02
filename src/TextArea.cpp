@@ -14,7 +14,6 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     , m_hScrollBar(nullptr)
     , m_autoScroll(true)
     , m_updatingScrollBar(false)
-    , m_textEngine(nullptr)
 {
     m_lines.push_back("");
 
@@ -58,7 +57,7 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
 }
 
 float TextArea::getCharWidth(const std::string& text, int byteIndex) {
-    if (byteIndex < 0 || byteIndex >= (int)text.length() || !getTextEngine() || !getFont()) {
+    if (byteIndex < 0 || byteIndex >= (int)text.length() || !getTextRenderer() || !getFont()) {
         return 0;
     }
 
@@ -67,31 +66,17 @@ float TextArea::getCharWidth(const std::string& text, int byteIndex) {
         charLen = text.length() - byteIndex;
     }
 
-    TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), text.c_str() + byteIndex, charLen);
-    if (!tempText) {
-        return 0;
-    }
-
-    int w = 0, h = 0;
-    TTF_GetTextSize(tempText, &w, &h);
-    TTF_DestroyText(tempText);
-    return (float)w;
+    SSize size = getTextRenderer()->measureText(getFont(), text.substr(byteIndex, charLen));
+    return size.width;
 }
 
 int TextArea::getLinePixelWidth(const std::string& line) {
-    if (line.empty() || !getTextEngine() || !getFont()) {
+    if (line.empty() || !getTextRenderer() || !getFont()) {
         return 0;
     }
 
-    TTF_Text *text = TTF_CreateText(getTextEngine(), getFont(), line.c_str(), (Uint32)line.length());
-    if (!text) {
-        return 0;
-    }
-
-    int w = 0, h = 0;
-    TTF_GetTextSize(text, &w, &h);
-    TTF_DestroyText(text);
-    return w;
+    SSize size = getTextRenderer()->measureText(getFont(), line);
+    return (int)size.width;
 }
 
 int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
@@ -99,7 +84,7 @@ int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
         return 0;
     }
 
-    if (!getTextEngine() || !getFont()) {
+    if (!getTextRenderer() || !getFont()) {
         return 0;
     }
 
@@ -122,23 +107,13 @@ int TextArea::getByteIndexFromPixelX(const std::string& text, float pixelX) {
 
         int prefixWidth = 0;
         if (byteIndex > 0) {
-            TTF_Text *prefixText = TTF_CreateText(getTextEngine(), getFont(), text.c_str(), (Uint32)byteIndex);
-            if (prefixText) {
-                int w = 0, h = 0;
-                TTF_GetTextSize(prefixText, &w, &h);
-                prefixWidth = w;
-                TTF_DestroyText(prefixText);
-            }
+            SSize size = getTextRenderer()->measureText(getFont(), text.substr(0, byteIndex));
+            prefixWidth = (int)size.width;
         }
 
         int nextPrefixWidth = 0;
-        TTF_Text *nextPrefixText = TTF_CreateText(getTextEngine(), getFont(), text.c_str(), (Uint32)(byteIndex + charLen));
-        if (nextPrefixText) {
-            int w = 0, h = 0;
-            TTF_GetTextSize(nextPrefixText, &w, &h);
-            nextPrefixWidth = w;
-            TTF_DestroyText(nextPrefixText);
-        }
+        SSize nextSize = getTextRenderer()->measureText(getFont(), text.substr(0, byteIndex + charLen));
+        nextPrefixWidth = (int)nextSize.width;
 
         float charCenterX = (prefixWidth + nextPrefixWidth) / 2.0f;
 
@@ -179,7 +154,7 @@ void TextArea::rebuildLines() {
             line = text.substr(start, newlinePos - start);
         }
 
-        if (m_wordWrap && availableWidth > 0 && getTextEngine() && getFont()) {
+        if (m_wordWrap && availableWidth > 0 && getTextRenderer() && getFont()) {
             std::string remaining = line;
             int wrapStartInLine = 0;
             while (!remaining.empty()) {
@@ -193,14 +168,7 @@ void TextArea::rebuildLines() {
                     int charLen = (i < (int)remaining.length()) ? getUtf8CharLength(remaining[i]) : 1;
                     std::string charStr = remaining.substr(i, charLen);
 
-                    TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), charStr.c_str(), charLen);
-                    float charWidth = 0;
-                    if (tempText) {
-                        int w = 0, h = 0;
-                        TTF_GetTextSize(tempText, &w, &h);
-                        charWidth = (float)w;
-                        TTF_DestroyText(tempText);
-                    }
+                    float charWidth = getCharWidth(remaining, i);
 
                     if (lineWidth + charWidth > availableWidth && i > 0) {
                         overflow = true;
@@ -529,26 +497,16 @@ void TextArea::draw(void) {
 
             float selStartX = drawRect.left + marginX - (float)m_scrollX;
             std::string textBeforeSel = m_lines[i].substr(0, selStartInLine);
-            if (!textBeforeSel.empty() && getTextEngine() && getFont()) {
-                TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), textBeforeSel.c_str(), (Uint32)textBeforeSel.length());
-                if (tempText) {
-                    int w = 0, h = 0;
-                    TTF_GetTextSize(tempText, &w, &h);
-                    selStartX += (float)w;
-                    TTF_DestroyText(tempText);
-                }
+            if (!textBeforeSel.empty() && getTextRenderer() && getFont()) {
+                SSize size = getTextRenderer()->measureText(getFont(), textBeforeSel);
+                selStartX += size.width;
             }
 
             float selEndX = selStartX;
             std::string selectedText = m_lines[i].substr(selStartInLine, selEndInLine - selStartInLine);
-            if (!selectedText.empty() && getTextEngine() && getFont()) {
-                TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), selectedText.c_str(), (Uint32)selectedText.length());
-                if (tempText) {
-                    int w = 0, h = 0;
-                    TTF_GetTextSize(tempText, &w, &h);
-                    selEndX += (float)w;
-                    TTF_DestroyText(tempText);
-                }
+            if (!selectedText.empty() && getTextRenderer() && getFont()) {
+                SSize size = getTextRenderer()->measureText(getFont(), selectedText);
+                selEndX += size.width;
             }
 
             SRect selRect(selStartX, y - marginY / 2, selEndX - selStartX, m_fontSize * scale + marginY);
@@ -569,22 +527,10 @@ void TextArea::draw(void) {
                 displayLine = std::string(displayLine.length(), '*');
             }
 
-            TTF_TextEngine *textEngine = getTextEngine() ? getTextEngine() : EditBox::getTextEngine();
-            if (textEngine && getFont()) {
-                TTF_Text *text = TTF_CreateText(textEngine, getFont(), displayLine.c_str(), (Uint32)displayLine.length());
-                if (text) {
-                    SColor textColor = m_textColor.getNormal();
-                    TTF_SetTextColor(text, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
-
-                    float textStartX = drawRect.left + marginX - (float)m_scrollX;
-                    SDL_FPoint position = {textStartX, y};
-                    TTF_DrawRendererText(text, position.x, position.y);
-
-                    int w = 0, h = 0;
-                    TTF_GetTextSize(text, &w, &h);
-
-                    TTF_DestroyText(text);
-                }
+            if (getTextRenderer() && getFont()) {
+                SColor textColor = m_textColor.getNormal();
+                float textStartX = drawRect.left + marginX - (float)m_scrollX;
+                getTextRenderer()->drawText(getFont(), displayLine, textStartX, y, textColor);
             }
         }
     }
@@ -644,14 +590,9 @@ void TextArea::draw(void) {
     }
 
     int cursorX = (int)(drawRect.left + marginX - m_scrollX);
-    if (!textOnCurrentLine.empty() && getTextEngine() && getFont()) {
-        TTF_Text *tempText = TTF_CreateText(getTextEngine(), getFont(), textOnCurrentLine.c_str(), (Uint32)textOnCurrentLine.length());
-        if (tempText) {
-            int w = 0, h = 0;
-            TTF_GetTextSize(tempText, &w, &h);
-            cursorX += w;
-            TTF_DestroyText(tempText);
-        }
+    if (!textOnCurrentLine.empty() && getTextRenderer() && getFont()) {
+        SSize size = getTextRenderer()->measureText(getFont(), textOnCurrentLine);
+        cursorX += (int)size.width;
     }
 
     if (m_focused && m_cursorVisible && cursorY >= drawRect.top && cursorY + cursorH <= drawRect.top + drawRect.height) {
@@ -1251,7 +1192,6 @@ void TextArea::deleteSelectedText() {
     m_text.erase(start, endVal - start);
     m_cursorPosition = start;
     clearSelection();
-    createTextObjects();
     rebuildLines();
     updateVScrollBar();
     updateHScrollBar();
@@ -1391,68 +1331,52 @@ void TextArea::ensureCursorVisible() {
 
     int cursorLine = 0;
     int cursorByteIndex = getCursorPosition();
+    int totalLines = getTotalLines();
 
-    if (!m_lines.empty() && !m_lineStartPositions.empty() && getTotalLines() > 0) {
-        for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
+    if (totalLines > 0 && !m_lineStartPositions.empty()) {
+        for (int i = 0; i < totalLines && i < (int)m_lineStartPositions.size(); ++i) {
             int lineStart = m_lineStartPositions[i];
-            int lineEnd;
-            if (i + 1 < getTotalLines() && i + 1 < (int)m_lineStartPositions.size()) {
-                lineEnd = m_lineStartPositions[i + 1];
-            } else {
-                lineEnd = (int)m_text.length();
-            }
+            int lineEnd = (i + 1 < totalLines) ? m_lineStartPositions[i + 1] : (int)m_text.length();
 
             if (cursorByteIndex >= lineStart && cursorByteIndex < lineEnd) {
                 cursorLine = i;
                 break;
             }
-
             if (cursorByteIndex == lineEnd) {
-                if (cursorByteIndex > 0 && cursorByteIndex <= (int)m_text.length() && m_text[cursorByteIndex - 1] == '\n') {
-                    if (i + 1 < getTotalLines()) {
-                        cursorLine = i + 1;
-                    } else {
-                        cursorLine = i;
-                    }
-                } else {
-                    cursorLine = i;
-                }
+                cursorLine = i;
                 break;
             }
         }
+    }
 
-        if (cursorByteIndex > (int)m_text.length()) {
-            cursorLine = getTotalLines() - 1;
-        }
+    if (m_autoScroll && cursorLine >= totalLines - 1) {
+        scrollToBottom();
+        return;
     }
 
     int cursorY = cursorLine * m_lineHeight;
-    int visibleTop = m_scrollY;
-    int visibleBottom = visibleTop + availableHeight;
 
-    if (cursorY < visibleTop) {
-        setScrollY(cursorY);
-    } else if (cursorY + m_lineHeight > visibleBottom) {
-        setScrollY(cursorY + m_lineHeight - availableHeight);
+    if (cursorY < m_scrollY) {
+        m_scrollY = cursorY;
+    } else if (cursorY + m_lineHeight > m_scrollY + availableHeight) {
+        m_scrollY = cursorY + m_lineHeight - availableHeight;
+    }
+
+    if (m_scrollY > maxScroll) {
+        m_scrollY = maxScroll;
+    }
+    if (m_scrollY < 0) {
+        m_scrollY = 0;
+    }
+
+    if (m_autoScroll) {
+        m_scrollY = maxScroll;
     }
 }
 
-void TextArea::setWordWrap(bool enable) {
-    m_wordWrap = enable;
-    rebuildLines();
-    updateVScrollBar();
-    updateHScrollBar();
-}
-
-void TextArea::setLineHeight(int height) {
-    m_lineHeight = height;
-    rebuildLines();
-    updateVScrollBar();
-    updateHScrollBar();
-}
-
-void TextArea::setText(const std::string& text) {
-    EditBox::setText(text);
+void TextArea::insertTextAtCursor(const std::string& text) {
+    m_text.insert(m_cursorPosition, text);
+    m_cursorPosition += (int)text.length();
     rebuildLines();
     updateVScrollBar();
     updateHScrollBar();
@@ -1464,46 +1388,41 @@ void TextArea::insertText(const std::string& text) {
     updateVScrollBar();
     updateHScrollBar();
     ensureCursorVisible();
-    ensureCursorHorizontalVisible();
 }
 
 void TextArea::setRect(SRect rect) {
     EditBox::setRect(rect);
-
-    float scale = getScaleXX();
-    float vThickness = m_vScrollBar ? m_vScrollBar->getThickness() : 16.0f;
-    float hThickness = m_hScrollBar ? m_hScrollBar->getThickness() : 16.0f;
-
-    if (m_wordWrap) {
-        rebuildLines();
-    }
-
     updateVScrollBar();
     updateHScrollBar();
+}
 
-    if (m_vScrollBar) {
-        bool hScrollVisible = m_hScrollBar && m_hScrollBar->getVisible();
-        float vHeight = hScrollVisible ? rect.height - hThickness : rect.height;
-        SRect scrollBarRect = SRect(
-            rect.width - vThickness,
-            0.0f,
-            vThickness,
-            vHeight
-        );
-        m_vScrollBar->setRect(scrollBarRect);
-    }
+void TextArea::setText(const std::string& text) {
+    EditBox::setText(text);
+    rebuildLines();
+    updateVScrollBar();
+    updateHScrollBar();
+}
 
-    if (m_hScrollBar) {
-        bool vScrollVisible = m_vScrollBar && m_vScrollBar->getVisible();
-        float hWidth = vScrollVisible ? rect.width - vThickness : rect.width;
-        SRect hScrollBarRect = SRect(
-            0.0f,
-            rect.height - hThickness,
-            hWidth,
-            hThickness
-        );
-        m_hScrollBar->setRect(hScrollBarRect);
+void TextArea::setWordWrap(bool enable) {
+    m_wordWrap = enable;
+    rebuildLines();
+    updateVScrollBar();
+    updateHScrollBar();
+}
+
+void TextArea::setLineHeight(int height) {
+    m_lineHeight = height;
+    updateVScrollBar();
+    updateHScrollBar();
+}
+
+int TextArea::getMaxLinePixelWidth() {
+    int maxWidth = 0;
+    for (const auto& line : m_lines) {
+        int width = getLinePixelWidth(line);
+        if (width > maxWidth) maxWidth = width;
     }
+    return maxWidth;
 }
 
 void TextArea::setScrollBarThickness(float thickness) {
@@ -1518,30 +1437,14 @@ void TextArea::setScrollBarThickness(float thickness) {
 }
 
 float TextArea::getScrollBarThickness() const {
-    if (m_vScrollBar) return m_vScrollBar->getThickness();
-    if (m_hScrollBar) return m_hScrollBar->getThickness();
+    if (m_vScrollBar) {
+        return m_vScrollBar->getThickness();
+    }
     return 16.0f;
 }
 
-void TextArea::setRenderer(SDL_Renderer *renderer) {
-    if (m_renderer == renderer) return;
-
-    if (renderer) {
-        if (m_textEngine) {
-            TTF_DestroyRendererTextEngine(m_textEngine);
-        }
-        m_textEngine = TTF_CreateRendererTextEngine(renderer);
-    }
-
-    ControlImpl::setRenderer(renderer);
-
-    for (auto& child : m_children) {
-        child->setRenderer(renderer);
-    }
-}
-
 void TextArea::setOnTextChangedHandler(OnTextChangedHandler handler) {
-    EditBox::setOnTextChanged(handler);
+    m_onTextChanged = handler;
 }
 
 TextAreaBuilder::TextAreaBuilder(Control *parent, SRect rect, float xScale, float yScale)

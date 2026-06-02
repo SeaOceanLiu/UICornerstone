@@ -107,7 +107,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
     SDL_SetAppMetadata("WinFrameTest", "1.0.0", "com.example.winframetest");
     if (!SDL_Init(SDL_INIT_VIDEO)) return SDL_APP_FAILURE;
-    if (!TTF_Init()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -158,5 +157,4 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     (void)appstate; (void)result;
     ResourceLoader::getInstance()->detachLoadingThread();
-    TTF_Quit();
 }

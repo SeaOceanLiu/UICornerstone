@@ -23,6 +23,8 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     m_surface(nullptr),
     m_renderer(nullptr),
     m_renderDevice(nullptr),
+    m_textRenderer(nullptr),
+    m_inputBackend(nullptr),
     m_texture(nullptr),
     m_rect({0, 0, 0, 0}),
     m_mouseInside(false)
@@ -413,6 +415,56 @@ void ControlImpl::setRenderDevice(RenderDevice* device) {
     }
 }
 
+TextRenderer* ControlImpl::getTextRenderer(void) {
+    if (m_textRenderer != nullptr) {
+        return m_textRenderer;
+    }
+    if (m_parent != nullptr) {
+        m_textRenderer = m_parent->getTextRenderer();
+    } else {
+        m_textRenderer = GET_RENDERDEVICE ? MAINWIN->getTextRenderer() : nullptr;
+        if (m_textRenderer == nullptr) {
+            SDL_Log("ControlImpl::getTextRenderer: No text renderer found!");
+            return nullptr;
+        }
+    }
+    return m_textRenderer;
+}
+
+void ControlImpl::setTextRenderer(TextRenderer* renderer) {
+    if (m_textRenderer == renderer) return;
+
+    m_textRenderer = renderer;
+    for (auto& child : m_children){
+        child->setTextRenderer(renderer);
+    }
+}
+
+InputBackend* ControlImpl::getInputBackend(void) {
+    if (m_inputBackend != nullptr) {
+        return m_inputBackend;
+    }
+    if (m_parent != nullptr) {
+        m_inputBackend = m_parent->getInputBackend();
+    } else {
+        m_inputBackend = GET_RENDERDEVICE ? MAINWIN->getInputBackend() : nullptr;
+        if (m_inputBackend == nullptr) {
+            SDL_Log("ControlImpl::getInputBackend: No input backend found!");
+            return nullptr;
+        }
+    }
+    return m_inputBackend;
+}
+
+void ControlImpl::setInputBackend(InputBackend* backend) {
+    if (m_inputBackend == backend) return;
+
+    m_inputBackend = backend;
+    for (auto& child : m_children){
+        child->setInputBackend(backend);
+    }
+}
+
 SRect ControlImpl::getDrawRect(void){
     Control *parent = getParent();
     SRect parentDrawRect;
@@ -551,5 +603,11 @@ void ControlImpl::inheritRenderer(void) {
     }
     if (m_renderDevice == nullptr) {
         m_renderDevice = GET_RENDERDEVICE;
+    }
+    if (m_textRenderer == nullptr) {
+        m_textRenderer = MAINWIN->getTextRenderer();
+    }
+    if (m_inputBackend == nullptr) {
+        m_inputBackend = MAINWIN->getInputBackend();
     }
 }

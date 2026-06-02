@@ -271,6 +271,8 @@ public:
         SDL_RenderPresent(m_renderer);
     }
 
+    void* getNativeHandle() override { return m_renderer; }
+
     SDL_Renderer* getSDL3Renderer() const { return m_renderer; }
 
 private:

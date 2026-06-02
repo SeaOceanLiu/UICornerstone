@@ -1,9 +1,9 @@
 ﻿#include "Label.h"
+#include <SDL3/SDL_mouse.h>
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale)
     , m_font(nullptr)
-    , m_textEngin(nullptr)
     , m_shadowOffset({2, 2})
     , m_AlignmentMode(AlignmentMode::AM_TOP_LEFT)
     , m_fontSize(16)
@@ -24,8 +24,8 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     , m_reentryCounter(0)
 {
     m_rect = rect;
-    m_margin = ConstDef::LABEL_CAPTION_MARGIN; // 默认边距
-    setVisible(false);    // 默认不可见，待创建成功后自动置为可见
+    m_margin = ConstDef::LABEL_CAPTION_MARGIN;
+    setVisible(false);
     setTransparent(true);
     setBorderVisible(false);
 
@@ -38,13 +38,11 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
         SDL_Log("Label::Label: Failed to get default cursor: %s", SDL_GetError());
     }
 
-    setFont(m_fontName); // 初始化字体和文本引擎
+    setFont(m_fontName);
 }
 
 Label::~Label(void){
-    releaseTextObjects();
-    releaseTextEngin(); // 释放文本引擎资源，注意必须保证在TTF_Quit()之前执行关闭文本引擎的操作，否则会报错
-    releaseFont(); // 释放字体资源，注意必须保证在TTF_Quit()之前执行关闭字体的操作，否则会报错
+    m_font.reset();
 
     if (m_hoverCursor != nullptr) {
         SDL_DestroyCursor(m_hoverCursor);
@@ -53,47 +51,18 @@ Label::~Label(void){
 }
 
 void Label::releaseFont(void) {
-    if (m_font != nullptr) {
-        TTF_CloseFont(m_font);
-        m_font = nullptr;
-    }
-}
-void Label::releaseTextEngin(void) {
-    if (m_textEngin != nullptr) {
-        TTF_DestroyRendererTextEngine(m_textEngin);
-        m_textEngin = nullptr;
-    }
-}
-void Label::releaseTextObjects(void) {
-    for (auto text : m_lineTexts) {
-        if (text != nullptr) {
-            TTF_DestroyText(text);
-        }
-    }
-    m_lineTexts.clear();
-}
-void Label::releaseMultilineTexts(void) {
-    m_lines.clear();
+    m_font.reset();
 }
 
 void Label::recreate() {
-    // 没有创建过，直接退出，待调用create方法时会创建相关资源
     if(!m_isCreated) return;
 
-    // 释放多行文本对像实例
-    releaseTextObjects();
+    m_lines.clear();
 
-    // 释放多行文本
-    releaseMultilineTexts();
-
-    // 释放TextEngin
-    releaseTextEngin();
-
-    // 释放字体资源
     releaseFont();
 
     if(typeid(*this) == typeid(Label)) {
-        m_isCreated = false;  // 重置创建标志，调用create方法时会重新创建相关资源
+        m_isCreated = false;
 
         create();
 
@@ -106,24 +75,129 @@ void Label::recreate() {
         }
     }
 }
+
 void Label::create(void) {
-    // Implementation for creating the label
     if (m_isCreated) return;
 
-    // 先load字体资源
     loadFromResource(m_fontFile.string());
-    // 创建TextEngin
-    createTextEngine();
-    // 多行文本分割
     createMultilineText();
-    // 创建多行文本实例
-    createLineTexts();
 
-    // //设置已创建标志并显示控件
+    TextRenderer* renderer = getTextRenderer();
+    if (renderer == nullptr) {
+        SDL_Log("Label::create: No text renderer available");
+        return;
+    }
+
+    int fontHeight = 0;
+    if (m_font) {
+        fontHeight = renderer->getFontHeight(m_font.get());
+    }
+    if (m_defaultLineHeight > 0) {
+        m_lineHeight = m_defaultLineHeight;
+    } else {
+        m_lineHeight = static_cast<int>(fontHeight / getScaleYY());
+    }
+    if (m_defaultLineSpacingRatio > 0) {
+        m_lineSpacing = static_cast<int>(m_lineHeight * m_defaultLineSpacingRatio);
+    } else {
+        m_lineSpacing = static_cast<int>(m_lineHeight * 0.2f);
+    }
+
+    computeLineOffsets();
+
     ControlImpl::create();
 }
 
+void Label::computeLineOffsets(void) {
+    m_lineOffsets.clear();
+
+    int lineSpacing = m_lineSpacing;
+    SRect marginRect = getMarginedRect();
+    float availableWidth = marginRect.width;
+    float availableHeight = marginRect.height;
+
+    float lineOffsetX = static_cast<float>(marginRect.left);
+    float lineOffsetY = static_cast<float>(marginRect.top);
+    float maxLineWidth = 0;
+    bool isHeightTruncated = false;
+
+    for (size_t i = 0; i < m_lines.size(); ++i) {
+        string& processedLine = m_lines[i];
+        if (!m_enableExpand) {
+            bool isWidthTruncated = false;
+            if (availableWidth > 0 && getStringWidth(processedLine) > availableWidth) {
+                truncateLine(processedLine, availableWidth);
+                isWidthTruncated = true;
+            }
+            if (m_lines.size() > 1 && availableHeight > 0 &&
+                (lineOffsetY + m_lineHeight + lineSpacing + m_lineHeight - marginRect.top) > availableHeight) {
+                if (!isWidthTruncated) {
+                    processedLine = "...";
+                }
+                isHeightTruncated = true;
+            }
+        }
+
+        m_lineOffsets.push_back({lineOffsetX, lineOffsetY});
+
+        SSize textSize = getTextSize(processedLine);
+        if (textSize.width > maxLineWidth) maxLineWidth = textSize.width;
+
+        if (isHeightTruncated) break;
+
+        lineOffsetY = lineOffsetY + m_lineHeight + lineSpacing;
+    }
+
+    if (m_lineOffsets.empty()) return;
+
+    float totalHeight = (m_lineHeight + lineSpacing) * static_cast<float>(m_lineOffsets.size()) - static_cast<float>(lineSpacing);
+
+    float hotRectLeft = marginRect.right();
+
+    for (size_t i = 0; i < m_lineOffsets.size(); ++i) {
+        SSize textSize = getTextSize(m_lines[i]);
+        float lineWidth = textSize.width;
+
+        switch (m_AlignmentMode) {
+            case AlignmentMode::AM_TOP_RIGHT:
+            case AlignmentMode::AM_MID_RIGHT:
+            case AlignmentMode::AM_BOTTOM_RIGHT:
+                m_lineOffsets[i].x = marginRect.left + (availableWidth - lineWidth);
+                break;
+            case AlignmentMode::AM_TOP_CENTER:
+            case AlignmentMode::AM_CENTER:
+            case AlignmentMode::AM_BOTTOM_CENTER:
+                m_lineOffsets[i].x = marginRect.left + (availableWidth - lineWidth) / 2;
+                break;
+            default:
+                break;
+        }
+
+        switch (m_AlignmentMode) {
+            case AlignmentMode::AM_CENTER:
+            case AlignmentMode::AM_MID_LEFT:
+            case AlignmentMode::AM_MID_RIGHT:
+                m_lineOffsets[i].y = marginRect.top + (availableHeight - totalHeight) / 2 + (m_lineHeight + lineSpacing) * static_cast<float>(i);
+                break;
+            case AlignmentMode::AM_BOTTOM_LEFT:
+            case AlignmentMode::AM_BOTTOM_CENTER:
+            case AlignmentMode::AM_BOTTOM_RIGHT:
+                m_lineOffsets[i].y = marginRect.top + (availableHeight - totalHeight) + (m_lineHeight + lineSpacing) * static_cast<float>(i);
+                break;
+            default:
+                break;
+        }
+
+        if (hotRectLeft > m_lineOffsets[i].x) {
+            hotRectLeft = m_lineOffsets[i].x;
+        }
+    }
+
+    m_hotRect = {hotRectLeft, m_lineOffsets[0].y, maxLineWidth, totalHeight};
+}
+
 void Label::createMultilineText(void) {
+    m_lines.clear();
     size_t start = 0;
     while (true) {
         size_t pos = m_caption.find('\n', start);
@@ -173,162 +247,18 @@ void Label::truncateLine(string& line, float maxWidth) {
     }
 }
 
-SSize Label::getTextSize(TTF_Text* text) {
-    if (text == nullptr) return SSize(0, 0);
+SSize Label::getTextSize(const string& text) {
+    if (m_font == nullptr || text.empty()) return SSize(0, 0);
 
-    int w, h;
-    if (!TTF_GetTextSize(text, &w, &h)) {
-        SDL_Log("Label::getTextSize: Failed to get text size: %s", SDL_GetError());
-        return SSize(0, 0);
-    }
-    // 注意这里需要除以缩放比例，因为TTF_GetTextSize返回的是实际像素尺寸，而我们在绘制时会根据缩放进行调整
-    return SSize(static_cast<float>(w) / getScaleXX(), static_cast<float>(h) / getScaleYY());
-}
+    TextRenderer* renderer = getTextRenderer();
+    if (renderer == nullptr) return SSize(0, 0);
 
-void Label::createLineTexts() {
-    if (m_textEngin == nullptr || m_font == nullptr) {
-        SDL_Log("Label::createLineTexts: m_textEngin or m_font is nullptr");
-        return;
-    }
-    for (auto text : m_lineTexts) {
-        if (text != nullptr) {
-            TTF_DestroyText(text);
-        }
-    }
-    m_lineTexts.clear();
-    m_lineOffsets.clear();
-
-    int lineSpacing = m_lineSpacing;
-
-    SRect marginRect = getMarginedRect();
-    float availableWidth = marginRect.width;
-    float availableHeight = marginRect.height;
-
-    // 首先创建文本对象以获取每行的尺寸信息，获得最大行宽，并按TOP_LEFT对齐计算初始偏移
-    float lineOffsetX = static_cast<float>(marginRect.left);
-    float lineOffsetY = static_cast<float>(marginRect.top);
-    float maxLineWidth = 0;
-    bool isHeightTruncated = false;
-    for (size_t i = 0; i < m_lines.size(); ++i) {
-        string processedLine = m_lines[i];
-        // 按行进行截断处理，如果不允许扩展且行宽超过可用宽度，则进行截断
-        if (!m_enableExpand) {
-            bool isWidthTruncated = false;
-            if (availableWidth > 0 && getStringWidth(processedLine) > availableWidth) {
-                truncateLine(processedLine, availableWidth);
-                isWidthTruncated = true;
-            }
-            // 对超过总高度的后续行进行截断处理，判断如果下一行会超过总高，就交本行直接显示为"..."
-            if (m_lines.size() > 1 && availableHeight > 0 && (lineOffsetY + m_lineHeight + lineSpacing + m_lineHeight - marginRect.top) > availableHeight) {
-                if (!isWidthTruncated){
-                    processedLine = "...";
-                }
-                isHeightTruncated = true;
-            }
-        }
-
-        TTF_Text* textObj = TTF_CreateText(m_textEngin, m_font, processedLine.c_str(), processedLine.length());
-        if (textObj == nullptr) {
-            SDL_Log("Label::createLineTexts: Failed to create text object for line %zu: %s", i, SDL_GetError());
-            return;
-        }
-        m_lineTexts.push_back(textObj);
-        m_lineOffsets.push_back({lineOffsetX, lineOffsetY});
-
-        SSize textSize = getTextSize(textObj);
-        if (textSize.width > maxLineWidth) maxLineWidth = textSize.width;
-
-        if (isHeightTruncated) {
-            break;
-        }
-        // 计算下一行的偏移，默认按照TOP_LEFT对齐, 所以只需要在Y方向增加行高和行间距
-        lineOffsetY = lineOffsetY + m_lineHeight + lineSpacing;
-    }
-
-    if (m_lineTexts.empty()) return;
-
-    // 计算出总行高
-    float totalHeight = (m_lineHeight + lineSpacing) * m_lineTexts.size() - lineSpacing;
-
-    float hotRectLeft = marginRect.right();
-
-    for (size_t i = 0; i < m_lineOffsets.size(); ++i) {
-        SSize textSize = getTextSize(m_lineTexts[i]);
-        float lineWidth = textSize.width;
-
-        // 先根据对齐方式计算水平偏移
-        switch (m_AlignmentMode) {
-            case AlignmentMode::AM_TOP_RIGHT:
-            case AlignmentMode::AM_MID_RIGHT:
-            case AlignmentMode::AM_BOTTOM_RIGHT:
-                // 右对齐时，偏移 = 左边距 + 可用宽度 - 行宽
-                m_lineOffsets[i].x = marginRect.left + (availableWidth - lineWidth);
-                break;
-            case AlignmentMode::AM_TOP_CENTER:
-            case AlignmentMode::AM_CENTER:
-            case AlignmentMode::AM_BOTTOM_CENTER:
-                // 居中时，偏移 = 左边距 + (可用宽度 - 行宽) / 2
-                m_lineOffsets[i].x = marginRect.left + (availableWidth - lineWidth) / 2;
-                break;
-            default:
-                break;
-        }
-
-        // 再根据对齐方式计算垂直偏移
-        switch (m_AlignmentMode) {
-            case AlignmentMode::AM_CENTER:
-            case AlignmentMode::AM_MID_LEFT:
-            case AlignmentMode::AM_MID_RIGHT:
-                // 垂直居中时，偏移 = 上边距 + (可用高度 - 总行高) / 2 + (行高 + 行间距) * 行索引
-                m_lineOffsets[i].y = marginRect.top + (availableHeight - totalHeight) / 2 + (m_lineHeight + lineSpacing) * i;
-                break;
-            case AlignmentMode::AM_BOTTOM_LEFT:
-            case AlignmentMode::AM_BOTTOM_CENTER:
-            case AlignmentMode::AM_BOTTOM_RIGHT:
-                // 底部对齐时，偏移 = 上边距 + 可用高度 - 总行高 + (行高 + 行间距) * 行索引
-                m_lineOffsets[i].y = marginRect.top + (availableHeight - totalHeight) + (m_lineHeight + lineSpacing) * i;
-                break;
-            default:
-                break;
-        }
-
-        if (hotRectLeft > m_lineOffsets[i].x) {
-            hotRectLeft = m_lineOffsets[i].x;
-        }
-    }
-
-    m_hotRect = {hotRectLeft, m_lineOffsets[0].y, maxLineWidth, totalHeight};
+    SSize size = renderer->measureText(m_font.get(), text);
+    return SSize(size.width / getScaleXX(), size.height / getScaleYY());
 }
 
 float Label::getStringWidth(const string& text) {
-    if (m_font == nullptr || text.empty()) return 0;
-
-    TTF_Text* tempText = TTF_CreateText(m_textEngin, m_font, text.c_str(), text.length());
-    if (tempText == nullptr) return 0;
-
-    SSize stringSize = getTextSize(tempText);
-    TTF_DestroyText(tempText);
-
-    return stringSize.width;
-}
-void Label::createTextEngine(void){
-    m_textEngin = TTF_CreateRendererTextEngine(getRenderer());
-    if (m_textEngin == nullptr) {
-        SDL_Log("Label::createTextEngine: Failed to create text engine: %s", SDL_GetError());
-        return;
-    }
-
-    if (m_defaultLineHeight > 0) {
-        m_lineHeight = m_defaultLineHeight;
-    } else {
-        int fontHeight = TTF_GetFontHeight(m_font);
-        m_lineHeight = fontHeight / getScaleYY();
-    }
-    if (m_defaultLineSpacingRatio > 0) {
-        m_lineSpacing = static_cast<int>(m_lineHeight * m_defaultLineSpacingRatio);
-    } else {
-        m_lineSpacing = static_cast<int>(m_lineHeight * 0.2f);
-    }
+    return getTextSize(text).width;
 }
 
 void Label::loadFromResource(string resourceId){
@@ -339,15 +269,17 @@ void Label::loadFromResource(string resourceId){
         SDL_Log("Label::loadFromResource: Error: '%s' is not a font\n", resourceId.c_str());
         return;
     }
-    SDL_IOStream *resourceStream = SDL_IOFromConstMem(resource->pMem.get(), resource->resourceSize);
-    if (resourceStream == nullptr) {
-        SDL_Log("Label::loadFromResource: Failed to create IO stream for: %s", resourceId.c_str());
+
+    TextRenderer* renderer = getTextRenderer();
+    if (renderer == nullptr) {
+        SDL_Log("Label::loadFromResource: No text renderer available");
         return;
     }
-    m_font = TTF_OpenFontIO(resourceStream, true, m_fontSize * getScaleXX());
+
+    m_font = renderer->loadFontFromMemory(resource->pMem.get(), resource->resourceSize,
+                                           static_cast<int>(m_fontSize * getScaleXX()));
     if (m_font == nullptr) {
-        SDL_Log("Label::loadFromResource: Failed to load font: %s", SDL_GetError());
-        return;
+        SDL_Log("Label::loadFromResource: Failed to load font");
     }
 }
 
@@ -362,15 +294,9 @@ void Label::draw(void){
 
     ControlImpl::preDraw();
 
-    if (m_lineTexts.empty()) {
+    if (m_lines.empty()) {
         return;
     }
-
-    // SRect rect = getRect();
-    // SRect drawRect = getDrawRect();
-
-    // drawBackground(&drawRect);
-    // drawBorder(&drawRect);
 
     if (m_debugDraw) {
         SRect marginRectScaled = mapToDrawRect(getMarginedRect());
@@ -414,31 +340,22 @@ void Label::draw(void){
             break;
     }
 
-    for (size_t i = 0; i < m_lineTexts.size(); ++i) {
-        if (m_lineTexts[i] == nullptr) continue;
+    TextRenderer* renderer = getTextRenderer();
+    if (renderer == nullptr) return;
+
+    for (size_t i = 0; i < m_lines.size(); ++i) {
+        if (i >= m_lineOffsets.size()) break;
 
         SPoint drawPoint = mapToDrawPoint(m_lineOffsets[i]);
 
         if (m_shadowEnabled) {
-            SPoint shadowDrawOffset = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
-
-            if(!TTF_SetTextColor(m_lineTexts[i], shadowColor.redByte(), shadowColor.greenByte(), shadowColor.blueByte(), shadowColor.alphaByte())) {
-                SDL_Log("Label::draw: Failed to set shadow text color: %s", SDL_GetError());
-            }
-            if (!TTF_DrawRendererText(m_lineTexts[i],
-                                        shadowDrawOffset.x,
-                                        shadowDrawOffset.y)) {
-                SDL_Log("Label::draw: Failed to render shadow text: %s", SDL_GetError());
-            }
+            SPoint shadowDrawPoint = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
+            renderer->drawText(m_font.get(), m_lines[i],
+                               shadowDrawPoint.x, shadowDrawPoint.y, shadowColor);
         }
 
-        if(!TTF_SetTextColor(m_lineTexts[i], textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte())) {
-            SDL_Log("Label::draw: Failed to set text color: %s", SDL_GetError());
-        }
-
-        if (!TTF_DrawRendererText(m_lineTexts[i], drawPoint.x, drawPoint.y)) {
-            SDL_Log("Label::draw: Failed to render text: %s", SDL_GetError());
-        }
+        renderer->drawText(m_font.get(), m_lines[i],
+                           drawPoint.x, drawPoint.y, textColor);
     }
 
     ControlImpl::draw();
@@ -512,7 +429,6 @@ void Label::setRect(SRect rect){
 void Label::setParent(Control *parent) {
     ControlImpl::setParent(parent);
 
-    // 父控件改变可能导致缩放比例发生变化，因此需要重新创建以适应新的缩放
     recreate();
 }
 SRect Label::getHotRect(void){
@@ -572,14 +488,8 @@ void Label::setOnPropertyChanged(OnPropertyChangedHandler handler){
     m_onPropertyChanged = handler;
 }
 
-void Label::SetFontStyle(TTF_FontStyleFlags fontStyle){
+void Label::SetFontStyle(int fontStyle){
     m_fontStyle = fontStyle;
-
-    if (m_font == nullptr) return;
-
-    TTF_SetFontStyle(m_font, fontStyle);
-
-    create();
 }
 
 void Label::setLineHeight(int height){
@@ -670,7 +580,7 @@ LabelBuilder& LabelBuilder::setId(int id){
     return *this;
 }
 
-LabelBuilder& LabelBuilder::SetFontStyle(TTF_FontStyleFlags fontStyle){
+LabelBuilder& LabelBuilder::SetFontStyle(int fontStyle){
     m_label->SetFontStyle(fontStyle);
     return *this;
 }

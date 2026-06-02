@@ -29,7 +29,6 @@ private:
     bool m_autoScroll;
     bool m_updatingScrollBar;
 
-    TTF_TextEngine *m_textEngine;
     std::string m_lastTextForRebuild;
 
 private:
@@ -40,7 +39,7 @@ private:
     void ensureCursorVisible();
     int getVisibleLines();
     int getTotalLines() const { return static_cast<int>(m_lines.size()); }
-    int getMaxLinePixelWidth() const;
+    int getMaxLinePixelWidth();
     float getCharWidth(const std::string& text, int byteIndex);
     int getLinePixelWidth(const std::string& line);
     int getByteIndexFromPixelX(const std::string& text, float pixelX);
@@ -51,7 +50,6 @@ public:
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
-    void setRenderer(SDL_Renderer *renderer) override;
 
     void setText(const std::string& text);
     void insertTextAtCursor(const std::string& text);

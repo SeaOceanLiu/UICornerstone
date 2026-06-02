@@ -183,11 +183,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
         return SDL_APP_FAILURE;
     }
-    if (!TTF_Init()) {
-        SDL_Log("Couldn't initialise SDL_ttf: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
     BENCH->setOnInitial(testBenchInitialize);
     return SDL_APP_CONTINUE;
 }
@@ -288,5 +283,4 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
     ResourceLoader::getInstance()->detachLoadingThread();
-    TTF_Quit();
 }

@@ -8,6 +8,8 @@
 #include "MainWindow.h"
 #include "Utility.h"
 #include "EventQueue.h"
+#include "TextRenderer.h"
+#include "InputBackend.h"
 
 using namespace std;
 
@@ -168,6 +170,10 @@ public:
     virtual void setRenderer(SDL_Renderer *renderer) = 0;
     virtual RenderDevice* getRenderDevice(void) = 0;
     virtual void setRenderDevice(RenderDevice* device) = 0;
+    virtual TextRenderer* getTextRenderer(void) = 0;
+    virtual void setTextRenderer(TextRenderer* renderer) = 0;
+    virtual InputBackend* getInputBackend(void) = 0;
+    virtual void setInputBackend(InputBackend* backend) = 0;
     virtual shared_ptr<Control> getThis(void) = 0;
     virtual SRect getDrawRect(void) = 0;
     virtual SRect mapToDrawRect(SRect rect) = 0;
@@ -235,6 +241,8 @@ protected:
     SharedSurface m_surface;
     SDL_Renderer *m_renderer;
     RenderDevice *m_renderDevice;
+    TextRenderer *m_textRenderer;
+    InputBackend *m_inputBackend;
     SharedTexture m_texture;
 
     SRect m_rect;
@@ -307,6 +315,10 @@ public:
     void setRenderer(SDL_Renderer *renderer) override;
     RenderDevice* getRenderDevice(void) override;
     void setRenderDevice(RenderDevice* device) override;
+    TextRenderer* getTextRenderer(void) override;
+    void setTextRenderer(TextRenderer* renderer) override;
+    InputBackend* getInputBackend(void) override;
+    void setInputBackend(InputBackend* backend) override;
     shared_ptr<Control> getThis(void) override;
     SRect getDrawRect(void) override;
     SRect mapToDrawRect(SRect rect) override;

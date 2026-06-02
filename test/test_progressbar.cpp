@@ -253,11 +253,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
         return SDL_APP_FAILURE;
     }
-    if (!TTF_Init()) {
-        SDL_Log("Couldn't initialise SDL_ttf: %s\n", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
     return SDL_APP_CONTINUE;
 }
 
@@ -370,10 +365,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     // Clean up resources
-    // 这里要强制释放资源，因为要确保在后面调用TTF_Quit()之前，要把FontSuite打开的字体都关闭掉
-    // BENCH.reset();
-    // 线程需要显式detach，否则Android下会报泄漏
     ResourceLoader::getInstance()->detachLoadingThread();
     SDL_Log("Application quit");
-    TTF_Quit();
 }

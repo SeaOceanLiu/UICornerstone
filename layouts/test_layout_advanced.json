@@ -131,7 +131,7 @@
                 {
                     "type": "Greeter",
                     "id": "greeter1",
-                    "rect": { "x": 10, "y": 10, "w": 200, "h": 60 },
+                    "rect": { "x": 10, "y": 1180, "w": 200, "h": 60 },
                     "name": "组件系统",
                     "buttonText": "问候",
                     "events": { "onGreet": "onGreeterClick" }

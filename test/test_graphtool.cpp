@@ -519,11 +519,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
         SDL_Log("Failed to init SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    if (!TTF_Init()) {
-        SDL_Log("Couldn't initialise SDL_ttf: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
     g_stepTimer = SDL_GetTicks();
     return SDL_APP_CONTINUE;
 }
@@ -588,6 +583,4 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     ResourceLoader::getInstance()->detachLoadingThread();
-    cout << "\n=== All GraphTool tests completed! ===" << endl;
-    TTF_Quit();
 }

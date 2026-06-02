@@ -151,11 +151,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
         return SDL_APP_FAILURE;
     }
-    if (!TTF_Init()) {
-        SDL_Log("Couldn't initialise SDL_ttf: %s\n", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
     SSize displaySize = MAINWIN->getDisplaySize();
     SDL_StartTextInput(MAINWIN->getWindow());
     BENCH->setOnInitial(testBenchInitialize);
@@ -267,6 +262,5 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
     ResourceLoader::getInstance()->detachLoadingThread();
-    TTF_Quit();
     //SDL_Quit();
 }

@@ -111,7 +111,7 @@ private:
     StateColor parseStateColor(const json& j, StateColor::Type type);
     FontName   parseFontName(const string& name);
     AlignmentMode parseAlignment(const string& align);
-    TTF_FontStyleFlags parseFontStyle(const string& style);
+    int parseFontStyle(const string& style);
     GridSize parseGridSize(const json& j);
 };
 

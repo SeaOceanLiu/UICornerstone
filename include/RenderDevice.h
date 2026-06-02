@@ -60,6 +60,9 @@ public:
     // === 帧操作 ===
     virtual void clear() = 0;
     virtual void present() = 0;
+
+    // === 原生句柄（供后端实现使用，如 TextRenderer 需要 SDL_Renderer*）===
+    virtual void* getNativeHandle() = 0;
 };
 
 // 工厂函数：创建SDL3实现的RenderDevice

@@ -5,11 +5,11 @@
 #include <functional>
 #include <string>
 #include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_clipboard.h>
 #include "ConstDef.h"
 #include "ControlBase.h"
 #include "Label.h"
 #include "Utility.h"
+#include "Font.h"
 
 struct TextInputEventData {
     std::string text;
@@ -55,14 +55,9 @@ protected:
 
     Margin m_margin;
 
-    TTF_Font *m_font;
-    TTF_TextEngine *m_textEngine;
-    TTF_Text *m_textObj;
-    TTF_Text *m_placeholderTextObj;
+    SharedFont m_font;
     int m_fontSize;
     FontName m_fontName;
-
-    TTF_TextEngine* getTextEngine() const { return m_textEngine; }
 
     OnTextChangedHandler m_onTextChanged;
     OnEnterHandler m_onEnter;
@@ -70,13 +65,11 @@ protected:
     AlignmentMode m_AlignmentMode;
 
 protected:
-    void createTextEngine();
-    void createTextObjects();
-    void destroyTextObjects();
+    void loadFontInternal();
     std::string getDisplayText() const;
-    float getTextWidth(const std::string& text) const;
-    int getCursorFromPosition(float x) const;
-    float getCursorX(int cursorPos) const;
+    float getTextWidth(const std::string& text);
+    int getCursorFromPosition(float x);
+    float getCursorX(int cursorPos);
     std::string getUtf8Substr(const std::string& str, int start, int length) const;
     void updateTextOffset();
     virtual void insertText(const std::string& text);
@@ -111,14 +104,14 @@ public:
     std::string getSelectedText() const;
     bool hasSelection() const { return m_selectionStart != m_selectionEnd; }
 
-    virtual void copy() const;
+    virtual void copy();
     virtual void cut();
     virtual void paste();
     virtual void deleteSelectedText();
 
     void setFont(FontName fontName);
     void setFontSize(int size);
-    TTF_Font* getFont() const { return m_font; }
+    Font* getFont() const { return m_font.get(); }
 
     void setAlignmentMode(AlignmentMode mode);
     AlignmentMode getAlignmentMode() const { return m_AlignmentMode; }
@@ -131,8 +124,6 @@ public:
 
     void setMargin(const Margin& margin);
     Margin getMargin() const { return m_margin; }
-
-    void recreateTextObjects();
 };
 
 class EditBoxBuilder {

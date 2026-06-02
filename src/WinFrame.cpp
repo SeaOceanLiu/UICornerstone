@@ -236,8 +236,10 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         }
     }
 
+    bool bMouseInsideWinFrame = hasPos && getDrawRect().contains(mousePos.x, mousePos.y);
+
     // Step 2: Edge detection (before children for cursor/start-resize)
-    if (hasPos && !m_dragging && !m_resizing) {
+    if (hasPos && bMouseInsideWinFrame && !m_dragging && !m_resizing) {
         SPoint localMouse = screenToLocal(mousePos.x, mousePos.y);
 
         uint8_t edgeFlags = 0;
@@ -273,7 +275,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     bool consumed = ControlImpl::handleEvent(event);
 
     // Step 3b: Re-apply edge cursor (children may have overwritten it)
-    if (hasPos && !m_dragging && !m_resizing && event->m_eventName == EventName::MOUSE_MOVING) {
+    if (hasPos && bMouseInsideWinFrame && !m_dragging && !m_resizing && event->m_eventName == EventName::MOUSE_MOVING) {
         if (m_lastEdgeFlags && m_resizable)
             setResizeCursor(m_lastEdgeFlags);
         else

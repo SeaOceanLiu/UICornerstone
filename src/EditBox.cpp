@@ -8,14 +8,6 @@
 #include <algorithm>
 #include <cstdint>
 
-static void EnsureTextInputStarted() {
-    static bool started = false;
-    if (!started) {
-        SDL_StartTextInput(MainWindow::getInstance()->getWindow());
-        started = true;
-    }
-}
-
 EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
     , m_cursorPosition(0)
@@ -33,15 +25,11 @@ EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     , m_textOffsetX(8.0f)
     , m_textOffsetY(0)
     , m_font(nullptr)
-    , m_textEngine(nullptr)
-    , m_textObj(nullptr)
-    , m_placeholderTextObj(nullptr)
     , m_fontSize(16)
     , m_fontName(FontName::HarmonyOS_Sans_SC_Regular)
     , m_focusWatcherRegistered(false)
     , m_AlignmentMode(AlignmentMode::AM_MID_LEFT)
 {
-    EnsureTextInputStarted();
     m_id = 0;
     m_visible = true;
     m_enable = true;
@@ -53,68 +41,22 @@ EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
 
     m_margin = Margin(8.0f, 4.0f, 8.0f, 4.0f);
 
-    fs::path fontPath = ConstDef::pathPrefix / ResourceLoader::m_fontFiles[m_fontName];
-    int scaledFontSize = (int)(m_fontSize * getScaleXX());
-    m_font = TTF_OpenFont(fontPath.string().c_str(), scaledFontSize);
-    if (!m_font) {
-        SDL_Log("Failed to load font for EditBox: %s", SDL_GetError());
-    } else {
-        createTextEngine();
-        createTextObjects();
-    }
+    loadFontInternal();
     updateTextOffset();
+
+    InputBackend* ib = getInputBackend();
+    if (ib) ib->startTextInput();
 }
 
 EditBox::~EditBox() {
-    destroyTextObjects();
-    if (m_textEngine) {
-        TTF_DestroyRendererTextEngine(m_textEngine);
-        m_textEngine = nullptr;
-    }
-    if (m_font) {
-        TTF_CloseFont(m_font);
-        m_font = nullptr;
-    }
 }
 
-void EditBox::createTextEngine() {
-    SDL_Log("EditBox::createTextEngine called, renderer=%p", (void*)getRenderer());
-    if (m_textEngine) {
-        TTF_DestroyRendererTextEngine(m_textEngine);
-    }
-    m_textEngine = TTF_CreateRendererTextEngine(getRenderer());
-    if (!m_textEngine) {
-        SDL_Log("EditBox::createTextEngine FAILED: %s", SDL_GetError());
-    } else {
-        SDL_Log("EditBox::createTextEngine succeeded, engine=%p", (void*)m_textEngine);
-    }
-}
-
-void EditBox::createTextObjects() {
-    if (!m_textEngine || !m_font) {
-        return;
-    }
-
-    destroyTextObjects();
-
-    std::string displayText = getDisplayText();
-    if (!displayText.empty()) {
-        m_textObj = TTF_CreateText(m_textEngine, m_font, displayText.c_str(), (Uint32)displayText.length());
-    }
-
-    if (!m_placeholderText.empty()) {
-        m_placeholderTextObj = TTF_CreateText(m_textEngine, m_font, m_placeholderText.c_str(), (Uint32)m_placeholderText.length());
-    }
-}
-
-void EditBox::destroyTextObjects() {
-    if (m_textObj) {
-        TTF_DestroyText(m_textObj);
-        m_textObj = nullptr;
-    }
-    if (m_placeholderTextObj) {
-        TTF_DestroyText(m_placeholderTextObj);
-        m_placeholderTextObj = nullptr;
+void EditBox::loadFontInternal() {
+    fs::path fontPath = ConstDef::pathPrefix / ResourceLoader::m_fontFiles[m_fontName];
+    int scaledFontSize = (int)(m_fontSize * getScaleXX());
+    m_font = getTextRenderer()->loadFont(fontPath.string(), scaledFontSize);
+    if (!m_font) {
+        printf("Failed to load font for EditBox\n");
     }
 }
 
@@ -153,21 +95,14 @@ std::string EditBox::getUtf8Substr(const std::string& str, int startByte, int by
     return str.substr(startByte, endByte - startByte);
 }
 
-float EditBox::getTextWidth(const std::string& text) const {
-    if (!m_textEngine || !m_font || text.empty()) return 0;
+float EditBox::getTextWidth(const std::string& text) {
+    if (!m_font || text.empty()) return 0;
 
-    TTF_Text *ttfText = TTF_CreateText(m_textEngine, m_font, text.c_str(), (Uint32)text.length());
-    if (!ttfText) return 0;
-
-    int width = 0;
-    int height = 0;
-    TTF_GetTextSize(ttfText, &width, &height);
-    TTF_DestroyText(ttfText);
-
-    return (float)width;
+    SSize size = getTextRenderer()->measureText(m_font.get(), text);
+    return size.width;
 }
 
-int EditBox::getCursorFromPosition(float x) const {
+int EditBox::getCursorFromPosition(float x) {
     std::string displayText = getDisplayText();
     float textX = m_textOffsetX;
 
@@ -177,7 +112,7 @@ int EditBox::getCursorFromPosition(float x) const {
     for (int i = 0; i <= (int)displayText.length(); ) {
         std::string prefix = getUtf8Substr(displayText, 0, i);
         float charX = textX + getTextWidth(prefix);
-        float dist = SDL_abs(x - charX);
+        float dist = std::abs(x - charX);
 
         if (dist < bestDist) {
             bestDist = dist;
@@ -193,7 +128,7 @@ int EditBox::getCursorFromPosition(float x) const {
     return bestOffset;
 }
 
-float EditBox::getCursorX(int cursorPos) const {
+float EditBox::getCursorX(int cursorPos) {
     std::string displayText = getDisplayText();
     std::string prefix = getUtf8Substr(displayText, 0, cursorPos);
     return m_textOffsetX + getTextWidth(prefix);
@@ -249,7 +184,6 @@ void EditBox::insertText(const std::string& text) {
     m_cursorPosition += (int)text.length();
 
     clearSelection();
-    createTextObjects();
     updateTextOffset();
 
     if (m_onTextChanged) {
@@ -266,7 +200,6 @@ void EditBox::deleteSelectedText() {
     m_text.erase(start, endVal - start);
     m_cursorPosition = start;
     clearSelection();
-    createTextObjects();
 }
 
 void EditBox::update(void) {
@@ -313,18 +246,14 @@ void EditBox::draw(void) {
         GET_RENDERDEVICE->fillRect(selRect);
     }
 
-    if (!m_text.empty() && m_textObj) {
+    if (!m_text.empty() && m_font) {
         SColor textColor = m_textColor.getNormal();
-        TTF_SetTextColor(m_textObj, textColor.redByte(), textColor.greenByte(), textColor.blueByte(), textColor.alphaByte());
-
-        SDL_FPoint position = {drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY};
-        TTF_DrawRendererText(m_textObj, position.x, position.y);
-    } else if (!m_placeholderText.empty() && m_placeholderTextObj) {
+        getTextRenderer()->drawText(m_font.get(), getDisplayText(),
+            drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY, textColor);
+    } else if (!m_placeholderText.empty() && m_font) {
         SColor placeholderColor(128, 128, 128, 255);
-        TTF_SetTextColor(m_placeholderTextObj, placeholderColor.redByte(), placeholderColor.greenByte(), placeholderColor.blueByte(), placeholderColor.alphaByte());
-
-        SDL_FPoint position = {drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY};
-        TTF_DrawRendererText(m_placeholderTextObj, position.x, position.y);
+        getTextRenderer()->drawText(m_font.get(), m_placeholderText,
+            drawRect.left + m_textOffsetX, drawRect.top + m_textOffsetY, placeholderColor);
     }
 
     GET_RENDERDEVICE->clearClipRect();
@@ -468,7 +397,6 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     if (charLen > 0) {
                         m_text.erase(charPos, charLen);
                         m_cursorPosition = charPos;
-                        createTextObjects();
                         updateTextOffset();
                         if (m_onTextChanged) {
                             m_onTextChanged(getThis(), m_text);
@@ -487,7 +415,6 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     if (charStart < (int)m_text.length()) {
                         int charLen = getUtf8CharLength((unsigned char)m_text[charStart]);
                         m_text.erase(m_cursorPosition, charLen);
-                        createTextObjects();
                         if (m_onTextChanged) {
                             m_onTextChanged(getThis(), m_text);
                         }
@@ -593,10 +520,6 @@ void EditBox::setRenderer(SDL_Renderer *renderer) {
     if (m_renderer == renderer) return;
 
     ControlImpl::setRenderer(renderer);
-
-    if (renderer && m_font) {
-        recreateTextObjects();
-    }
 }
 
 void EditBox::onMouseEnter(float x, float y) {
@@ -611,7 +534,6 @@ void EditBox::setText(const std::string& text) {
     m_text = text;
     m_cursorPosition = (int)m_text.length();
     clearSelection();
-    createTextObjects();
     updateTextOffset();
 }
 
@@ -621,7 +543,6 @@ std::string EditBox::getText() const {
 
 void EditBox::setPlaceholder(const std::string& placeholder) {
     m_placeholderText = placeholder;
-    createTextObjects();
 }
 
 std::string EditBox::getPlaceholder() const {
@@ -665,12 +586,13 @@ std::string EditBox::getSelectedText() const {
     return getUtf8Substr(m_text, start, endVal - start);
 }
 
-void EditBox::copy() const {
+void EditBox::copy() {
     if (m_passwordMode) return;
 
     std::string selectedText = getSelectedText();
     if (!selectedText.empty()) {
-        SDL_SetClipboardText(selectedText.c_str());
+        InputBackend* ib = getInputBackend();
+        if (ib) ib->setClipboardText(selectedText);
     }
 }
 
@@ -682,34 +604,23 @@ void EditBox::cut() {
 }
 
 void EditBox::paste() {
-    char *clipboardText = SDL_GetClipboardText();
-    if (clipboardText && strlen(clipboardText) > 0) {
-        insertText(std::string(clipboardText));
+    InputBackend* ib = getInputBackend();
+    if (!ib) return;
+    std::string text = ib->getClipboardText();
+    if (!text.empty()) {
+        insertText(text);
     }
-    SDL_free(clipboardText);
 }
 
 void EditBox::setFont(FontName fontName) {
     m_fontName = fontName;
-    if (m_font) {
-        TTF_CloseFont(m_font);
-    }
-    fs::path fontPath = ConstDef::pathPrefix / ResourceLoader::m_fontFiles[m_fontName];
-    int scaledFontSize = (int)(m_fontSize * getScaleXX());
-    m_font = TTF_OpenFont(fontPath.string().c_str(), scaledFontSize);
-    createTextObjects();
+    loadFontInternal();
     updateTextOffset();
 }
 
 void EditBox::setFontSize(int size) {
     m_fontSize = size;
-    if (m_font) {
-        TTF_CloseFont(m_font);
-    }
-    fs::path fontPath = ConstDef::pathPrefix / ResourceLoader::m_fontFiles[m_fontName];
-    int scaledFontSize = (int)(m_fontSize * getScaleXX());
-    m_font = TTF_OpenFont(fontPath.string().c_str(), scaledFontSize);
-    createTextObjects();
+    loadFontInternal();
     updateTextOffset();
 }
 
@@ -771,12 +682,6 @@ bool EditBox::beforeEventHandlingWatcher(shared_ptr<Event> event) {
         }
     }
     return false;
-}
-
-void EditBox::recreateTextObjects() {
-    SDL_Log("EditBox::recreateTextObjects called");
-    createTextEngine();
-    createTextObjects();
 }
 
 EditBoxBuilder::EditBoxBuilder(Control *parent, SRect rect, float xScale, float yScale)
