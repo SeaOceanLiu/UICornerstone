@@ -1,4 +1,5 @@
 ﻿#include "ResourceLoader.h"
+#include <SDL3/SDL.h>
 const string ResourceLoader::RT_CONFIG      = "config";     // 配置文件
 const string ResourceLoader::RT_FONTS       = "fonts";      // 字体
 const string ResourceLoader::RT_IMAGES      = "images";     // 图片

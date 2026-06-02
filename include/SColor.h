@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <algorithm>
-#include "SDL3/SDL.h"
+#include <SDL3/SDL_pixels.h>
 
 static constexpr float sClamp(float value) {
     return std::max<float>(0.0f, std::min<float>(1.0f, value));

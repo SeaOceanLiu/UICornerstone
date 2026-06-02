@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+struct SDL_Renderer;
+
 class Texture;
 class Surface;
 using SharedTexture = std::shared_ptr<Texture>;

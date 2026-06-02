@@ -7,8 +7,6 @@
 #include <functional>
 #include <string>
 
-#include <SDL3/SDL.h>
-
 #include "ControlBase.h"
 #include "Label.h"
 #include "GraphTool.h"

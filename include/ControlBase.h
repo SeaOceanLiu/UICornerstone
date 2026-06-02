@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include <typeinfo>
-#include <SDL3/SDL.h>
+#include <SDL3/SDL_render.h>
 #include "SColor.h"
 #include "MainWindow.h"
 #include "Utility.h"

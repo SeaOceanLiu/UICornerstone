@@ -1,8 +1,5 @@
 ﻿#ifndef ActorH
 #define ActorH
-#include <SDL3/SDL.h>
-#include <SDL3_image/SDL_image.h>
-
 #include "Material.h"
 #include "Texture.h"
 #include "ResourceLoader.h"
@@ -36,7 +33,7 @@ public:
     void setTexture(SharedTexture texture) { m_texture = texture; }
 
     using Material::draw;
-    void draw(float posx, float posy, Uint8 alpha=SDL_ALPHA_OPAQUE) override;
+    void draw(float posx, float posy, uint8_t alpha=255) override;
 
     void setScaleType(ScaleType type) { m_scaleType = type; }
     ScaleType getScaleType() const { return m_scaleType; }

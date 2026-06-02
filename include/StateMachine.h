@@ -4,8 +4,7 @@
 #include <any>
 #include <functional>
 #include <unordered_map>
-
-#include <SDL3/SDL.h>
+#include <cstdio>
 
 using namespace std;
 
@@ -107,7 +106,7 @@ public:
         if (it != m_stateEventHandlers.end()) {
             return it->second(event);
         } else {
-            SDL_Log("No handler for event %d in state %d", static_cast<int>(event->m_eventName), static_cast<int>(m_currentState));
+            printf("No handler for event %d in state %d\n", static_cast<int>(event->m_eventName), static_cast<int>(m_currentState));
             return false;
         }
     }

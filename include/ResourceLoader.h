@@ -3,7 +3,8 @@
 
 #include <unordered_map>
 #include <filesystem>
-#include <SDL3/SDL.h>
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_iostream.h>
 
 #include "nlohmann/json.hpp"
 #include "ConstDef.h"

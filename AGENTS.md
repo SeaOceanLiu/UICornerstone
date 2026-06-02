@@ -142,4 +142,24 @@ test_label.exe
 - Added 2x scaled LuotiAni Button test (`g_button6` in `test_button.cpp`)
 - All 10 tests build successfully
 
-**Remaining**: SDL3/SDL.h still included in 10 non-backend headers (Actor.h, ControlBase.h, EditBox.h, MainWindow.h, Material.h, Menu.h, ResourceLoader.h, SColor.h, StateMachine.h, Utility.h) — needs Phase 4 to remove by eliminating remaining `Uint8`/`SDL_Renderer*`/`SDL_ALPHA_OPAQUE`/`SDL_Rect` usage in public APIs.
+### 2026-06-02: Phase 4 — Remove Umbrella `#include <SDL3/SDL.h>` from Non-Backend Headers
+
+**Umbrella include completely removed from 8 headers**:
+- `Menu.h`: No SDL types used — removed entirely
+- `StateMachine.h`: `SDL_Log()` → `printf()` — removed entirely
+- `Material.h`: `Uint8`/`SDL_ALPHA_OPAQUE` → `uint8_t`/`255` — replaced with `<cstdint>`
+- `Actor.h`: `Uint8`/`SDL_ALPHA_OPAQUE` → `uint8_t`/`255` — removed entirely
+- `Utility.h`: `SDL_FRect`/`SDL_Rect`/`SDL_FPoint` bridge methods → `#include <SDL3/SDL_rect.h>`
+- `SColor.h`: `SDL_Color`/`SDL_FColor` bridge methods → `#include <SDL3/SDL_pixels.h>`
+- `ControlBase.h`: `SDL_Renderer*` member/API → `#include <SDL3/SDL_render.h>`
+- `EditBox.h`: Removed umbrella, kept `SDL3/SDL_keyboard.h` and `SDL3/SDL_clipboard.h`
+
+**Backend headers with umbrella preserved** (inherently SDL-dependent):
+- `MainWindow.h`: Header-only window/renderer manager — keeps `#include <SDL3/SDL.h>`
+- `ResourceLoader.h`: Narrowed to `SDL3/SDL_thread.h` + `SDL3/SDL_iostream.h`; `.cpp` gets umbrella
+
+**Other improvements**:
+- `RenderDevice.h`: `struct SDL_Renderer;` forward declaration instead of any SDL include
+- `ResourceLoader.cpp`: Added explicit `#include <SDL3/SDL.h>` (was getting it transitively)
+
+**Status**: All 10 tests build successfully. Only `MainWindow.h` retains the umbrella `#include <SDL3/SDL.h>` (as a intentional backend dependency).

@@ -2,7 +2,7 @@
 #ifndef UtilityH
 #define UtilityH
 #include <type_traits>
-#include <SDL3/SDL.h>
+#include <SDL3/SDL_rect.h>
 #include <array>
 #include <cmath>
 

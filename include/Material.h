@@ -1,7 +1,7 @@
 ﻿#ifndef MaterialH
 #define MaterialH
 #include <filesystem>
-#include <SDL3/SDL.h>
+#include <cstdint>
 
 #include "ControlBase.h"
 
@@ -39,8 +39,8 @@ public:
 
 
     void draw(void) override;
-    virtual void draw(SPoint pos, Uint8 alpha=SDL_ALPHA_OPAQUE);
-    virtual void draw(float x, float y, Uint8 alpha=SDL_ALPHA_OPAQUE);
+    virtual void draw(SPoint pos, uint8_t alpha=255);
+    virtual void draw(float x, float y, uint8_t alpha=255);
 
     void setAnchorPoint(float x, float y);
     void setAnchorPoint(SPoint &anchorPoint);
