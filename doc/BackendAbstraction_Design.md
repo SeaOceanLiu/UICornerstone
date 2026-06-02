@@ -44,11 +44,12 @@ UIControls 当前硬编码绑定 SDL3，所有控件直接在头文件中引用 
 |-------|------|---------|
 | 1 — SColor 统一 | ✅ **已完成** | SColor 独立头文件；所有控件 public API 迁移；ConstDef 常量迁移；StateColor → SColor；GraphTool SColor 别名 |
 | 2 — RenderDevice 抽象 | ✅ **已完成** | RenderDevice 接口 + SDL3RenderDevice 实现；MainWindow/ControlBase 集成 RenderDevice*；GraphTool.cpp 完整迁移（零 SDL 调用）；全 54 处控件层 SDL 调用迁移（Menu/ControlBase/EditBox/TextArea/Bench 等 11 文件）|
-| 3 — Texture / Surface 抽象 | ✅ **已完成** | Texture/Surface 抽象类；SDL3Texture/SDL3Surface 实现；`m_texture`: SDL_Texture* → SharedTexture；`m_surface`: SDL_Surface* → SharedSurface；GraphTool `void*` → `Texture*`；**LuotiAni.h ~180 SDL 调用延期处理** |
-| 4 — Font / TextRenderer | ⏳ **未开始** | |
-| 5 — Window / Application | ⏳ **未开始** | |
-| 6 — SFML 后端 | ⏳ **未开始** | |
-| 7 — raylib 后端 | ⏳ **未开始** | |
+| 3 — Texture / Surface 抽象 | ✅ **已完成** | Texture/Surface 抽象类；SDL3Texture/SDL3Surface 实现；`m_texture`: SDL_Texture* → SharedTexture；`m_surface`: SDL_Surface* → SharedSurface；GraphTool `void*` → `Texture*`；**LuotiAni.h ~180 SDL 调用完成迁移**；桥接方法全部移除 |
+| 4 — SDL 头文件解耦 | ✅ **已完成** | 从 8 个非后端 header 移除 umbrella `#include <SDL3/SDL.h>`，替换为具体子头文件或完全消除；4 header 零 SDL 依赖；仅 MainWindow.h 保留 umbrella（后端必经依赖） |
+| 5 — Font / TextRenderer | ⏳ **未开始** | |
+| 6 — Window / Application | ⏳ **未开始** | |
+| 7 — SFML 后端 | ⏳ **未开始** | |
+| 8 — raylib 后端 | ⏳ **未开始** | |
 
 ## 2. Phase 1——SColor 统一
 
@@ -458,6 +459,8 @@ public:
 - **预估工时**：4-5 天
 - **风险**：★★★★（LuotiAni 动画系统耦合深）
 
+> **实际完成 (2026-06-02)**：LuotiAni.h ~180 处 SDL 调用全部迁移至 `Surface::create()` / `blit()` / `setAlphaMod()` / `setBlendMode()` / `rotate()` 等抽象 API。`loadFromStream(SDL_IOStream*)` 替换为 `parseJsonDesc()` 使用 `std::ifstream`。桥接方法 `createTextureFromSDLSurface`、`getNativeRenderer`、`loadTextureFromSurface(SDL_Surface*)` 全部移除。`RenderDevice.h` 无任何 SDL include（仅 `struct SDL_Renderer;` 前向声明）。
+
 ## 5. Phase 4——Font / TextRenderer 抽象
 
 ### 5.1 现状
@@ -722,37 +725,38 @@ public:
 | Phase | 内容 | 文件数 | 新增行数 | 预估天数 | 实际进度 | 风险 |
 |-------|------|--------|---------|---------|---------|------|
 | 1 | SColor 统一 | ~35 | ~100 | 2-3 | ✅ 已完成 | ★ |
-| 2 | RenderDevice 接口 + SDL3 实现 | ~23 | ~650 (净增) | 5-7 | 🔄 ~70% 完成（GraphTool 已迁移，~60 处 SDL 调用待清理） | ★★★ |
-| 3 | Texture + Surface 抽象 | ~8 | ~800 | 4-5 | ⏳ | ★★★★ |
-| 4 | Font / TextRenderer 抽象 | ~12 | ~800 | 5-7 | ⏳ | ★★★★★ |
-| 5 | Window / App / Event 重构 | ~15 | ~600 | 3-4 | ⏳ | ★★ |
-| 6 | SFML 后端 | ~5 | ~1500 | 5-7 | ⏳ | ★★★★ |
-| 7 | raylib 后端 | ~5 | ~1150 | 5-7 | ⏳ | ★★★★ |
-| **合计** | | **~103** | **~5600** | **29-40** | | |
+| 2 | RenderDevice 接口 + SDL3 实现 | ~23 | ~650 (净增) | 5-7 | ✅ 已完成 | ★★★ |
+| 3 | Texture + Surface 抽象 | ~10 | ~1000 | 4-5 | ✅ 已完成（含 LuotiAni 完整迁移） | ★★★★ |
+| 4 | SDL 头文件解耦 | ~10 | ~35 | 1 | ✅ 已完成 | ★ |
+| 5 | Font / TextRenderer 抽象 | ~12 | ~800 | 5-7 | ⏳ **当前阶段** | ★★★★★ |
+| 6 | Window / App / Event 重构 | ~15 | ~600 | 3-4 | ⏳ | ★★ |
+| 7 | SFML 后端 | ~5 | ~1500 | 5-7 | ⏳ | ★★★★ |
+| 8 | raylib 后端 | ~5 | ~1150 | 5-7 | ⏳ | ★★★★ |
+| **合计** | | **~115** | **~5700** | **30-42** | | |
 
 ## 10. 执行建议
 
 ### 10.1 实际执行顺序与计划
 
 ```
-Phase 1 (SColor)        ← ✅ 已完成
+Phase 1 (SColor)          ← ✅ 已完成
     ↓
-Phase 2 (RenderDevice)  ← 🔄 当前阶段 — 基础设施 + GraphTool 已完成
-    │                       剩余: ~60 处 SDL 调用待迁移至 RenderDevice
-    │                       计划: 接着完成剩余控件迁移，然后进入 Phase 5
+Phase 2 (RenderDevice)    ← ✅ 已完成 — 所有 SDL 绘制调用已迁移至 RenderDevice
     ↓
-Phase 5 (Window/App)    ← 改 test 入口，为后续切换准备
+Phase 3 (Texture/Surface) ← ✅ 已完成 — 含 LuotiAni.h 完整迁移 (~180 SDL 调用)
     ↓
-Phase 4 (Font)          ← 文本渲染（最难，需要前面稳定）
+Phase 4 (Header Cleanup)  ← ✅ 已完成 — 8 非后端 header 移除 umbrella SDL include
     ↓
-Phase 3 (Texture)       ← 纹理（可并行）
+Phase 5 (Font/TextRenderer) ← 🔄 当前阶段
     ↓
-Phase 6 (SFML)          ← 第一个替代后端
+Phase 6 (Window/App/Event)  ← ⏳ 待开始
     ↓
-Phase 7 (raylib)        ← 第二个替代后端
+Phase 7 (SFML backend)      ← ⏳ 待开始
+    ↓
+Phase 8 (raylib backend)    ← ⏳ 待开始
 ```
 
-> **注**：实际执行时调整了顺序（Phase 2 提前于 Phase 5），因为 RenderDevice 抽象后，控制层绘制调用即可开始迁移，不需要先改 Window/App 入口。
+> **注**：Phase 4（SDL 头文件解耦）在 Phase 3 后自然衍生——Texture/Surface 抽象完成后，大量头文件不再需要 SDL 类型，可直接移除或替换为具体子头文件。
 
 ### 10.2 编译时选择后端
 
