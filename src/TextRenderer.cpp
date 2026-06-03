@@ -63,12 +63,43 @@ public:
 
     SSize measureText(Font* font, const std::string& text) override {
         auto* sdl3Font = static_cast<SDL3Font*>(font);
-        TTF_Text* tempText = TTF_CreateText(m_textEngine, sdl3Font->get(), text.c_str(), static_cast<uint32_t>(text.length()));
+        TTF_Text* tempText = TTF_CreateText(m_textEngine, sdl3Font->get(), text.c_str(), text.length());
         if (!tempText) return SSize(0, 0);
         int w = 0, h = 0;
         TTF_GetTextSize(tempText, &w, &h);
         TTF_DestroyText(tempText);
         return SSize(static_cast<float>(w), static_cast<float>(h));
+    }
+
+    void* createText(Font* font, const std::string& text) override {
+        auto* sdl3Font = static_cast<SDL3Font*>(font);
+        return TTF_CreateText(m_textEngine, sdl3Font->get(), text.c_str(), text.length());
+    }
+
+    void destroyText(void* text) override {
+        if (text) TTF_DestroyText(static_cast<TTF_Text*>(text));
+    }
+
+    SSize measureText(void* text) override {
+        if (!text) return SSize(0, 0);
+        int w = 0, h = 0;
+        TTF_GetTextSize(static_cast<TTF_Text*>(text), &w, &h);
+        return SSize(static_cast<float>(w), static_cast<float>(h));
+    }
+
+    void drawText(void* text, float x, float y, SColor color) override {
+        if (!text) return;
+        TTF_Text* t = static_cast<TTF_Text*>(text);
+        TTF_SetTextColor(t, color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
+        TTF_DrawRendererText(t, x, y);
+    }
+
+    void drawText(void* text, float x, float y, float wrapWidth, SColor color) override {
+        if (!text) return;
+        TTF_Text* t = static_cast<TTF_Text*>(text);
+        TTF_SetTextColor(t, color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
+        TTF_SetTextWrapWidth(t, static_cast<int>(wrapWidth));
+        TTF_DrawRendererText(t, x, y);
     }
 
     int getFontHeight(Font* font) override {

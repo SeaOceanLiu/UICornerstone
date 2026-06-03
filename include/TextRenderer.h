@@ -14,9 +14,15 @@ public:
     virtual SharedFont loadFont(const std::string& path, int size) = 0;
     virtual SharedFont loadFontFromMemory(const void* data, size_t len, int size) = 0;
 
-    virtual SSize measureText(Font* font, const std::string& text) = 0;
     virtual int getFontHeight(Font* font) = 0;
 
+    virtual void* createText(Font* font, const std::string& text) = 0;
+    virtual void destroyText(void* text) = 0;
+    virtual SSize measureText(void* text) = 0;
+    virtual void drawText(void* text, float x, float y, SColor color) = 0;
+    virtual void drawText(void* text, float x, float y, float wrapWidth, SColor color) = 0;
+
+    virtual SSize measureText(Font* font, const std::string& text) = 0;
     virtual void drawText(Font* font, const std::string& text, float x, float y, SColor color) = 0;
     virtual void drawText(Font* font, const std::string& text, float x, float y, float wrapWidth, SColor color) = 0;
 };

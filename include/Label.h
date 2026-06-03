@@ -74,9 +74,12 @@ private:
 
     int m_reentryCounter;
 
+    std::vector<void*> m_cachedTexts;
+
 private:
     void recreate() override;
     void releaseFont(void);
+    void releaseTexts(void);
     void loadFromFile(void);
     void loadFromResource(string resourceId);
     void createMultilineText(void);

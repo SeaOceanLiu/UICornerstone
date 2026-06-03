@@ -42,6 +42,7 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
 }
 
 Label::~Label(void){
+    releaseTexts();
     m_font.reset();
 
     if (m_hoverCursor != nullptr) {
@@ -54,9 +55,20 @@ void Label::releaseFont(void) {
     m_font.reset();
 }
 
+void Label::releaseTexts(void) {
+    TextRenderer* renderer = getTextRenderer();
+    if (renderer) {
+        for (auto* t : m_cachedTexts) {
+            renderer->destroyText(t);
+        }
+    }
+    m_cachedTexts.clear();
+}
+
 void Label::recreate() {
     if(!m_isCreated) return;
 
+    releaseTexts();
     m_lines.clear();
 
     releaseFont();
@@ -103,6 +115,11 @@ void Label::create(void) {
         m_lineSpacing = static_cast<int>(m_lineHeight * 0.2f);
     }
 
+    for (const auto& line : m_lines) {
+        void* textObj = renderer->createText(m_font.get(), line);
+        m_cachedTexts.push_back(textObj);
+    }
+
     computeLineOffsets();
 
     ControlImpl::create();
@@ -121,18 +138,31 @@ void Label::computeLineOffsets(void) {
     float maxLineWidth = 0;
     bool isHeightTruncated = false;
 
+    TextRenderer* renderer = getTextRenderer();
+
     for (size_t i = 0; i < m_lines.size(); ++i) {
         string& processedLine = m_lines[i];
         if (!m_enableExpand) {
             bool isWidthTruncated = false;
-            if (availableWidth > 0 && getStringWidth(processedLine) > availableWidth) {
-                truncateLine(processedLine, availableWidth);
-                isWidthTruncated = true;
+            if (availableWidth > 0 && renderer && m_cachedTexts.size() > i && m_cachedTexts[i]) {
+                SSize lineSize = renderer->measureText(m_cachedTexts[i]);
+                lineSize.width /= getScaleXX();
+                lineSize.height /= getScaleYY();
+                if (lineSize.width > availableWidth) {
+                    truncateLine(processedLine, availableWidth);
+                    renderer->destroyText(m_cachedTexts[i]);
+                    m_cachedTexts[i] = renderer->createText(m_font.get(), processedLine);
+                    isWidthTruncated = true;
+                }
             }
             if (m_lines.size() > 1 && availableHeight > 0 &&
                 (lineOffsetY + m_lineHeight + lineSpacing + m_lineHeight - marginRect.top) > availableHeight) {
                 if (!isWidthTruncated) {
                     processedLine = "...";
+                    if (renderer && m_cachedTexts.size() > i) {
+                        renderer->destroyText(m_cachedTexts[i]);
+                        m_cachedTexts[i] = renderer->createText(m_font.get(), processedLine);
+                    }
                 }
                 isHeightTruncated = true;
             }
@@ -140,7 +170,12 @@ void Label::computeLineOffsets(void) {
 
         m_lineOffsets.push_back({lineOffsetX, lineOffsetY});
 
-        SSize textSize = getTextSize(processedLine);
+        SSize textSize(0, 0);
+        if (renderer && m_cachedTexts.size() > i && m_cachedTexts[i]) {
+            textSize = renderer->measureText(m_cachedTexts[i]);
+            textSize.width /= getScaleXX();
+            textSize.height /= getScaleYY();
+        }
         if (textSize.width > maxLineWidth) maxLineWidth = textSize.width;
 
         if (isHeightTruncated) break;
@@ -155,7 +190,12 @@ void Label::computeLineOffsets(void) {
     float hotRectLeft = marginRect.right();
 
     for (size_t i = 0; i < m_lineOffsets.size(); ++i) {
-        SSize textSize = getTextSize(m_lines[i]);
+        SSize textSize(0, 0);
+        if (renderer && m_cachedTexts.size() > i && m_cachedTexts[i]) {
+            textSize = renderer->measureText(m_cachedTexts[i]);
+            textSize.width /= getScaleXX();
+            textSize.height /= getScaleYY();
+        }
         float lineWidth = textSize.width;
 
         switch (m_AlignmentMode) {
@@ -345,16 +385,17 @@ void Label::draw(void){
 
     for (size_t i = 0; i < m_lines.size(); ++i) {
         if (i >= m_lineOffsets.size()) break;
+        if (i >= m_cachedTexts.size() || m_cachedTexts[i] == nullptr) continue;
 
         SPoint drawPoint = mapToDrawPoint(m_lineOffsets[i]);
 
         if (m_shadowEnabled) {
             SPoint shadowDrawPoint = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
-            renderer->drawText(m_font.get(), m_lines[i],
+            renderer->drawText(m_cachedTexts[i],
                                shadowDrawPoint.x, shadowDrawPoint.y, shadowColor);
         }
 
-        renderer->drawText(m_font.get(), m_lines[i],
+        renderer->drawText(m_cachedTexts[i],
                            drawPoint.x, drawPoint.y, textColor);
     }
 
