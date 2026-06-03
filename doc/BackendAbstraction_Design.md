@@ -47,7 +47,7 @@ UIControls 当前硬编码绑定 SDL3，所有控件直接在头文件中引用 
 | 3 — Texture / Surface 抽象 | ✅ **已完成** | Texture/Surface 抽象类；SDL3Texture/SDL3Surface 实现；`m_texture`: SDL_Texture* → SharedTexture；`m_surface`: SDL_Surface* → SharedSurface；GraphTool `void*` → `Texture*`；**LuotiAni.h ~180 SDL 调用完成迁移**；桥接方法全部移除 |
 | 4 — SDL 头文件解耦 | ✅ **已完成** | 从 8 个非后端 header 移除 umbrella `#include <SDL3/SDL.h>`，替换为具体子头文件或完全消除；4 header 零 SDL 依赖；仅 MainWindow.h 保留 umbrella（后端必经依赖） |
 | 5 — Font / TextRenderer | ✅ **已完成** | Font/TextRenderer 抽象接口；SDL3Font/SDL3TextRenderer 实现；Label/EditBox/TextArea 全部迁移至 TextRenderer；LayoutParser TTF 类型引用消除；测试文件 TTF_Init/TTF_Quit 移除 |
-| 6 — Window / Application | ⏳ **未开始** | |
+| 6 — Window / InputBackend / BackendPlugin | ✅ **已完成** | Window/InputBackend 抽象接口及 SDL3 实现；BackendPlugin.h — BackendAPI C ABI 结构体；BackendManager 单例管理后端生命周期；MainWindow.h 重构为代理 BackendManager；ControlBase InputBackend 传播；EditBox 输入法/剪贴板迁移至 InputBackend；`setRenderer(SDL_Renderer*)` 桥接全部移除；Label 截断/EditBox 崩溃/WinFrame 光标等 bug 修复 |
 | 7 — SFML 后端 | ⏳ **未开始** | |
 | 8 — raylib 后端 | ⏳ **未开始** | |
 
@@ -985,6 +985,42 @@ int MainWindow::run(AppCallbacks* app) {
 - `MainWindow.h`：移除 `SDL_Window*` / `SDL_Renderer*` 成员，改为 `Window*` / `RenderDevice*` / `BackendManager`
 - 所有 test 文件：`MainWindow::getInstance()->init(...)` 改为 `MainWindow::getInstance()->init("sdl3", ...)`
 
+### 7.10 实际完成情况 (2026-06-02)
+
+**Phase 6 分步实施：**
+
+**第一步 — Window + InputBackend 抽象：**
+- `include/Window.h` — Window 抽象，已实现 `getSize()`、`getPosition()`、`getDisplayWidth/Height()`、`getDpiScale()`、`setTitle()`、`nativeHandle()`、`renderDevice()`
+- `include/InputBackend.h` — InputBackend 抽象，已实现 `startTextInput()`、`stopTextInput()`、`isTextInputActive()`、`setClipboardText()`、`getClipboardText()`、`hasScreenKeyboard()`
+- `src/Window.cpp` — `SDL3Window`（包装 SDL_Window/SDL_Renderer，拥有 SDL3RenderDevice）、`SDL3InputBackend`（通过 Window 的 nativeHandle 获取 SDL_Window 调用 SDL 输入 API）
+- `MainWindow.h` — 新增 `Window* m_window`、`InputBackend* m_inputBackend`、工厂构造、`GET_INPUTBACKEND` 宏
+- `ControlBase.h/cpp` — `InputBackend* m_inputBackend` + getter/setter + parent/game 遍历 + `inheritRenderer()` 传播
+- `EditBox.h/cpp` — `SDL_StartTextInput` → `m_inputBackend->startTextInput()`；`SDL_GetClipboardText` → `m_inputBackend->getClipboardText()`；`stopTextInput()` 从 unfocus 移除（已由构造时一次性 startTextInput 替代）
+
+**第二步 — `setRenderer(SDL_Renderer*)` 桥接移除：**
+- `EditBox`：空 `setRenderer` override → 移除
+- `Button`：`setRenderer` override（传播到 LuotiAni）→ 移除（LuotiAni 已是 addControl 子控件，`ControlImpl::setRenderer` 自动传播）
+- `LuotiAni.h`：`setRenderer` → `setRenderDevice(RenderDevice*)` override，直接使用 device 参数创建纹理
+- `ControlImpl::addControl`：新增 `child->setRenderDevice(getRenderDevice())`
+- `Bench.h/cpp`：移除 `SDL_Renderer*` 构造参数和 `setRenderer(renderer)` 调用
+
+**第三步 — BackendPlugin 系统：**
+- `include/BackendPlugin.h` — `BackendAPI` C ABI 结构体，`BackendManager` 单例类
+- `src/BackendPlugin.cpp` — 静态 SDL3 backend 注册（`g_sdl3Backend`）、`BackendManager::initialize()` / `shutdown()` 实现
+- `MainWindow.h` — 委托构造至 `BackendManager::instance()->initialize()`，getter 代理至 BackendManager
+- `CMakeLists.txt` — 添加 `src/BackendPlugin.cpp`
+
+**Bug 修复：**
+- Label 截断：`processedLine` 改为引用 `string&`
+- EditBox 崩溃：`m_inputBackend(nullptr)` 补到 `ControlImpl` 构造
+- EditBox 焦点：移除了 `stopTextInput()` 在 unfocus 时的覆盖
+- WinFrame 光标：`MOUSE_MOVING` 边缘检测加 bounds check
+- Layout advanced：`greeter1` 从 `y:10` 移至 `y:1180`
+
+**当前遗留问题：**
+- `BackendManager` 目前使用静态链接（`g_sdl3Backend`），动态 `LoadLibrary` 加载在后续阶段实现
+- Event 系统仍使用 `std::any`（跨 DLL 不安全），未迁移到 union 类型
+
 ## 8. Phase 7——SFML 后端实现
 
 ### 7.1 实现内容
@@ -1037,7 +1073,7 @@ int MainWindow::run(AppCallbacks* app) {
 | 3 | Texture + Surface 抽象 | ~10 | ~1000 | 4-5 | ✅ 已完成（含 LuotiAni 完整迁移） | ★★★★ |
 | 4 | SDL 头文件解耦 | ~10 | ~35 | 1 | ✅ 已完成 | ★ |
 | 5 | Font / TextRenderer 抽象 | ~12 | ~800 | 5-7 | ✅ 已完成 | ★★★★★ |
-| 6 | Window / App / Event 重构 | ~15 | ~600 | 3-4 | ⏳ | ★★ |
+| 6 | Window / InputBackend / BackendPlugin | ~15 | ~600 | 3-4 | ✅ 已完成 | ★★ |
 | 7 | SFML 后端 | ~5 | ~1500 | 5-7 | ⏳ | ★★★★ |
 | 8 | raylib 后端 | ~5 | ~1150 | 5-7 | ⏳ | ★★★★ |
 | **合计** | | **~115** | **~5700** | **30-42** | | |
@@ -1057,7 +1093,7 @@ Phase 4 (Header Cleanup)  ← ✅ 已完成 — 8 非后端 header 移除 umbrel
     ↓
 Phase 5 (Font/TextRenderer) ← ✅ 已完成 — Label/EditBox/TextArea 全部迁移
     ↓
-Phase 6 (Window/App/Event)  ← ⏳ 待开始
+    Phase 6 (Window/InputBackend/BackendPlugin) ← ✅ 已完成
     ↓
 Phase 7 (SFML backend)      ← ⏳ 待开始
     ↓

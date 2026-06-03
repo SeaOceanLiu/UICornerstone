@@ -5,10 +5,7 @@
 #include "ConstDef.h"
 #include "EventQueue.h"
 #include "Utility.h"
-#include "RenderDevice.h"
-#include "TextRenderer.h"
-#include "Window.h"
-#include "InputBackend.h"
+#include "BackendPlugin.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
@@ -20,11 +17,7 @@
 
 class MainWindow {
 private:
-    Window *m_window;
     SDL_Renderer *m_renderer;
-    RenderDevice *m_renderDevice;
-    TextRenderer *m_textRenderer;
-    InputBackend *m_inputBackend;
     SSize m_size;
     SPoint m_pos;
 
@@ -38,24 +31,18 @@ private:
     unordered_map<EventName, uint64_t> m_eventJitter;
 
     MainWindow():
-        m_window(nullptr),
         m_renderer(nullptr),
-        m_renderDevice(nullptr),
-        m_textRenderer(nullptr),
-        m_inputBackend(nullptr),
         m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
         m_pos({INITIAL_POSX, INITIAL_POSY})
     {
-        m_window = CreateSDL3Window(APP_NAME, INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG);
-        if (!m_window) {
-            SDL_Log("Couldn't create window");
+        if (!BackendManager::instance()->initialize("sdl3", APP_NAME,
+                INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG)) {
+            SDL_Log("BackendManager initialization failed");
             return;
         }
 
-        m_renderDevice = m_window->renderDevice();
-        m_renderer = static_cast<SDL_Renderer*>(m_renderDevice->getNativeHandle());
-        m_textRenderer = CreateSDL3TextRenderer(m_renderDevice);
-        m_inputBackend = CreateSDL3InputBackend(m_window);
+        m_renderer = static_cast<SDL_Renderer*>(
+            BackendManager::instance()->renderDevice()->getNativeHandle());
 
         // 获取显示器信息
         SDL_DisplayID m_displayId = SDL_GetPrimaryDisplay();
@@ -72,19 +59,21 @@ private:
         m_displayWidth = (float)displayMode->w * displayMode->pixel_density;
         m_displayHeight = (float)displayMode->h * displayMode->pixel_density;
 
-            // Get window size
+        // Get window size
         int windowWidth = INITIAL_WIDTH;
         int windowHeight = INITIAL_HEIGHT;
-        if(!SDL_GetWindowSize(m_window ? static_cast<SDL_Window*>(m_window->nativeHandle()) : nullptr, &windowWidth, &windowHeight)){
+        if(!SDL_GetWindowSize(
+            static_cast<SDL_Window*>(
+                BackendManager::instance()->window()->nativeHandle()),
+            &windowWidth, &windowHeight)){
             DEBUG_STREAM << "Couldn't get window size: " << SDL_GetError() << std::endl;
         }
         m_size = SSize{(float)windowWidth, (float)windowHeight};
     }
 
     ~MainWindow() {
-        delete m_textRenderer;
-        delete m_inputBackend;
-        delete m_window;
+        // BackendManager shutdown is handled by its own destructor
+        m_renderer = nullptr;
     }
 public:
     static MainWindow* getInstance(void){
@@ -108,13 +97,14 @@ public:
     }
 
     SDL_Window* getWindow(void) {
-        return m_window ? static_cast<SDL_Window*>(m_window->nativeHandle()) : nullptr;
+        Window* w = BackendManager::instance()->window();
+        return w ? static_cast<SDL_Window*>(w->nativeHandle()) : nullptr;
     }
     SDL_Renderer* getRenderer(void) { return m_renderer; }
-    Window* getWindowObject(void) { return m_window; }
-    RenderDevice* getRenderDevice(void) { return m_renderDevice; }
-    TextRenderer* getTextRenderer(void) { return m_textRenderer; }
-    InputBackend* getInputBackend(void) { return m_inputBackend; }
+    Window* getWindowObject(void) { return BackendManager::instance()->window(); }
+    RenderDevice* getRenderDevice(void) { return BackendManager::instance()->renderDevice(); }
+    TextRenderer* getTextRenderer(void) { return BackendManager::instance()->textRenderer(); }
+    InputBackend* getInputBackend(void) { return BackendManager::instance()->inputBackend(); }
     SSize getWindowSize(void) { return m_size; }
     SPoint getWindowPos(void) { return m_pos; }
     float getDisplayWidth(void) { return m_displayWidth; }

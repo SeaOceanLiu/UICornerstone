@@ -19,6 +19,7 @@ message(STATUS "Debug Trace Dir: ${DEBUG_TRACE_DIR}")
 
 add_library(UIControls STATIC
     src/Actor.cpp
+    src/BackendPlugin.cpp
     src/Bench.cpp
     src/Button.cpp
     src/CheckBox.cpp
