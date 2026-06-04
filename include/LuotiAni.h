@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <chrono>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <memory>
@@ -19,7 +18,6 @@
 
 #include "nlohmann/json.hpp"
 #include "MainWindow.h"
-#include "ResourceLoader.h"
 #include "Actor.h"
 #include "Surface.h"
 #include "Texture.h"
@@ -338,17 +336,19 @@ private:
     }
 
     SharedSurface getImageFromResource(string resourceId){
-        shared_ptr<Resource> resource = ResourceLoader::getInstance()->getResource(resourceId);
-        if (resource == nullptr || (resource->resourceType != ResourceLoader::RT_IMAGES
-                                && resource->resourceType != ResourceLoader::RT_ANIMATIONS
-                                && resource->resourceType != ResourceLoader::RT_BACKGROUND)
-            || resource->pMem == nullptr) {
-
-            printf("LuotiAni::getImageFromResource Error: '%s' is not an animation related resource.\n", resourceId.c_str());
-            throw "LuotiAni::getImageFromResource Error: resource is not an animation related resource.";
+        ResourceProvider* provider = getResourceProvider();
+        if (provider == nullptr) {
+            printf("LuotiAni::getImageFromResource: No resource provider\n");
+            throw "LuotiAni::getImageFromResource: No resource provider";
         }
 
-        SharedSurface surface = Surface::loadFromMemory(resource->pMem.get(), resource->resourceSize);
+        shared_ptr<vector<char>> imageData = provider->readFile(resourceId);
+        if (imageData == nullptr || imageData->empty()) {
+            printf("LuotiAni::getImageFromResource Error: '%s' not found\n", resourceId.c_str());
+            throw "LuotiAni::getImageFromResource Error: resource not found";
+        }
+
+        SharedSurface surface = Surface::loadFromMemory(imageData->data(), imageData->size());
         if (surface == nullptr) {
             printf("LuotiAni::getImageFromResource Error: loadFromMemory failed.\n");
             throw "LuotiAni::getImageFromResource Error: loadFromMemory failed.";
@@ -421,34 +421,43 @@ public:
         loadAniDesc(resourceId);
     };
     void loadAniDesc(fs::path filePath){
-        std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-        if (!file) {
+        SDL_IOStream* stream = SDL_IOFromFile(filePath.string().c_str(), "r");
+        if (!stream) {
             printf("Open aniDesc json file error\n");
             throw "Open aniDesc json file error";
             return;
         }
-        size_t iFileLen = file.tellg();
-        file.seekg(0, std::ios::beg);
+        Sint64 iFileLen = SDL_GetIOSize(stream);
+        if (iFileLen <= 0) {
+            SDL_CloseIO(stream);
+            throw "Open aniDesc json file error";
+            return;
+        }
 
-        m_pJsonFileContent = shared_ptr<char[]>(new char[iFileLen + 1]);
-        file.read(m_pJsonFileContent.get(), iFileLen);
-        m_pJsonFileContent[iFileLen] = '\0';
+        m_pJsonFileContent = shared_ptr<char[]>(new char[static_cast<size_t>(iFileLen) + 1]);
+        SDL_ReadIO(stream, m_pJsonFileContent.get(), static_cast<size_t>(iFileLen));
+        m_pJsonFileContent[static_cast<size_t>(iFileLen)] = '\0';
+        SDL_CloseIO(stream);
 
         parseJsonDesc();
     }
 
     void loadAniDesc(string resourceId){
-        shared_ptr<Resource> resource = ResourceLoader::getInstance()->getResource(resourceId);
-        if (resource == nullptr || resource->resourceType != ResourceLoader::RT_ANIMATIONS
-            || resource->pMem == nullptr) {
-
-            printf("LoadFromResource Error: '%s' is not a config file\n", resourceId.c_str());
+        ResourceProvider* provider = getResourceProvider();
+        if (provider == nullptr) {
+            printf("LuotiAni::loadAniDesc: No resource provider\n");
             return;
         }
 
-        size_t iFileLen = resource->resourceSize;
+        shared_ptr<vector<char>> fileData = provider->readFile(resourceId);
+        if (fileData == nullptr || fileData->empty()) {
+            printf("LuotiAni::loadAniDesc: '%s' not found\n", resourceId.c_str());
+            return;
+        }
+
+        size_t iFileLen = fileData->size();
         m_pJsonFileContent = shared_ptr<char[]>(new char[iFileLen + 1]);
-        memcpy(m_pJsonFileContent.get(), resource->pMem.get(), iFileLen);
+        memcpy(m_pJsonFileContent.get(), fileData->data(), iFileLen);
         m_pJsonFileContent[iFileLen] = '\0';
 
         parseJsonDesc();

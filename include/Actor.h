@@ -2,7 +2,6 @@
 #define ActorH
 #include "Material.h"
 #include "Texture.h"
-#include "ResourceLoader.h"
 
 // 图片在目标矩形中的缩放方式
 enum class ScaleType {

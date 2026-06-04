@@ -25,6 +25,7 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     m_renderDevice(nullptr),
     m_textRenderer(nullptr),
     m_inputBackend(nullptr),
+    m_resourceProvider(nullptr),
     m_texture(nullptr),
     m_rect({0, 0, 0, 0}),
     m_mouseInside(false)
@@ -466,6 +467,27 @@ void ControlImpl::setInputBackend(InputBackend* backend) {
     }
 }
 
+ResourceProvider* ControlImpl::getResourceProvider(void) {
+    if (m_resourceProvider != nullptr) {
+        return m_resourceProvider;
+    }
+    if (m_parent != nullptr) {
+        m_resourceProvider = m_parent->getResourceProvider();
+    } else {
+        m_resourceProvider = MAINWIN->getResourceProvider();
+    }
+    return m_resourceProvider;
+}
+
+void ControlImpl::setResourceProvider(ResourceProvider* provider) {
+    if (m_resourceProvider == provider) return;
+
+    m_resourceProvider = provider;
+    for (auto& child : m_children){
+        child->setResourceProvider(provider);
+    }
+}
+
 SRect ControlImpl::getDrawRect(void){
     Control *parent = getParent();
     SRect parentDrawRect;
@@ -610,5 +632,8 @@ void ControlImpl::inheritRenderer(void) {
     }
     if (m_inputBackend == nullptr) {
         m_inputBackend = MAINWIN->getInputBackend();
+    }
+    if (m_resourceProvider == nullptr) {
+        m_resourceProvider = MAINWIN->getResourceProvider();
     }
 }

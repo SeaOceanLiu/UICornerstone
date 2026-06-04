@@ -207,4 +207,23 @@ test_label.exe
 **Tests verified**: All 10 tests build successfully. `test_button.exe` and `test_label.exe` run without crashes (both contain Chinese captions with scaled/2x buttons).
 
 **Status**: All 10 tests build successfully.
-**Note**: Phase 7 focused on TTF_Text caching only. The ResourceProvider / file I/O abstraction (previously attempted as Phase 7 and rolled back) will be re‑attempted in a future session.
+
+### 2026-06-03: Phase 8 — ResourceProvider Abstraction (Complete)
+
+**Problem**: Code directly depended on `ResourceLoader` singleton for file I/O, mixing resource bundle loading with filesystem access. Adding filesystem-only resources (e.g., animation JSON) required awkward workarounds.
+
+**Core Infrastructure**:
+- `include/ResourceProvider.h`: Abstract `ResourceProvider` interface — `readFile()` → `shared_ptr<vector<char>>`, `openFileStream()` → `SDL_IOStream*`, `exists()` → `bool`. Factory `createFilesystem(basePath)`.
+- `src/ResourceProvider.cpp`: `FilesystemResourceProvider` implementation using `fopen`/`fread`.
+- `include/ControlBase.h`: Added `ResourceProvider* m_resourceProvider` member, `getResourceProvider()`/`setResourceProvider()` interface and implementation.
+- `src/ControlBase.cpp`: `setResourceProvider()` propagates to children; `inheritRenderer()` also inherits resource provider.
+- `include/MainWindow.h`: Added `ResourceProvider* m_resourceProvider` member, creation/destruction, `getResourceProvider()`, `GET_RESOURCEPROVIDER` macro.
+
+**Font Data Lifetime Fix**:
+- Root cause: `TTF_OpenFontIO(stream, true)` may reference font data lazily; when `shared_ptr<vector<char>>` went out of scope after `loadFromResource`/`loadFontInternal`, the font referenced freed memory → crash in `TTF_GetTextSize`.
+- `include/Label.h`: Added `shared_ptr<vector<char>> m_fontData` member.
+- `src/Label.cpp`: `loadFromResource()` stores font data in `m_fontData` instead of a local variable; `releaseFont()` also resets `m_fontData`.
+- `include/EditBox.h`: Added `shared_ptr<vector<char>> m_fontData` member.
+- `src/EditBox.cpp`: `loadFontInternal()` stores font data in `m_fontData` instead of a local variable.
+
+**Status**: All 10 tests build successfully. `test_button.exe` runs without crash (was crashing before the lifetime fix).

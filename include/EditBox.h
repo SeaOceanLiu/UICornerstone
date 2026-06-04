@@ -56,6 +56,7 @@ protected:
     Margin m_margin;
 
     SharedFont m_font;
+    shared_ptr<vector<char>> m_fontData;
     int m_fontSize;
     FontName m_fontName;
 

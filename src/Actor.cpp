@@ -60,19 +60,21 @@ void Actor::loadFromFile(fs::path filePath) {
 }
 
 void Actor::loadFromResource(string resourceId) {
-    shared_ptr<Resource> resource = ResourceLoader::getInstance()->getResource(resourceId);
-    if (resource == nullptr || (resource->resourceType != ResourceLoader::RT_IMAGES
-                            && resource->resourceType != ResourceLoader::RT_ANIMATIONS
-                            && resource->resourceType != ResourceLoader::RT_BACKGROUND)
-        || resource->pMem == nullptr) {
-
-        SDL_Log("LoadFromResource Error: '%s' is not an images\n", resourceId.c_str());
+    ResourceProvider* provider = getResourceProvider();
+    if (provider == nullptr) {
+        SDL_Log("Actor::loadFromResource: No resource provider\n");
         return;
     }
 
-    m_surface = Surface::loadFromMemory(resource->pMem.get(), resource->resourceSize);
+    shared_ptr<vector<char>> imageData = provider->readFile(resourceId);
+    if (imageData == nullptr || imageData->empty()) {
+        SDL_Log("Actor::loadFromResource: '%s' not found\n", resourceId.c_str());
+        return;
+    }
+
+    m_surface = Surface::loadFromMemory(imageData->data(), imageData->size());
     if (!m_surface) {
-        SDL_Log("loadFromResource Error\n");
+        SDL_Log("Actor::loadFromResource Error\n");
         return;
     }
 

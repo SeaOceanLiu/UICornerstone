@@ -6,6 +6,7 @@
 #include "EventQueue.h"
 #include "Utility.h"
 #include "BackendPlugin.h"
+#include "ResourceProvider.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
@@ -13,11 +14,13 @@
 #define GET_RENDERDEVICE (MAINWIN->getRenderDevice())
 #define GET_TEXTRENDERER (MAINWIN->getTextRenderer())
 #define GET_INPUTBACKEND (MAINWIN->getInputBackend())
+#define GET_RESOURCEPROVIDER (MAINWIN->getResourceProvider())
 
 
 class MainWindow {
 private:
     SDL_Renderer *m_renderer;
+    ResourceProvider *m_resourceProvider;
     SSize m_size;
     SPoint m_pos;
 
@@ -32,6 +35,7 @@ private:
 
     MainWindow():
         m_renderer(nullptr),
+        m_resourceProvider(nullptr),
         m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
         m_pos({INITIAL_POSX, INITIAL_POSY})
     {
@@ -43,6 +47,8 @@ private:
 
         m_renderer = static_cast<SDL_Renderer*>(
             BackendManager::instance()->renderDevice()->getNativeHandle());
+
+        m_resourceProvider = ResourceProvider::createFilesystem(ConstDef::pathPrefix.string());
 
         // 获取显示器信息
         SDL_DisplayID m_displayId = SDL_GetPrimaryDisplay();
@@ -74,6 +80,7 @@ private:
     ~MainWindow() {
         // BackendManager shutdown is handled by its own destructor
         m_renderer = nullptr;
+        delete m_resourceProvider;
     }
 public:
     static MainWindow* getInstance(void){
@@ -105,6 +112,7 @@ public:
     RenderDevice* getRenderDevice(void) { return BackendManager::instance()->renderDevice(); }
     TextRenderer* getTextRenderer(void) { return BackendManager::instance()->textRenderer(); }
     InputBackend* getInputBackend(void) { return BackendManager::instance()->inputBackend(); }
+    ResourceProvider* getResourceProvider(void) { return m_resourceProvider; }
     SSize getWindowSize(void) { return m_size; }
     SPoint getWindowPos(void) { return m_pos; }
     float getDisplayWidth(void) { return m_displayWidth; }

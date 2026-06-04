@@ -39,6 +39,7 @@ add_library(UIControls STATIC
     src/ResourceLoader.cpp
     src/Menu.cpp
     src/ProgressBar.cpp
+    src/ResourceProvider.cpp
     src/RenderDevice.cpp
     src/ScrollBar.cpp
     src/TextRenderer.cpp

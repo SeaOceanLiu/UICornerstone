@@ -45,6 +45,7 @@ class Label: public ControlImpl {
     using OnPropertyChangedHandler = std::function<void (shared_ptr<Label>)>;
 private:
     SharedFont m_font;
+    shared_ptr<vector<char>> m_fontData;
     SPoint m_translatedPos;
     SDL_Cursor *m_hoverCursor;
     SDL_Cursor *m_defaultCursor;

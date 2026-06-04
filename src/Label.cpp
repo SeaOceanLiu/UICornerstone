@@ -53,6 +53,7 @@ Label::~Label(void){
 
 void Label::releaseFont(void) {
     m_font.reset();
+    m_fontData.reset();
 }
 
 void Label::releaseTexts(void) {
@@ -302,11 +303,15 @@ float Label::getStringWidth(const string& text) {
 }
 
 void Label::loadFromResource(string resourceId){
-    shared_ptr<Resource> resource = ResourceLoader::getInstance()->getResource(resourceId);
-    if (resource == nullptr || resource->resourceType != ResourceLoader::RT_FONTS
-        || resource->pMem == nullptr) {
+    ResourceProvider* provider = getResourceProvider();
+    if (provider == nullptr) {
+        SDL_Log("Label::loadFromResource: No resource provider available");
+        return;
+    }
 
-        SDL_Log("Label::loadFromResource: Error: '%s' is not a font\n", resourceId.c_str());
+    m_fontData = provider->readFile(resourceId);
+    if (m_fontData == nullptr || m_fontData->empty()) {
+        SDL_Log("Label::loadFromResource: Error: '%s' not found\n", resourceId.c_str());
         return;
     }
 
@@ -316,7 +321,7 @@ void Label::loadFromResource(string resourceId){
         return;
     }
 
-    m_font = renderer->loadFontFromMemory(resource->pMem.get(), resource->resourceSize,
+    m_font = renderer->loadFontFromMemory(m_fontData->data(), m_fontData->size(),
                                            static_cast<int>(m_fontSize * getScaleXX()));
     if (m_font == nullptr) {
         SDL_Log("Label::loadFromResource: Failed to load font");

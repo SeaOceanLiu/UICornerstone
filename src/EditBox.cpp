@@ -52,9 +52,20 @@ EditBox::~EditBox() {
 }
 
 void EditBox::loadFontInternal() {
-    fs::path fontPath = ConstDef::pathPrefix / ResourceLoader::m_fontFiles[m_fontName];
+    ResourceProvider* provider = getResourceProvider();
+    if (provider == nullptr) {
+        printf("EditBox::loadFontInternal: No resource provider\n");
+        return;
+    }
+
+    m_fontData = provider->readFile(ResourceLoader::m_fontFiles[m_fontName]);
+    if (m_fontData == nullptr || m_fontData->empty()) {
+        printf("EditBox::loadFontInternal: Failed to load font\n");
+        return;
+    }
+
     int scaledFontSize = (int)(m_fontSize * getScaleXX());
-    m_font = getTextRenderer()->loadFont(fontPath.string(), scaledFontSize);
+    m_font = getTextRenderer()->loadFontFromMemory(m_fontData->data(), m_fontData->size(), scaledFontSize);
     if (!m_font) {
         printf("Failed to load font for EditBox\n");
     }

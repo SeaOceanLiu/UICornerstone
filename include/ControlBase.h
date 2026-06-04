@@ -10,6 +10,7 @@
 #include "EventQueue.h"
 #include "TextRenderer.h"
 #include "InputBackend.h"
+#include "ResourceProvider.h"
 
 using namespace std;
 
@@ -174,6 +175,8 @@ public:
     virtual void setTextRenderer(TextRenderer* renderer) = 0;
     virtual InputBackend* getInputBackend(void) = 0;
     virtual void setInputBackend(InputBackend* backend) = 0;
+    virtual ResourceProvider* getResourceProvider(void) = 0;
+    virtual void setResourceProvider(ResourceProvider* provider) = 0;
     virtual shared_ptr<Control> getThis(void) = 0;
     virtual SRect getDrawRect(void) = 0;
     virtual SRect mapToDrawRect(SRect rect) = 0;
@@ -243,6 +246,7 @@ protected:
     RenderDevice *m_renderDevice;
     TextRenderer *m_textRenderer;
     InputBackend *m_inputBackend;
+    ResourceProvider *m_resourceProvider;
     SharedTexture m_texture;
 
     SRect m_rect;
@@ -319,6 +323,8 @@ public:
     void setTextRenderer(TextRenderer* renderer) override;
     InputBackend* getInputBackend(void) override;
     void setInputBackend(InputBackend* backend) override;
+    ResourceProvider* getResourceProvider(void) override;
+    void setResourceProvider(ResourceProvider* provider) override;
     shared_ptr<Control> getThis(void) override;
     SRect getDrawRect(void) override;
     SRect mapToDrawRect(SRect rect) override;
