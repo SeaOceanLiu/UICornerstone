@@ -9,7 +9,7 @@
 #include "GraphTool.h"
 #include "MainWindow.h"
 #include "Bench.h"
-#include "ResourceLoader.h"
+
 
 using namespace std;
 using namespace GraphTool;
@@ -582,5 +582,5 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 }
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-    ResourceLoader::getInstance()->detachLoadingThread();
+
 }

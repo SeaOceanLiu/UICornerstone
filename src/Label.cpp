@@ -494,7 +494,7 @@ string Label::getCaption(void) const{
 }
 void Label::setFont(FontName fontName){
     m_fontName = fontName;
-    m_fontFile = fs::path(ResourceLoader::m_fontFiles[fontName]);
+    m_fontFile = fs::path(ConstDef::fontFiles.at(fontName));
 
     recreate();
 }

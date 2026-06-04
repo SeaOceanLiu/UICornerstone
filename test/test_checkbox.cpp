@@ -6,7 +6,7 @@
 #include "CheckBox.h"
 #include "MainWindow.h"
 #include "Bench.h"
-#include "ResourceLoader.h"
+
 #include "EditBox.h"
 #include "TextArea.h"
 #include "GraphTool.h"
@@ -330,6 +330,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     // Clean up resources
-    ResourceLoader::getInstance()->detachLoadingThread();
+
     SDL_Log("Application quit");
 }

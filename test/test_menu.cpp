@@ -304,6 +304,6 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
     SDL_Log("SDL_AppQuit");
     // Clean up resources
-    ResourceLoader::getInstance()->detachLoadingThread();
+
     cout << "Menu test program exiting" << endl;
 }

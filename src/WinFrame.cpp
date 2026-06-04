@@ -39,9 +39,9 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
 
     addControl(m_closeButton = ButtonBuilder(this,
         SRect(m_rect.width - titleH, 0, titleH, titleH))
-        .setNormalStateActor(    make_shared<Actor>(this, ResourceLoader::RID_cross_up_png, true))
-        .setHoverStateActor(     make_shared<Actor>(this, ResourceLoader::RID_cross_over_png, true))
-        .setPressedStateActor(   make_shared<Actor>(this, ResourceLoader::RID_cross_down_png, true))
+        .setNormalStateActor(    make_shared<Actor>(this, string("images/cross_up.png"), true))
+        .setHoverStateActor(     make_shared<Actor>(this, string("images/cross_over.png"), true))
+        .setPressedStateActor(   make_shared<Actor>(this, string("images/cross_down.png"), true))
         .setBackgroundStateColor(StateColor(
             SColor(0x50,0x50,0x50,0xFF),
             SColor(0x60,0x60,0x60,0xFF),

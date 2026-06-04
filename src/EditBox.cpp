@@ -3,7 +3,6 @@
 #include <iostream>
 #include "EditBox.h"
 #include "MainWindow.h"
-#include "ResourceLoader.h"
 #include "EventQueue.h"
 #include <algorithm>
 #include <cstdint>
@@ -58,7 +57,7 @@ void EditBox::loadFontInternal() {
         return;
     }
 
-    m_fontData = provider->readFile(ResourceLoader::m_fontFiles[m_fontName]);
+    m_fontData = provider->readFile(ConstDef::fontFiles.at(m_fontName));
     if (m_fontData == nullptr || m_fontData->empty()) {
         printf("EditBox::loadFontInternal: Failed to load font\n");
         return;

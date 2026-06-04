@@ -7,7 +7,6 @@
 #include <functional>
 #include "ConstDef.h"
 #include "ControlBase.h"
-#include "ResourceLoader.h"
 #include "Font.h"
 
 struct SDL_Cursor;

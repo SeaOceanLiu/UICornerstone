@@ -261,6 +261,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
-    ResourceLoader::getInstance()->detachLoadingThread();
+
     //SDL_Quit();
 }

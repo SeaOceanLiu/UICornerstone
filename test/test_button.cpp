@@ -102,7 +102,7 @@ void testBenchInitialize(void) {
     // 4. 有动画的 button（LuotiAni）
     {
         shared_ptr<LuotiAni> rotateAni = LuotiAniBuilder(BENCH)
-            .loadAniDesc(ResourceLoader::RID_rotateBtn_jsonc)
+            .loadAniDesc(string("animations/rotateBtn/rotateBtn.jsonc"))
             .prepare()
             .setAutoStart()
             .build();
@@ -151,7 +151,7 @@ void testBenchInitialize(void) {
     // 6. 2x缩放的动画 button（LuotiAni）
     {
         shared_ptr<LuotiAni> rotateAni2x = LuotiAniBuilder(BENCH)
-            .loadAniDesc(ResourceLoader::RID_rotateBtn_jsonc)
+            .loadAniDesc(string("animations/rotateBtn/rotateBtn.jsonc"))
             .prepare()
             .setAutoStart()
             .build();
@@ -286,6 +286,6 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     (void)appstate;
     (void)result;
     // Clean up resources
-    ResourceLoader::getInstance()->detachLoadingThread();
+
     logOutput(u8"程序结束");
 }

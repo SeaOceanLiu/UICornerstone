@@ -7,7 +7,7 @@
 #include "MainWindow.h"
 #include "Bench.h"
 #include "EventQueue.h"
-#include "ResourceLoader.h"
+
 #include "EditBox.h"
 #include "TextArea.h"
 
@@ -395,7 +395,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
-    ResourceLoader::getInstance()->detachLoadingThread();
+
     if (g_text1){
         TTF_DestroyText(g_text1);
         g_text1 = nullptr;

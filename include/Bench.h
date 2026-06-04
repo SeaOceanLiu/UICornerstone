@@ -1,7 +1,6 @@
 ﻿#ifndef BenchH
 #define BenchH
 #include "MainWindow.h"
-#include "ResourceLoader.h"
 #include "Panel.h"
 #include "Label.h"
 #include "WinFrame.h"

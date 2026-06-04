@@ -2,6 +2,8 @@
 #define ConstDefH
 
 #include <filesystem>
+#include <unordered_map>
+#include <string>
 
 #include "Utility.h"
 
@@ -37,11 +39,44 @@ class Margin; // 前向声明Margin类
 #define DEFAULT_BTN_REPEAT_MS_INTERVAL (50) // 默认按钮重复事件间隔时间，单位毫秒
 #define DEFAULT_BTN_MS_REPEAT (50)          // 按钮自动重复的时间间隔，单位毫秒
 
+enum class FontName {
+    Asul_Bold,
+    Asul_Regular,
+    HarmonyOS_Sans_Condensed_Regular,
+    HarmonyOS_Sans_Condensed_Thin,
+    HarmonyOS_Sans_SC_Black,
+    HarmonyOS_Sans_SC_Bold,
+    HarmonyOS_Sans_SC_Light,
+    HarmonyOS_Sans_SC_Medium,
+    HarmonyOS_Sans_SC_Regular,
+    HarmonyOS_Sans_SC_Thin,
+    MapleMono_NF_CN_Bold,
+    MapleMono_NF_CN_BoldItalic,
+    MapleMono_NF_CN_ExtraBold,
+    MapleMono_NF_CN_ExtraBoldItalic,
+    MapleMono_NF_CN_ExtraLight,
+    MapleMono_NF_CN_ExtraLightItalic,
+    MapleMono_NF_CN_Italic,
+    MapleMono_NF_CN_Light,
+    MapleMono_NF_CN_LightItalic,
+    MapleMono_NF_CN_Medium,
+    MapleMono_NF_CN_MediumItalic,
+    MapleMono_NF_CN_Regular,
+    MapleMono_NF_CN_SemiBold,
+    MapleMono_NF_CN_SemiBoldItalic,
+    MapleMono_NF_CN_Thin,
+    MapleMono_NF_CN_ThinItalic,
+    Muyao_Softbrush,
+    Quando_Regular
+};
+
 class ConstDef {
 public:
     // 路径定义
     static const fs::path workforldPath;  // 工作目录路径
     static const fs::path pathPrefix;     // 资源路径前缀
+
+    static const std::unordered_map<FontName, std::string> fontFiles;
 
     // 缺省彩色定义
     static const SColor DEFAULT_DISABLED_COLOR;

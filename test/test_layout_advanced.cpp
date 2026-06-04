@@ -3,7 +3,7 @@
 #include <SDL3/SDL_main.h>
 #include "LayoutParser.h"
 #include "Menu.h"
-#include "ResourceLoader.h"
+
 #include "Bench.h"
 #include "MainWindow.h"
 #include "HotReloader.h"

@@ -25,8 +25,8 @@ Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
     setTransparent(true);
 
     SDL_Log("Loading resources.....................................");
-    // 将资源加载到内存中
-    ResourceLoader::getInstance()->loadConfig();
+    m_isLoading = false;
+    initial();
 }
 
 void Bench::inputControl(shared_ptr<Event> event) {
@@ -69,11 +69,8 @@ void Bench::repeatTrigger(void){
 }
 void Bench::update() {
     if (m_isLoading){
-        if(ResourceLoader::getInstance()->getLoadingProgress() == 1.0f){
-            ResourceLoader::getInstance()->detachLoadingThread();
-            m_isLoading = false;
-            initial();
-        }
+        m_isLoading = false;
+        initial();
     }else {
         if (m_lastAction != nullptr){
             repeatTrigger();
@@ -82,24 +79,9 @@ void Bench::update() {
     }
 }
 void Bench::draw(void){
-    if(m_isLoading){
-        ControlImpl::preDraw();
-
-        SRect rect = {0, m_rect.height / 2 - 50, m_rect.width, 100};
-        SRect percentRect = {0, m_rect.height / 2 - 50, m_rect.width * ResourceLoader::getInstance()->getLoadingProgress(), 100};
-
-        GET_RENDERDEVICE->setDrawColor(SColor(255, 165, 0, 255));
-        GET_RENDERDEVICE->fillRect(percentRect);
-        GET_RENDERDEVICE->setDrawColor(SColor(128, 128, 128, 255));
-        GET_RENDERDEVICE->drawRect(rect);
-        return;
-    }
-
     if (!m_visible) return;
-    // 绘制子控件
-    Panel::draw();
 
-    // drawCenteredRectangle(getRenderer(), (int)m_rect.width, (int)m_rect.height);
+    Panel::draw();
 }
 
 SDL_AppResult Bench::isExiting(void) {

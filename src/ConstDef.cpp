@@ -1,4 +1,5 @@
 ﻿#include <filesystem>
+#include <string>
 #include <SDL3/SDL.h>
 
 #include "ConstDef.h"
@@ -95,3 +96,34 @@ const SColor ConstDef::PROGRESSBAR_TEXT_COLOR(255, 255, 255, 255);
 const float ConstDef::PROGRESSBAR_ANIMATION_SPEED = 0.1f;
 const float ConstDef::PROGRESSBAR_DEFAULT_FONT_SIZE = 14.0f;
 const float ConstDef::PROGRESSBAR_TEXT_MARGIN = 5.0f;
+
+const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
+    {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
+    {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},
+    {FontName::HarmonyOS_Sans_Condensed_Regular, "fonts/HarmonyOS_Sans_Condensed_Regular.ttf"},
+    {FontName::HarmonyOS_Sans_Condensed_Thin, "fonts/HarmonyOS_Sans_Condensed_Thin.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Black, "fonts/HarmonyOS_Sans_SC_Black.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Bold, "fonts/HarmonyOS_Sans_SC_Bold.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Light, "fonts/HarmonyOS_Sans_SC_Light.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Medium, "fonts/HarmonyOS_Sans_SC_Medium.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Regular, "fonts/HarmonyOS_Sans_SC_Regular.ttf"},
+    {FontName::HarmonyOS_Sans_SC_Thin, "fonts/HarmonyOS_Sans_SC_Thin.ttf"},
+    {FontName::MapleMono_NF_CN_Bold, "fonts/MapleMono-NF-CN-Bold.ttf"},
+    {FontName::MapleMono_NF_CN_BoldItalic, "fonts/MapleMono-NF-CN-BoldItalic.ttf"},
+    {FontName::MapleMono_NF_CN_ExtraBold, "fonts/MapleMono-NF-CN-ExtraBold.ttf"},
+    {FontName::MapleMono_NF_CN_ExtraBoldItalic, "fonts/MapleMono-NF-CN-ExtraBoldItalic.ttf"},
+    {FontName::MapleMono_NF_CN_ExtraLight, "fonts/MapleMono-NF-CN-ExtraLight.ttf"},
+    {FontName::MapleMono_NF_CN_ExtraLightItalic, "fonts/MapleMono-NF-CN-ExtraLightItalic.ttf"},
+    {FontName::MapleMono_NF_CN_Italic, "fonts/MapleMono-NF-CN-Italic.ttf"},
+    {FontName::MapleMono_NF_CN_Light, "fonts/MapleMono-NF-CN-Light.ttf"},
+    {FontName::MapleMono_NF_CN_LightItalic, "fonts/MapleMono-NF-CN-LightItalic.ttf"},
+    {FontName::MapleMono_NF_CN_Medium, "fonts/MapleMono-NF-CN-Medium.ttf"},
+    {FontName::MapleMono_NF_CN_MediumItalic, "fonts/MapleMono-NF-CN-MediumItalic.ttf"},
+    {FontName::MapleMono_NF_CN_Regular, "fonts/MapleMono-NF-CN-Regular.ttf"},
+    {FontName::MapleMono_NF_CN_SemiBold, "fonts/MapleMono-NF-CN-SemiBold.ttf"},
+    {FontName::MapleMono_NF_CN_SemiBoldItalic, "fonts/MapleMono-NF-CN-SemiBoldItalic.ttf"},
+    {FontName::MapleMono_NF_CN_Thin, "fonts/MapleMono-NF-CN-Thin.ttf"},
+    {FontName::MapleMono_NF_CN_ThinItalic, "fonts/MapleMono-NF-CN-ThinItalic.ttf"},
+    {FontName::Muyao_Softbrush, "fonts/Muyao-Softbrush.ttf"},
+    {FontName::Quando_Regular, "fonts/Quando-Regular.ttf"},
+};

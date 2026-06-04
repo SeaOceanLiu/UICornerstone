@@ -227,3 +227,17 @@ test_label.exe
 - `src/EditBox.cpp`: `loadFontInternal()` stores font data in `m_fontData` instead of a local variable.
 
 **Status**: All 10 tests build successfully. `test_button.exe` runs without crash (was crashing before the lifetime fix).
+
+### 2026-06-04: Phase 9 — Remove ResourceLoader (Complete)
+
+**Changes**:
+- **`ConstDef.h/cpp`**: Moved `FontName` enum and `fontFiles` map from `ResourceLoader.h`
+- **`include/Label.h`**, **`include/Bench.h`**, **`src/EditBox.cpp`**: Removed `#include "ResourceLoader.h"`
+- **`src/WinFrame.cpp`**: Inlined RID string constants (cross_up/cross_over/cross_down PNGs)
+- **`test/test_button.cpp`**: Inlined RID rotateBtn_jsonc path, removed `detachLoadingThread()` call
+- **All test files**: Removed `detachLoadingThread()` calls (no longer needed without async loading thread)
+- **`src/Bench.cpp`**: Simplified — loading is now instantaneous (no more async resource bundle loading), removed progress bar drawing code no longer applicable
+- **`CMakeLists.txt`**: Removed `ResourceLoader.cpp` from build
+- **`include/ResourceLoader.h`**, **`src/ResourceLoader.cpp`**: **Deleted entirely** — old resource bundle system is gone
+
+**Status**: All 10 tests build and run successfully.

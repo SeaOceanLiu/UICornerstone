@@ -7,7 +7,7 @@
 #include "LayoutParser.h"
 #include "MainWindow.h"
 #include "Bench.h"
-#include "ResourceLoader.h"
+
 #include "TextArea.h"
 #include "Button.h"
 #include "EditBox.h"
@@ -282,5 +282,5 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
-    ResourceLoader::getInstance()->detachLoadingThread();
+
 }
