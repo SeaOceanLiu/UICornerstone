@@ -3,6 +3,8 @@
 #include "TextArea.h"
 #include "MainWindow.h"
 #include <algorithm>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
 
 TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     : EditBox(parent, rect, xScale, yScale)

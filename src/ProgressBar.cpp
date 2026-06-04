@@ -3,6 +3,7 @@
 #include "ProgressBar.h"
 #include "GraphTool.h"
 #include <algorithm>
+#include <SDL3/SDL.h>
 
 ProgressBar::ProgressBar(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale),

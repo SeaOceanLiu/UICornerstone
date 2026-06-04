@@ -1,5 +1,5 @@
 ﻿#include "Label.h"
-#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL.h>
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale)

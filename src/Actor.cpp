@@ -1,5 +1,6 @@
 ﻿#include "Actor.h"
 #include "Surface.h"
+#include <SDL3/SDL.h>
 
 Actor::Actor(Control *parent, float xScale, float yScale):
     Material(parent, xScale, yScale),

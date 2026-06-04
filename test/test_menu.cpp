@@ -270,12 +270,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             break;
 
         case SDL_EVENT_WINDOW_RESIZED:
-            MainWindow::handleWindowEvent(event->window);
+            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
             BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
             break;
 
         case SDL_EVENT_WINDOW_MOVED:
-            MainWindow::handleWindowEvent(event->window);
+            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
             break;
     }
 

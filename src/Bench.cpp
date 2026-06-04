@@ -1,4 +1,5 @@
 ﻿#include "Bench.h"
+#include <SDL3/SDL.h>
 
 void Bench::initial(void){
     // setBGColor(INITIAL_BG_COLOR);
@@ -19,7 +20,7 @@ Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
     m_isInitialed(false),
     m_nextTick(0),
     m_nextRepeatTick(0),
-    m_isExiting(SDL_APP_CONTINUE),
+    m_isExiting(0),
     m_onInitial(nullptr)
 {
     setTransparent(true);
@@ -84,7 +85,7 @@ void Bench::draw(void){
     Panel::draw();
 }
 
-SDL_AppResult Bench::isExiting(void) {
+int Bench::isExiting(void) {
     return m_isExiting;
 }
 

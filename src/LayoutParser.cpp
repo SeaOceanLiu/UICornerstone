@@ -6,6 +6,7 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_set>
+#include <SDL3/SDL.h>
 
 LayoutParser::LayoutParser()
     : m_currentLineNo(0)

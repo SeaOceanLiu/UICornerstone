@@ -1,5 +1,4 @@
 #include "Window.h"
-#include "InputBackend.h"
 #include "RenderDevice.h"
 #include <SDL3/SDL.h>
 
@@ -72,49 +71,7 @@ private:
 };
 
 // ============================================================
-// SDL3InputBackend
-// ============================================================
-class SDL3InputBackend : public InputBackend {
-public:
-    SDL3InputBackend(SDL_Window* window)
-        : m_window(window)
-    {
-    }
-
-    void startTextInput() override {
-        SDL_StartTextInput(m_window);
-    }
-
-    void stopTextInput() override {
-        SDL_StopTextInput(m_window);
-    }
-
-    bool isTextInputActive() const override {
-        return SDL_TextInputActive(m_window);
-    }
-
-    void setClipboardText(const std::string& text) override {
-        SDL_SetClipboardText(text.c_str());
-    }
-
-    std::string getClipboardText() const override {
-        char* text = SDL_GetClipboardText();
-        if (!text) return "";
-        std::string result(text);
-        SDL_free(text);
-        return result;
-    }
-
-    bool hasScreenKeyboard() const override {
-        return SDL_HasScreenKeyboardSupport();
-    }
-
-private:
-    SDL_Window* m_window;
-};
-
-// ============================================================
-// Factory Functions
+// Factory Function
 // ============================================================
 Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flags) {
     SDL_Window* window = nullptr;
@@ -124,9 +81,4 @@ Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flag
         return nullptr;
     }
     return new SDL3Window(window, renderer);
-}
-
-InputBackend* CreateSDL3InputBackend(Window* window) {
-    SDL3Window* sdl3win = static_cast<SDL3Window*>(window);
-    return new SDL3InputBackend(sdl3win->getSDLWindow());
 }

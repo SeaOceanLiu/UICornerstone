@@ -32,6 +32,7 @@ add_library(UIControls STATIC
     src/EventQueue.cpp
     src/GraphTool.cpp
     src/HotReloader.cpp
+    src/InputBackend.cpp
     src/Label.cpp
     src/LayoutEngine.cpp
     src/LayoutParser.cpp

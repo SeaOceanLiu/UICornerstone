@@ -6,6 +6,8 @@
 #include "EventQueue.h"
 #include <algorithm>
 #include <cstdint>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
 
 EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)

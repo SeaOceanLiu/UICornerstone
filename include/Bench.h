@@ -25,7 +25,7 @@ private:
     unordered_map<EventName, uint64_t> m_eventJitter; // jitter for each event
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
-    SDL_AppResult m_isExiting;
+    int m_isExiting;
     OnInitialHandler m_onInitial;
 
     Bench(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
@@ -41,7 +41,7 @@ public:
     void repeatTrigger(void);
     void draw(void) override;
     void update(void) override;
-    SDL_AppResult isExiting(void);
+    int isExiting(void);
 
     void setOnInitial(OnInitialHandler handler);
 

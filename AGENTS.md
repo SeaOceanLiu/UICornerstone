@@ -287,3 +287,25 @@ test_label.exe
 **ResourceLoader_Design.md** updates:
 - Marked as deprecated (⚠️), noting replacement by ResourceProvider
 - Kept original content for historical reference
+
+### 2026-06-05: Phase 6 — MainWindow Cleanup + InputBackend Standalone + SDL-free MainWindow.h (Partial)
+
+**Note**: Phase 6 in the design doc covers Window abstraction, InputBackend, BackendPlugin, Event system, and AppCallbacks. BackendPlugin was previously completed; this session focused on the remaining Window/InputBackend cleanup.
+
+**Changes**:
+- **`src/InputBackend.cpp`** (new): Extracted `SDL3InputBackend` from `src/Window.cpp` into its own file; factory uses `window->nativeHandle()` instead of SDL-specific cast
+- **`src/Window.cpp`**: Removed `SDL3InputBackend` class and `CreateSDL3InputBackend` factory (moved to InputBackend.cpp)
+- **`include/MainWindow.h`**: Removed `#include <SDL3/SDL.h>`, `SDL_Renderer* m_renderer`, `SDL_DisplayID m_displayId`, `getWindow()` (SDL_Window*), `getRenderer()` (SDL_Renderer*); replaced direct SDL calls with `Window` abstract methods; replaced `handleWindowEvent(SDL_WindowEvent&)` with `onWindowResized(int,int)` / `onWindowMoved(int,int)`; renamed `getWindowObject()` → `getWindow()`; now SDL-free
+- **`include/Bench.h`**: Replaced `SDL_AppResult` with `int` (removed SDL type from header)
+- **`src/Bench.cpp`**: `SDL_APP_CONTINUE` → `0`; `SDL_AppResult` → `int`
+- **`src/EditBox.cpp`**: Added explicit `#include <SDL3/SDL_keyboard.h>` and `<SDL3/SDL_keycode.h>` (lost transitive include from MainWindow.h)
+- **`src/TextArea.cpp`**: Same SDL keyboard include fix
+- **`src/Actor.cpp`**, **`src/CheckBox.cpp`**, **`src/ControlBase.cpp`**, **`src/Label.cpp`**, **`src/LayoutParser.cpp`**, **`src/ProgressBar.cpp`**: Added explicit `#include <SDL3/SDL.h>` (lost transitive include)
+- **All 10 test files**: Replaced `MAINWIN->handleWindowEvent(event->window)` with `MAINWIN->onWindowResized/onWindowMoved(data1, data2)`
+- **`test/test_editbox.cpp`**: Replaced `SDL_StartTextInput(MAINWIN->getWindow())` with `GET_INPUTBACKEND->startTextInput()`
+- **`test/test_label.cpp`**: Removed stale raw TTF test code (`g_font1`, `g_textEngine`, `g_text1` — leftover from pre-TextRenderer era)
+- **`CMakeLists.txt`**: Added `src/InputBackend.cpp`
+
+**Result**: `MainWindow.h` is now SDL-free (no SDL types in public API). InputBackend has its own source file. All SDL dependencies are confined to backend implementation files.
+
+**Remaining Phase 6 work**: Event system union migration (std::any → EventType::union), AppCallbacks abstraction, MainWindow::run() loop.

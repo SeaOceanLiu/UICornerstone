@@ -11,8 +11,6 @@
 #include "EditBox.h"
 #include "TextArea.h"
 
-#include <SDL3_ttf/SDL_ttf.h>
-
 using namespace std;
 
 shared_ptr<Label> g_label1;
@@ -35,9 +33,6 @@ shared_ptr<Label> g_label17;
 shared_ptr<Label> g_label18;
 shared_ptr<Label> g_label19;
 
-TTF_Font* g_font1;
-TTF_TextEngine *g_textEngine;
-TTF_Text* g_text1;
 
 void testBenchInitialize(void) {
     SDL_Log("testLabelInitialize");
@@ -271,28 +266,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     }
     BENCH->setOnInitial(testBenchInitialize);
 
-    fs::path fontFilePath = ConstDef::pathPrefix / "fonts" / "HarmonyOS_Sans_SC_Regular.ttf";
-    g_font1 = TTF_OpenFont(fontFilePath.string().c_str(), 24);
-    if (!g_font1) {
-        SDL_Log("Couldn't open font: %s\n", SDL_GetError());
-        return SDL_APP_CONTINUE;
-    }
-
-    // TTF_SetFontDirection(g_font1, TTF_DIRECTION_TTB);
-    // SDL_RenderTextureRotated(BENCH->getRenderer(), g_text1, nullptr, nullptr, 0, nullptr, SDL_FLIP_NONE);
-
-    g_textEngine = TTF_CreateRendererTextEngine(MAINWIN->getRenderer());
-    if (!g_textEngine) {
-        SDL_Log("Couldn't create text engine: %s\n", SDL_GetError());
-        return SDL_APP_CONTINUE;
-    }
-    g_text1 = TTF_CreateText(g_textEngine, g_font1, u8"测试文本test text:12%", TTF_STYLE_NORMAL);
-    if (!g_text1) {
-        SDL_Log("Couldn't create text: %s\n", SDL_GetError());
-        return SDL_APP_CONTINUE;
-    }
-    TTF_SetTextDirection(g_text1, TTF_DIRECTION_BTT);
-
     return SDL_APP_CONTINUE;
 }
 
@@ -304,12 +277,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
             return SDL_APP_SUCCESS;
 
         case SDL_EVENT_WINDOW_RESIZED:
-            MAINWIN->handleWindowEvent(event->window);
+            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
             BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
             break;
 
         case SDL_EVENT_WINDOW_MOVED:
-            MAINWIN->handleWindowEvent(event->window);
+            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
             break;
 
         case SDL_EVENT_KEY_DOWN:
@@ -382,30 +355,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     BENCH->draw();
 
-    if(!TTF_SetTextColor(g_text1, 255, 255, 0, 255)) {
-        SDL_Log("SDL_AppIterate: Failed to set shadow text color: %s", SDL_GetError());
-    }
-    if (!TTF_DrawRendererText(g_text1, 1000, 20)) {
-        SDL_Log("SDL_AppIterate: Failed to render shadow text: %s", SDL_GetError());
-    }
-
     GET_RENDERDEVICE->present();
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Application quit");
-
-    if (g_text1){
-        TTF_DestroyText(g_text1);
-        g_text1 = nullptr;
-    }
-    if(g_textEngine){
-        TTF_DestroyRendererTextEngine(g_textEngine);
-        g_textEngine = nullptr;
-    }
-    if(g_font1){
-        TTF_CloseFont(g_font1);
-        g_font1 = nullptr;
-    }
 }

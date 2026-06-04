@@ -1,4 +1,5 @@
 ﻿#include "ControlBase.h"
+#include <SDL3/SDL.h>
 ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     // m_weakThis(this),
     // m_sharedThis(nullptr),

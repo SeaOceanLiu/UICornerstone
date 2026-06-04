@@ -1,6 +1,7 @@
 ﻿// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #include "CheckBox.h"
 #include "GraphTool.h"
+#include <SDL3/SDL.h>
 
 CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale),
