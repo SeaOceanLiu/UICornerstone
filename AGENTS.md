@@ -273,3 +273,17 @@ test_label.exe
 - **`test/test_label.cpp`**: `BENCH->getRenderer()` → `MAINWIN->getRenderer()`
 
 **Result**: `ControlBase.h` no longer has any direct SDL include or SDL type in its public API.
+
+### 2026-06-04: Design Documents Update
+
+**BackendAbstraction_Design.md** updates:
+- Progress table (§1.4): Added Phases 7-11 (TTF_Text caching, ResourceProvider, Remove ResourceLoader, SDL Cursor, Remove SDL_Renderer)
+- New sections (§10-§14): Detailed design records for Phases 7-11
+- §7.3 (current status): Updated to reflect Phase 11 completion; added ResourceProvider/Cursor to ready interfaces
+- SFML/raylib sections renumbered to Phase 12/13 and moved to §15-§16
+- Summary table (§17) and execution order (§18) updated with all 13 phases
+- Note added about numbering divergence between plan and execution
+
+**ResourceLoader_Design.md** updates:
+- Marked as deprecated (⚠️), noting replacement by ResourceProvider
+- Kept original content for historical reference

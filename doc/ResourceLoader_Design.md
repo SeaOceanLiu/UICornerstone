@@ -1,8 +1,17 @@
-# ResourceLoader 设计文档
+# ResourceLoader 设计文档（已废弃）
+
+> **⚠️ 该模块已于 Phase 9（2026-06-04）移除，被 `ResourceProvider` 抽象接口替代。**
+>
+> **替代方案**：`include/ResourceProvider.h` + `src/ResourceProvider.cpp`
+> - `FilesystemResourceProvider` 提供 `readFile()` / `openFileStream()` / `exists()` 接口
+> - `FontName` 枚举和 `fontFiles` 映射迁至 `include/ConstDef.h`
+> - 字体数据生命周期通过 `Label::m_fontData` / `EditBox::m_fontData` 成员管理
+>
+> 以下内容保留仅供参考，不再适用于当前代码库。
 
 ## 概述
 
-ResourceLoader 是 UIControls 库的资源加载器，负责管理所有游戏资源（字体、图片、音频、配置文件等）的加载、缓存和版本控制。
+ResourceLoader 是 UIControls 库的旧版资源加载器，负责管理所有游戏资源（字体、图片、音频、配置文件等）的加载、缓存和版本控制（已移除）。
 
 ## 核心特性
 
