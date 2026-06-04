@@ -21,7 +21,6 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     m_textShadowColor(StateColor(StateColor::Type::TextShadow)),
 
     m_surface(nullptr),
-    m_renderer(nullptr),
     m_renderDevice(nullptr),
     m_textRenderer(nullptr),
     m_inputBackend(nullptr),
@@ -54,7 +53,6 @@ ControlImpl::ControlImpl(const ControlImpl &other):
     m_borderColor(other.m_borderColor),
     m_textColor(other.m_textColor),
 
-    m_renderer(other.m_renderer),
     m_renderDevice(other.m_renderDevice),
     m_surface(other.m_surface),
     m_texture(other.m_texture),
@@ -83,7 +81,7 @@ ControlImpl& ControlImpl::operator=(const ControlImpl &other){
     m_yScale = other.m_yScale;
     m_xxScale = other.m_xxScale;
     m_yyScale = other.m_yyScale;
-    m_renderer = other.m_renderer;
+    m_renderDevice = other.m_renderDevice;
     m_surface = other.m_surface;
     m_texture = other.m_texture;
     m_rect = other.m_rect;
@@ -276,7 +274,6 @@ void ControlImpl::addControl(shared_ptr<Control> child){
     m_children.push_back(child);
 
     child->setParent(this);
-    child->setRenderer(getRenderer());
     child->setRenderDevice(getRenderDevice());
 }
 
@@ -365,31 +362,8 @@ bool ControlImpl::getEnable(void){
     return m_enable;
 }
 
-SDL_Renderer* ControlImpl::getRenderer(void){
-    if (m_renderer != nullptr){
-        return m_renderer;
-    }
-    if (m_parent != nullptr){
-        m_renderer = m_parent->getRenderer();
-    } else {
-        m_renderer = GET_RENDERER;
-        if (m_renderer == nullptr) {
-            SDL_Log("ControlImpl::getRenderer: No renderer found!");
-            return nullptr;
-        }
-    }
-    return m_renderer;
-}
 shared_ptr<Control> ControlImpl::getThis(void){
     return shared_from_this();
-}
-void ControlImpl::setRenderer(SDL_Renderer* renderer){
-    if (m_renderer == renderer) return;
-
-    m_renderer = renderer;
-    for (auto& child : m_children){
-        child->setRenderer(renderer);
-    }
 }
 
 RenderDevice* ControlImpl::getRenderDevice(void) {
@@ -621,9 +595,6 @@ void ControlImpl::triggerEvent(shared_ptr<Event> event){
 }
 
 void ControlImpl::inheritRenderer(void) {
-    if (m_renderer == nullptr){
-        m_renderer = GET_RENDERER;
-    }
     if (m_renderDevice == nullptr) {
         m_renderDevice = GET_RENDERDEVICE;
     }

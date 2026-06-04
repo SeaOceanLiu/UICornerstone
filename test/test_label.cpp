@@ -281,7 +281,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     // TTF_SetFontDirection(g_font1, TTF_DIRECTION_TTB);
     // SDL_RenderTextureRotated(BENCH->getRenderer(), g_text1, nullptr, nullptr, 0, nullptr, SDL_FLIP_NONE);
 
-    g_textEngine = TTF_CreateRendererTextEngine(BENCH->getRenderer());
+    g_textEngine = TTF_CreateRendererTextEngine(MAINWIN->getRenderer());
     if (!g_textEngine) {
         SDL_Log("Couldn't create text engine: %s\n", SDL_GetError());
         return SDL_APP_CONTINUE;

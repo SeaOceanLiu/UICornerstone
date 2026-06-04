@@ -10,7 +10,6 @@
 
 
 #define MAINWIN (MainWindow::getInstance())
-#define GET_RENDERER (MAINWIN->getRenderer())
 #define GET_RENDERDEVICE (MAINWIN->getRenderDevice())
 #define GET_TEXTRENDERER (MAINWIN->getTextRenderer())
 #define GET_INPUTBACKEND (MAINWIN->getInputBackend())

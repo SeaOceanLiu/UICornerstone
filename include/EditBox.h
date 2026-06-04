@@ -4,7 +4,6 @@
 
 #include <functional>
 #include <string>
-#include <SDL3/SDL_keyboard.h>
 #include "ConstDef.h"
 #include "ControlBase.h"
 #include "Label.h"

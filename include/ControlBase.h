@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 #include <typeinfo>
-#include <SDL3/SDL_render.h>
 #include "SColor.h"
 #include "MainWindow.h"
 #include "Utility.h"
@@ -167,8 +166,6 @@ public:
     virtual bool getVisible(void) = 0;
     virtual void setEnable(bool enable) = 0;
     virtual bool getEnable(void) = 0;
-    virtual SDL_Renderer *getRenderer(void) = 0;
-    virtual void setRenderer(SDL_Renderer *renderer) = 0;
     virtual RenderDevice* getRenderDevice(void) = 0;
     virtual void setRenderDevice(RenderDevice* device) = 0;
     virtual TextRenderer* getTextRenderer(void) = 0;
@@ -242,7 +239,6 @@ protected:
     StateColor m_textShadowColor; //文字阴影颜色
 
     SharedSurface m_surface;
-    SDL_Renderer *m_renderer;
     RenderDevice *m_renderDevice;
     TextRenderer *m_textRenderer;
     InputBackend *m_inputBackend;
@@ -315,8 +311,6 @@ public:
     bool getVisible(void) override;
     void setEnable(bool enable) override;
     bool getEnable(void) override;
-    SDL_Renderer *getRenderer(void) override;
-    void setRenderer(SDL_Renderer *renderer) override;
     RenderDevice* getRenderDevice(void) override;
     void setRenderDevice(RenderDevice* device) override;
     TextRenderer* getTextRenderer(void) override;

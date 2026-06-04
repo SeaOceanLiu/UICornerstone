@@ -121,28 +121,3 @@ void Bench::addControl(shared_ptr<Control> control) {
         }
     }
 }
-
-// Draw a centered rectangle
-void Bench::drawCenteredRectangle(SDL_Renderer* renderer, int windowWidth, int windowHeight) {
-    // Calculate rectangle size (60% of window size)
-    int rectWidth = static_cast<int>(windowWidth * 0.6f);
-    int rectHeight = static_cast<int>(windowHeight * 0.6f);
-
-    // Calculate rectangle position (centered)
-    int rectX = (windowWidth - rectWidth) / 2;
-    int rectY = (windowHeight - rectHeight) / 2;
-
-    // Set draw color to dark blue
-    SDL_SetRenderDrawColor(renderer, 0, 0, 139, 255); // Dark blue
-
-    // Draw filled rectangle
-    SDL_FRect rect = { static_cast<float>(rectX), static_cast<float>(rectY),
-                        static_cast<float>(rectWidth), static_cast<float>(rectHeight) };
-    SDL_RenderFillRect(renderer, &rect);
-
-    // Set border color to white
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White
-
-    // Draw rectangle border
-    SDL_RenderRect(renderer, &rect);
-}
