@@ -18,11 +18,11 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     m_edgeMargin(4.0f),
     m_resizable(true),
     m_lastEdgeFlags(0),
-    m_cursorDefault(SDL_GetCursor()),
-    m_cursorSizeWE(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE)),
-    m_cursorSizeNS(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE)),
-    m_cursorSizeNWSE(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE)),
-    m_cursorSizeNESW(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NESW_RESIZE))
+    m_cursorDefault(Cursor::getDefault()),
+    m_cursorSizeWE(Cursor::createSystem(SystemCursorType::EW_Resize)),
+    m_cursorSizeNS(Cursor::createSystem(SystemCursorType::NS_Resize)),
+    m_cursorSizeNWSE(Cursor::createSystem(SystemCursorType::NWSE_Resize)),
+    m_cursorSizeNESW(Cursor::createSystem(SystemCursorType::NESW_Resize))
 {
     if (m_rect.width < MIN_WIDTH)  m_rect.width = MIN_WIDTH;
     if (m_rect.height < MIN_HEIGHT) m_rect.height = MIN_HEIGHT;
@@ -74,10 +74,10 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
 }
 
 WinFrame::~WinFrame() {
-    if (m_cursorSizeWE)   { SDL_DestroyCursor(m_cursorSizeWE);   m_cursorSizeWE = nullptr; }
-    if (m_cursorSizeNS)   { SDL_DestroyCursor(m_cursorSizeNS);   m_cursorSizeNS = nullptr; }
-    if (m_cursorSizeNWSE) { SDL_DestroyCursor(m_cursorSizeNWSE); m_cursorSizeNWSE = nullptr; }
-    if (m_cursorSizeNESW) { SDL_DestroyCursor(m_cursorSizeNESW); m_cursorSizeNESW = nullptr; }
+    delete m_cursorSizeWE;
+    delete m_cursorSizeNS;
+    delete m_cursorSizeNWSE;
+    delete m_cursorSizeNESW;
 }
 
 void WinFrame::bringToFront() {
@@ -107,7 +107,7 @@ SPoint WinFrame::screenToLocal(float screenX, float screenY) {
 }
 
 void WinFrame::setResizeCursor(uint8_t flags) {
-    SDL_Cursor* cursor = m_cursorDefault;
+    Cursor* cursor = m_cursorDefault;
     switch (flags & 0x0F) {
         case 0:                                     cursor = m_cursorDefault; break;
         case kLeft|kRight:                          cursor = m_cursorSizeWE;  break;
@@ -148,7 +148,7 @@ void WinFrame::setResizeCursor(uint8_t flags) {
             SetCursor(hcursors[idx]);
         }
 #else
-        SDL_SetCursor(cursor);
+        Cursor::setCurrent(cursor);
 #endif
     }
 }

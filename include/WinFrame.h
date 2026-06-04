@@ -7,6 +7,7 @@
 #include "Button.h"
 #include "GraphTool.h"
 #include "ConstDef.h"
+#include "Cursor.h"
 
 using GraphTool::SColor;
 
@@ -41,11 +42,11 @@ private:
     bool    m_resizable;
     uint8_t m_lastEdgeFlags;
 
-    SDL_Cursor *m_cursorDefault;
-    SDL_Cursor *m_cursorSizeWE;
-    SDL_Cursor *m_cursorSizeNS;
-    SDL_Cursor *m_cursorSizeNWSE;
-    SDL_Cursor *m_cursorSizeNESW;
+    Cursor *m_cursorDefault;
+    Cursor *m_cursorSizeWE;
+    Cursor *m_cursorSizeNS;
+    Cursor *m_cursorSizeNWSE;
+    Cursor *m_cursorSizeNESW;
 
     void bringToFront();
     SPoint screenToLocal(float screenX, float screenY);

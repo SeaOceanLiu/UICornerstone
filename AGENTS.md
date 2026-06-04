@@ -241,3 +241,20 @@ test_label.exe
 - **`include/ResourceLoader.h`**, **`src/ResourceLoader.cpp`**: **Deleted entirely** — old resource bundle system is gone
 
 **Status**: All 10 tests build and run successfully.
+
+### 2026-06-04: Phase 10 — SDL Cursor Abstraction (Complete)
+
+**Problem**: `Label.h` and `WinFrame.h` directly used `SDL_Cursor*` and called `SDL_CreateSystemCursor`/`SDL_SetCursor`/etc. directly.
+
+**Changes**:
+- **`include/Cursor.h`**: New abstract `Cursor` class with `SystemCursorType` enum (20 cursor types), static factories `createSystem()`, `getDefault()`, and `setCurrent()`.
+- **`src/Cursor.cpp`**: `SDLCursor` implementation wrapping `SDL_Cursor*` with owned/unowned semantics. Maps `SystemCursorType` → `SDL_SystemCursor` for `SDL_CreateSystemCursor`. `getDefault()` returns a static singleton.
+- **`include/Label.h`**: Replaced `SDL_Cursor* m_hoverCursor/m_defaultCursor` with `Cursor*`, removed `struct SDL_Cursor;` forward declaration.
+- **`src/Label.cpp`**: All `SDL_CreateSystemCursor`/`SDL_GetCursor`/`SDL_SetCursor`/`SDL_DestroyCursor` → `Cursor::createSystem`/`Cursor::getDefault`/`Cursor::setCurrent`/`delete`.
+- **`include/WinFrame.h`**: Replaced 5 `SDL_Cursor*` members with `Cursor*`.
+- **`src/WinFrame.cpp`**: All cursor creation/setting/destruction migrated to `Cursor` API.
+- **`CMakeLists.txt`**: Added `src/Cursor.cpp`.
+
+**Non-backend headers now SDL_Cursor-free**: `Label.h` and `WinFrame.h` no longer reference any SDL cursor types.
+
+**Status**: All 10 tests build and run successfully.

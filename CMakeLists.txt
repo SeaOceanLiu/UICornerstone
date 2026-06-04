@@ -25,6 +25,7 @@ add_library(UIControls STATIC
     src/CheckBox.cpp
     src/ConstDef.cpp
     src/ControlBase.cpp
+    src/Cursor.cpp
     src/DataContext.cpp
     src/WinFrame.cpp
     src/EditBox.cpp

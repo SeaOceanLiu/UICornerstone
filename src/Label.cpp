@@ -29,14 +29,11 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     setTransparent(true);
     setBorderVisible(false);
 
-    m_hoverCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+    m_hoverCursor = Cursor::createSystem(SystemCursorType::Pointer);
     if (m_hoverCursor == nullptr) {
-        SDL_Log("Label::Label: Failed to create cursor: %s", SDL_GetError());
+        SDL_Log("Label::Label: Failed to create cursor");
     }
-    m_defaultCursor = SDL_GetCursor();
-    if(m_defaultCursor == nullptr) {
-        SDL_Log("Label::Label: Failed to get default cursor: %s", SDL_GetError());
-    }
+    m_defaultCursor = Cursor::getDefault();
 
     setFont(m_fontName);
 }
@@ -45,10 +42,8 @@ Label::~Label(void){
     releaseTexts();
     m_font.reset();
 
-    if (m_hoverCursor != nullptr) {
-        SDL_DestroyCursor(m_hoverCursor);
-        m_hoverCursor = nullptr;
-    }
+    delete m_hoverCursor;
+    m_hoverCursor = nullptr;
 }
 
 void Label::releaseFont(void) {
@@ -430,7 +425,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
                     case EventName::MOUSE_LBUTTON_DOWN:
                         setState(ControlState::Pressed);
                         if(m_hoverCursor != nullptr){
-                            SDL_SetCursor(m_hoverCursor);
+                            Cursor::setCurrent(m_hoverCursor);
                         }
                         return true;
                     case EventName::MOUSE_LBUTTON_UP:
@@ -439,13 +434,13 @@ bool Label::handleEvent(shared_ptr<Event> event){
                         }
                         setState(ControlState::Hover);
                         if(m_hoverCursor != nullptr){
-                            SDL_SetCursor(m_hoverCursor);
+                            Cursor::setCurrent(m_hoverCursor);
                         }
                         return true;
                     case EventName::MOUSE_MOVING:
                         setState(ControlState::Hover);
                         if(m_hoverCursor != nullptr){
-                            SDL_SetCursor(m_hoverCursor);
+                            Cursor::setCurrent(m_hoverCursor);
                         }
                         return true;
                     case EventName::MOUSE_WHEEL:
@@ -457,7 +452,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
             } else {
                 setState(ControlState::Normal);
                 if(m_defaultCursor){
-                    SDL_SetCursor(m_defaultCursor);
+                    Cursor::setCurrent(m_defaultCursor);
                 }
             }
         } catch (...) {

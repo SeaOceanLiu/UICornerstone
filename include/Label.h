@@ -8,8 +8,7 @@
 #include "ConstDef.h"
 #include "ControlBase.h"
 #include "Font.h"
-
-struct SDL_Cursor;
+#include "Cursor.h"
 
 enum class LabelState {
     Normal,
@@ -46,8 +45,8 @@ private:
     SharedFont m_font;
     shared_ptr<vector<char>> m_fontData;
     SPoint m_translatedPos;
-    SDL_Cursor *m_hoverCursor;
-    SDL_Cursor *m_defaultCursor;
+    Cursor *m_hoverCursor;
+    Cursor *m_defaultCursor;
 
     SPoint m_shadowOffset;
     AlignmentMode m_AlignmentMode;
