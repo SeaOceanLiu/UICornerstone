@@ -5,6 +5,7 @@
 #include <functional>
 #include <unordered_map>
 #include <cstdio>
+#include "EventTypes.h"
 
 using namespace std;
 
@@ -13,40 +14,96 @@ enum class EventName: int;  // 使用时，需要重新定义该枚举值
 
 class Event{
 public:
+    // OLD API (std::any based) - kept for backward compatibility
     EventName m_eventName;
     std::any m_eventParam;
 
+    // NEW API (union based) - cross-DLL safe
+    EventType m_type;
+
+    union {
+        EventMousePos   mousePos;
+        EventMouseWheel mouseWheel;
+        EventKey        keyEvent;
+        EventTextInput  textInput;
+        EventResize     resizeEvent;
+        EventFocus      focusEvent;
+        char _pad;
+    };
+
     Event(EventName eventName, std::any param):
         m_eventName(eventName),
-        m_eventParam(param)
+        m_eventParam(param),
+        m_type(EventType::None),
+        _pad(0)
     {
     }
+
+    Event(EventType type):
+        m_eventName(static_cast<EventName>(0)),
+        m_type(type),
+        _pad(0)
+    {
+    }
+
     // 拷贝构造函数
     Event(const Event& event):
         m_eventName(event.m_eventName),
-        m_eventParam(event.m_eventParam)
+        m_eventParam(event.m_eventParam),
+        m_type(event.m_type)
     {
+        copyUnion(event);
     }
     // 移动构造函数
     Event(Event&& event):
         m_eventName(event.m_eventName),
-        m_eventParam(event.m_eventParam)
+        m_eventParam(event.m_eventParam),
+        m_type(event.m_type)
     {
+        copyUnion(event);
     }
     // 赋值运算符重载
     Event& operator=(const Event& event){
         m_eventName = event.m_eventName;
         m_eventParam = event.m_eventParam;
+        m_type = event.m_type;
+        copyUnion(event);
         return *this;
     }
     // 移动赋值运算符重载
     Event& operator=(Event&& event){
         m_eventName = event.m_eventName;
         m_eventParam = event.m_eventParam;
+        m_type = event.m_type;
+        copyUnion(event);
         return *this;
     }
 
     virtual ~Event(){};
+
+private:
+    void copyUnion(const Event& event) {
+        switch (event.m_type) {
+            case EventType::MouseMove:
+            case EventType::MouseDown:
+            case EventType::MouseUp:
+                mousePos = event.mousePos; break;
+            case EventType::MouseWheel:
+                mouseWheel = event.mouseWheel; break;
+            case EventType::KeyDown:
+            case EventType::KeyUp:
+                keyEvent = event.keyEvent; break;
+            case EventType::TextInput:
+                textInput = event.textInput; break;
+            case EventType::WindowResize:
+                resizeEvent = event.resizeEvent; break;
+            case EventType::FocusGained:
+            case EventType::FocusLost:
+                focusEvent = event.focusEvent; break;
+            default:
+                _pad = 0; break;
+        }
+    }
 };
 
 // StateMachine 模板类
