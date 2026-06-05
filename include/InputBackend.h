@@ -2,7 +2,9 @@
 #define INPUTBACKEND_H
 
 #include <string>
+#include "EventTypes.h"
 
+class Event;
 class Window;
 
 class InputBackend {
@@ -15,6 +17,11 @@ public:
     virtual void setClipboardText(const std::string& text) = 0;
     virtual std::string getClipboardText() const = 0;
     virtual bool hasScreenKeyboard() const = 0;
+
+    // Poll an abstract event from the backend.
+    // Populates both new (EventType+union) and old (EventName+std::any) fields.
+    // Returns true if an event was polled, false if no events pending.
+    virtual bool pollEvent(Event& event) = 0;
 };
 
 InputBackend* CreateSDL3InputBackend(Window* window);

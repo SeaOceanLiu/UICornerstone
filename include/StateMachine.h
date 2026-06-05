@@ -3,6 +3,7 @@
 
 #include <any>
 #include <functional>
+#include <memory>
 #include <unordered_map>
 #include <cstdio>
 #include "EventTypes.h"
@@ -27,9 +28,17 @@ public:
         EventKey        keyEvent;
         EventTextInput  textInput;
         EventResize     resizeEvent;
+        EventWindowMoved windowMoved;
         EventFocus      focusEvent;
         char _pad;
     };
+
+    Event():
+        m_eventName(static_cast<EventName>(0)),
+        m_type(EventType::None),
+        _pad(0)
+    {
+    }
 
     Event(EventName eventName, std::any param):
         m_eventName(eventName),
@@ -97,6 +106,8 @@ private:
                 textInput = event.textInput; break;
             case EventType::WindowResize:
                 resizeEvent = event.resizeEvent; break;
+            case EventType::WindowMoved:
+                windowMoved = event.windowMoved; break;
             case EventType::FocusGained:
             case EventType::FocusLost:
                 focusEvent = event.focusEvent; break;

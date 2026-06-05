@@ -1,7 +1,4 @@
-﻿#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#include <SDL3_ttf/SDL_ttf.h>
+﻿#include <SDL3/SDL.h>
 #include <iostream>
 #include <memory>
 #include <fstream>
@@ -9,8 +6,7 @@
 #include "Actor.h"
 #include "MainWindow.h"
 #include "Bench.h"
-#include "EditBox.h"
-#include "TextArea.h"
+#include "AppCallbacks.h"
 
 using namespace std;
 
@@ -169,123 +165,38 @@ void testBenchInitialize(void) {
     logOutput(u8"Button test controls created");
 }
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
-    (void)appstate;
-    (void)argc;
-    (void)argv;
+class ButtonApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        logOutput(u8"ButtonApp::onInit");
+        BENCH->setOnInitial(testBenchInitialize);
 
-    BENCH->setOnInitial(testBenchInitialize);
+        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
 
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+        logOutput(string("SDL_TOUCH_MOUSE_EVENTS = ") + SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS));
 
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-    logOutput(string("SDL_TOUCH_MOUSE_EVENTS = ") + SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS));
-
-    SDL_SetAppMetadata("ButtonTest", "1.0.0", "com.example.button");
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        logOutput(string("Failed to initialize SDL: ") + SDL_GetError());
-        return SDL_APP_FAILURE;
+        return true;
     }
 
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    (void)appstate;
-
-    shared_ptr<Event> gameEvent = nullptr;
-
-    switch (event->type) {
-        case SDL_EVENT_QUIT:
-            return SDL_APP_SUCCESS;
-
-        case SDL_EVENT_WINDOW_RESIZED:
-            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
-            BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
-            break;
-
-        case SDL_EVENT_WINDOW_MOVED:
-            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
-            break;
-
-        case SDL_EVENT_KEY_DOWN:
-            {
-                KeyEventData keyData;
-                keyData.keycode = event->key.key;
-                keyData.scancode = event->key.scancode;
-                keyData.mod = event->key.mod;
-                gameEvent = make_shared<Event>(EventName::KEY_DOWN, make_shared<KeyEventData>(keyData));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_INPUT:
-            {
-                TextInputEventData textData;
-                textData.text = event->text.text;
-                gameEvent = make_shared<Event>(EventName::TEXT_INPUT, make_shared<TextInputEventData>(textData));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_EDITING:
-            break;
-
-        case SDL_EVENT_MOUSE_WHEEL:
-            {
-                MouseWheelEventData wheelData;
-                wheelData.x = event->wheel.x;
-                wheelData.y = event->wheel.y;
-                gameEvent = make_shared<Event>(EventName::MOUSE_WHEEL, make_shared<MouseWheelEventData>(wheelData));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_MOTION:
-            gameEvent = make_shared<Event>(EventName::MOUSE_MOVING, make_shared<SPoint>((float)event->motion.x, (float)event->motion.y));
-            BENCH->inputControl(gameEvent);
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_DOWN, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_UP, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
+    void onUpdate() override {
+        BENCH->eventLoopEntry();
+        BENCH->update();
     }
 
-    return SDL_APP_CONTINUE;
-}
+    void onRender() override {
+        GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+        GET_RENDERDEVICE->clear();
+        BENCH->draw();
+    }
 
-SDL_AppResult SDL_AppIterate(void *appstate) {
-    (void)appstate;
+    void onQuit() override {
+        logOutput(u8"程序结束");
+    }
+};
 
-    BENCH->eventLoopEntry();
-    BENCH->update();
-
-    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
-    GET_RENDERDEVICE->clear();
-
-    BENCH->draw();
-
-    GET_RENDERDEVICE->present();
-
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    (void)appstate;
-    (void)result;
-    // Clean up resources
-
-    logOutput(u8"程序结束");
+int main(int argc, char* argv[]) {
+    ButtonApp app;
+    return MAINWIN->run(&app);
 }

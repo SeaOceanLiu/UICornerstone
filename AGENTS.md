@@ -308,4 +308,16 @@ test_label.exe
 
 **Result**: `MainWindow.h` is now SDL-free (no SDL types in public API). InputBackend has its own source file. All SDL dependencies are confined to backend implementation files.
 
-**Remaining Phase 6 work**: Event system union migration (std::any → EventType::union), AppCallbacks abstraction, MainWindow::run() loop.
+**Completed Phase 6 sub-tasks**:
+- `include/AppCallbacks.h`: New abstract interface (onInit/onUpdate/onRender/onQuit)
+- `include/InputBackend.h`: Added `pollEvent(Event&)` – polls SDL events, converts to abstract Event (populates both old EventName+std::any and new EventType+union)
+- `src/InputBackend.cpp`: Full SDL3InputBackend::pollEvent() implementation (handles all 10 SDL event types)
+- `include/EventTypes.h`: Added WindowMoved event type + struct
+- `include/StateMachine.h`: Added Event default constructor, WindowMoved to union, `<memory>` include
+- `include/MainWindow.h`: Added `run(AppCallbacks*)` declaration
+- `src/MainWindow.cpp`: Main event loop – polls events, handles window resize/move, dispatches to BENCH, calls app->onUpdate/onRender/m_renderDevice->present()
+- `src/BackendPlugin.cpp`: Moved SDL_Init + SDL_SetAppMetadata from test files into BackendManager::initialize()
+- `CMakeLists.txt`: Added src/MainWindow.cpp; added `_HAS_STD_BYTE=0` for Windows SDK compatibility
+- `test/test_button.cpp`: Migrated to AppCallbacks + MainWindow::run() (first of 10 tests)
+
+**Remaining Phase 6 work**: Migrate remaining 9 test files to AppCallbacks/MainWindow::run() pattern; event creation site migration (old API → new API); AppCallbacks::onEvent() for app-specific event handling

@@ -8,7 +8,7 @@ enum class EventType : uint8_t {
     None,
     MouseMove, MouseDown, MouseUp, MouseWheel,
     KeyDown, KeyUp, TextInput,
-    WindowResize, WindowClose,
+    WindowResize, WindowMoved, WindowClose,
     FocusGained, FocusLost,
 };
 
@@ -18,6 +18,7 @@ struct EventMouseWheel   { float x, y; float scrollX, scrollY; };
 struct EventKey          { int keycode; int mod; bool repeat; };
 struct EventTextInput    { char text[32]; };
 struct EventResize       { int width, height; };
+struct EventWindowMoved  { int x, y; };
 struct EventFocus        { bool focused; };
 
 #endif // EVENTTYPES_H

@@ -1,4 +1,5 @@
 #include "BackendPlugin.h"
+#include <SDL3/SDL.h>
 #include <cstdio>
 
 // ============================================================
@@ -53,6 +54,13 @@ bool BackendManager::initialize(const std::string& backendName,
                                 const char* title,
                                 int width, int height, uint32_t flags) {
     if (s_initialized) return true;
+
+    // SDL3 initialization (moved from individual test files)
+    SDL_SetAppMetadata(title, "1.0.0", "com.uicontrols.app");
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        printf("SDL_Init failed: %s\n", SDL_GetError());
+        return false;
+    }
 
     BackendAPI api = {};
     if (backendName == "sdl3") {

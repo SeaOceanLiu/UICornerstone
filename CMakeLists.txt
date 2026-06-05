@@ -4,6 +4,10 @@ project(UIControls VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(WIN32)
+    add_definitions(-D_HAS_STD_BYTE=0)
+endif()
+
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/libs" SDL3_LIB_DIR)
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/SDL3" SDL3_INCLUDE_DIR)
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/SDL3_ttf" SDL3_TTF_INCLUDE_DIR)
@@ -34,6 +38,7 @@ add_library(UIControls STATIC
     src/HotReloader.cpp
     src/InputBackend.cpp
     src/Label.cpp
+    src/MainWindow.cpp
     src/LayoutEngine.cpp
     src/LayoutParser.cpp
     src/Material.cpp

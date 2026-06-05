@@ -6,6 +6,7 @@
 #include "Utility.h"
 #include "BackendPlugin.h"
 #include "ResourceProvider.h"
+#include "AppCallbacks.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
@@ -81,5 +82,9 @@ public:
     float getDisplayWidth(void) { return m_displayWidth; }
     float getDisplayHeight(void) { return m_displayHeight; }
     SSize getDisplaySize(void) { return SSize{m_displayWidth, m_displayHeight}; }
+
+    // Run the main event loop with the given AppCallbacks.
+    // Returns 0 on normal exit, 1 on init failure.
+    int run(AppCallbacks* app);
 };
 #endif // MainWindowH
