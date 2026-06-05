@@ -231,6 +231,7 @@ public:
                 event.m_type = EventType::KeyDown;
                 event.keyEvent.keycode = keyData.keycode;
                 event.keyEvent.mod = keyData.mod;
+                event.keyEvent.scancode = keyData.scancode;
                 event.keyEvent.repeat = keyData.repeat;
                 event.m_eventName = EventName::KEY_DOWN;
                 event.m_eventParam = keyData;
@@ -248,6 +249,7 @@ public:
                 event.m_type = EventType::KeyUp;
                 event.keyEvent.keycode = keyData.keycode;
                 event.keyEvent.mod = keyData.mod;
+                event.keyEvent.scancode = keyData.scancode;
                 event.keyEvent.repeat = keyData.repeat;
                 event.m_eventName = EventName::KEY_UP;
                 event.m_eventParam = keyData;
@@ -275,6 +277,10 @@ public:
                 textData.start = sdlEvent.edit.start;
                 textData.length = sdlEvent.edit.length;
 
+                event.m_type = EventType::TextEditing;
+                SDL_strlcpy(event.textEditing.text, sdlEvent.edit.text ? sdlEvent.edit.text : "", sizeof(event.textEditing.text));
+                event.textEditing.start = sdlEvent.edit.start;
+                event.textEditing.length = sdlEvent.edit.length;
                 event.m_eventName = EventName::TEXT_EDITING;
                 event.m_eventParam = textData;
                 break;
@@ -315,8 +321,9 @@ public:
                 auto mousePos = make_shared<SPoint>((float)sdlEvent.button.x, (float)sdlEvent.button.y);
 
                 event.m_type = EventType::MouseDown;
-                event.mousePos.x = sdlEvent.button.x;
-                event.mousePos.y = sdlEvent.button.y;
+                event.mouseButton.x = sdlEvent.button.x;
+                event.mouseButton.y = sdlEvent.button.y;
+                event.mouseButton.button = static_cast<MouseButton>(sdlEvent.button.button);
                 switch (sdlEvent.button.button) {
                     case SDL_BUTTON_LEFT:   event.m_eventName = EventName::MOUSE_LBUTTON_DOWN; break;
                     case SDL_BUTTON_RIGHT:  event.m_eventName = EventName::MOUSE_RBUTTON_DOWN; break;
@@ -332,8 +339,9 @@ public:
                 auto mousePos = make_shared<SPoint>((float)sdlEvent.button.x, (float)sdlEvent.button.y);
 
                 event.m_type = EventType::MouseUp;
-                event.mousePos.x = sdlEvent.button.x;
-                event.mousePos.y = sdlEvent.button.y;
+                event.mouseButton.x = sdlEvent.button.x;
+                event.mouseButton.y = sdlEvent.button.y;
+                event.mouseButton.button = static_cast<MouseButton>(sdlEvent.button.button);
                 switch (sdlEvent.button.button) {
                     case SDL_BUTTON_LEFT:   event.m_eventName = EventName::MOUSE_LBUTTON_UP; break;
                     case SDL_BUTTON_RIGHT:  event.m_eventName = EventName::MOUSE_RBUTTON_UP; break;

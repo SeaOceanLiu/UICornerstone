@@ -2,7 +2,6 @@
 #ifndef EditBoxH
 #define EditBoxH
 
-#include <functional>
 #include <string>
 #include "ConstDef.h"
 #include "ControlBase.h"
@@ -10,24 +9,6 @@
 #include "Utility.h"
 #include "Font.h"
 #include "EventTypes.h"
-
-struct TextInputEventData {
-    std::string text;
-    int32_t start;
-    int32_t length;
-};
-
-struct KeyEventData {
-    KeyCode keycode;
-    int32_t scancode;
-    KeyMod mod;
-    bool repeat;
-};
-
-struct FocusEventData {
-    void* controlPtr;
-    bool focused;
-};
 
 class EditBox: public ControlImpl {
     friend class EditBoxBuilder;

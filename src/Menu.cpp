@@ -214,34 +214,31 @@ bool MenuItem::handleEvent(shared_ptr<Event> event) {
     if (!getEnable() || !getVisible()) return false;
     if (m_type == MenuItemType::Separator) return false;
 
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            SRect drawRect = getDrawRect();
-            if (drawRect.contains(pos->x, pos->y)) {
-                switch (event->m_eventName) {
-                    case EventName::MOUSE_LBUTTON_DOWN:
-                        if (m_type == MenuItemType::Normal && m_onClick) {
-                            closeMenuChain();
-                            m_onClick(dynamic_pointer_cast<MenuItem>(getThis()));
-                        }
-                        return true;
-                    case EventName::MOUSE_MOVING:
-                        if (!m_hovered) {
-                            m_hovered = true;
-                        }
-                        return true;
-                    default:
-                        break;
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    if (gotPos) {
+        SRect drawRect = getDrawRect();
+        if (drawRect.contains(mx, my)) {
+            if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                if (m_type == MenuItemType::Normal && m_onClick) {
+                    closeMenuChain();
+                    m_onClick(dynamic_pointer_cast<MenuItem>(getThis()));
                 }
                 return true;
-            } else {
-                m_hovered = false;
             }
-        } catch (...) {
-            return false;
+            if (event->m_type == EventType::MouseMove) {
+                if (!m_hovered) {
+                    m_hovered = true;
+                }
+                return true;
+            }
+            return true;
+        } else {
+            m_hovered = false;
         }
     }
     return false;
@@ -565,36 +562,32 @@ bool MenuPanel::handleEvent(shared_ptr<Event> event) {
     // 先让子菜单处理事件
     if (m_openSubMenu && m_openSubMenu->handleEvent(event)) return true;
 
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-
-            SRect drawRect = getDrawRect();
-            if (drawRect.contains(pos->x, pos->y)) {
-                int index = hitTest(pos->x, pos->y);
-                switch (event->m_eventName) {
-                    case EventName::MOUSE_MOVING:
-                        setHoveredIndex(index);
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    if (gotPos) {
+        SRect drawRect = getDrawRect();
+        if (drawRect.contains(mx, my)) {
+            int index = hitTest(mx, my);
+            if (event->m_type == EventType::MouseMove) {
+                setHoveredIndex(index);
+                return true;
+            }
+            if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                if (index >= 0) {
+                    auto& item = m_items[index];
+                    if (item->getType() == MenuItemType::Normal && item->m_onClick) {
+                        item->closeMenuChain();
+                        item->m_onClick(dynamic_pointer_cast<MenuItem>(item->getThis()));
                         return true;
-                    case EventName::MOUSE_LBUTTON_DOWN:
-                        if (index >= 0) {
-                            auto& item = m_items[index];
-                            if (item->getType() == MenuItemType::Normal && item->m_onClick) {
-                                item->closeMenuChain();
-                                item->m_onClick(dynamic_pointer_cast<MenuItem>(item->getThis()));
-                                return true;
-                            }
-                        }
-                        return true;
-                    default:
-                        break;
+                    }
                 }
                 return true;
             }
-        } catch (...) {
-            return false;
+            return true;
         }
     }
     return false;
@@ -818,65 +811,52 @@ bool MenuBar::handleEvent(shared_ptr<Event> event) {
         if (m_entries[m_activeIndex].panel->handleEvent(event)) return true;
     }
 
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    if (gotPos) {
+        SRect drawRect = getDrawRect();
+        int index = hitTest(mx, my);
 
-            SRect drawRect = getDrawRect();
-            int index = hitTest(pos->x, pos->y);
-
-            switch (event->m_eventName) {
-                case EventName::MOUSE_LBUTTON_DOWN:
-                    if (index >= 0) {
-                        if (m_menuMode && m_activeIndex == index) {
-                            // 再次点击同一菜单项，退出菜单模式
-                            exitMenuMode();
-                        } else {
-                            // 进入菜单模式
-                            enterMenuMode(index);
-                        }
-                        return true;
-                    } else if (!drawRect.contains(pos->x, pos->y)) {
-                        // 点击菜单栏外部
-                        bool inPanel = false;
-                        if (m_activeIndex >= 0) {
-                            inPanel = m_entries[m_activeIndex].panel->isContainsPoint(pos->x, pos->y);
-                        }
-                        if (!inPanel) {
-                            exitMenuMode();
-                            return false; // 让其他控件也能处理
-                        }
-                    }
-                    break;
-
-                case EventName::MOUSE_MOVING:
-                    if (m_menuMode) {
-                        // 菜单模式中，鼠标在菜单栏上移动自动切换
-                        if (index >= 0 && index != m_activeIndex) {
-                            switchMenu(index);
-                        }
-                        return true;
-                    } else {
-                        // 非菜单模式，仅更新hover状态
-                        m_hoveredIndex = index;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-
-            // 检查是否在菜单区域内
-            if (drawRect.contains(pos->x, pos->y)) return true;
-            if (m_menuMode && m_activeIndex >= 0) {
-                if (m_entries[m_activeIndex].panel->isContainsPoint(pos->x, pos->y)) {
-                    return true;
+        if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+            if (index >= 0) {
+                if (m_menuMode && m_activeIndex == index) {
+                    exitMenuMode();
+                } else {
+                    enterMenuMode(index);
+                }
+                return true;
+            } else if (!drawRect.contains(mx, my)) {
+                bool inPanel = false;
+                if (m_activeIndex >= 0) {
+                    inPanel = m_entries[m_activeIndex].panel->isContainsPoint(mx, my);
+                }
+                if (!inPanel) {
+                    exitMenuMode();
+                    return false;
                 }
             }
-        } catch (...) {
-            return false;
+        }
+
+        if (event->m_type == EventType::MouseMove) {
+            if (m_menuMode) {
+                if (index >= 0 && index != m_activeIndex) {
+                    switchMenu(index);
+                }
+                return true;
+            } else {
+                m_hoveredIndex = index;
+            }
+        }
+
+        if (drawRect.contains(mx, my)) return true;
+        if (m_menuMode && m_activeIndex >= 0) {
+            if (m_entries[m_activeIndex].panel->isContainsPoint(mx, my)) {
+                return true;
+            }
         }
     }
     return false;

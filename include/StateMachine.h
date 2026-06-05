@@ -23,13 +23,15 @@ public:
     EventType m_type;
 
     union {
-        EventMousePos   mousePos;
-        EventMouseWheel mouseWheel;
-        EventKey        keyEvent;
-        EventTextInput  textInput;
-        EventResize     resizeEvent;
+        EventMousePos    mousePos;
+        EventMouseButton mouseButton;
+        EventMouseWheel  mouseWheel;
+        EventKey         keyEvent;
+        EventTextInput   textInput;
+        EventTextEditing textEditing;
+        EventResize      resizeEvent;
         EventWindowMoved windowMoved;
-        EventFocus      focusEvent;
+        EventFocus       focusEvent;
         char _pad;
     };
 
@@ -40,13 +42,7 @@ public:
     {
     }
 
-    Event(EventName eventName, std::any param):
-        m_eventName(eventName),
-        m_eventParam(param),
-        m_type(EventType::None),
-        _pad(0)
-    {
-    }
+    Event(EventName eventName, std::any param);
 
     Event(EventType type):
         m_eventName(static_cast<EventName>(0)),
@@ -94,9 +90,10 @@ private:
     void copyUnion(const Event& event) {
         switch (event.m_type) {
             case EventType::MouseMove:
+                mousePos = event.mousePos; break;
             case EventType::MouseDown:
             case EventType::MouseUp:
-                mousePos = event.mousePos; break;
+                mouseButton = event.mouseButton; break;
             case EventType::MouseWheel:
                 mouseWheel = event.mouseWheel; break;
             case EventType::KeyDown:
@@ -104,6 +101,8 @@ private:
                 keyEvent = event.keyEvent; break;
             case EventType::TextInput:
                 textInput = event.textInput; break;
+            case EventType::TextEditing:
+                textEditing = event.textEditing; break;
             case EventType::WindowResize:
                 resizeEvent = event.resizeEvent; break;
             case EventType::WindowMoved:

@@ -2,12 +2,13 @@
 #define EVENTTYPES_H
 
 #include <cstdint>
+#include <string>
 
 // Event type enum - cross-DLL safe, no std::any dependency
 enum class EventType : uint8_t {
     None,
     MouseMove, MouseDown, MouseUp, MouseWheel,
-    KeyDown, KeyUp, TextInput,
+    KeyDown, KeyUp, TextInput, TextEditing,
     WindowResize, WindowMoved, WindowClose,
     FocusGained, FocusLost,
 };
@@ -154,11 +155,41 @@ enum class MouseButton : uint8_t {
 
 // ========== Event data structs (trivial / union-friendly) ==========
 struct EventMousePos     { float x, y; };
+struct EventMouseButton  { float x, y; MouseButton button; };
 struct EventMouseWheel   { float x, y; float scrollX, scrollY; };
-struct EventKey          { KeyCode keycode; KeyMod mod; bool repeat; };
+struct EventKey          { KeyCode keycode; KeyMod mod; int32_t scancode; bool repeat; };
 struct EventTextInput    { char text[32]; };
+struct EventTextEditing  { char text[32]; int32_t start; int32_t length; };
 struct EventResize       { int width, height; };
 struct EventWindowMoved  { int x, y; };
 struct EventFocus        { bool focused; };
+
+// ========== Legacy event data structs (old API, phased out) ==========
+// These are populated by EventQueue.h's Event(EventName, any) constructor
+// to fill the new union fields, and kept for backward compatibility.
+struct KeyEventData {
+    KeyCode keycode;
+    int32_t scancode;
+    KeyMod mod;
+    bool repeat;
+};
+
+struct TextInputEventData {
+    std::string text;
+    int32_t start;
+    int32_t length;
+};
+
+struct FocusEventData {
+    void* controlPtr;
+    bool focused;
+};
+
+struct MouseWheelEventData {
+    float x;
+    float y;
+    float mouseX;
+    float mouseY;
+};
 
 #endif // EVENTTYPES_H

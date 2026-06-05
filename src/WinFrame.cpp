@@ -158,22 +158,16 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
 
     SPoint mousePos;
     bool hasPos = false;
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            mousePos = *pos;
-            hasPos = true;
-        } catch (const std::bad_any_cast&) {
-            // Not an SPoint event (e.g. MOUSE_WHEEL uses MouseWheelEventData).
-            // Leave hasPos=false so position checks are skipped,
-            // but the event still propagates to children below.
-        }
+    if (event->m_type == EventType::MouseMove) {
+        mousePos = SPoint(event->mousePos.x, event->mousePos.y);
+        hasPos = true;
+    } else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mousePos = SPoint(event->mouseButton.x, event->mouseButton.y);
+        hasPos = true;
     }
 
     // Step 0: Focus-to-front on any MOUSE_LBUTTON_DOWN within WinFrame
-    if (hasPos && event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
+    if (hasPos && event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
         if (getDrawRect().contains(mousePos.x, mousePos.y)) {
             bringToFront();
         }
@@ -181,7 +175,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
 
     // Step 1: During drag, intercept movement
     if (m_dragging && hasPos) {
-        if (event->m_eventName == EventName::MOUSE_MOVING) {
+        if (event->m_type == EventType::MouseMove) {
             setResizeCursor(0);
             Control* parent = getParent();
             SRect parentDraw = parent->getDrawRect();
@@ -191,7 +185,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
                      m_rect.width, m_rect.height});
             return true;
         }
-        if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
+        if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
             m_dragging = false;
             return true;
         }
@@ -199,7 +193,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
 
     // During resize, intercept movement
     if (m_resizing && hasPos) {
-        if (event->m_eventName == EventName::MOUSE_MOVING) {
+        if (event->m_type == EventType::MouseMove) {
             setResizeCursor(m_resizeFlags);
             SRect newScreenRect = m_startScreenRect;
             float dx = mousePos.x - m_resizeStartMouse.x;
@@ -229,7 +223,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
             setRect({newLocalLeft, newLocalTop, newLocalWidth, newLocalHeight});
             return true;
         }
-        if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
+        if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
             m_resizing = false;
             setResizeCursor(0);
             return true;
@@ -249,10 +243,10 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         if (m_rect.height - localMouse.y >= 0 && m_rect.height - localMouse.y < m_edgeMargin) edgeFlags |= kBottom;
 
         if (edgeFlags && m_resizable) {
-            if (event->m_eventName == EventName::MOUSE_MOVING) {
+            if (event->m_type == EventType::MouseMove) {
                 setResizeCursor(edgeFlags);
             }
-            if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
+            if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
                 m_resizing = true;
                 m_resizeFlags = edgeFlags;
                 setResizeCursor(edgeFlags);
@@ -261,12 +255,12 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
                 m_resizeStartMouse = mousePos;
                 return true;
             }
-        } else if (event->m_eventName == EventName::MOUSE_MOVING) {
+        } else if (event->m_type == EventType::MouseMove) {
             setResizeCursor(0);
         }
         // Capture edgeFlags for cursor re-application after Step 3
         // (children may overwrite the cursor, e.g. Label sets hand cursor on hover)
-        if (event->m_eventName == EventName::MOUSE_MOVING) {
+        if (event->m_type == EventType::MouseMove) {
             m_lastEdgeFlags = edgeFlags;
         }
     }
@@ -275,7 +269,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     bool consumed = ControlImpl::handleEvent(event);
 
     // Step 3b: Re-apply edge cursor (children may have overwritten it)
-    if (hasPos && bMouseInsideWinFrame && !m_dragging && !m_resizing && event->m_eventName == EventName::MOUSE_MOVING) {
+    if (hasPos && bMouseInsideWinFrame && !m_dragging && !m_resizing && event->m_type == EventType::MouseMove) {
         if (m_lastEdgeFlags && m_resizable)
             setResizeCursor(m_lastEdgeFlags);
         else
@@ -284,7 +278,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
 
     // Step 4: Title bar drag (if no child consumed MOUSE_LBUTTON_DOWN)
     if (hasPos && !consumed && !m_dragging && !m_resizing) {
-        if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
+        if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
             SPoint localMouse = screenToLocal(mousePos.x, mousePos.y);
             float titleH = ConstDef::WINDOW_TITLE_HEIGHT;
             bool onTitleBar = localMouse.y >= 0 && localMouse.y < titleH;

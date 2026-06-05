@@ -284,77 +284,61 @@ void EditBox::draw(void) {
 bool EditBox::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            if (isContainsPoint(pos->x, pos->y)) {
-                setFocused(true);
+    if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+        if (isContainsPoint(event->mouseButton.x, event->mouseButton.y)) {
+            setFocused(true);
 
-                int newCursor = getCursorFromPosition(pos->x - getDrawRect().left);
+            int newCursor = getCursorFromPosition(event->mouseButton.x - getDrawRect().left);
 
-                KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
-                bool shiftPressed = isModSet(mod, KeyMod::Shift);
+            KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
+            bool shiftPressed = isModSet(mod, KeyMod::Shift);
 
-                if (shiftPressed) {
-                    m_selectionEnd = newCursor;
-                } else {
-                    m_cursorPosition = newCursor;
-                    clearSelection();
-                }
-
-                m_cursorVisible = true;
-                m_cursorBlinkTime = 0;
-                m_isDragging = true;
-                m_dragStartPosition = newCursor;
-                updateTextOffset();
-
-                return true;
+            if (shiftPressed) {
+                m_selectionEnd = newCursor;
             } else {
-                setFocused(false);
-            }
-        } catch (...) {
-            return false;
-        }
-    }
-
-    if (event->m_eventName == EventName::MOUSE_MOVING) {
-        if (m_focused && m_isDragging) {
-            if (!event->m_eventParam.has_value()) return false;
-            try {
-                auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-                if (!pos) return false;
-                int newCursor = getCursorFromPosition(pos->x - getDrawRect().left);
-
-                int start = std::min(m_dragStartPosition, newCursor);
-                int end = std::max(m_dragStartPosition, newCursor);
-                m_selectionStart = start;
-                m_selectionEnd = end;
                 m_cursorPosition = newCursor;
-
-                updateTextOffset();
-                return true;
-            } catch (...) {
-                return false;
+                clearSelection();
             }
+
+            m_cursorVisible = true;
+            m_cursorBlinkTime = 0;
+            m_isDragging = true;
+            m_dragStartPosition = newCursor;
+            updateTextOffset();
+
+            return true;
+        } else {
+            setFocused(false);
         }
     }
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
+    if (event->m_type == EventType::MouseMove) {
+        if (m_focused && m_isDragging) {
+            int newCursor = getCursorFromPosition(event->mousePos.x - getDrawRect().left);
+
+            int start = std::min(m_dragStartPosition, newCursor);
+            int end = std::max(m_dragStartPosition, newCursor);
+            m_selectionStart = start;
+            m_selectionEnd = end;
+            m_cursorPosition = newCursor;
+
+            updateTextOffset();
+            return true;
+        }
+    }
+
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
         m_isDragging = false;
     }
 
-    if (event->m_eventName == EventName::TEXT_INPUT) {
+    if (event->m_type == EventType::TextInput) {
         if (m_focused) {
-            if (!event->m_eventParam.has_value()) return false;
-            try {
-                auto data = std::any_cast<TextInputEventData>(event->m_eventParam);
-                std::string filtered;
-                for (char c : data.text) {
-                    if (c == '\n' || c == '\r') continue;
-                    filtered += c;
-                }
+            std::string data(event->textInput.text);
+            std::string filtered;
+            for (char c : data) {
+                if (c == '\n' || c == '\r') continue;
+                filtered += c;
+            }
                 if (m_passwordMode) {
                     std::string pwdFiltered;
                     for (char c : filtered) {
@@ -368,155 +352,142 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     insertText(filtered);
                 }
                 return true;
-            } catch (...) {
-                return false;
-            }
         }
     }
 
-    if (event->m_eventName == EventName::KEY_DOWN) {
+    if (event->m_type == EventType::KeyDown) {
         if (!m_focused) return false;
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
+        const auto& key = event->keyEvent;
 
-            m_shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
-            m_ctrlPressed = isModSet(keyData.mod, KeyMod::Ctrl);
+        m_shiftPressed = isModSet(key.mod, KeyMod::Shift);
+        m_ctrlPressed = isModSet(key.mod, KeyMod::Ctrl);
 
-            if (m_ctrlPressed) {
-                if (keyData.keycode == KeyCode::A) {
-                    selectAll();
-                    return true;
-                } else if (keyData.keycode == KeyCode::C) {
-                    copy();
-                    return true;
-                } else if (keyData.keycode == KeyCode::V) {
-                    paste();
-                    return true;
-                } else if (keyData.keycode == KeyCode::X) {
-                    cut();
-                    return true;
-                }
-            } else if (keyData.keycode == KeyCode::Backspace) {
-                if (hasSelection()) {
-                    deleteSelectedText();
-                } else if (m_cursorPosition > 0 && !m_text.empty()) {
-                    int charPos = m_cursorPosition - 1;
-                    while (charPos > 0 && (m_text[charPos] & 0xC0) == 0x80) {
-                        charPos--;
-                    }
-                    int charLen = m_cursorPosition - charPos;
-                    if (charLen > 0) {
-                        m_text.erase(charPos, charLen);
-                        m_cursorPosition = charPos;
-                        updateTextOffset();
-                        if (m_onTextChanged) {
-                            m_onTextChanged(getThis(), m_text);
-                        }
-                    }
-                }
+        if (m_ctrlPressed) {
+            if (key.keycode == KeyCode::A) {
+                selectAll();
                 return true;
-            } else if (keyData.keycode == KeyCode::Del) {
-                if (hasSelection()) {
-                    deleteSelectedText();
-                } else if (m_cursorPosition < (int)m_text.length()) {
-                    int charStart = m_cursorPosition;
-                    while (charStart < (int)m_text.length() && (m_text[charStart] & 0xC0) == 0x80) {
-                        charStart++;
-                    }
-                    if (charStart < (int)m_text.length()) {
-                        int charLen = getUtf8CharLength((unsigned char)m_text[charStart]);
-                        m_text.erase(m_cursorPosition, charLen);
-                        if (m_onTextChanged) {
-                            m_onTextChanged(getThis(), m_text);
-                        }
-                    }
-                }
+            } else if (key.keycode == KeyCode::C) {
+                copy();
                 return true;
-            } else if (keyData.keycode == KeyCode::Left) {
-                int newPos = m_cursorPosition;
-                while (newPos > 0) {
-                    newPos--;
-                    if ((m_text[newPos] & 0xC0) != 0x80) break;
-                }
-                newPos = std::max(0, newPos);
-
-                if (isModSet(keyData.mod, KeyMod::Shift)) {
-                    if (!hasSelection()) {
-                        m_selectionStart = m_cursorPosition;
-                    }
-                    m_cursorPosition = newPos;
-                    m_selectionEnd = m_cursorPosition;
-                } else {
-                    m_cursorPosition = newPos;
-                    clearSelection();
-                }
-                m_cursorVisible = true;
-                m_cursorBlinkTime = 0;
-                updateTextOffset();
+            } else if (key.keycode == KeyCode::V) {
+                paste();
                 return true;
-            } else if (keyData.keycode == KeyCode::Right) {
-                int newPos = m_cursorPosition;
-                while (newPos < (int)m_text.length()) {
-                    int charLen = getUtf8CharLength((unsigned char)m_text[newPos]);
-                    newPos += charLen;
-                    break;
-                }
-                newPos = std::min((int)m_text.length(), newPos);
-
-                if (isModSet(keyData.mod, KeyMod::Shift)) {
-                    if (!hasSelection()) {
-                        m_selectionStart = m_cursorPosition;
-                    }
-                    m_cursorPosition = newPos;
-                    m_selectionEnd = m_cursorPosition;
-                } else {
-                    m_cursorPosition = newPos;
-                    clearSelection();
-                }
-                m_cursorVisible = true;
-                m_cursorBlinkTime = 0;
-                updateTextOffset();
-                return true;
-            } else if (keyData.keycode == KeyCode::Home) {
-                m_cursorPosition = 0;
-                clearSelection();
-                m_cursorVisible = true;
-                m_cursorBlinkTime = 0;
-                updateTextOffset();
-                return true;
-            } else if (keyData.keycode == KeyCode::End) {
-                int maxPos = (int)m_text.length();
-                m_cursorPosition = maxPos;
-                clearSelection();
-                m_cursorVisible = true;
-                m_cursorBlinkTime = 0;
-                updateTextOffset();
-                return true;
-            } else if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
-                if (m_onEnter) {
-                    m_onEnter(getThis());
-                }
+            } else if (key.keycode == KeyCode::X) {
+                cut();
                 return true;
             }
-        } catch (...) {
-            return false;
+        } else if (key.keycode == KeyCode::Backspace) {
+            if (hasSelection()) {
+                deleteSelectedText();
+            } else if (m_cursorPosition > 0 && !m_text.empty()) {
+                int charPos = m_cursorPosition - 1;
+                while (charPos > 0 && (m_text[charPos] & 0xC0) == 0x80) {
+                    charPos--;
+                }
+                int charLen = m_cursorPosition - charPos;
+                if (charLen > 0) {
+                    m_text.erase(charPos, charLen);
+                    m_cursorPosition = charPos;
+                    updateTextOffset();
+                    if (m_onTextChanged) {
+                        m_onTextChanged(getThis(), m_text);
+                    }
+                }
+            }
+            return true;
+        } else if (key.keycode == KeyCode::Del) {
+            if (hasSelection()) {
+                deleteSelectedText();
+            } else if (m_cursorPosition < (int)m_text.length()) {
+                int charStart = m_cursorPosition;
+                while (charStart < (int)m_text.length() && (m_text[charStart] & 0xC0) == 0x80) {
+                    charStart++;
+                }
+                if (charStart < (int)m_text.length()) {
+                    int charLen = getUtf8CharLength((unsigned char)m_text[charStart]);
+                    m_text.erase(m_cursorPosition, charLen);
+                    if (m_onTextChanged) {
+                        m_onTextChanged(getThis(), m_text);
+                    }
+                }
+            }
+            return true;
+        } else if (key.keycode == KeyCode::Left) {
+            int newPos = m_cursorPosition;
+            while (newPos > 0) {
+                newPos--;
+                if ((m_text[newPos] & 0xC0) != 0x80) break;
+            }
+            newPos = std::max(0, newPos);
+
+            if (isModSet(key.mod, KeyMod::Shift)) {
+                if (!hasSelection()) {
+                    m_selectionStart = m_cursorPosition;
+                }
+                m_cursorPosition = newPos;
+                m_selectionEnd = m_cursorPosition;
+            } else {
+                m_cursorPosition = newPos;
+                clearSelection();
+            }
+            m_cursorVisible = true;
+            m_cursorBlinkTime = 0;
+            updateTextOffset();
+            return true;
+        } else if (key.keycode == KeyCode::Right) {
+            int newPos = m_cursorPosition;
+            while (newPos < (int)m_text.length()) {
+                int charLen = getUtf8CharLength((unsigned char)m_text[newPos]);
+                newPos += charLen;
+                break;
+            }
+            newPos = std::min((int)m_text.length(), newPos);
+
+            if (isModSet(key.mod, KeyMod::Shift)) {
+                if (!hasSelection()) {
+                    m_selectionStart = m_cursorPosition;
+                }
+                m_cursorPosition = newPos;
+                m_selectionEnd = m_cursorPosition;
+            } else {
+                m_cursorPosition = newPos;
+                clearSelection();
+            }
+            m_cursorVisible = true;
+            m_cursorBlinkTime = 0;
+            updateTextOffset();
+            return true;
+        } else if (key.keycode == KeyCode::Home) {
+            m_cursorPosition = 0;
+            clearSelection();
+            m_cursorVisible = true;
+            m_cursorBlinkTime = 0;
+            updateTextOffset();
+            return true;
+        } else if (key.keycode == KeyCode::End) {
+            int maxPos = (int)m_text.length();
+            m_cursorPosition = maxPos;
+            clearSelection();
+            m_cursorVisible = true;
+            m_cursorBlinkTime = 0;
+            updateTextOffset();
+            return true;
+        } else if (key.keycode == KeyCode::Return || key.keycode == KeyCode::KPEnter) {
+            if (m_onEnter) {
+                m_onEnter(getThis());
+            }
+            return true;
         }
     }
 
-    if (event->m_eventName == EventName::KEY_UP) {
+    if (event->m_type == EventType::KeyUp) {
         if (!m_focused) return false;
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
+        const auto& key = event->keyEvent;
 
-            if (keyData.keycode == KeyCode::LShift || keyData.keycode == KeyCode::RShift) {
-                m_shiftPressed = false;
-            } else if (keyData.keycode == KeyCode::LCtrl || keyData.keycode == KeyCode::RCtrl) {
-                m_ctrlPressed = false;
-            }
-        } catch (...) {
-            return false;
+        if (key.keycode == KeyCode::LShift || key.keycode == KeyCode::RShift) {
+            m_shiftPressed = false;
+        } else if (key.keycode == KeyCode::LCtrl || key.keycode == KeyCode::RCtrl) {
+            m_ctrlPressed = false;
         }
     }
 

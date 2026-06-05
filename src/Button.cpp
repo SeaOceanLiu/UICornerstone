@@ -100,45 +100,52 @@ void Button::draw(void){
 bool Button::handleEvent(shared_ptr<Event> event){
     if (!getEnable() || !getVisible()) return false;
 
-    if (EventQueue::isPositionEvent(event->m_eventName)){
-        if (!event->m_eventParam.has_value()) return false;
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    // Fallback for FINGER events (custom, no EventType equivalent)
+    if (!gotPos && EventQueue::isPositionEvent(event->m_eventName) && event->m_eventParam.has_value()) {
         try {
-            shared_ptr<SPoint> pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            SRect drawRect = getDrawRect();
-            if (drawRect.contains(pos->x, pos->y)){
-                switch(event->m_eventName){
-                    case EventName::FINGER_DOWN:
-                    case EventName::FINGER_MOTION:
-                        if (m_onClick != nullptr){
-                            m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
-                        }
-                        setState(ControlState::Pressed);
-                        return true;
-                    case EventName::MOUSE_LBUTTON_DOWN:
-                        setState(ControlState::Pressed);
-                        return true;
-                    case EventName::MOUSE_LBUTTON_UP:
-                        if (m_onClick != nullptr && m_state == ControlState::Pressed){
-                            m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
-                        }
-                    case EventName::FINGER_UP:
-                        setState(ControlState::Normal);
-                        return true;
-                    case EventName::MOUSE_MOVING:
-                        setState(ControlState::Hover);
-                        return true;
-                    case EventName::MOUSE_WHEEL:
-                        return false;
-                    default:
-                        break;
-                }
-                return true;
-            } else {
-                setState(ControlState::Normal);
+            auto p = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+            if (p) { mx = p->x; my = p->y; gotPos = true; }
+        } catch (...) { }
+    }
+    if (gotPos) {
+        SRect drawRect = getDrawRect();
+        if (drawRect.contains(mx, my)){
+            switch(event->m_eventName){
+                case EventName::FINGER_DOWN:
+                case EventName::FINGER_MOTION:
+                    if (m_onClick != nullptr){
+                        m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
+                    }
+                    setState(ControlState::Pressed);
+                    return true;
+                case EventName::FINGER_UP:
+                    setState(ControlState::Normal);
+                    return true;
             }
-        } catch (...) {
-            return false;
+            if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                setState(ControlState::Pressed);
+                return true;
+            }
+            if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+                if (m_onClick != nullptr && m_state == ControlState::Pressed){
+                    m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
+                }
+                setState(ControlState::Normal);
+                return true;
+            }
+            if (event->m_type == EventType::MouseMove) {
+                setState(ControlState::Hover);
+                return true;
+            }
+            return true;
+        } else {
+            setState(ControlState::Normal);
         }
     }
     if (ControlImpl::handleEvent(event)) return true;

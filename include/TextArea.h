@@ -7,13 +7,6 @@
 #include "EditBox.h"
 #include "ScrollBar.h"
 
-struct MouseWheelEventData {
-    float x;
-    float y;
-    float mouseX;
-    float mouseY;
-};
-
 class TextArea: public EditBox {
     friend class TextAreaBuilder;
 private:

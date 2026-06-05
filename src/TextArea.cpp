@@ -609,35 +609,29 @@ void TextArea::draw(void) {
 bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
 
-    if (event->m_eventName == EventName::TEXT_INPUT) {
+    if (event->m_type == EventType::TextInput) {
         if (m_focused) {
-            if (!event->m_eventParam.has_value()) return false;
-            try {
-                auto data = std::any_cast<TextInputEventData>(event->m_eventParam);
-                for (char c : data.text) {
-                    if (c == '\r') continue;
-                    insertText(std::string(1, c));
-                }
-                rebuildLines();
-                updateVScrollBar();
-                updateHScrollBar();
-                ensureCursorVisible();
-                ensureCursorHorizontalVisible();
-                return true;
-            } catch (...) {
-                return false;
+            std::string text(event->textInput.text);
+            for (char c : text) {
+                if (c == '\r') continue;
+                insertText(std::string(1, c));
             }
+            rebuildLines();
+            updateVScrollBar();
+            updateHScrollBar();
+            ensureCursorVisible();
+            ensureCursorHorizontalVisible();
+            return true;
         }
     }
 
-    if (event->m_eventName == EventName::KEY_DOWN && !m_focused) {
+    if (event->m_type == EventType::KeyDown && !m_focused) {
         return false;
     }
 
-    if (event->m_eventName == EventName::KEY_DOWN) {
-        try {
-            auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
-            if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
+    if (event->m_type == EventType::KeyDown) {
+        const auto& keyData = event->keyEvent;
+        if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
                 int oldCursorPos = m_cursorPosition;
 
                 std::string newText = m_text;
@@ -666,52 +660,42 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 }
                 return true;
             }
-        } catch (...) {
         }
-    }
 
-    if (m_vScrollBar && m_vScrollBar->getVisible()) {
-        bool isMouseEvent = event->m_eventName == EventName::MOUSE_LBUTTON_DOWN ||
-                           event->m_eventName == EventName::MOUSE_LBUTTON_UP ||
-                           event->m_eventName == EventName::MOUSE_MOVING;
-        if (isMouseEvent && event->m_eventParam.has_value()) {
+    {
+        auto getMousePos = [&]() -> SPoint {
+            switch (event->m_type) {
+                case EventType::MouseMove: return SPoint(event->mousePos.x, event->mousePos.y);
+                default: return SPoint(event->mouseButton.x, event->mouseButton.y);
+            }
+        };
+        bool isMouseEvent = event->m_type == EventType::MouseDown ||
+                           event->m_type == EventType::MouseUp ||
+                           event->m_type == EventType::MouseMove;
+
+        if (m_vScrollBar && m_vScrollBar->getVisible() && isMouseEvent) {
             bool isDragging = m_vScrollBar->isDragging();
-            try {
-                auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-                if (isDragging || (pos && m_vScrollBar->isContainsPoint(pos->x, pos->y))) {
-                    if (m_vScrollBar->handleEvent(event)) {
-                        return true;
-                    }
+            SPoint pos = getMousePos();
+            if (isDragging || m_vScrollBar->isContainsPoint(pos.x, pos.y)) {
+                if (m_vScrollBar->handleEvent(event)) {
+                    return true;
                 }
-            } catch (...) {
             }
         }
-    }
 
-    if (m_hScrollBar && m_hScrollBar->getVisible()) {
-        bool isMouseEvent = event->m_eventName == EventName::MOUSE_LBUTTON_DOWN ||
-                           event->m_eventName == EventName::MOUSE_LBUTTON_UP ||
-                           event->m_eventName == EventName::MOUSE_MOVING;
-        if (isMouseEvent && event->m_eventParam.has_value()) {
+        if (m_hScrollBar && m_hScrollBar->getVisible() && isMouseEvent) {
             bool isDragging = m_hScrollBar->isDragging();
-            try {
-                auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-                if (isDragging || (pos && m_hScrollBar->isContainsPoint(pos->x, pos->y))) {
-                    if (m_hScrollBar->handleEvent(event)) {
-                        return true;
-                    }
+            SPoint pos = getMousePos();
+            if (isDragging || m_hScrollBar->isContainsPoint(pos.x, pos.y)) {
+                if (m_hScrollBar->handleEvent(event)) {
+                    return true;
                 }
-            } catch (...) {
             }
         }
     }
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            if (isContainsPoint(pos->x, pos->y)) {
+    if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+        if (isContainsPoint(event->mouseButton.x, event->mouseButton.y)) {
                 setFocused(true);
 
                 SRect drawRect = getDrawRect();
@@ -719,8 +703,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 Margin margin = getMargin();
                 float marginX = margin.left * scale;
                 float baseX = drawRect.left + marginX - (float)m_scrollX;
-                float relX = pos->x - baseX;
-                float relY = (pos->y - drawRect.top) / scale + m_scrollY;
+                float relX = event->mouseButton.x - baseX;
+                float relY = (event->mouseButton.y - drawRect.top) / scale + m_scrollY;
                 int targetLine = (int)(relY / m_lineHeight);
                 targetLine = std::max(0, std::min(targetLine, getTotalLines() - 1));
 
@@ -755,80 +739,62 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 ensureCursorVisible();
 
                 return true;
-            } else {
-                setFocused(false);
             }
-        } catch (...) {
-            return false;
-        }
     }
 
-    if (event->m_eventName == EventName::MOUSE_WHEEL) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            MouseWheelEventData wheelData = std::any_cast<MouseWheelEventData>(event->m_eventParam);
-            if (!isContainsPoint(wheelData.mouseX, wheelData.mouseY)) {
-                return false;
-            }
-            int scrollAmount = (int)(wheelData.y * m_lineHeight * 3);
-            setScrollY(m_scrollY - scrollAmount);
-            return true;
-        } catch (...) {
+    if (event->m_type == EventType::MouseWheel) {
+        if (!isContainsPoint(event->mouseWheel.x, event->mouseWheel.y)) {
             return false;
         }
+        int scrollAmount = (int)(event->mouseWheel.scrollY * m_lineHeight * 3);
+        setScrollY(m_scrollY - scrollAmount);
+        return true;
     }
 
-    if (event->m_eventName == EventName::MOUSE_MOVING) {
+    if (event->m_type == EventType::MouseMove) {
         if (m_focused && m_isDragging) {
-            if (!event->m_eventParam.has_value()) return false;
-            try {
-                auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-                if (!pos) return false;
-                SRect drawRect = getDrawRect();
-                float scale = getScaleXX();
-                Margin margin = getMargin();
-                float marginX = margin.left * scale;
-                float baseX = drawRect.left + marginX - (float)m_scrollX;
-                float relX = pos->x - baseX;
-                float relY = (pos->y - drawRect.top) / scale + m_scrollY;
-                int targetLine = (int)(relY / m_lineHeight);
-                targetLine = std::max(0, std::min(targetLine, getTotalLines() - 1));
+            SRect drawRect = getDrawRect();
+            float scale = getScaleXX();
+            Margin margin = getMargin();
+            float marginX = margin.left * scale;
+            float baseX = drawRect.left + marginX - (float)m_scrollX;
+            float relX = event->mousePos.x - baseX;
+            float relY = (event->mousePos.y - drawRect.top) / scale + m_scrollY;
+            int targetLine = (int)(relY / m_lineHeight);
+            targetLine = std::max(0, std::min(targetLine, getTotalLines() - 1));
 
-                int targetByteIndex = 0;
-                if (targetLine < getTotalLines() && targetLine < (int)m_lines.size()) {
-                    std::string& targetLineText = m_lines[targetLine];
-                    targetByteIndex = getByteIndexFromPixelX(targetLineText, relX);
-                }
-
-                int targetPos = 0;
-                if (targetLine < (int)m_lineStartPositions.size()) {
-                    targetPos = m_lineStartPositions[targetLine];
-                }
-                targetPos += targetByteIndex;
-
-                m_cursorPosition = targetPos;
-                m_selectionStart = m_dragStartPosition;
-                m_selectionEnd = targetPos;
-                if (m_selectionEnd < m_selectionStart) {
-                    m_selectionEnd = m_selectionStart;
-                    m_selectionStart = targetPos;
-                }
-                ensureCursorVisible();
-                ensureCursorHorizontalVisible();
-                return true;
-            } catch (...) {
-                return false;
+            int targetByteIndex = 0;
+            if (targetLine < getTotalLines() && targetLine < (int)m_lines.size()) {
+                std::string& targetLineText = m_lines[targetLine];
+                targetByteIndex = getByteIndexFromPixelX(targetLineText, relX);
             }
+
+            int targetPos = 0;
+            if (targetLine < (int)m_lineStartPositions.size()) {
+                targetPos = m_lineStartPositions[targetLine];
+            }
+            targetPos += targetByteIndex;
+
+            m_cursorPosition = targetPos;
+            m_selectionStart = m_dragStartPosition;
+            m_selectionEnd = targetPos;
+            if (m_selectionEnd < m_selectionStart) {
+                m_selectionEnd = m_selectionStart;
+                m_selectionStart = targetPos;
+            }
+            ensureCursorVisible();
+            ensureCursorHorizontalVisible();
+            return true;
         }
     }
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
         m_isDragging = false;
     }
 
-    if (event->m_eventName == EventName::KEY_DOWN) {
+    if (event->m_type == EventType::KeyDown) {
         if (isFocused()) {
-            auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
+            const auto& keyData = event->keyEvent;
 
             if (isModSet(keyData.mod, KeyMod::Ctrl) && (keyData.keycode == KeyCode::C || keyData.keycode == KeyCode::V || keyData.keycode == KeyCode::X)) {
                 if (keyData.keycode == KeyCode::C) {

@@ -4,6 +4,10 @@
 
 始终使用中文进行交互。
 
+## File Encoding
+
+所有源代码文件（.h/.cpp）必须保存为 **UTF-8 with BOM** 编码格式。不要使用 UTF-8 without BOM 或其他编码。
+
 ## Design Rules
 
 1. **所有位置数据存储规则**：
@@ -331,3 +335,41 @@ test_label.exe
 - `#define SDL_MAIN_USE_CALLBACKS 1` and `#include <SDL3/SDL_main.h>` are **preserved** in all 9 files (SDL callback mode remains active)
 
 **Result**: Phase 6 complete. All 10 tests build and run successfully. Both Mode 1 (`run()`) and Mode 2 (tick-based API called from within SDL callbacks) are validated.
+
+### 2026-06-05: Phase 12 — Event System Migration (Controls → Union API)
+
+**Changes**: Migrated all 8 control handleEvent() implementations from old Event API (`EventName` + `std::any` + `any_cast`) to new union-based API (`EventType` + union fields):
+
+- **EditBox.cpp**: 7 handlers migrated — MOUSE_LBUTTON_DOWN, MOUSE_MOVING, MOUSE_LBUTTON_UP, TEXT_INPUT, KEY_DOWN, KEY_UP, ON_FOCUS watcher (ON_FOCUS remains old API as custom internal event)
+- **TextArea.cpp**: 12 handlers migrated — TEXT_INPUT, KEY_DOWN (×3), mouse scrollbar delegation, MOUSE_LBUTTON_DOWN, MOUSE_WHEEL, MOUSE_MOVING, MOUSE_LBUTTON_UP, KEY_DOWN navigation
+- **ScrollBar.cpp**: 3 handlers — MOUSE_LBUTTON_DOWN, MOUSE_LBUTTON_UP, MOUSE_MOVING
+- **CheckBox.cpp**: 1 handler — position event check → EventType switch
+- **Button.cpp**: 1 handler — position event check + FINGER event fallback
+- **Label.cpp**: 1 handler — position event check + FINGER event fallback
+- **Menu.cpp (3 classes)**: MenuItem, MenuPanel, MenuBar — all position event checks migrated
+- **WinFrame.cpp**: 1 handler — comprehensive hasPos + event type checks migrated
+
+**Key changes per control**:
+- Removed all `std::any_cast<shared_ptr<SPoint>>` / `std::any` dependencies
+- Removed all `try { ... } catch (...) { }` blocks from event handlers
+- Mouse events use `event->mousePos` (for MouseMove) or `event->mouseButton` (for MouseDown/Up)
+- Keyboard events use `event->keyEvent` directly
+- TextInput uses `event->textInput.text` (char[32])
+- MouseWheel uses `event->mouseWheel`
+- FINGER_* events (custom, no EventType) retain old API fallback in Button/Label
+
+**Status**: All 10 tests build successfully.
+
+### 2026-06-05: Phase 12 Fix — Event(EventName, any) 构造自动映射
+
+**Bug**: Mode 2（SDL 回调）测试文件通过 `Event(EventName, any)` 旧构造函数创建事件，该构造将 `m_type` 硬编码为 `EventType::None`，导致所有控件的新 API 类型检查（`event->m_type == EventType::MouseDown` 等）失败。
+
+**Root cause**: `StateMachine.h` 中 `Event` 类仅有 `EventName` 前向声明，无法在构造函数体内访问枚举值做映射。
+
+**Fix**:
+- `StateMachine.h`: `Event(EventName, any)` 构造声明移至类外（无函数体）
+- `EventQueue.h`: 提供内联构造体，完整实现 `EventName → EventType` 映射 + union 字段填充（MouseMove/MouseDown/MouseUp/MouseWheel/TextInput/KeyDown/KeyUp）
+- `EventTypes.h`: 移入旧数据结构（`KeyEventData/TextInputEventData/FocusEventData/MouseWheelEventData`）+ `<string>`
+- `EditBox.h/TextArea.h`: 删除重复数据结构定义；恢复意外删除的 `#include "Label.h"`（提供 AlignmentMode）
+
+**结果**: 无需修改任何测试文件，旧构造函数自动为新旧双 API 填充数据。所有 10 测试事件响应正常。

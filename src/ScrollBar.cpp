@@ -169,77 +169,63 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
     SRect drawRect = getDrawRect();
     float scale = getScaleXX();
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_DOWN) {
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            float localX = (pos->x - drawRect.left) / scale;
-            float localY = (pos->y - drawRect.top) / scale;
+    if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+        float localX = (event->mouseButton.x - drawRect.left) / scale;
+        float localY = (event->mouseButton.y - drawRect.top) / scale;
 
-            if (isPointInThumb(pos->x, pos->y)) {
-                m_dragging = true;
-                m_thumbPressed = true;
-                if (m_orientation == ScrollBarOrientation::Vertical) {
-                    m_dragOffset = localY - m_thumbRect.top;
-                } else {
-                    m_dragOffset = localX - m_thumbRect.left;
-                }
-                return true;
+        if (isPointInThumb(event->mouseButton.x, event->mouseButton.y)) {
+            m_dragging = true;
+            m_thumbPressed = true;
+            if (m_orientation == ScrollBarOrientation::Vertical) {
+                m_dragOffset = localY - m_thumbRect.top;
+            } else {
+                m_dragOffset = localX - m_thumbRect.left;
             }
+            return true;
+        }
 
-            if (isPointInTrack(pos->x, pos->y)) {
-                float trackLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_trackRect.height : m_trackRect.width;
-                float thumbLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.height : m_thumbRect.width;
-                float thumbPos = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.top : m_thumbRect.left;
-                float clickPos = (m_orientation == ScrollBarOrientation::Vertical) ? localY : localX;
+        if (isPointInTrack(event->mouseButton.x, event->mouseButton.y)) {
+            float trackLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_trackRect.height : m_trackRect.width;
+            float thumbLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.height : m_thumbRect.width;
+            float thumbPos = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.top : m_thumbRect.left;
+            float clickPos = (m_orientation == ScrollBarOrientation::Vertical) ? localY : localX;
 
-                float newValue;
-                if (clickPos < thumbPos) {
-                    newValue = m_value - m_pageSize;
-                } else {
-                    newValue = m_value + m_pageSize;
-                }
-                setValue(newValue);
-                return true;
+            float newValue;
+            if (clickPos < thumbPos) {
+                newValue = m_value - m_pageSize;
+            } else {
+                newValue = m_value + m_pageSize;
             }
-        } catch (...) {
-            return false;
+            setValue(newValue);
+            return true;
         }
     }
 
-    if (event->m_eventName == EventName::MOUSE_LBUTTON_UP) {
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
         m_dragging = false;
         m_thumbPressed = false;
     }
 
-    if (event->m_eventName == EventName::MOUSE_MOVING) {
+    if (event->m_type == EventType::MouseMove) {
         if (!m_dragging) return false;
-        if (!event->m_eventParam.has_value()) return false;
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-            float localX = (pos->x - drawRect.left) / scale;
-            float localY = (pos->y - drawRect.top) / scale;
+        float localX = (event->mousePos.x - drawRect.left) / scale;
+        float localY = (event->mousePos.y - drawRect.top) / scale;
 
-            float trackLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_trackRect.height : m_trackRect.width;
-            float thumbLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.height : m_thumbRect.width;
-            float thumbTravel = trackLength - thumbLength;
+        float trackLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_trackRect.height : m_trackRect.width;
+        float thumbLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.height : m_thumbRect.width;
+        float thumbTravel = trackLength - thumbLength;
 
-            float newPos;
-            if (m_orientation == ScrollBarOrientation::Vertical) {
-                newPos = localY - m_dragOffset;
-            } else {
-                newPos = localX - m_dragOffset;
-            }
-            newPos = std::max(0.0f, std::min(newPos, thumbTravel));
-
-            float newValue = positionToValue(newPos);
-            setValue(newValue);
-            return true;
-        } catch (...) {
-            return false;
+        float newPos;
+        if (m_orientation == ScrollBarOrientation::Vertical) {
+            newPos = localY - m_dragOffset;
+        } else {
+            newPos = localX - m_dragOffset;
         }
+        newPos = std::max(0.0f, std::min(newPos, thumbTravel));
+
+        float newValue = positionToValue(newPos);
+        setValue(newValue);
+        return true;
     }
 
     return false;
