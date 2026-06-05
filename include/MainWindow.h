@@ -83,8 +83,40 @@ public:
     float getDisplayHeight(void) { return m_displayHeight; }
     SSize getDisplaySize(void) { return SSize{m_displayWidth, m_displayHeight}; }
 
-    // Run the main event loop with the given AppCallbacks.
+    // === Mode 1: Owned loop ===
+    // Runs the entire main loop internally.
     // Returns 0 on normal exit, 1 on init failure.
     int run(AppCallbacks* app);
+
+    // === Mode 2: Tick-based API ===
+    // For users who want to integrate with their own main loop
+    // (e.g. third-party engine loop).
+    //
+    // Usage:
+    //   if (!MAINWIN->init(app)) return 1;
+    //   while (running) {
+    //       running = MAINWIN->processEvents();  // false on WindowClose
+    //       MAINWIN->update(app);
+    //       MAINWIN->render(app);
+    //   }
+    //   MAINWIN->shutdown(app);
+
+    // Initialize the app. Must be called before the loop.
+    bool init(AppCallbacks* app);
+
+    // Poll and dispatch all pending events.
+    // Handles WindowResize/WindowMoved internally.
+    // Dispatches other events to the control tree.
+    // Returns false if WindowClose was received (caller should stop).
+    bool processEvents();
+
+    // Single frame update (calls app->onUpdate()).
+    void update(AppCallbacks* app);
+
+    // Single frame render + present (calls app->onRender() + present).
+    void render(AppCallbacks* app);
+
+    // Shutdown (calls app->onQuit()).
+    void shutdown(AppCallbacks* app);
 };
 #endif // MainWindowH
