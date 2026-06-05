@@ -26,3 +26,9 @@
 [submodule "json"]
 	path = subModules/json
 	url = https://github.com/nlohmann/json.git
+[submodule "subModules/SFML"]
+	path = subModules/SFML
+	url = https://github.com/SeaOceanLiu/UIControls-SFML.git
+[submodule "subModules/raylib"]
+	path = subModules/raylib
+	url = https://github.com/SeaOceanLiu/UIControls-raylib.git
