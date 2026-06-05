@@ -8,6 +8,7 @@
 #include "MainWindow.h"
 #include "HotReloader.h"
 #include "DataContext.h"
+#include "AppCallbacks.h"
 #include <iostream>
 #include <string>
 #include <memory>
@@ -116,14 +117,38 @@ void testBenchInitialize(void) {
     ctx->set("progressValue", 42.0);
 }
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    SDL_SetAppMetadata("LayoutParserAdvancedTest", "1.0.0", "com.example.layoutparseradvancedtest");
+// ==================== AppCallbacks ====================
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
-        return SDL_APP_FAILURE;
+class LayoutAdvancedApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        BENCH->setOnInitial(testBenchInitialize);
+        return true;
     }
-    BENCH->setOnInitial(testBenchInitialize);
+
+    void onUpdate() override {
+        g_reloader.poll();
+        BENCH->eventLoopEntry();
+        BENCH->update();
+    }
+
+    void onRender() override {
+        GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+        GET_RENDERDEVICE->clear();
+        BENCH->draw();
+    }
+
+    void onQuit() override {
+        SDL_Log("Application quit");
+    }
+};
+
+static LayoutAdvancedApp g_app;
+
+// ==================== SDL回调函数 ====================
+
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+    if (!g_app.onInit()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -146,9 +171,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         case SDL_EVENT_KEY_DOWN:
             {
                 KeyEventData keyData;
-                keyData.keycode = event->key.key;
+                keyData.keycode = SDLKeycodeToKeyCode(event->key.key);
                 keyData.scancode = event->key.scancode;
-                keyData.mod = event->key.mod;
+                keyData.mod = SDLKeymodToKeyMod(event->key.mod);
                 keyData.repeat = event->key.repeat != 0;
                 gameEvent = make_shared<Event>(EventName::KEY_DOWN, keyData);
                 BENCH->inputControl(gameEvent);
@@ -208,19 +233,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    g_reloader.poll();
-    BENCH->eventLoopEntry();
-    BENCH->update();
-
-    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
-    GET_RENDERDEVICE->clear();
-
-    BENCH->draw();
-
-    GET_RENDERDEVICE->present();
+    MAINWIN->update(&g_app);
+    MAINWIN->render(&g_app);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    SDL_Log("Application quit");
+    MAINWIN->shutdown(&g_app);
 }

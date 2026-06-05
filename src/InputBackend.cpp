@@ -8,6 +8,153 @@
 #include "EditBox.h"
 #include "TextArea.h"
 
+// ============================================================
+// SDL Keycode → Canonical KeyCode mapping
+// ============================================================
+KeyCode SDLKeycodeToKeyCode(int sdlKeycode) {
+    // ASCII printable range (0x20-0x7E) maps directly
+    if (sdlKeycode >= 0x20 && sdlKeycode <= 0x7F) {
+        // SDL3 uses lowercase for letter keys (e.g. SDLK_C = 'c' = 0x63),
+        // our canonical KeyCode uses uppercase (KeyCode::C = 0x43)
+        if (sdlKeycode >= 'a' && sdlKeycode <= 'z') {
+            return static_cast<KeyCode>(sdlKeycode - 32);
+        }
+        return static_cast<KeyCode>(sdlKeycode);
+    }
+
+    switch (sdlKeycode) {
+        case SDLK_RETURN:    return KeyCode::Return;
+        case SDLK_ESCAPE:    return KeyCode::Escape;
+        case SDLK_BACKSPACE: return KeyCode::Backspace;
+        case SDLK_TAB:       return KeyCode::Tab;
+        case SDLK_DELETE:    return KeyCode::Del;
+
+        // Cursor
+        case SDLK_LEFT:  return KeyCode::Left;
+        case SDLK_RIGHT: return KeyCode::Right;
+        case SDLK_UP:    return KeyCode::Up;
+        case SDLK_DOWN:  return KeyCode::Down;
+        case SDLK_HOME:  return KeyCode::Home;
+        case SDLK_END:   return KeyCode::End;
+        case SDLK_PAGEUP:   return KeyCode::PageUp;
+        case SDLK_PAGEDOWN: return KeyCode::PageDown;
+        case SDLK_INSERT:   return KeyCode::Insert;
+
+        // Function keys
+        case SDLK_F1:  return KeyCode::F1;
+        case SDLK_F2:  return KeyCode::F2;
+        case SDLK_F3:  return KeyCode::F3;
+        case SDLK_F4:  return KeyCode::F4;
+        case SDLK_F5:  return KeyCode::F5;
+        case SDLK_F6:  return KeyCode::F6;
+        case SDLK_F7:  return KeyCode::F7;
+        case SDLK_F8:  return KeyCode::F8;
+        case SDLK_F9:  return KeyCode::F9;
+        case SDLK_F10: return KeyCode::F10;
+        case SDLK_F11: return KeyCode::F11;
+        case SDLK_F12: return KeyCode::F12;
+        case SDLK_F13: return KeyCode::F13;
+        case SDLK_F14: return KeyCode::F14;
+        case SDLK_F15: return KeyCode::F15;
+        case SDLK_F16: return KeyCode::F16;
+        case SDLK_F17: return KeyCode::F17;
+        case SDLK_F18: return KeyCode::F18;
+        case SDLK_F19: return KeyCode::F19;
+        case SDLK_F20: return KeyCode::F20;
+        case SDLK_F21: return KeyCode::F21;
+        case SDLK_F22: return KeyCode::F22;
+        case SDLK_F23: return KeyCode::F23;
+        case SDLK_F24: return KeyCode::F24;
+
+        // Modifiers
+        case SDLK_LSHIFT: return KeyCode::LShift;
+        case SDLK_RSHIFT: return KeyCode::RShift;
+        case SDLK_LCTRL:  return KeyCode::LCtrl;
+        case SDLK_RCTRL:  return KeyCode::RCtrl;
+        case SDLK_LALT:   return KeyCode::LAlt;
+        case SDLK_RALT:   return KeyCode::RAlt;
+        case SDLK_LGUI:   return KeyCode::LGui;
+        case SDLK_RGUI:   return KeyCode::RGui;
+
+        // Lock keys
+        case SDLK_CAPSLOCK:    return KeyCode::CapsLock;
+        case SDLK_NUMLOCKCLEAR: return KeyCode::NumLock;
+        case SDLK_SCROLLLOCK:  return KeyCode::ScrollLock;
+
+        // Keypad
+        case SDLK_KP_0:        return KeyCode::KP0;
+        case SDLK_KP_1:        return KeyCode::KP1;
+        case SDLK_KP_2:        return KeyCode::KP2;
+        case SDLK_KP_3:        return KeyCode::KP3;
+        case SDLK_KP_4:        return KeyCode::KP4;
+        case SDLK_KP_5:        return KeyCode::KP5;
+        case SDLK_KP_6:        return KeyCode::KP6;
+        case SDLK_KP_7:        return KeyCode::KP7;
+        case SDLK_KP_8:        return KeyCode::KP8;
+        case SDLK_KP_9:        return KeyCode::KP9;
+        case SDLK_KP_DECIMAL:  return KeyCode::KPDecimal;
+        case SDLK_KP_DIVIDE:   return KeyCode::KPDivide;
+        case SDLK_KP_MULTIPLY: return KeyCode::KPMultiply;
+        case SDLK_KP_MINUS:    return KeyCode::KPMinus;
+        case SDLK_KP_PLUS:     return KeyCode::KPPlus;
+        case SDLK_KP_ENTER:    return KeyCode::KPEnter;
+        case SDLK_KP_EQUALS:   return KeyCode::KPEquals;
+
+        // Print / Pause
+        case SDLK_PRINTSCREEN: return KeyCode::PrintScreen;
+        case SDLK_PAUSE:       return KeyCode::Pause;
+
+        // Application
+        case SDLK_APPLICATION: return KeyCode::Application;
+        case SDLK_MENU:        return KeyCode::Menu;
+
+        // International (not available as SDLK macros in SDL3)
+
+        // Media
+        case SDLK_MUTE:            return KeyCode::AudioMute;
+        case SDLK_VOLUMEDOWN:      return KeyCode::AudioVolDown;
+        case SDLK_VOLUMEUP:        return KeyCode::AudioVolUp;
+        case SDLK_MEDIA_PLAY:      return KeyCode::AudioPlay;
+        case SDLK_MEDIA_STOP:      return KeyCode::AudioStop;
+        case SDLK_MEDIA_PREVIOUS_TRACK: return KeyCode::AudioPrev;
+        case SDLK_MEDIA_NEXT_TRACK:     return KeyCode::AudioNext;
+
+        // Browser
+        case SDLK_AC_BACK:    return KeyCode::BrowserBack;
+        case SDLK_AC_FORWARD: return KeyCode::BrowserForward;
+        case SDLK_AC_REFRESH: return KeyCode::BrowserRefresh;
+        case SDLK_AC_STOP:    return KeyCode::BrowserStop;
+        case SDLK_AC_SEARCH:  return KeyCode::BrowserSearch;
+        case SDLK_AC_BOOKMARKS: return KeyCode::BrowserFavorites;
+        case SDLK_AC_HOME:    return KeyCode::BrowserHome;
+
+        // System
+        case SDLK_POWER:  return KeyCode::Power;
+        case SDLK_SLEEP:  return KeyCode::Sleep;
+        case SDLK_WAKE: return KeyCode::WakeUp;
+
+        // Misc
+        case SDLK_HELP:  return KeyCode::Help;
+        case SDLK_UNDO:  return KeyCode::Undo;
+        case SDLK_CUT:   return KeyCode::Cut;
+        case SDLK_COPY:  return KeyCode::Copy;
+        case SDLK_PASTE: return KeyCode::Paste;
+        case SDLK_FIND:  return KeyCode::Find;
+        case SDLK_MEDIA_SELECT: return KeyCode::MediaSelect;
+
+        default:
+            return KeyCode::Unknown;
+    }
+}
+
+KeyMod SDLKeymodToKeyMod(uint16_t sdlMod) {
+    // Values match directly
+    return static_cast<KeyMod>(sdlMod);
+}
+
+// ============================================================
+// SDL3InputBackend
+// ============================================================
 class SDL3InputBackend : public InputBackend {
 public:
     SDL3InputBackend(void* window)
@@ -76,15 +223,15 @@ public:
             case SDL_EVENT_KEY_DOWN:
             {
                 KeyEventData keyData;
-                keyData.keycode = sdlEvent.key.key;
+                keyData.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
                 keyData.scancode = sdlEvent.key.scancode;
-                keyData.mod = sdlEvent.key.mod;
+                keyData.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
                 keyData.repeat = sdlEvent.key.repeat != 0;
 
                 event.m_type = EventType::KeyDown;
-                event.keyEvent.keycode = sdlEvent.key.key;
-                event.keyEvent.mod = sdlEvent.key.mod;
-                event.keyEvent.repeat = sdlEvent.key.repeat != 0;
+                event.keyEvent.keycode = keyData.keycode;
+                event.keyEvent.mod = keyData.mod;
+                event.keyEvent.repeat = keyData.repeat;
                 event.m_eventName = EventName::KEY_DOWN;
                 event.m_eventParam = keyData;
                 break;
@@ -93,15 +240,15 @@ public:
             case SDL_EVENT_KEY_UP:
             {
                 KeyEventData keyData;
-                keyData.keycode = sdlEvent.key.key;
+                keyData.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
                 keyData.scancode = sdlEvent.key.scancode;
-                keyData.mod = sdlEvent.key.mod;
+                keyData.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
                 keyData.repeat = sdlEvent.key.repeat != 0;
 
                 event.m_type = EventType::KeyUp;
-                event.keyEvent.keycode = sdlEvent.key.key;
-                event.keyEvent.mod = sdlEvent.key.mod;
-                event.keyEvent.repeat = sdlEvent.key.repeat != 0;
+                event.keyEvent.keycode = keyData.keycode;
+                event.keyEvent.mod = keyData.mod;
+                event.keyEvent.repeat = keyData.repeat;
                 event.m_eventName = EventName::KEY_UP;
                 event.m_eventParam = keyData;
                 break;

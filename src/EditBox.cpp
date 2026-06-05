@@ -294,8 +294,8 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
 
                 int newCursor = getCursorFromPosition(pos->x - getDrawRect().left);
 
-                SDL_Keymod mod = SDL_GetModState();
-                bool shiftPressed = (mod & SDL_KMOD_SHIFT) != 0;
+                KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
+                bool shiftPressed = isModSet(mod, KeyMod::Shift);
 
                 if (shiftPressed) {
                     m_selectionEnd = newCursor;
@@ -380,24 +380,24 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
         try {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
 
-            m_shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
-            m_ctrlPressed = (keyData.mod & SDL_KMOD_CTRL) != 0;
+            m_shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
+            m_ctrlPressed = isModSet(keyData.mod, KeyMod::Ctrl);
 
             if (m_ctrlPressed) {
-                if (keyData.keycode == SDLK_A) {
+                if (keyData.keycode == KeyCode::A) {
                     selectAll();
                     return true;
-                } else if (keyData.keycode == SDLK_C) {
+                } else if (keyData.keycode == KeyCode::C) {
                     copy();
                     return true;
-                } else if (keyData.keycode == SDLK_V) {
+                } else if (keyData.keycode == KeyCode::V) {
                     paste();
                     return true;
-                } else if (keyData.keycode == SDLK_X) {
+                } else if (keyData.keycode == KeyCode::X) {
                     cut();
                     return true;
                 }
-            } else if (keyData.keycode == SDLK_BACKSPACE) {
+            } else if (keyData.keycode == KeyCode::Backspace) {
                 if (hasSelection()) {
                     deleteSelectedText();
                 } else if (m_cursorPosition > 0 && !m_text.empty()) {
@@ -416,7 +416,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     }
                 }
                 return true;
-            } else if (keyData.keycode == SDLK_DELETE) {
+            } else if (keyData.keycode == KeyCode::Del) {
                 if (hasSelection()) {
                     deleteSelectedText();
                 } else if (m_cursorPosition < (int)m_text.length()) {
@@ -433,7 +433,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                     }
                 }
                 return true;
-            } else if (keyData.keycode == SDLK_LEFT) {
+            } else if (keyData.keycode == KeyCode::Left) {
                 int newPos = m_cursorPosition;
                 while (newPos > 0) {
                     newPos--;
@@ -441,7 +441,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 }
                 newPos = std::max(0, newPos);
 
-                if ((keyData.mod & SDL_KMOD_SHIFT) != 0) {
+                if (isModSet(keyData.mod, KeyMod::Shift)) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
                     }
@@ -455,7 +455,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 m_cursorBlinkTime = 0;
                 updateTextOffset();
                 return true;
-            } else if (keyData.keycode == SDLK_RIGHT) {
+            } else if (keyData.keycode == KeyCode::Right) {
                 int newPos = m_cursorPosition;
                 while (newPos < (int)m_text.length()) {
                     int charLen = getUtf8CharLength((unsigned char)m_text[newPos]);
@@ -464,7 +464,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 }
                 newPos = std::min((int)m_text.length(), newPos);
 
-                if ((keyData.mod & SDL_KMOD_SHIFT) != 0) {
+                if (isModSet(keyData.mod, KeyMod::Shift)) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
                     }
@@ -478,14 +478,14 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 m_cursorBlinkTime = 0;
                 updateTextOffset();
                 return true;
-            } else if (keyData.keycode == SDLK_HOME) {
+            } else if (keyData.keycode == KeyCode::Home) {
                 m_cursorPosition = 0;
                 clearSelection();
                 m_cursorVisible = true;
                 m_cursorBlinkTime = 0;
                 updateTextOffset();
                 return true;
-            } else if (keyData.keycode == SDLK_END) {
+            } else if (keyData.keycode == KeyCode::End) {
                 int maxPos = (int)m_text.length();
                 m_cursorPosition = maxPos;
                 clearSelection();
@@ -493,7 +493,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 m_cursorBlinkTime = 0;
                 updateTextOffset();
                 return true;
-            } else if (keyData.keycode == SDLK_RETURN || keyData.keycode == SDLK_RETURN2) {
+            } else if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
                 if (m_onEnter) {
                     m_onEnter(getThis());
                 }
@@ -510,9 +510,9 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
         try {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
 
-            if (keyData.keycode == SDLK_LSHIFT || keyData.keycode == SDLK_RSHIFT) {
+            if (keyData.keycode == KeyCode::LShift || keyData.keycode == KeyCode::RShift) {
                 m_shiftPressed = false;
-            } else if (keyData.keycode == SDLK_LCTRL || keyData.keycode == SDLK_RCTRL) {
+            } else if (keyData.keycode == KeyCode::LCtrl || keyData.keycode == KeyCode::RCtrl) {
                 m_ctrlPressed = false;
             }
         } catch (...) {

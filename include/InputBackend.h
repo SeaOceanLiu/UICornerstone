@@ -26,4 +26,8 @@ public:
 
 InputBackend* CreateSDL3InputBackend(Window* window);
 
+// SDL→canonical mapping utilities (for backends and test files that bridge SDL events)
+KeyCode SDLKeycodeToKeyCode(int sdlKeycode);
+KeyMod  SDLKeymodToKeyMod(uint16_t sdlMod);
+
 #endif

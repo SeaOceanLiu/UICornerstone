@@ -11,7 +11,7 @@ int MainWindow::run(AppCallbacks* app) {
 
     bool running = true;
     while (running) {
-        running = processEvents();
+        running = processEvents(app);
         if (!running) break;
         update(app);
         render(app);
@@ -28,7 +28,7 @@ bool MainWindow::init(AppCallbacks* app) {
     return app->onInit();
 }
 
-bool MainWindow::processEvents() {
+bool MainWindow::processEvents(AppCallbacks* app) {
     auto* backend = BackendManager::instance();
     auto* inputBackend = backend->inputBackend();
 
@@ -47,10 +47,13 @@ bool MainWindow::processEvents() {
                 onWindowMoved(event.windowMoved.x, event.windowMoved.y);
                 break;
             default:
+                // Old-style dispatch (dual-run backward compatibility)
                 if (event.m_eventName != static_cast<EventName>(0)) {
                     auto sharedEvent = make_shared<Event>(event);
                     BENCH->inputControl(sharedEvent);
                 }
+                // New-style event notification for app-specific handling
+                app->onEvent(event);
                 break;
         }
     }

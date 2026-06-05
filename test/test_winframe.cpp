@@ -100,13 +100,39 @@ void testBenchInitialize(void) {
     SDL_Log("Initialization complete");
 }
 
+// ==================== AppCallbacks ====================
+
+class WinFrameApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        BENCH->setOnInitial(testBenchInitialize);
+        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+        return true;
+    }
+
+    void onUpdate() override {
+        BENCH->eventLoopEntry();
+        BENCH->update();
+    }
+
+    void onRender() override {
+        GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+        GET_RENDERDEVICE->clear();
+        BENCH->draw();
+    }
+
+    void onQuit() override {
+    }
+};
+
+static WinFrameApp g_app;
+
+// ==================== SDL回调函数 ====================
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
     (void)appstate; (void)argc; (void)argv;
-    BENCH->setOnInitial(testBenchInitialize);
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-    SDL_SetAppMetadata("WinFrameTest", "1.0.0", "com.example.winframetest");
-    if (!SDL_Init(SDL_INIT_VIDEO)) return SDL_APP_FAILURE;
+    if (!g_app.onInit()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -145,16 +171,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
     (void)appstate;
-    BENCH->eventLoopEntry();
-    BENCH->update();
-    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
-    GET_RENDERDEVICE->clear();
-    BENCH->draw();
-    GET_RENDERDEVICE->present();
+    MAINWIN->update(&g_app);
+    MAINWIN->render(&g_app);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     (void)appstate; (void)result;
-
+    MAINWIN->shutdown(&g_app);
 }

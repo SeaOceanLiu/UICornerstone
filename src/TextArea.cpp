@@ -637,7 +637,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (event->m_eventName == EventName::KEY_DOWN) {
         try {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
-            if (keyData.keycode == SDLK_RETURN || keyData.keycode == SDLK_RETURN2) {
+            if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
                 int oldCursorPos = m_cursorPosition;
 
                 std::string newText = m_text;
@@ -736,8 +736,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 }
                 targetPos += targetByteIndex;
 
-                SDL_Keymod mod = SDL_GetModState();
-                bool shiftPressed = (mod & SDL_KMOD_SHIFT) != 0;
+                KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
+                bool shiftPressed = isModSet(mod, KeyMod::Shift);
 
                 if (shiftPressed) {
                     m_selectionEnd = targetPos;
@@ -830,12 +830,12 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
         if (isFocused()) {
             auto keyData = std::any_cast<KeyEventData>(event->m_eventParam);
 
-            if ((keyData.mod & SDL_KMOD_CTRL) && (keyData.keycode == SDLK_C || keyData.keycode == SDLK_V || keyData.keycode == SDLK_X)) {
-                if (keyData.keycode == SDLK_C) {
+            if (isModSet(keyData.mod, KeyMod::Ctrl) && (keyData.keycode == KeyCode::C || keyData.keycode == KeyCode::V || keyData.keycode == KeyCode::X)) {
+                if (keyData.keycode == KeyCode::C) {
                     copy();
                     return true;
                 }
-                if (keyData.keycode == SDLK_V) {
+                if (keyData.keycode == KeyCode::V) {
                     paste();
                     rebuildLines();
                     updateVScrollBar();
@@ -843,7 +843,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     ensureCursorVisible();
                     return true;
                 }
-                if (keyData.keycode == SDLK_X) {
+                if (keyData.keycode == KeyCode::X) {
                     cut();
                     rebuildLines();
                     updateVScrollBar();
@@ -852,7 +852,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 }
             }
 
-            if (keyData.keycode == SDLK_UP) {
+            if (keyData.keycode == KeyCode::Up) {
                 int currentLine = 0;
                 int byteIndexInLine = 0;
                 for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
@@ -917,7 +917,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
 
                 int newCursorPos = m_lineStartPositions[currentLine - 1] + bestByteIndex;
 
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 if (shiftPressed) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
@@ -929,7 +929,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
 
-            if (keyData.keycode == SDLK_DOWN) {
+            if (keyData.keycode == KeyCode::Down) {
                 int currentLine = 0;
                 int byteIndexInLine = 0;
                 for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
@@ -1005,7 +1005,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
 
                 int newCursorPos = m_lineStartPositions[currentLine + 1] + bestByteIndex;
 
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 if (shiftPressed) {
                     if (!hasSelection()) {
                         m_selectionStart = m_cursorPosition;
@@ -1017,8 +1017,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
 
-            if (keyData.keycode == SDLK_HOME) {
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+            if (keyData.keycode == KeyCode::Home) {
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 int oldCursorPosition = m_cursorPosition;
                 int currentLine = 0;
                 for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
@@ -1053,8 +1053,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
 
-            if (keyData.keycode == SDLK_END) {
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+            if (keyData.keycode == KeyCode::End) {
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 int oldCursorPosition = m_cursorPosition;
                 int currentLine = 0;
                 for (int i = 0; i < getTotalLines() && i < (int)m_lineStartPositions.size(); ++i) {
@@ -1094,8 +1094,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
 
-            if (keyData.keycode == SDLK_LEFT) {
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+            if (keyData.keycode == KeyCode::Left) {
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 int oldCursorPosition = m_cursorPosition;
                 if (m_cursorPosition > 0) {
                     if (m_cursorPosition > 0 && m_text[m_cursorPosition - 1] == '\n') {
@@ -1139,8 +1139,8 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 return true;
             }
 
-            if (keyData.keycode == SDLK_RIGHT) {
-                bool shiftPressed = (keyData.mod & SDL_KMOD_SHIFT) != 0;
+            if (keyData.keycode == KeyCode::Right) {
+                bool shiftPressed = isModSet(keyData.mod, KeyMod::Shift);
                 int oldCursorPosition = m_cursorPosition;
                 if (m_cursorPosition < (int)m_text.length()) {
                     if (m_text[m_cursorPosition] == '\n') {

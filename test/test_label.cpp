@@ -7,6 +7,7 @@
 #include "MainWindow.h"
 #include "Bench.h"
 #include "EventQueue.h"
+#include "AppCallbacks.h"
 
 #include "EditBox.h"
 #include "TextArea.h"
@@ -249,23 +250,45 @@ void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, co
     }
 }
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    cout << "Using SDL3 library for Label test" << endl;
+// ==================== AppCallbacks ====================
 
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
+class LabelApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        cout << "Using SDL3 library for Label test" << endl;
 
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-    cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
+        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
 
-    SDL_SetAppMetadata("LabelTest", "1.0.0", "com.example.labeltest");
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+        cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
-        return SDL_APP_FAILURE;
+        BENCH->setOnInitial(testBenchInitialize);
+        return true;
     }
-    BENCH->setOnInitial(testBenchInitialize);
 
+    void onUpdate() override {
+        BENCH->eventLoopEntry();
+        BENCH->update();
+    }
+
+    void onRender() override {
+        GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+        GET_RENDERDEVICE->clear();
+        BENCH->draw();
+    }
+
+    void onQuit() override {
+        SDL_Log("Application quit");
+    }
+};
+
+static LabelApp g_app;
+
+// ==================== SDL回调函数 ====================
+
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+    if (!g_app.onInit()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -288,9 +311,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         case SDL_EVENT_KEY_DOWN:
             {
                 KeyEventData keyData;
-                keyData.keycode = event->key.key;
+                keyData.keycode = SDLKeycodeToKeyCode(event->key.key);
                 keyData.scancode = event->key.scancode;
-                keyData.mod = event->key.mod;
+                keyData.mod = SDLKeymodToKeyMod(event->key.mod);
                 keyData.repeat = event->key.repeat != 0;
                 gameEvent = make_shared<Event>(EventName::KEY_DOWN, keyData);
                 BENCH->inputControl(gameEvent);
@@ -347,18 +370,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    BENCH->eventLoopEntry();
-    BENCH->update();
-
-    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
-    GET_RENDERDEVICE->clear();
-
-    BENCH->draw();
-
-    GET_RENDERDEVICE->present();
+    MAINWIN->update(&g_app);
+    MAINWIN->render(&g_app);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    SDL_Log("Application quit");
+    MAINWIN->shutdown(&g_app);
 }

@@ -106,9 +106,10 @@ public:
 
     // Poll and dispatch all pending events.
     // Handles WindowResize/WindowMoved internally.
-    // Dispatches other events to the control tree.
+    // Dispatches other events to the control tree via old-style dispatch.
+    // Calls app->onEvent() for the new-style event notification.
     // Returns false if WindowClose was received (caller should stop).
-    bool processEvents();
+    bool processEvents(AppCallbacks* app);
 
     // Single frame update (calls app->onUpdate()).
     void update(AppCallbacks* app);

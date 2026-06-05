@@ -288,11 +288,11 @@ test_label.exe
 - Marked as deprecated (⚠️), noting replacement by ResourceProvider
 - Kept original content for historical reference
 
-### 2026-06-05: Phase 6 — MainWindow Cleanup + InputBackend Standalone + SDL-free MainWindow.h (Partial)
+### 2026-06-05: Phase 6 — MainWindow Cleanup + InputBackend Standalone + SDL-free MainWindow.h + AppCallbacks Migration (Complete)
 
-**Note**: Phase 6 in the design doc covers Window abstraction, InputBackend, BackendPlugin, Event system, and AppCallbacks. BackendPlugin was previously completed; this session focused on the remaining Window/InputBackend cleanup.
+**Note**: Phase 6 in the design doc covers Window abstraction, InputBackend, BackendPlugin, Event system, and AppCallbacks. BackendPlugin was previously completed; this session focused on the remaining Window/InputBackend cleanup and all-test migration.
 
-**Changes**:
+**Infrastructure Changes**:
 - **`src/InputBackend.cpp`** (new): Extracted `SDL3InputBackend` from `src/Window.cpp` into its own file; factory uses `window->nativeHandle()` instead of SDL-specific cast
 - **`src/Window.cpp`**: Removed `SDL3InputBackend` class and `CreateSDL3InputBackend` factory (moved to InputBackend.cpp)
 - **`include/MainWindow.h`**: Removed `#include <SDL3/SDL.h>`, `SDL_Renderer* m_renderer`, `SDL_DisplayID m_displayId`, `getWindow()` (SDL_Window*), `getRenderer()` (SDL_Renderer*); replaced direct SDL calls with `Window` abstract methods; replaced `handleWindowEvent(SDL_WindowEvent&)` with `onWindowResized(int,int)` / `onWindowMoved(int,int)`; renamed `getWindowObject()` → `getWindow()`; now SDL-free
@@ -301,23 +301,33 @@ test_label.exe
 - **`src/EditBox.cpp`**: Added explicit `#include <SDL3/SDL_keyboard.h>` and `<SDL3/SDL_keycode.h>` (lost transitive include from MainWindow.h)
 - **`src/TextArea.cpp`**: Same SDL keyboard include fix
 - **`src/Actor.cpp`**, **`src/CheckBox.cpp`**, **`src/ControlBase.cpp`**, **`src/Label.cpp`**, **`src/LayoutParser.cpp`**, **`src/ProgressBar.cpp`**: Added explicit `#include <SDL3/SDL.h>` (lost transitive include)
-- **All 10 test files**: Replaced `MAINWIN->handleWindowEvent(event->window)` with `MAINWIN->onWindowResized/onWindowMoved(data1, data2)`
-- **`test/test_editbox.cpp`**: Replaced `SDL_StartTextInput(MAINWIN->getWindow())` with `GET_INPUTBACKEND->startTextInput()`
-- **`test/test_label.cpp`**: Removed stale raw TTF test code (`g_font1`, `g_textEngine`, `g_text1` — leftover from pre-TextRenderer era)
-- **`CMakeLists.txt`**: Added `src/InputBackend.cpp`
+- **`include/MainWindow.h`**: Added `run(AppCallbacks*)` for owned-loop mode, plus tick-based `init/processEvents/update/render/shutdown` API
+- **`src/MainWindow.cpp`** (new): Implements `run()` — polls InputBackend, handles WindowClose/Resize/Move, dispatches old-style to BENCH, notifies AppCallbacks via `onUpdate()`/`onRender()`/`onEvent()`
+- **`src/BackendPlugin.cpp`**: Moved `SDL_Init` + `SDL_SetAppMetadata` from test files into `BackendManager::initialize()`
+- **`CMakeLists.txt`**: Added `src/InputBackend.cpp`, `src/MainWindow.cpp`; added `_HAS_STD_BYTE=0` for Windows SDK compatibility
 
-**Result**: `MainWindow.h` is now SDL-free (no SDL types in public API). InputBackend has its own source file. All SDL dependencies are confined to backend implementation files.
+**AppCallbacks & Event Infrastructure**:
+- **`include/AppCallbacks.h`** (new): Abstract interface — `onInit()`, `onEvent(const Event&)` (optional, default empty), `onUpdate()`, `onRender()`, `onQuit()`
+- **`include/EventTypes.h`**: Added `WindowMoved` event type + `EventWindowMoved` struct; enum now has MouseMove/MouseDown/MouseUp/MouseWheel/KeyDown/KeyUp/TextInput/WindowResize/WindowMoved/WindowClose/FocusGained/FocusLost
+- **`include/InputBackend.h`**: Added `pollEvent(Event&)` abstract method — polls SDL events, populates both new (EventType+union) and old (EventName+std::any) fields for dual-run backward compatibility
+- **`src/InputBackend.cpp`**: Full `SDL3InputBackend::pollEvent()` implementation handling all 10 SDL event types (mouse, keyboard, text, wheel, window)
+- **`include/StateMachine.h`**: Added default `Event` constructor, `EventWindowMoved` in union, `copyUnion()` handles WindowMoved, `<memory>` include
 
-**Completed Phase 6 sub-tasks**:
-- `include/AppCallbacks.h`: New abstract interface (onInit/onUpdate/onRender/onQuit)
-- `include/InputBackend.h`: Added `pollEvent(Event&)` – polls SDL events, converts to abstract Event (populates both old EventName+std::any and new EventType+union)
-- `src/InputBackend.cpp`: Full SDL3InputBackend::pollEvent() implementation (handles all 10 SDL event types)
-- `include/EventTypes.h`: Added WindowMoved event type + struct
-- `include/StateMachine.h`: Added Event default constructor, WindowMoved to union, `<memory>` include
-- `include/MainWindow.h`: Added `run(AppCallbacks*)` declaration
-- `src/MainWindow.cpp`: Main event loop – polls events, handles window resize/move, dispatches to BENCH, calls app->onUpdate/onRender/m_renderDevice->present()
-- `src/BackendPlugin.cpp`: Moved SDL_Init + SDL_SetAppMetadata from test files into BackendManager::initialize()
-- `CMakeLists.txt`: Added src/MainWindow.cpp; added `_HAS_STD_BYTE=0` for Windows SDK compatibility
-- `test/test_button.cpp`: Migrated to AppCallbacks + MainWindow::run() (first of 10 tests)
+**All 10 Test Files Migrated (SDL callbacks → AppCallbacks)**:
+- **`test/test_button.cpp`**: Uses **Mode 1** (owned loop) — `MAINWIN->run(&app)`. Migrated in previous session.
+- **The other 9 test files** use **Mode 2** (tick-based API) with SDL callbacks preserved. SDL provides the main loop; the SDL callbacks delegate to MainWindow's Mode 2 lifecycle methods:
+  ```
+  // SDL_AppInit → g_app.onInit() or MAINWIN->init(&g_app)
+  // SDL_AppEvent → unchanged (dispatches to BENCH directly)
+  // SDL_AppIterate → MAINWIN->update(&g_app) + MAINWIN->render(&g_app)
+  // SDL_AppQuit → MAINWIN->shutdown(&g_app)
+  ```
+- Each test file adds an AppCallbacks subclass (`LabelApp`, `EditBoxApp`, etc.) with `onInit()`/`onUpdate()`/`onRender()`/`onQuit()`, and a static `g_app` instance. The SDL_App* functions call into these AppCallbacks methods via MainWindow's Mode 2 API.
+- **`test/test_graphtool.cpp`**: Custom `SColor(0.941f)` background; no BENCH, uses `DrawingContext` directly; Space/Escape handling stays in `SDL_AppEvent`; timer auto-stepping in `onUpdate()`
+- **`test/test_progressbar.cpp`**: Animation logic (`SDL_GetTicks()`) in `onUpdate()`
+- **`test/test_layout_advanced.cpp`**: `g_reloader.poll()` in `onUpdate()`
+- **`test/test_menu.cpp`**: `testGraphToolInitialize()` in `onInit()`
+- **`test/test_editbox.cpp`**: `GET_INPUTBACKEND->startTextInput()` in `onInit()`
+- `#define SDL_MAIN_USE_CALLBACKS 1` and `#include <SDL3/SDL_main.h>` are **preserved** in all 9 files (SDL callback mode remains active)
 
-**Remaining Phase 6 work**: Migrate remaining 9 test files to AppCallbacks/MainWindow::run() pattern; event creation site migration (old API → new API); AppCallbacks::onEvent() for app-specific event handling
+**Result**: Phase 6 complete. All 10 tests build and run successfully. Both Mode 1 (`run()`) and Mode 2 (tick-based API called from within SDL callbacks) are validated.

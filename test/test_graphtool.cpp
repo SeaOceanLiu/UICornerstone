@@ -9,6 +9,7 @@
 #include "GraphTool.h"
 #include "MainWindow.h"
 #include "Bench.h"
+#include "AppCallbacks.h"
 
 
 using namespace std;
@@ -507,19 +508,63 @@ void testUtils(DrawingContext& dc) {
     cout << "  Utils functions test passed!" << endl;
 }
 
+// ==================== AppCallbacks ====================
+
+class GraphToolApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
+        g_stepTimer = SDL_GetTicks();
+        return true;
+    }
+
+    void onUpdate() override {
+        Uint64 now = SDL_GetTicks();
+        if (now - g_stepTimer > g_stepDuration) {
+            g_testStep = (g_testStep + 1) % g_totalSteps;
+            g_stepTimer = now;
+        }
+    }
+
+    void onRender() override {
+        RenderDevice* device = GET_RENDERDEVICE;
+        if (!device) return;
+
+        device->setDrawColor(SColor(0.941f, 0.941f, 0.941f, 1.0f));
+        device->clear();
+
+        DrawingContext dc(device);
+
+        switch (g_testStep) {
+            case 0: testColorSystem(dc); break;
+            case 1: testPenSystem(dc); break;
+            case 2: testBrushSystem(dc); break;
+            case 3: testGradientSystem(dc); break;
+            case 4: testBasicShapes(dc); break;
+            case 5: testRoundedRect(dc); break;
+            case 6: testCircleDrawing(dc); break;
+            case 7: testEllipseAndArc(dc); break;
+            case 8: testPolygonAndPolyline(dc); break;
+            case 9: testDashedLines(dc); break;
+            case 10: testAdvancedDrawing(dc); break;
+            case 11: testUtils(dc); break;
+        }
+
+        dc.setFillColor(SColor::Black());
+        dc.setPen(SPen(SColor::Black(), 1.0f));
+    }
+
+    void onQuit() override {
+    }
+};
+
+static GraphToolApp g_app;
+
 // ==================== SDL回调函数 ====================
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
-
-    SDL_SetAppMetadata("GraphToolTest", "1.0.0", "com.example.graphtool");
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("Failed to init SDL: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    g_stepTimer = SDL_GetTicks();
+    if (!g_app.onInit()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -541,46 +586,11 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
-    RenderDevice* device = MainWindow::getInstance()->getRenderDevice();
-    if (!device) return SDL_APP_FAILURE;
-
-    // 清屏
-    device->setDrawColor(SColor(0.941f, 0.941f, 0.941f, 1.0f));
-    device->clear();
-
-    DrawingContext dc(device);
-
-    // 自动切换步骤
-    Uint64 now = SDL_GetTicks();
-    if (now - g_stepTimer > g_stepDuration) {
-        g_testStep = (g_testStep + 1) % g_totalSteps;
-        g_stepTimer = now;
-    }
-
-    // 执行当前测试
-    switch (g_testStep) {
-        case 0: testColorSystem(dc); break;
-        case 1: testPenSystem(dc); break;
-        case 2: testBrushSystem(dc); break;
-        case 3: testGradientSystem(dc); break;
-        case 4: testBasicShapes(dc); break;
-        case 5: testRoundedRect(dc); break;
-        case 6: testCircleDrawing(dc); break;
-        case 7: testEllipseAndArc(dc); break;
-        case 8: testPolygonAndPolyline(dc); break;
-        case 9: testDashedLines(dc); break;
-        case 10: testAdvancedDrawing(dc); break;
-        case 11: testUtils(dc); break;
-    }
-
-    // 显示当前测试步骤
-    dc.setFillColor(SColor::Black());
-    dc.setPen(SPen(SColor::Black(), 1.0f));
-
-    device->present();
+    MAINWIN->update(&g_app);
+    MAINWIN->render(&g_app);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-
+    MAINWIN->shutdown(&g_app);
 }

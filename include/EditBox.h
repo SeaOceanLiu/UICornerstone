@@ -9,6 +9,7 @@
 #include "Label.h"
 #include "Utility.h"
 #include "Font.h"
+#include "EventTypes.h"
 
 struct TextInputEventData {
     std::string text;
@@ -17,9 +18,9 @@ struct TextInputEventData {
 };
 
 struct KeyEventData {
-    int32_t keycode;
+    KeyCode keycode;
     int32_t scancode;
-    uint16_t mod;
+    KeyMod mod;
     bool repeat;
 };
 

@@ -8,6 +8,7 @@
 #include "ScrollBar.h"
 #include "Menu.h"
 #include "MainWindow.h"
+#include "AppCallbacks.h"
 #include "Bench.h"
 #include "Button.h"
 #include "GraphTool.h"
@@ -175,28 +176,49 @@ void testGraphTool(void){
     // };
     // g_dc->drawPolygon(polygonPoints, false, true);
 }
+// ==================== AppCallbacks ====================
+
+class MenuApp : public AppCallbacks {
+public:
+    bool onInit() override {
+        cout << "Using SDL3 library for menu test" << endl;
+
+        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
+
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+        cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
+
+        SSize displaySize = MAINWIN->getDisplaySize();
+        BENCH->setOnInitial(testBenchInitialize);
+        testGraphToolInitialize();
+        return true;
+    }
+
+    void onUpdate() override {
+        BENCH->eventLoopEntry();
+        BENCH->update();
+    }
+
+    void onRender() override {
+        GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
+        GET_RENDERDEVICE->clear();
+        BENCH->draw();
+    }
+
+    void onQuit() override {
+        SDL_Log("SDL_AppQuit");
+        cout << "Menu test program exiting" << endl;
+    }
+};
+
+static MenuApp g_app;
+
+// ==================== SDL回调函数 ====================
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
-    cout << "Using SDL3 library for menu test" << endl;
-
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
-
-    // 禁止触摸事件转换为鼠标事件
-    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-    cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
-
-    SDL_SetAppMetadata("MenuTest", "1.0.0", "com.example.menutest");
-
-    // Initialize SDL3
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        cout << "Failed to initialize SDL: " << SDL_GetError() << endl;
-        return SDL_APP_FAILURE;
-    }
-    // 初始化主窗口和Bench
-    SSize displaySize = MAINWIN->getDisplaySize();
-    BENCH->setOnInitial(testBenchInitialize);
-    testGraphToolInitialize();
+    if (!g_app.onInit()) return SDL_APP_FAILURE;
     return SDL_APP_CONTINUE;
 }
 
@@ -211,7 +233,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             return SDL_APP_SUCCESS;
 
         case SDL_EVENT_MOUSE_MOTION:
-            // SDL_Log("Pushing mouse button moving event to Bench");
             pos = make_shared<SPoint>(event->motion.x, event->motion.y);
             gameEvent = make_shared<Event>(EventName::MOUSE_MOVING, pos);
             BENCH->inputControl(gameEvent);
@@ -285,25 +306,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    BENCH->eventLoopEntry();
-    BENCH->update();
-
-    // 清屏
-    GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
-    GET_RENDERDEVICE->clear();
-
-    BENCH->draw();
-
-    // Present rendering
-    GET_RENDERDEVICE->present();
+    MAINWIN->update(&g_app);
+    MAINWIN->render(&g_app);
     return SDL_APP_CONTINUE;
 }
 
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    SDL_Log("SDL_AppQuit");
-    // Clean up resources
-
-    cout << "Menu test program exiting" << endl;
+    MAINWIN->shutdown(&g_app);
 }
