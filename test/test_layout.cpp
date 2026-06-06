@@ -1,21 +1,19 @@
-#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 #include <memory>
+#include <filesystem>
 #include "LayoutParser.h"
 #include "Label.h"
 #include "CheckBox.h"
 #include "MainWindow.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
-
 #include "TextArea.h"
 #include "Button.h"
 #include "EditBox.h"
 #include "WinFrame.h"
-#include <SDL3_ttf/SDL_ttf.h>
+#include "PlatformUtils.h"
+#include "TestUtils.h"
 
 using namespace std;
 
@@ -23,70 +21,63 @@ static LayoutParser g_parser;
 static shared_ptr<WinFrame> g_resultWinFrame;
 
 void onSubmitClicked(shared_ptr<Control> c) {
-    SDL_Log("Button clicked via auto-binding!");
+    TestUtil::log("Button clicked via auto-binding!");
     if (g_resultWinFrame) {
         g_resultWinFrame->show();
     }
 }
 
-void onTextChanged(shared_ptr<Control>, string text) {
-    SDL_Log("Text changed via manual binding: %s", text.c_str());
-}
-
 void onNotesChanged(shared_ptr<Control> c) {
-    SDL_Log("TextArea content changed via auto-binding!");
+    TestUtil::log("TextArea content changed via auto-binding!");
 }
 
 void onAgreeChanged(shared_ptr<Control> c) {
-    SDL_Log("CheckBox state changed via auto-binding!");
+    TestUtil::log("CheckBox state changed via auto-binding!");
 }
 
 void onImageBtnClick(shared_ptr<Control> c) {
-    SDL_Log("Image button clicked!");
+    TestUtil::log("Image button clicked!");
 }
 
 void onAniBtnClick(shared_ptr<Control> c) {
-    SDL_Log("Animated button clicked!");
+    TestUtil::log("Animated button clicked!");
 }
 
 void onCaptionLabelBtnClick(shared_ptr<Control> c) {
-    SDL_Log("CaptionLabel button clicked!");
+    TestUtil::log("CaptionLabel button clicked!");
 }
 
-// ===== Menu event handlers =====
 void onMenuNew(shared_ptr<Control> c) {
-    SDL_Log("Menu: New file");
+    TestUtil::log("Menu: New file");
 }
 
 void onMenuOpen(shared_ptr<Control> c) {
-    SDL_Log("Menu: Open file");
+    TestUtil::log("Menu: Open file");
 }
 
 void onMenuRecent(shared_ptr<Control> c) {
-    SDL_Log("Menu: Recent file");
+    TestUtil::log("Menu: Recent file");
 }
 
 void onMenuExit(shared_ptr<Control> c) {
-    SDL_Log("Menu: Exit");
-    SDL_Event quitEvent;
-    quitEvent.type = SDL_EVENT_QUIT;
-    SDL_PushEvent(&quitEvent);
+    TestUtil::log("Menu: Exit");
+    MAINWIN->quit();
 }
 
 void onMenuUndo(shared_ptr<Control> c) {
-    SDL_Log("Menu: Undo");
+    TestUtil::log("Menu: Undo");
 }
 
 void onMenuRedo(shared_ptr<Control> c) {
-    SDL_Log("Menu: Redo");
+    TestUtil::log("Menu: Redo");
 }
 
 void onMenuAbout(shared_ptr<Control> c) {
-    SDL_Log("Menu: About");
+    TestUtil::log("Menu: About");
 }
 
 void testBenchInitialize(void) {
-    SDL_Log("testLayoutInitialize");
+    TestUtil::log("testLayoutInitialize");
 
     g_parser.registerHandler("onSubmitClick", onSubmitClicked);
     g_parser.registerHandler("onNotesChanged", onNotesChanged);
@@ -101,89 +92,40 @@ void testBenchInitialize(void) {
     g_parser.registerHandler("onMenuUndo", onMenuUndo);
     g_parser.registerHandler("onMenuRedo", onMenuRedo);
     g_parser.registerHandler("onMenuAbout", onMenuAbout);
-
-    string basePath = string(SDL_GetBasePath());
-    fs::path layoutPath = fs::path(basePath) / "layouts" / "test_layout.json";
-    SDL_Log("Loading layout from: %s", layoutPath.string().c_str());
-
-    shared_ptr<Control> root = g_parser.parseLayoutFile(layoutPath);
-    if (root != nullptr) {
-        BENCH->addControl(root);
-
-        // MenuBar 独立于控件树，添加到 BENCH 顶层确保绘制在最上方
-        const auto& menuBars = g_parser.getMenuBars();
-        for (const auto& menuBar : menuBars) {
-            BENCH->addControl(menuBar);
-        }
-
-        shared_ptr<Control> found = g_parser.findControlById("nameEdit");
-        if (found != nullptr) {
-            shared_ptr<EditBox> editBox = dynamic_pointer_cast<EditBox>(found);
-            if (editBox) {
-                editBox->setOnTextChanged(onTextChanged);
-            }
-        }
-
-        shared_ptr<Control> submitBtn = g_parser.findControlById("submitBtn");
-        if (submitBtn != nullptr) {
-            SDL_Log("findControlById: submitBtn found");
-        }
-
-        vector<string> ids = g_parser.getAllControlIds();
-        SDL_Log("Total controls with IDs: %zu", ids.size());
-        for (size_t i = 0; i < ids.size(); i++) {
-            SDL_Log("  - ID: %s", ids[i].c_str());
-        }
-
-        auto resultCtrl = g_parser.findControlById("resultWinFrame");
-        if (resultCtrl) {
-            g_resultWinFrame = dynamic_pointer_cast<WinFrame>(resultCtrl);
-            if (g_resultWinFrame) {
-                SDL_Log("WinFrame parsed from JSON: id=resultWinFrame");
-            }
-        }
-
-        auto captionLabelCtrl = g_parser.findControlById("captionLabelBtn");
-        if (captionLabelCtrl) {
-            shared_ptr<Button> captionLabelBtn = dynamic_pointer_cast<Button>(captionLabelCtrl);
-            if (captionLabelBtn) {
-                shared_ptr<Label> label = captionLabelBtn->getCaptionLabel();
-                if (label) {
-                    SDL_Log("captionLabelBtn::getCaptionLabel() = \"%s\", fontSize=%d, alignment=%d",
-                        label->getCaption().c_str(),
-                        label->getFontSize(),
-                        (int)label->getAlignmentMode());
-                } else {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "captionLabelBtn: getCaptionLabel() returned null!");
-                }
-            } else {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "captionLabelBtn: dynamic_pointer_cast<Button> failed!");
-            }
-        } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "findControlById: captionLabelBtn not found!");
-        }
-
-        const auto& menuBarsVerification = g_parser.getMenuBars();
-        if (!menuBarsVerification.empty()) {
-            auto menuBar = menuBarsVerification[0];
-            SDL_Log("MenuBar parsed from JSON: barHeight=%f, fontSize=%f, menuCount=%zu",
-                menuBar->getBarHeight(), MenuBar::getFontSize(), menuBars.size());
-        } else {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "getMenuBars() returned empty!");
-        }
-    } else {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to parse layout file!");
+    string layoutPath = Platform::GetBasePath() + "layouts/test_layout.json";
+    auto root = g_parser.parseLayoutFile(layoutPath);
+    if (!root) {
+        TestUtil::log("Failed to parse layout file!");
+        return;
     }
-}
 
-// ==================== AppCallbacks ====================
+    BENCH->addControl(root);
+
+    auto resultCtrl = g_parser.findControlById("resultWinFrame");
+    if (resultCtrl) {
+        g_resultWinFrame = dynamic_pointer_cast<WinFrame>(resultCtrl);
+        if (g_resultWinFrame) {
+            TestUtil::log("WinFrame parsed from JSON: id=resultWinFrame");
+        }
+    }
+
+    auto menuBars = g_parser.getMenuBars();
+    for (auto& menuBar : menuBars) {
+        BENCH->addControl(menuBar);
+    }
+
+    auto allIds = g_parser.getAllControlIds();
+    TestUtil::log("Total controls with IDs: %zu", allIds.size());
+    for (auto& id : allIds) {
+        cout << "  - ID: " << id << endl;
+    }
+
+    TestUtil::log("Layout initialization complete");
+}
 
 class LayoutApp : public AppCallbacks {
 public:
     bool onInit() override {
-        cout << "Using SDL3 library for Layout Parser test" << endl;
-        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }
@@ -200,105 +142,11 @@ public:
     }
 
     void onQuit() override {
-        SDL_Log("Application quit");
+        TestUtil::log("Application quit");
     }
 };
 
-static LayoutApp g_app;
-
-// ==================== SDL回调函数 ====================
-
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    if (!g_app.onInit()) return SDL_APP_FAILURE;
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    shared_ptr<Event> gameEvent = nullptr;
-
-    switch (event->type) {
-        case SDL_EVENT_QUIT:
-            return SDL_APP_SUCCESS;
-
-        case SDL_EVENT_WINDOW_RESIZED:
-            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
-            BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
-            break;
-
-        case SDL_EVENT_WINDOW_MOVED:
-            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
-            break;
-
-        case SDL_EVENT_KEY_DOWN:
-            {
-                KeyEventData keyData;
-                keyData.keycode = SDLKeycodeToKeyCode(event->key.key);
-                keyData.scancode = event->key.scancode;
-                keyData.mod = SDLKeymodToKeyMod(event->key.mod);
-                keyData.repeat = event->key.repeat != 0;
-                gameEvent = make_shared<Event>(EventName::KEY_DOWN, keyData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_INPUT:
-            {
-                TextInputEventData textData;
-                textData.text = event->text.text;
-                textData.start = -1;
-                textData.length = -1;
-                gameEvent = make_shared<Event>(EventName::TEXT_INPUT, textData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_EDITING:
-            break;
-
-        case SDL_EVENT_MOUSE_WHEEL:
-            {
-                MouseWheelEventData wheelData;
-                wheelData.x = event->wheel.x;
-                wheelData.y = event->wheel.y;
-                wheelData.mouseX = event->wheel.mouse_x;
-                wheelData.mouseY = event->wheel.mouse_y;
-                gameEvent = make_shared<Event>(EventName::MOUSE_WHEEL, wheelData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_MOTION:
-            gameEvent = make_shared<Event>(EventName::MOUSE_MOVING,
-                make_shared<SPoint>((float)event->motion.x, (float)event->motion.y));
-            BENCH->inputControl(gameEvent);
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_DOWN,
-                    make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_UP,
-                    make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-    }
-
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppIterate(void *appstate) {
-    MAINWIN->update(&g_app);
-    MAINWIN->render(&g_app);
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    MAINWIN->shutdown(&g_app);
+int main(int argc, char* argv[]) {
+    LayoutApp app;
+    return MAINWIN->run(&app);
 }

@@ -67,21 +67,45 @@ inline Event::Event(EventName eventName, std::any param):
 {
     switch (m_eventName) {
         case EventName::MOUSE_LBUTTON_DOWN:
-        case EventName::MOUSE_RBUTTON_DOWN:
-        case EventName::MOUSE_MBUTTON_DOWN:
             m_type = EventType::MouseDown;
             try {
                 auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
                 if (pos) mouseButton = {pos->x, pos->y, MouseButton::Left};
             } catch (...) {}
             break;
+        case EventName::MOUSE_RBUTTON_DOWN:
+            m_type = EventType::MouseDown;
+            try {
+                auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
+                if (pos) mouseButton = {pos->x, pos->y, MouseButton::Right};
+            } catch (...) {}
+            break;
+        case EventName::MOUSE_MBUTTON_DOWN:
+            m_type = EventType::MouseDown;
+            try {
+                auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
+                if (pos) mouseButton = {pos->x, pos->y, MouseButton::Middle};
+            } catch (...) {}
+            break;
         case EventName::MOUSE_LBUTTON_UP:
-        case EventName::MOUSE_RBUTTON_UP:
-        case EventName::MOUSE_MBUTTON_UP:
             m_type = EventType::MouseUp;
             try {
                 auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
                 if (pos) mouseButton = {pos->x, pos->y, MouseButton::Left};
+            } catch (...) {}
+            break;
+        case EventName::MOUSE_RBUTTON_UP:
+            m_type = EventType::MouseUp;
+            try {
+                auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
+                if (pos) mouseButton = {pos->x, pos->y, MouseButton::Right};
+            } catch (...) {}
+            break;
+        case EventName::MOUSE_MBUTTON_UP:
+            m_type = EventType::MouseUp;
+            try {
+                auto pos = std::any_cast<shared_ptr<SPoint>>(m_eventParam);
+                if (pos) mouseButton = {pos->x, pos->y, MouseButton::Middle};
             } catch (...) {}
             break;
         case EventName::MOUSE_MOVING:

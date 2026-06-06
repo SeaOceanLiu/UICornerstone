@@ -1,5 +1,4 @@
-﻿#include <SDL3/SDL.h>
-#include <iostream>
+﻿#include <iostream>
 #include <memory>
 #include <fstream>
 #include "Button.h"
@@ -7,6 +6,7 @@
 #include "MainWindow.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
+#include "TestUtils.h"
 
 using namespace std;
 
@@ -21,11 +21,6 @@ void logOutput(const string& message) {
     cout << message << endl;
 }
 
-void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, const char *message)
-{
-    logOutput(string("Category[") + to_string(category) + "], priority[" + to_string(priority) + "]: " + message);
-}
-
 shared_ptr<Button> g_button1;
 shared_ptr<Button> g_button2;
 shared_ptr<Button> g_button3;
@@ -34,7 +29,7 @@ shared_ptr<Button> g_button5;
 shared_ptr<Button> g_button6;
 
 void testBenchInitialize(void) {
-    SDL_Log(u8"testButtonInitialize");
+    TestUtil::log("testButtonInitialize");
 
     StateColor redBorder(StateColor::Type::Border);
     redBorder.setNormal({255, 0, 0, 255});
@@ -43,7 +38,6 @@ void testBenchInitialize(void) {
         .setCaption(u8"应被遮挡的 Label")
         .build());
 
-    // 1. 普通 button（只有背景，无文字无图片）
     g_button1 = ButtonBuilder(nullptr, SRect(50, 50, 120, 50))
         .setBackgroundStateColor(StateColor::Type::Background)
         .setBorderStateColor(redBorder)
@@ -54,7 +48,6 @@ void testBenchInitialize(void) {
     g_button1->create();
     BENCH->addControl(g_button1);
 
-    // 2. 带文字的 button
     g_button2 = ButtonBuilder(nullptr, SRect(200, 50, 150, 50))
         .setCaption(u8"带文字的按钮")
         .setTextStateColor(StateColor::Type::Text)
@@ -67,7 +60,6 @@ void testBenchInitialize(void) {
     g_button2->create();
     BENCH->addControl(g_button2);
 
-    // 3. 有图片的 button（使用 Actor）
     shared_ptr<Actor> normalActor = ActorBuilder(nullptr)
         .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\icon.png")
         .setMatchParentRect(true)
@@ -95,7 +87,6 @@ void testBenchInitialize(void) {
     g_button3->create();
     BENCH->addControl(g_button3);
 
-    // 4. 有动画的 button（LuotiAni）
     {
         shared_ptr<LuotiAni> rotateAni = LuotiAniBuilder(BENCH)
             .loadAniDesc(string("animations/rotateBtn/rotateBtn.jsonc"))
@@ -113,7 +104,6 @@ void testBenchInitialize(void) {
         BENCH->addControl(g_button4);
     }
 
-    // 5. 2x缩放的含有文字、图片的 button
     shared_ptr<Actor> normalActor2x = ActorBuilder(nullptr)
         .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\icon.png")
         .setMatchParentRect(true)
@@ -144,7 +134,6 @@ void testBenchInitialize(void) {
     g_button5->create();
     BENCH->addControl(g_button5);
 
-    // 6. 2x缩放的动画 button（LuotiAni）
     {
         shared_ptr<LuotiAni> rotateAni2x = LuotiAniBuilder(BENCH)
             .loadAniDesc(string("animations/rotateBtn/rotateBtn.jsonc"))
@@ -170,13 +159,6 @@ public:
     bool onInit() override {
         logOutput(u8"ButtonApp::onInit");
         BENCH->setOnInitial(testBenchInitialize);
-
-        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
-
-        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-        logOutput(string("SDL_TOUCH_MOUSE_EVENTS = ") + SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS));
-
         return true;
     }
 

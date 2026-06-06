@@ -1,4 +1,4 @@
-#include "TextRenderer.h"
+﻿#include "TextRenderer.h"
 #include "RenderDevice.h"
 #include "ConstDef.h"
 #include <SDL3/SDL.h>

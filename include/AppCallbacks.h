@@ -1,4 +1,4 @@
-#ifndef APPCALLBACKS_H
+﻿#ifndef APPCALLBACKS_H
 #define APPCALLBACKS_H
 
 class Event;

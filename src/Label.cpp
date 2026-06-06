@@ -1,5 +1,5 @@
 ﻿#include "Label.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale)
@@ -31,7 +31,7 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
 
     m_hoverCursor = Cursor::createSystem(SystemCursorType::Pointer);
     if (m_hoverCursor == nullptr) {
-        SDL_Log("Label::Label: Failed to create cursor");
+        Platform::Log("Label::Label: Failed to create cursor");
     }
     m_defaultCursor = Cursor::getDefault();
 
@@ -92,7 +92,7 @@ void Label::create(void) {
 
     TextRenderer* renderer = getTextRenderer();
     if (renderer == nullptr) {
-        SDL_Log("Label::create: No text renderer available");
+        Platform::Log("Label::create: No text renderer available");
         return;
     }
 
@@ -300,26 +300,26 @@ float Label::getStringWidth(const string& text) {
 void Label::loadFromResource(string resourceId){
     ResourceProvider* provider = getResourceProvider();
     if (provider == nullptr) {
-        SDL_Log("Label::loadFromResource: No resource provider available");
+        Platform::Log("Label::loadFromResource: No resource provider available");
         return;
     }
 
     m_fontData = provider->readFile(resourceId);
     if (m_fontData == nullptr || m_fontData->empty()) {
-        SDL_Log("Label::loadFromResource: Error: '%s' not found\n", resourceId.c_str());
+        Platform::Log("Label::loadFromResource: Error: '%s' not found\n", resourceId.c_str());
         return;
     }
 
     TextRenderer* renderer = getTextRenderer();
     if (renderer == nullptr) {
-        SDL_Log("Label::loadFromResource: No text renderer available");
+        Platform::Log("Label::loadFromResource: No text renderer available");
         return;
     }
 
     m_font = renderer->loadFontFromMemory(m_fontData->data(), m_fontData->size(),
                                            static_cast<int>(m_fontSize * getScaleXX()));
     if (m_font == nullptr) {
-        SDL_Log("Label::loadFromResource: Failed to load font");
+        Platform::Log("Label::loadFromResource: Failed to load font");
     }
 }
 

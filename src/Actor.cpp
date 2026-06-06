@@ -1,6 +1,6 @@
 ﻿#include "Actor.h"
 #include "Surface.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 Actor::Actor(Control *parent, float xScale, float yScale):
     Material(parent, xScale, yScale),
@@ -53,7 +53,7 @@ Actor& Actor::operator=(const Actor& other) {
 void Actor::loadFromFile(fs::path filePath) {
     m_surface = Surface::loadFromFile(filePath.string());
     if (!m_surface) {
-        SDL_Log("LoadFromFile Error\n");
+        Platform::Log("LoadFromFile Error\n");
         return;
     }
 
@@ -63,19 +63,19 @@ void Actor::loadFromFile(fs::path filePath) {
 void Actor::loadFromResource(string resourceId) {
     ResourceProvider* provider = getResourceProvider();
     if (provider == nullptr) {
-        SDL_Log("Actor::loadFromResource: No resource provider\n");
+        Platform::Log("Actor::loadFromResource: No resource provider\n");
         return;
     }
 
     shared_ptr<vector<char>> imageData = provider->readFile(resourceId);
     if (imageData == nullptr || imageData->empty()) {
-        SDL_Log("Actor::loadFromResource: '%s' not found\n", resourceId.c_str());
+        Platform::Log("Actor::loadFromResource: '%s' not found\n", resourceId.c_str());
         return;
     }
 
     m_surface = Surface::loadFromMemory(imageData->data(), imageData->size());
     if (!m_surface) {
-        SDL_Log("Actor::loadFromResource Error\n");
+        Platform::Log("Actor::loadFromResource Error\n");
         return;
     }
 
@@ -95,7 +95,7 @@ void Actor::loadTextureFromSurface(Surface* surface) {
 
     m_texture = surface->createTexture(getRenderDevice());
     if (!m_texture) {
-        SDL_Log("Surface::createTexture failed\n");
+        Platform::Log("Surface::createTexture failed\n");
         return;
     }
 }
@@ -110,7 +110,7 @@ void Actor::setParent(Control *parent){
         if (m_surface) {
             m_texture = m_surface->createTexture(getRenderDevice());
             if (!m_texture) {
-                SDL_Log("Surface::createTexture failed\n");
+                Platform::Log("Surface::createTexture failed\n");
                 return;
             }
         }

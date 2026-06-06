@@ -1,10 +1,8 @@
-// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
 #include "TextArea.h"
 #include "MainWindow.h"
 #include <algorithm>
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_keycode.h>
 
 TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     : EditBox(parent, rect, xScale, yScale)
@@ -720,7 +718,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                 }
                 targetPos += targetByteIndex;
 
-                KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
+                KeyMod mod = getInputBackend() ? getInputBackend()->getModState() : KeyMod::None;
                 bool shiftPressed = isModSet(mod, KeyMod::Shift);
 
                 if (shiftPressed) {

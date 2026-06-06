@@ -1,4 +1,4 @@
-// Graphics operation adaptation module for 2D
+﻿// Graphics operation adaptation module for 2D
 
 #ifndef GraphOperaAdapt2dH
 #define GraphOperaAdapt2dH

@@ -1,4 +1,4 @@
-#include "ResourceProvider.h"
+﻿#include "ResourceProvider.h"
 #include <cstdio>
 #include <filesystem>
 #include <unordered_map>
@@ -39,11 +39,6 @@ public:
 
         m_cache[path] = buffer;
         return buffer;
-    }
-
-    SDL_IOStream* openFileStream(const std::string& path, const char* mode) override {
-        fs::path fullPath = m_basePath / path;
-        return SDL_IOFromFile(fullPath.string().c_str(), mode);
     }
 
     bool exists(const std::string& path) override {

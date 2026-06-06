@@ -1,7 +1,8 @@
-#ifndef INPUTBACKEND_H
+﻿#ifndef INPUTBACKEND_H
 #define INPUTBACKEND_H
 
 #include <string>
+#include <cstdint>
 #include "EventTypes.h"
 
 class Event;
@@ -22,11 +23,15 @@ public:
     // Populates both new (EventType+union) and old (EventName+std::any) fields.
     // Returns true if an event was polled, false if no events pending.
     virtual bool pollEvent(Event& event) = 0;
+
+    // Get current keyboard modifier state (for use outside event handlers)
+    virtual KeyMod getModState() = 0;
 };
 
+// SDL3 backend factory (only available when using SDL3 backend)
 InputBackend* CreateSDL3InputBackend(Window* window);
 
-// SDL→canonical mapping utilities (for backends and test files that bridge SDL events)
+// SDL→canonical mapping utilities (for SDL3 backend)
 KeyCode SDLKeycodeToKeyCode(int sdlKeycode);
 KeyMod  SDLKeymodToKeyMod(uint16_t sdlMod);
 

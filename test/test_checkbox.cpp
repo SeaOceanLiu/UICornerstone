@@ -1,17 +1,14 @@
-﻿#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#include <iostream>
+﻿#include <iostream>
 #include <memory>
 #include "CheckBox.h"
 #include "Label.h"
 #include "MainWindow.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
-
 #include "EditBox.h"
 #include "TextArea.h"
 #include "GraphTool.h"
+#include "TestUtils.h"
 
 using namespace std;
 
@@ -33,21 +30,8 @@ shared_ptr<CheckBox> g_checkbox14;
 shared_ptr<CheckBox> g_checkbox15;
 shared_ptr<CheckBox> g_checkbox16;
 
-void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, const char *message)
-{
-    static FILE* logFile = nullptr;
-    if (!logFile) {
-        logFile = fopen("checkbox_log.txt", "w");
-    }
-    if (logFile) {
-        fprintf(logFile, "Category[%d], priority[%d]: %s\n", category, priority, message);
-        fflush(logFile);
-    }
-    cout << "Category[" << category << "], priority[" << priority << "]: " << message << endl;
-}
-
 void testBenchInitialize(void) {
-    SDL_Log("testCheckBoxInitialize");
+    TestUtil::log("testCheckBoxInitialize");
 
     StateColor redBorder(StateColor::Type::Border);
     redBorder.setNormal({255, 0, 0, 255});
@@ -212,22 +196,13 @@ void testBenchInitialize(void) {
     stateColor.setNormal({0, 0, 255, 255});
     g_checkbox16->getCaption()->setTextStateColor(stateColor);
 
-    SDL_Log("CheckBox test controls created");
+    TestUtil::log("CheckBox test controls created");
 }
-
-// ==================== AppCallbacks ====================
 
 class CheckBoxApp : public AppCallbacks {
 public:
     bool onInit() override {
         BENCH->setOnInitial(testBenchInitialize);
-
-        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
-
-        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-        cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
-
         return true;
     }
 
@@ -243,102 +218,11 @@ public:
     }
 
     void onQuit() override {
-        SDL_Log("Application quit");
+        TestUtil::log("Application quit");
     }
 };
 
-static CheckBoxApp g_app;
-
-// ==================== SDL回调函数 ====================
-
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv) {
-    if (!g_app.onInit()) return SDL_APP_FAILURE;
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    shared_ptr<Event> gameEvent = nullptr;
-
-    switch (event->type) {
-        case SDL_EVENT_QUIT:
-            return SDL_APP_SUCCESS;
-
-        case SDL_EVENT_WINDOW_RESIZED:
-            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
-            BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
-            break;
-
-        case SDL_EVENT_WINDOW_MOVED:
-            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
-            break;
-
-        case SDL_EVENT_KEY_DOWN:
-            {
-                KeyEventData keyData;
-                keyData.keycode = SDLKeycodeToKeyCode(event->key.key);
-                keyData.scancode = event->key.scancode;
-                keyData.mod = SDLKeymodToKeyMod(event->key.mod);
-                keyData.repeat = event->key.repeat != 0;
-                gameEvent = make_shared<Event>(EventName::KEY_DOWN, keyData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_INPUT:
-            {
-                TextInputEventData textData;
-                textData.text = event->text.text;
-                textData.start = -1;
-                textData.length = -1;
-                gameEvent = make_shared<Event>(EventName::TEXT_INPUT, textData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_EDITING:
-            break;
-
-        case SDL_EVENT_MOUSE_WHEEL:
-            {
-                MouseWheelEventData wheelData;
-                wheelData.x = event->wheel.x;
-                wheelData.y = event->wheel.y;
-                wheelData.mouseX = event->wheel.mouse_x;
-                wheelData.mouseY = event->wheel.mouse_y;
-                gameEvent = make_shared<Event>(EventName::MOUSE_WHEEL, wheelData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_MOTION:
-            gameEvent = make_shared<Event>(EventName::MOUSE_MOVING, make_shared<SPoint>((float)event->motion.x, (float)event->motion.y));
-            BENCH->inputControl(gameEvent);
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_DOWN, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_UP, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-    }
-
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppIterate(void *appstate) {
-    MAINWIN->update(&g_app);
-    MAINWIN->render(&g_app);
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    MAINWIN->shutdown(&g_app);
+int main(int argc, char* argv[]) {
+    CheckBoxApp app;
+    return MAINWIN->run(&app);
 }

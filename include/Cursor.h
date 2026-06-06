@@ -1,4 +1,4 @@
-#ifndef CursorH
+﻿#ifndef CursorH
 #define CursorH
 
 enum class SystemCursorType {

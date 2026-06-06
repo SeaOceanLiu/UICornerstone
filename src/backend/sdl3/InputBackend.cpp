@@ -1,4 +1,4 @@
-#include <SDL3/SDL.h>
+﻿#include <SDL3/SDL.h>
 #include <cstring>
 
 #include "InputBackend.h"
@@ -354,6 +354,10 @@ public:
         }
 
         return true;
+    }
+
+    KeyMod getModState() override {
+        return static_cast<KeyMod>(SDL_GetModState());
     }
 
 private:

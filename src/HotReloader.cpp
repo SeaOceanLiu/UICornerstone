@@ -1,6 +1,6 @@
-// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "HotReloader.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 HotReloader::HotReloader()
     : m_pollInterval(30)
@@ -48,7 +48,7 @@ bool HotReloader::poll() {
     auto currentTime = fs::last_write_time(m_filePath);
     if (currentTime != m_lastWriteTime) {
         m_lastWriteTime = currentTime;
-        SDL_Log("[HotReloader] Detected change in: %s", m_filePath.filename().string().c_str());
+        Platform::Log("[HotReloader] Detected change in: %s", m_filePath.filename().string().c_str());
         return reload();
     }
 

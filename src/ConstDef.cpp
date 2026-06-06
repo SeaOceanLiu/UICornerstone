@@ -1,11 +1,11 @@
 ﻿#include <filesystem>
 #include <string>
-#include <SDL3/SDL.h>
 
 #include "ConstDef.h"
+#include "PlatformUtils.h"
 
 // 路径定义
-const fs::path ConstDef::pathPrefix = fs::path(std::string(SDL_GetBasePath()) + "assets");
+const fs::path ConstDef::pathPrefix = fs::path(Platform::GetBasePath() + "assets");
 const fs::path ConstDef::workforldPath = ConstDef::pathPrefix;
 
 // 缺省彩色定义

@@ -421,23 +421,31 @@ public:
         loadAniDesc(resourceId);
     };
     void loadAniDesc(fs::path filePath){
-        SDL_IOStream* stream = SDL_IOFromFile(filePath.string().c_str(), "r");
+        FILE* stream = fopen(filePath.string().c_str(), "rb");
         if (!stream) {
             printf("Open aniDesc json file error\n");
             throw "Open aniDesc json file error";
             return;
         }
-        Sint64 iFileLen = SDL_GetIOSize(stream);
+        fseek(stream, 0, SEEK_END);
+        long iFileLen = ftell(stream);
         if (iFileLen <= 0) {
-            SDL_CloseIO(stream);
+            fclose(stream);
             throw "Open aniDesc json file error";
             return;
         }
+        fseek(stream, 0, SEEK_SET);
 
         m_pJsonFileContent = shared_ptr<char[]>(new char[static_cast<size_t>(iFileLen) + 1]);
-        SDL_ReadIO(stream, m_pJsonFileContent.get(), static_cast<size_t>(iFileLen));
+        size_t bytesRead = fread(m_pJsonFileContent.get(), 1, static_cast<size_t>(iFileLen), stream);
         m_pJsonFileContent[static_cast<size_t>(iFileLen)] = '\0';
-        SDL_CloseIO(stream);
+        fclose(stream);
+
+        if (bytesRead != static_cast<size_t>(iFileLen)) {
+            m_pJsonFileContent = nullptr;
+            throw "Read aniDesc json file error";
+            return;
+        }
 
         parseJsonDesc();
     }

@@ -1,4 +1,4 @@
-#include "Cursor.h"
+﻿#include "Cursor.h"
 #include <SDL3/SDL_mouse.h>
 
 class SDLCursor : public Cursor {

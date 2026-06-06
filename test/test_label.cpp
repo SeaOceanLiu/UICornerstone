@@ -1,16 +1,12 @@
-﻿#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#include <iostream>
+﻿#include <iostream>
 #include <memory>
 #include "Label.h"
 #include "MainWindow.h"
 #include "Bench.h"
-#include "EventQueue.h"
 #include "AppCallbacks.h"
-
 #include "EditBox.h"
 #include "TextArea.h"
+#include "TestUtils.h"
 
 using namespace std;
 
@@ -34,9 +30,8 @@ shared_ptr<Label> g_label17;
 shared_ptr<Label> g_label18;
 shared_ptr<Label> g_label19;
 
-
 void testBenchInitialize(void) {
-    SDL_Log("testLabelInitialize");
+    TestUtil::log("testLabelInitialize");
 
     StateColor redBorder(StateColor::Type::Border);
     redBorder.setNormal({255, 0, 0, 255});
@@ -46,7 +41,6 @@ void testBenchInitialize(void) {
         .setCaption("L1: Left")
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(1)
         .build();
     BENCH->addControl(g_label1);
@@ -55,7 +49,6 @@ void testBenchInitialize(void) {
         .setCaption("L2: Right")
         .setAlignmentMode(AlignmentMode::AM_TOP_RIGHT)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(2)
         .build();
     BENCH->addControl(g_label2);
@@ -64,7 +57,6 @@ void testBenchInitialize(void) {
         .setCaption("L3: Center")
         .setAlignmentMode(AlignmentMode::AM_TOP_CENTER)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(3)
         .build();
     BENCH->addControl(g_label3);
@@ -75,7 +67,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(4)
         .build();
     BENCH->addControl(g_label4);
@@ -85,7 +76,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(5)
         .build();
     BENCH->addControl(g_label5);
@@ -95,7 +85,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(6)
         .build();
     BENCH->addControl(g_label6);
@@ -105,7 +94,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(7)
         .build();
     BENCH->addControl(g_label7);
@@ -115,7 +103,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(8)
         .build();
     BENCH->addControl(g_label8);
@@ -126,7 +113,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(9)
         .build();
     BENCH->addControl(g_label9);
@@ -136,7 +122,6 @@ void testBenchInitialize(void) {
         .setCaption(u8"L10: L1\nL2\nL3\nL4")
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(10)
         .build();
     BENCH->addControl(g_label10);
@@ -147,7 +132,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(11)
         .build();
     BENCH->addControl(g_label11);
@@ -157,7 +141,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_CENTER)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(12)
         .build();
     BENCH->addControl(g_label12);
@@ -167,7 +150,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_TOP_RIGHT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(13)
         .build();
     BENCH->addControl(g_label13);
@@ -178,7 +160,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(14)
         .build();
     BENCH->addControl(g_label14);
@@ -188,7 +169,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_CENTER)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(15)
         .build();
     BENCH->addControl(g_label15);
@@ -198,7 +178,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_MID_RIGHT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(16)
         .build();
     BENCH->addControl(g_label16);
@@ -209,7 +188,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_BOTTOM_LEFT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(17)
         .build();
     BENCH->addControl(g_label17);
@@ -219,7 +197,6 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_BOTTOM_CENTER)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(18)
         .build();
     BENCH->addControl(g_label18);
@@ -229,40 +206,16 @@ void testBenchInitialize(void) {
         .setAlignmentMode(AlignmentMode::AM_BOTTOM_RIGHT)
         .setEnableExpand(false)
         .setBorderStateColor(redBorder)
-        // .setDebugDraw(true)
         .setId(19)
         .build();
     BENCH->addControl(g_label19);
 
-    SDL_Log("Label test controls created");
+    TestUtil::log("Label test controls created");
 }
-
-void debugTraceOutput(void *userdata, int category, SDL_LogPriority priority, const char *message)
-{
-    cout << "Category[" << category << "], priority[" << priority << "]: " << message << endl;
-    static FILE* logFile = nullptr;
-    if (!logFile) {
-        logFile = fopen("label_log.txt", "w");
-    }
-    if (logFile) {
-        fprintf(logFile, "Category[%d], priority[%d]: %s\n", category, priority, message);
-        fflush(logFile);
-    }
-}
-
-// ==================== AppCallbacks ====================
 
 class LabelApp : public AppCallbacks {
 public:
     bool onInit() override {
-        cout << "Using SDL3 library for Label test" << endl;
-
-        SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-        SDL_SetLogOutputFunction(debugTraceOutput, nullptr);
-
-        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
-        cout << "SDL_TOUCH_MOUSE_EVENTS = " << SDL_GetHint(SDL_HINT_TOUCH_MOUSE_EVENTS) << endl;
-
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }
@@ -279,102 +232,11 @@ public:
     }
 
     void onQuit() override {
-        SDL_Log("Application quit");
+        TestUtil::log("Application quit");
     }
 };
 
-static LabelApp g_app;
-
-// ==================== SDL回调函数 ====================
-
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    if (!g_app.onInit()) return SDL_APP_FAILURE;
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    shared_ptr<Event> gameEvent = nullptr;
-
-    switch (event->type) {
-        case SDL_EVENT_QUIT:
-            return SDL_APP_SUCCESS;
-
-        case SDL_EVENT_WINDOW_RESIZED:
-            MAINWIN->onWindowResized(event->window.data1, event->window.data2);
-            BENCH->resized({0, 0, (float)event->window.data1, (float)event->window.data2});
-            break;
-
-        case SDL_EVENT_WINDOW_MOVED:
-            MAINWIN->onWindowMoved(event->window.data1, event->window.data2);
-            break;
-
-        case SDL_EVENT_KEY_DOWN:
-            {
-                KeyEventData keyData;
-                keyData.keycode = SDLKeycodeToKeyCode(event->key.key);
-                keyData.scancode = event->key.scancode;
-                keyData.mod = SDLKeymodToKeyMod(event->key.mod);
-                keyData.repeat = event->key.repeat != 0;
-                gameEvent = make_shared<Event>(EventName::KEY_DOWN, keyData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_INPUT:
-            {
-                TextInputEventData textData;
-                textData.text = event->text.text;
-                textData.start = -1;
-                textData.length = -1;
-                gameEvent = make_shared<Event>(EventName::TEXT_INPUT, textData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_TEXT_EDITING:
-            break;
-
-        case SDL_EVENT_MOUSE_WHEEL:
-            {
-                MouseWheelEventData wheelData;
-                wheelData.x = event->wheel.x;
-                wheelData.y = event->wheel.y;
-                wheelData.mouseX = event->wheel.mouse_x;
-                wheelData.mouseY = event->wheel.mouse_y;
-                gameEvent = make_shared<Event>(EventName::MOUSE_WHEEL, wheelData);
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_MOTION:
-            gameEvent = make_shared<Event>(EventName::MOUSE_MOVING, make_shared<SPoint>((float)event->motion.x, (float)event->motion.y));
-            BENCH->inputControl(gameEvent);
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_DOWN, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_UP:
-            if (event->button.button == SDL_BUTTON_LEFT) {
-                gameEvent = make_shared<Event>(EventName::MOUSE_LBUTTON_UP, make_shared<SPoint>((float)event->button.x, (float)event->button.y));
-                BENCH->inputControl(gameEvent);
-            }
-            break;
-    }
-
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppIterate(void *appstate) {
-    MAINWIN->update(&g_app);
-    MAINWIN->render(&g_app);
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    MAINWIN->shutdown(&g_app);
+int main(int argc, char* argv[]) {
+    LabelApp app;
+    return MAINWIN->run(&app);
 }

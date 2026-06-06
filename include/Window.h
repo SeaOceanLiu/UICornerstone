@@ -1,4 +1,4 @@
-#ifndef WINDOW_H
+﻿#ifndef WINDOW_H
 #define WINDOW_H
 
 #include <string>
@@ -18,6 +18,8 @@ public:
     virtual void setTitle(const std::string& title) = 0;
     virtual void* nativeHandle() = 0;
     virtual RenderDevice* renderDevice() = 0;
+    virtual bool getMousePosition(float& x, float& y) = 0;
+    virtual void onResized(int width, int height) {}
 };
 
 Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flags);

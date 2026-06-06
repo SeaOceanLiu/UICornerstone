@@ -1,4 +1,4 @@
-#ifndef EVENTTYPES_H
+﻿#ifndef EVENTTYPES_H
 #define EVENTTYPES_H
 
 #include <cstdint>

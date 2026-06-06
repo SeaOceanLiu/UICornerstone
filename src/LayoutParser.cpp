@@ -1,4 +1,4 @@
-// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
 #include "WinFrame.h"
 #include "LayoutEngine.h"
@@ -6,7 +6,7 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_set>
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 LayoutParser::LayoutParser()
     : m_currentLineNo(0)
@@ -25,8 +25,7 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
         j = json::parse(jsonContent);
     } catch (const json::parse_error& e) {
         int lineNo = byteOffsetToLineNo(jsonContent, e.byte);
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-            "[LayoutParser] [Line %d] [root] ERROR: JSON parse error: %s",
+        Platform::Log("[LayoutParser] [Line %d] [root] ERROR: JSON parse error: %s",
             lineNo, e.what());
         return nullptr;
     }
@@ -72,16 +71,14 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
 
 shared_ptr<Control> LayoutParser::parseLayoutFile(const fs::path& jsonPath) {
     if (!fs::exists(jsonPath)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-            "[LayoutParser] ERROR: Layout file not found: %s",
+        Platform::Log("[LayoutParser] ERROR: Layout file not found: %s",
             jsonPath.string().c_str());
         return nullptr;
     }
 
     ifstream file(jsonPath);
     if (!file.is_open()) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-            "[LayoutParser] ERROR: Failed to open layout file: %s",
+        Platform::Log("[LayoutParser] ERROR: Failed to open layout file: %s",
             jsonPath.string().c_str());
         return nullptr;
     }
@@ -154,14 +151,12 @@ const vector<shared_ptr<MenuBar>>& LayoutParser::getMenuBars() const {
 // ==================== 错误追踪 ====================
 
 void LayoutParser::logError(const string& message) const {
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-        "[LayoutParser] [Line %d] [%s] ERROR: %s",
+    Platform::Log("[LayoutParser] [Line %d] [%s] ERROR: %s",
         m_currentLineNo, m_currentJsonPath.c_str(), message.c_str());
 }
 
 void LayoutParser::logWarn(const string& message) const {
-    SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-        "[LayoutParser] [Line %d] [%s] WARN: %s",
+    Platform::Log("[LayoutParser] [Line %d] [%s] WARN: %s",
         m_currentLineNo, m_currentJsonPath.c_str(), message.c_str());
 }
 

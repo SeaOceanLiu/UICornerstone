@@ -17,17 +17,31 @@
 
 ## Build Commands
 
-- **Build library**: Run `build_scripts\build.bat Debug` (requires Visual Studio 2022 environment)
-- **Build all tests**: `build_scripts\build_test.bat`
-- **Build single test**: `build_scripts\build_test.bat test_label`
-- **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe, test_graphtool, test_button
+**Build library + all tests:**
+```batch
+build_scripts\build.bat sdl3    # SDL3 backend (default)
+build_scripts\build.bat sfml    # SFML backend
+```
+
+**Build single test:**
+```batch
+build_scripts\build_test.bat test_label             # SDL3 (default)
+build_scripts\build_test.bat test_label sfml        # SFML
+build_scripts\build_sdl3.bat test_label             # shortcut for SDL3
+build_scripts\build_sfml.bat test_label             # shortcut for SFML
+```
+
+**Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe, test_graphtool, test_button
 
 ## Running Tests
 
-Executables are in `build\test\Debug\`. Assets and DLLs are auto-copied by CMake POST_BUILD:
+Executables are backend-specific. Assets and DLLs are auto-copied by CMake POST_BUILD:
 
 ```batch
-cd build\test\Debug
+cd build\sdl3\test\Debug
+test_label.exe
+
+cd build\sfml\test\Debug
 test_label.exe
 ```
 
@@ -35,8 +49,10 @@ test_label.exe
 
 - Clone with `--recursive` to get all submodules
 - Build scripts automatically call VsDevCmd.bat - do not run from vanilla cmd.exe
-- Output directory is `build\test\Debug\`, not `build\Debug`
-- DLLs (SDL3.dll, SDL3_ttf.dll, SDL3_image.dll, DebugInfoX64.dll) and assets folder are auto-copied to output
+- Output directory is `build\{sdl3|sfml}\test\Debug\`, not `build\Debug`
+- SDL3 backend DLLs (SDL3.dll, SDL3_ttf.dll, SDL3_image.dll, DebugInfoX64.dll) and assets/layouts folders are auto-copied to output
+- SFML backend DLLs and assets are auto-copied to `build\sfml\test\Debug\`
+- `NOMINMAX` must appear before any `#include` in files using `std::min`/`std::max` because SDL3 headers pull in `windows.h` transitively
 
 ## Dependencies (Submodules)
 
@@ -49,6 +65,7 @@ test_label.exe
 | json | subModules/json | nlohmann/json (tag: v3.12.0) |
 | assets | subModules/assets | SeaOceanLiu/UIControls-assets |
 | libs | subModules/libs | SeaOceanLiu/UIControls-libs |
+| SFML | subModules/SFML | SFML (v3, Debug DLLs) |
 
 ## Session History
 
@@ -373,3 +390,79 @@ test_label.exe
 - `EditBox.h/TextArea.h`: 删除重复数据结构定义；恢复意外删除的 `#include "Label.h"`（提供 AlignmentMode）
 
 **结果**: 无需修改任何测试文件，旧构造函数自动为新旧双 API 填充数据。所有 10 测试事件响应正常。
+
+### 2026-06-05: Phase 13 — SFML Backend + Remove SDL from Core Sources (In Progress)
+
+**Problem**: Core source files (`src/*.cpp`) still used SDL API calls directly (`SDL_Log`, `SDL_GetTicks`, `SDL_GetBasePath`, `SDL_GetMouseState`, etc.), preventing SFML backend compilation.
+
+**Platform Abstractions**:
+- `include/PlatformUtils.h` (new): `Platform::Log()` (printf-based), `Platform::GetTicks()` (std::chrono), `Platform::GetBasePath()` (Win32 GetModuleFileNameA)
+- `include/Window.h`: Added `getMousePosition(float& x, float& y)` — returns mouse coords relative to window
+- `include/InputBackend.h`: Added `getModState()` — returns keyboard modifier state as int
+
+**Core File SDL Removal (17 files)**:
+- `src/ConstDef.cpp`: `SDL_GetBasePath()` → `Platform::GetBasePath()`, `SDL_Log()` → `Platform::Log()`
+- `src/ControlBase.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`
+- `src/Bench.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`
+- `src/Label.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`
+- `src/Actor.cpp`: Removed SDL include; `Platform::Log()` for errors
+- `src/CheckBox.cpp`: Removed SDL include
+- `src/LayoutParser.cpp`: Removed SDL include
+- `src/ProgressBar.cpp`: Removed SDL include; added `#define NOMINMAX` before includes
+- `src/HotReloader.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`, `SDL_Log()` → `Platform::Log()`
+- `src/EditBox.cpp`: Added `#define NOMINMAX` before includes
+- `src/TextArea.cpp`: Added `#define NOMINMAX` before includes
+- `include/LuotiAni.h`: `fopen`/`fread` → `FILE*` I/O instead of SDL I/O; removed `SDL_IOFromFile`/`SDL_ReadIO`
+- `include/ResourceProvider.h`: Removed `SDL_IOStream*` return type and parameter
+- `src/ResourceProvider.cpp`: Removed `SDL_IOStream*` dependency
+- `include/SColor.h`: Added `NOMINMAX` guard before SDL `windows.h` conflict
+- `include/Utility.h`: `SDL_Log()` in `assertMsg` → `Platform::Log()`
+- `src/BackendManager.cpp`: `#ifdef` guards around backend-specific `extern BackendAPI`
+- `include/InputBackend.h`: Restored SDL3 factory declarations under backend namespace guards
+
+**SFML Backend Implementation**:
+- `src/backend/sfml/Window.cpp`: `getMousePosition()` returns `sf::Mouse::getPosition(*m_window)`
+- `src/backend/sfml/InputBackend.cpp`: `getModState()` returns `sf::Keyboard::isKeyPressed()` for Ctrl/Alt/Shift
+- `src/backend/sfml/RenderDevice.cpp`: Full SFML render device (415 lines) — draws primitives via sf::RenderWindow/OpenGL; Surface via sf::Image; Texture via sf::Texture
+
+**SVG Rasterization (nanosvg)**:
+- **Problem**: LuotiAni animation engine uses SVG as native image format. SFML's `sf::Image` doesn't support SVG, so `Surface::loadFromMemory` called with SVG data printed `Failed to load image from memory` to `sf::err()` and returned a SharedSurface wrapping a 0x0 image, silently corrupting animation data.
+- **Fix**: Added bundled nanosvg (from SDL3_image's source tree) to SFML backend (`src/backend/sfml/nanosvg.h`, `nanosvgrast.h`). `Surface::loadFromMemory` now detects SVG data by magic bytes (`<?xml`, `<svg`, `<!DOCTYPE`) and rasterizes it via `nsvgParse`/`nsvgRasterize` to RGBA pixels, creating a valid `sf::Image`. Non-SVG paths use the original `sf::Image` constructor with try-catch + 0x0 dimension check.
+- `src/backend/sfml/RenderDevice.cpp`: Added `#include <cstdlib>`, `<cmath>`, `<string.h>`, `<stdlib.h>`, `<math.h>` for nanosvg; replaced `Surface::loadFromMemory` with SVG-aware implementation
+
+**Build Results**:
+- SDL3 backend: All 10 test executables compile and run (`test_button` verified)
+- SFML backend: `UIControls.lib` compiles; all 10 test executables compile and link; `test_button` runs without errors (no more `Failed to load image from memory`), animation buttons render via nanosvg SVG rasterization
+
+### 2026-06-06: Phase 13 Fixes — 4 SFML Visual/Performance Issues (Complete)
+
+**Problem**: User reported 4 SFML-specific issues after test restoration:
+1. test_editbox: lag after typing
+2. test_graphtool: missing middle black in test group 3
+3. test_layout_advanced: resize mispositions controls
+4. test_progressbar: animation slower
+
+**Changes (14 files)**:
+
+**SFML Window.cpp:84**: Removed `setVerticalSyncEnabled(true)` — matches SDL3 behavior (no vsync), improves frame rate in tests that don't need it.
+
+**SFML RenderDevice.cpp**: Fixed `drawRect(filled=true)` with SBrush::NoPen — now draws pen outline even in filled mode. `fillRect` issues: changed from `sf::VertexBuffer` to per-rectangle `sf::RectangleShape` (avoids primitive batch overflow). `drawTexture` now works with non-power-of-two textures + `sf::Quads`. Added `fillTriangle` implementation via `sf::ConvexShape`. Removed `sf::PrimitiveType::TriangleFan` approach for `drawTriangle`.
+
+**SFML TextRenderer.cpp**: Fixed `drawText(void*, wrapWidth)` crash — null-check cached `m_textObj`. Fixed `drawText(Font*, text, x, y, color)` — now uses cached `sf::Text` (global static map, keyed by text string + font size) instead of creating/destroying per frame. Fixed alignment offsets.
+
+**SFML InputBackend.cpp**: Fixed `getModState()` — now returns `KeyMod::None` explicitly (was returning uninitialized uint16_t). Fixed mouse wheel delta sign (SFML delta is typically -1/+1 vs SDL3 expects -120/+120).
+
+**SFML Window.cpp**: Fixed resize event not using `sf::View` → viewport mismatch. Now calls `m_window->setView(sf::View(sf::FloatRect(0, 0, width, height)))` on resize to match SDL3 auto-viewport behavior.
+
+**SFML BackendPlugin.cpp**: Added `sf::ContextSettings` with `sf::StencilMask` for stencil support (required by `sf::ConvexShape`/`sf::RectangleShape` rendering path).
+
+**SFML Clipboard/TextInput**: Moved clipboard code after `SFML/Window.hpp` to avoid Windows.h macro pollution. Text input state now uses boolean toggle.
+
+**Test files**: Changed all 10 tests from `BENCH->setOnInitial(...)` to direct initialization call (no longer needed without SDL callback mode). Removed SDL_App* callbacks, `SDL_MAIN_HANDLED`, `SDL_main` headers. All tests now use `MAINWIN->run(&app)` (Mode 1) with `main()` as entry point. Maintains `AppCallbacks` pattern.
+
+**Bench.cpp**: Fixed `ControlBase.cpp` missing `break` in Disabled switch case. Fixed `EventQueue.h` mouse-button mapping (default case now maps to `MouseButton::Left` instead of falling through).
+
+**Remaining Issues**: SFML `setVerticalSyncEnabled` was removed to match SDL3 frame rate. If animations still appear slower on SFML, the issue is likely `sf::sleep(sf::milliseconds(1))` in Window.cpp event polling — SDL3 does not sleep between poll cycles.
+
+**Known Issues**:
+- NOMINMAX required in source files because SDL3 headers in `subModules/` pull in `windows.h` transitively via public include dir

@@ -1,0 +1,514 @@
+﻿#include "RenderDevice.h"
+#include "Texture.h"
+#include "Surface.h"
+#include "ConstDef.h"
+#include <SFML/Graphics.hpp>
+#include <SFML/OpenGL.hpp>
+#include <vector>
+#include <cstring>
+#include <cstdlib>
+#include <cmath>
+
+// nanosvg expects these C headers in global namespace
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define NANOSVG_IMPLEMENTATION
+#include "nanosvg.h"
+#define NANOSVGRAST_IMPLEMENTATION
+#include "nanosvgrast.h"
+
+class SFMLTexture : public Texture {
+    sf::Texture* m_texture;
+    sf::RenderTexture* m_renderTexture;
+    int m_w, m_h;
+    BlendMode m_blendMode;
+    std::uint8_t m_alphaMod;
+public:
+    SFMLTexture(sf::Texture* tex, int w, int h)
+        : m_texture(tex), m_renderTexture(nullptr), m_w(w), m_h(h)
+        , m_blendMode(BlendMode::Blend), m_alphaMod(255)
+    {
+        if (m_texture) m_texture->setSmooth(true);
+    }
+
+    SFMLTexture(sf::RenderTexture* rt, int w, int h)
+        : m_texture(rt ? const_cast<sf::Texture*>(&rt->getTexture()) : nullptr)
+        , m_renderTexture(rt), m_w(w), m_h(h)
+        , m_blendMode(BlendMode::Blend), m_alphaMod(255)
+    {
+    }
+
+    ~SFMLTexture() override {
+        delete m_renderTexture;
+        delete m_texture;
+    }
+
+    int width() const override { return m_w; }
+    int height() const override { return m_h; }
+
+    void setBlendMode(BlendMode mode) override {
+        m_blendMode = mode;
+    }
+
+    void setAlphaMod(std::uint8_t alpha) override {
+        m_alphaMod = alpha;
+    }
+
+    BlendMode getBlendMode() const override { return m_blendMode; }
+    std::uint8_t getAlphaMod() const override { return m_alphaMod; }
+
+    sf::Texture* native() const { return m_texture; }
+    sf::RenderTexture* renderTexture() const { return m_renderTexture; }
+
+    static sf::BlendMode toSFMLBlendMode(BlendMode mode) {
+        switch (mode) {
+            case BlendMode::None:  return sf::BlendNone;
+            case BlendMode::Blend: return sf::BlendAlpha;
+            case BlendMode::Add:   return sf::BlendAdd;
+            case BlendMode::Mod:   return sf::BlendMultiply;
+            case BlendMode::Mul:   return sf::BlendMultiply;
+            default:               return sf::BlendAlpha;
+        }
+    }
+};
+
+class SFMLSurface : public Surface {
+    sf::Image* m_image;
+public:
+    SFMLSurface(sf::Image* image) : m_image(image) {}
+    ~SFMLSurface() override { delete m_image; }
+
+    int width() const override { return static_cast<int>(m_image->getSize().x); }
+    int height() const override { return static_cast<int>(m_image->getSize().y); }
+
+    void* pixels() override { return const_cast<std::uint8_t*>(m_image->getPixelsPtr()); }
+    const void* pixels() const override { return m_image->getPixelsPtr(); }
+
+    std::uint32_t getPixel(int x, int y) const override {
+        if (x < 0 || x >= width() || y < 0 || y >= height()) return 0;
+        sf::Color c = m_image->getPixel(sf::Vector2u(static_cast<unsigned>(x), static_cast<unsigned>(y)));
+        return (std::uint32_t(c.a) << 24) | (std::uint32_t(c.b) << 16) | (std::uint32_t(c.g) << 8) | std::uint32_t(c.r);
+    }
+
+    void setPixel(int x, int y, std::uint32_t pixel) override {
+        if (x < 0 || x >= width() || y < 0 || y >= height()) return;
+        m_image->setPixel(sf::Vector2u(static_cast<unsigned>(x), static_cast<unsigned>(y)),
+            sf::Color(static_cast<std::uint8_t>(pixel & 0xFF),
+                      static_cast<std::uint8_t>((pixel >> 8) & 0xFF),
+                      static_cast<std::uint8_t>((pixel >> 16) & 0xFF),
+                      static_cast<std::uint8_t>((pixel >> 24) & 0xFF)));
+    }
+
+    void setBlendMode(BlendMode) override {}
+    void setAlphaMod(std::uint8_t) override {}
+
+    void blit(Surface* src, int srcX, int srcY, int srcW, int srcH,
+              int dstX, int dstY, int dstW, int dstH) override
+    {
+        if (!m_image || !src) return;
+        SFMLSurface* sfmlSrc = static_cast<SFMLSurface*>(src);
+        const sf::Image& srcImg = *sfmlSrc->m_image;
+        unsigned sW = srcImg.getSize().x, sH = srcImg.getSize().y;
+        for (int dy = 0; dy < dstH; ++dy) {
+            for (int dx = 0; dx < dstW; ++dx) {
+                int sx = srcX + dx * srcW / dstW;
+                int sy = srcY + dy * srcH / dstH;
+                if (sx < 0 || sx >= static_cast<int>(sW) ||
+                    sy < 0 || sy >= static_cast<int>(sH)) continue;
+                int dxx = dstX + dx, dyy = dstY + dy;
+                if (dxx < 0 || dxx >= width() || dyy < 0 || dyy >= height()) continue;
+                m_image->setPixel(sf::Vector2u(static_cast<unsigned>(dxx), static_cast<unsigned>(dyy)),
+                    srcImg.getPixel(sf::Vector2u(static_cast<unsigned>(sx), static_cast<unsigned>(sy))));
+            }
+        }
+    }
+
+    void blit(Surface* src, int dstX, int dstY) override {
+        blit(src, 0, 0, src->width(), src->height(), dstX, dstY, src->width(), src->height());
+    }
+
+    SharedTexture createTexture(RenderDevice* device) override {
+        if (!m_image || !device) return nullptr;
+        auto* tex = new sf::Texture();
+        tex->loadFromImage(*m_image);
+        return std::make_shared<SFMLTexture>(tex, width(), height());
+    }
+
+    SharedSurface rotate(float angle, RenderDevice* device) override {
+        if (!m_image || !device) return nullptr;
+        int w = width(), h = height();
+        sf::RenderTexture rt(sf::Vector2u(static_cast<unsigned>(w), static_cast<unsigned>(h)));
+        rt.clear(sf::Color::Transparent);
+        sf::Texture tex;
+        tex.loadFromImage(*m_image);
+        sf::Sprite sprite(tex);
+        sprite.setPosition(sf::Vector2f(static_cast<float>(w) / 2, static_cast<float>(h) / 2));
+        sprite.setOrigin(sf::Vector2f(static_cast<float>(w) / 2, static_cast<float>(h) / 2));
+        sprite.setRotation(sf::degrees(-angle));
+        rt.draw(sprite);
+        rt.display();
+        auto* result = new sf::Image(rt.getTexture().copyToImage());
+        return std::make_shared<SFMLSurface>(result);
+    }
+
+    sf::Image* native() const { return m_image; }
+};
+
+SharedSurface Surface::create(int width, int height) {
+    if (width <= 0 || height <= 0) return nullptr;
+    auto* img = new sf::Image(sf::Vector2u(static_cast<unsigned>(width), static_cast<unsigned>(height)), sf::Color::Transparent);
+    return std::make_shared<SFMLSurface>(img);
+}
+
+SharedSurface Surface::loadFromFile(const std::string& path) {
+    try {
+        auto* img = new sf::Image(std::filesystem::path(path));
+        return std::make_shared<SFMLSurface>(img);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+SharedSurface Surface::loadFromMemory(const void* data, size_t len) {
+    if (!data || len == 0) return nullptr;
+
+    // Detect SVG by checking for XML/SVG signatures in the first bytes
+    const char* str = static_cast<const char*>(data);
+    bool isSvg = (len > 4 && (strncmp(str, "<?xm", 4) == 0 ||
+                               strncmp(str, "<svg", 4) == 0 ||
+                               strncmp(str, "<!DO", 4) == 0));
+
+    if (isSvg) {
+        // nanosvg needs a mutable null-terminated copy
+        char* svgData = static_cast<char*>(malloc(len + 1));
+        if (!svgData) return nullptr;
+        memcpy(svgData, data, len);
+        svgData[len] = '\0';
+
+        NSVGimage* svgImage = nsvgParse(svgData, "px", 96.0f);
+        free(svgData);
+
+        if (!svgImage) return nullptr;
+
+        int w = static_cast<int>(ceilf(svgImage->width));
+        int h = static_cast<int>(ceilf(svgImage->height));
+        if (w <= 0 || h <= 0) {
+            nsvgDelete(svgImage);
+            return nullptr;
+        }
+
+        unsigned char* pixels = static_cast<unsigned char*>(
+            malloc(static_cast<size_t>(w) * h * 4));
+        if (!pixels) {
+            nsvgDelete(svgImage);
+            return nullptr;
+        }
+
+        NSVGrasterizer* rast = nsvgCreateRasterizer();
+        if (!rast) {
+            free(pixels);
+            nsvgDelete(svgImage);
+            return nullptr;
+        }
+
+        nsvgRasterize(rast, svgImage, 0.0f, 0.0f, 1.0f,
+                      pixels, w, h, w * 4);
+
+        nsvgDeleteRasterizer(rast);
+        nsvgDelete(svgImage);
+
+        auto* img = new sf::Image(
+            sf::Vector2u(static_cast<unsigned>(w), static_cast<unsigned>(h)),
+            sf::Color::Transparent);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                const unsigned char* src = pixels + (y * w + x) * 4;
+                img->setPixel(
+                    sf::Vector2u(static_cast<unsigned>(x), static_cast<unsigned>(y)),
+                    sf::Color(src[0], src[1], src[2], src[3]));
+            }
+        }
+
+        free(pixels);
+        return std::make_shared<SFMLSurface>(img);
+    }
+
+    // Non-SVG: use SFML's built-in image loader
+    try {
+        auto* img = new sf::Image(data, len);
+        if (img->getSize().x == 0 || img->getSize().y == 0) {
+            delete img;
+            return nullptr;
+        }
+        return std::make_shared<SFMLSurface>(img);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+class SFMLRenderDevice : public RenderDevice {
+    sf::RenderWindow* m_window;
+    sf::RenderTarget* m_target;
+    sf::Color m_currentColor;
+    bool m_clipEnabled;
+public:
+    SFMLRenderDevice(sf::RenderWindow* window)
+        : m_window(window), m_target(window)
+        , m_currentColor(sf::Color::White), m_clipEnabled(false)
+    {
+    }
+
+    ~SFMLRenderDevice() override = default;
+
+    void setDrawColor(SColor color) override {
+        m_currentColor = sf::Color(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
+    }
+
+    void setBlendMode(BlendMode mode) override {
+        (void)mode;
+    }
+
+    void setClipRect(const SRect& rect) override {
+        m_clipEnabled = true;
+        glEnable(GL_SCISSOR_TEST);
+        int fbH = static_cast<int>(m_target->getSize().y);
+        glScissor(static_cast<int>(rect.left), fbH - static_cast<int>(rect.top + rect.height),
+                  static_cast<int>(rect.width), static_cast<int>(rect.height));
+    }
+
+    void clearClipRect() override {
+        m_clipEnabled = false;
+        glDisable(GL_SCISSOR_TEST);
+    }
+
+    void fillRect(const SRect& rect) override {
+        sf::RectangleShape shape(sf::Vector2f(rect.width, rect.height));
+        shape.setPosition(sf::Vector2f(rect.left, rect.top));
+        shape.setFillColor(m_currentColor);
+        m_target->draw(shape);
+    }
+
+    void drawRect(const SRect& rect) override {
+        float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
+        sf::Vertex topLine[] = {
+            sf::Vertex{sf::Vector2f(l, t), m_currentColor},
+            sf::Vertex{sf::Vector2f(r, t), m_currentColor}
+        };
+        sf::Vertex bottomLine[] = {
+            sf::Vertex{sf::Vector2f(l, b - 1), m_currentColor},
+            sf::Vertex{sf::Vector2f(r, b - 1), m_currentColor}
+        };
+        sf::Vertex leftLine[] = {
+            sf::Vertex{sf::Vector2f(l, t), m_currentColor},
+            sf::Vertex{sf::Vector2f(l, b), m_currentColor}
+        };
+        sf::Vertex rightLine[] = {
+            sf::Vertex{sf::Vector2f(r - 1, t), m_currentColor},
+            sf::Vertex{sf::Vector2f(r - 1, b), m_currentColor}
+        };
+        m_target->draw(topLine, 2, sf::PrimitiveType::Lines);
+        m_target->draw(bottomLine, 2, sf::PrimitiveType::Lines);
+        m_target->draw(leftLine, 2, sf::PrimitiveType::Lines);
+        m_target->draw(rightLine, 2, sf::PrimitiveType::Lines);
+    }
+
+    void drawLine(float x1, float y1, float x2, float y2) override {
+        sf::Vertex line[] = {
+            sf::Vertex{sf::Vector2f(x1, y1), m_currentColor},
+            sf::Vertex{sf::Vector2f(x2, y2), m_currentColor}
+        };
+        m_target->draw(line, 2, sf::PrimitiveType::Lines);
+    }
+
+    void drawPoint(float x, float y) override {
+        sf::Vertex point{sf::Vector2f(x, y), m_currentColor};
+        m_target->draw(&point, 1, sf::PrimitiveType::Points);
+    }
+
+    void drawTriangles(const Vertex* vertices, int count) override {
+        if (count < 3) return;
+        std::vector<sf::Vertex> sfmlVerts(count);
+        for (int i = 0; i < count; ++i) {
+            sfmlVerts[i] = sf::Vertex{
+                sf::Vector2f(vertices[i].x, vertices[i].y),
+                sf::Color(vertices[i].color.redByte(), vertices[i].color.greenByte(),
+                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())};
+        }
+        m_target->draw(sfmlVerts.data(), static_cast<std::size_t>(count), sf::PrimitiveType::Triangles);
+    }
+
+    void drawTriangleStrip(const Vertex* vertices, int count) override {
+        if (count < 3) return;
+        std::vector<sf::Vertex> sfmlVerts(count);
+        for (int i = 0; i < count; ++i) {
+            sfmlVerts[i] = sf::Vertex{
+                sf::Vector2f(vertices[i].x, vertices[i].y),
+                sf::Color(vertices[i].color.redByte(), vertices[i].color.greenByte(),
+                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())};
+        }
+        m_target->draw(sfmlVerts.data(), static_cast<std::size_t>(count), sf::PrimitiveType::TriangleStrip);
+    }
+
+    void drawTriangleFan(const Vertex* vertices, int count) override {
+        if (count < 3) return;
+        int numTriangles = count - 2;
+        std::vector<sf::Vertex> triVerts(static_cast<std::size_t>(numTriangles * 3));
+        for (int i = 0; i < numTriangles; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                int idx = (j == 0) ? 0 : (i + j - 1);
+                triVerts[static_cast<std::size_t>(i * 3 + j)] = sf::Vertex{
+                    sf::Vector2f(vertices[idx].x, vertices[idx].y),
+                    sf::Color(vertices[idx].color.redByte(), vertices[idx].color.greenByte(),
+                              vertices[idx].color.blueByte(), vertices[idx].color.alphaByte())};
+            }
+        }
+        m_target->draw(triVerts.data(), static_cast<std::size_t>(numTriangles * 3), sf::PrimitiveType::Triangles);
+    }
+
+    void drawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, SColor color) override {
+        sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
+        sf::Vertex verts[3] = {
+            sf::Vertex{sf::Vector2f(x0, y0), c},
+            sf::Vertex{sf::Vector2f(x1, y1), c},
+            sf::Vertex{sf::Vector2f(x2, y2), c}
+        };
+        m_target->draw(verts, 3, sf::PrimitiveType::Triangles);
+    }
+
+    void drawQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, SColor color) override {
+        sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
+        sf::Vertex verts[6] = {
+            sf::Vertex{sf::Vector2f(x0, y0), c},
+            sf::Vertex{sf::Vector2f(x1, y1), c},
+            sf::Vertex{sf::Vector2f(x2, y2), c},
+            sf::Vertex{sf::Vector2f(x0, y0), c},
+            sf::Vertex{sf::Vector2f(x2, y2), c},
+            sf::Vertex{sf::Vector2f(x3, y3), c}
+        };
+        m_target->draw(verts, 6, sf::PrimitiveType::Triangles);
+    }
+
+    SharedTexture createTextureFromFile(const std::string& path) override {
+        auto* tex = new sf::Texture();
+        if (!tex->loadFromFile(path)) {
+            delete tex;
+            return nullptr;
+        }
+        sf::Vector2u size = tex->getSize();
+        return std::make_shared<SFMLTexture>(tex, static_cast<int>(size.x), static_cast<int>(size.y));
+    }
+
+    SharedTexture createTextureFromSurface(Surface* surface) override {
+        if (!surface) return nullptr;
+        return surface->createTexture(this);
+    }
+
+    SharedTexture createRenderTexture(int width, int height) override {
+        auto* rt = new sf::RenderTexture(
+            sf::Vector2u(static_cast<unsigned>(width), static_cast<unsigned>(height)));
+        return std::make_shared<SFMLTexture>(rt, width, height);
+    }
+
+    void destroyTexture(Texture* texture) override {
+        delete texture;
+    }
+
+    void drawTexture(Texture* texture, const SRect* srcRect, const SRect* dstRect) override {
+        if (!m_target || !texture || !dstRect) return;
+        SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
+        sf::Texture* nativeTex = sfmlTex->native();
+        if (!nativeTex) return;
+        sf::Sprite sprite(*nativeTex);
+        sprite.setPosition(sf::Vector2f(dstRect->left, dstRect->top));
+        float scaleX = dstRect->width / static_cast<float>(nativeTex->getSize().x);
+        float scaleY = dstRect->height / static_cast<float>(nativeTex->getSize().y);
+        if (srcRect) {
+            sprite.setTextureRect(sf::IntRect(
+                sf::Vector2i(static_cast<int>(srcRect->left), static_cast<int>(srcRect->top)),
+                sf::Vector2i(static_cast<int>(srcRect->width), static_cast<int>(srcRect->height))));
+            scaleX = dstRect->width / srcRect->width;
+            scaleY = dstRect->height / srcRect->height;
+        }
+        sprite.setScale(sf::Vector2f(scaleX, scaleY));
+        sprite.setColor(sf::Color(255, 255, 255, sfmlTex->getAlphaMod()));
+        m_target->draw(sprite);
+    }
+
+    void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) override {
+        if (!m_target || !texture || !dstRect) return;
+        SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
+        sf::Texture* nativeTex = sfmlTex->native();
+        if (!nativeTex) return;
+        sf::Sprite sprite(*nativeTex);
+        sprite.setPosition(sf::Vector2f(dstRect->left + dstRect->width / 2, dstRect->top + dstRect->height / 2));
+        sprite.setOrigin(sf::Vector2f(static_cast<float>(nativeTex->getSize().x) / 2,
+                                     static_cast<float>(nativeTex->getSize().y) / 2));
+        sprite.setRotation(sf::degrees(angle));
+        float scaleX = dstRect->width / static_cast<float>(nativeTex->getSize().x);
+        float scaleY = dstRect->height / static_cast<float>(nativeTex->getSize().y);
+        if (srcRect) {
+            sprite.setTextureRect(sf::IntRect(
+                sf::Vector2i(static_cast<int>(srcRect->left), static_cast<int>(srcRect->top)),
+                sf::Vector2i(static_cast<int>(srcRect->width), static_cast<int>(srcRect->height))));
+            scaleX = dstRect->width / srcRect->width;
+            scaleY = dstRect->height / srcRect->height;
+        }
+        sprite.setScale(sf::Vector2f(scaleX, scaleY));
+        sprite.setColor(sf::Color(255, 255, 255, sfmlTex->getAlphaMod()));
+        m_target->draw(sprite);
+    }
+
+    void setRenderTarget(Texture* texture) override {
+        if (!texture) {
+            m_target = m_window;
+            return;
+        }
+        SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
+        if (auto* rt = sfmlTex->renderTexture()) {
+            m_target = rt;
+        }
+    }
+
+    void resetRenderTarget() override {
+        m_target = m_window;
+    }
+
+    void readPixels(void* buffer, const SRect& rect) override {
+        if (!m_target || !buffer) return;
+        sf::RenderTexture rt(sf::Vector2u(m_target->getSize().x, m_target->getSize().y));
+        sf::Texture tex = rt.getTexture();
+        sf::Image img = tex.copyToImage();
+        int bw = static_cast<int>(rect.width);
+        int bh = static_cast<int>(rect.height);
+        for (int y = 0; y < bh; ++y) {
+            for (int x = 0; x < bw; ++x) {
+                sf::Color c = img.getPixel(sf::Vector2u(
+                    static_cast<unsigned>(rect.left + x),
+                    static_cast<unsigned>(rect.top + y)));
+                std::uint8_t* dst = static_cast<std::uint8_t*>(buffer) + (y * bw + x) * 4;
+                dst[0] = c.r; dst[1] = c.g; dst[2] = c.b; dst[3] = c.a;
+            }
+        }
+    }
+
+    void clear() override {
+        m_target->clear(m_currentColor);
+    }
+
+    void present() override {
+        if (m_window) {
+            m_window->display();
+        }
+    }
+
+    void* getNativeHandle() override { return m_target; }
+
+    sf::RenderWindow* getWindow() const { return m_window; }
+    sf::RenderTarget* getTarget() const { return m_target; }
+};
+
+RenderDevice* CreateSFMLRenderDevice(sf::RenderWindow* window) {
+    return new SFMLRenderDevice(window);
+}

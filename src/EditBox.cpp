@@ -1,13 +1,11 @@
-// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
-#include <iostream>
 #include "EditBox.h"
+#include <iostream>
 #include "MainWindow.h"
 #include "EventQueue.h"
 #include <algorithm>
 #include <cstdint>
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_keycode.h>
 
 EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
@@ -290,7 +288,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
 
             int newCursor = getCursorFromPosition(event->mouseButton.x - getDrawRect().left);
 
-            KeyMod mod = static_cast<KeyMod>(SDL_GetModState());
+            KeyMod mod = getInputBackend() ? getInputBackend()->getModState() : KeyMod::None;
             bool shiftPressed = isModSet(mod, KeyMod::Shift);
 
             if (shiftPressed) {
@@ -337,6 +335,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
             std::string filtered;
             for (char c : data) {
                 if (c == '\n' || c == '\r') continue;
+                if (static_cast<unsigned char>(c) < 0x20 && c != '\t') continue;
                 filtered += c;
             }
                 if (m_passwordMode) {

@@ -1,4 +1,4 @@
-#ifndef BackendPluginH
+﻿#ifndef BackendPluginH
 #define BackendPluginH
 
 #include <string>
@@ -12,6 +12,7 @@
 // to a static BackendAPI instance.
 struct BackendAPI {
     unsigned version;
+    bool (*init)();
     Window* (*createWindow)(const char* title, int w, int h, uint32_t flags);
     RenderDevice* (*createRenderDevice)(Window* window);
     TextRenderer* (*createTextRenderer)(RenderDevice* device);

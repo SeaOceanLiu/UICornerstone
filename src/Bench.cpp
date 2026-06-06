@@ -1,5 +1,5 @@
 ﻿#include "Bench.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 void Bench::initial(void){
     // setBGColor(INITIAL_BG_COLOR);
@@ -7,7 +7,7 @@ void Bench::initial(void){
     setTransparent(false);
 
     m_isInitialed = true;
-    SDL_Log("Loading finished, waiting user starting game................................");
+    Platform::Log("Loading finished, waiting user starting game................................");
     if (m_onInitial != nullptr){
         m_onInitial();
     }
@@ -25,7 +25,7 @@ Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
 {
     setTransparent(true);
 
-    SDL_Log("Loading resources.....................................");
+    Platform::Log("Loading resources.....................................");
     m_isLoading = false;
     initial();
 }
@@ -49,7 +49,7 @@ void Bench::inputControl(shared_ptr<Event> event) {
 
 void Bench::repeatTrigger(void){
     if (m_lastAction != nullptr){
-        uint64_t currentTick = SDL_GetTicks();
+        uint64_t currentTick = Platform::GetTicks();
         if (currentTick < m_nextRepeatTick || currentTick < m_eventJitter[m_lastAction->m_eventName]){
             return;
         }
@@ -65,7 +65,7 @@ void Bench::repeatTrigger(void){
             default:
                 break;
         }
-        m_nextRepeatTick = SDL_GetTicks() + DEFAULT_BTN_MS_REPEAT;
+        m_nextRepeatTick = Platform::GetTicks() + DEFAULT_BTN_MS_REPEAT;
     }
 }
 void Bench::update() {

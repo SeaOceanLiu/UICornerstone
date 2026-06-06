@@ -1,4 +1,4 @@
-#include "MainWindow.h"
+﻿#include "MainWindow.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
 #include "BackendPlugin.h"
@@ -41,6 +41,8 @@ bool MainWindow::processEvents(AppCallbacks* app) {
                 break;
             case EventType::WindowResize:
                 onWindowResized(event.resizeEvent.width, event.resizeEvent.height);
+                BackendManager::instance()->window()->onResized(
+                    event.resizeEvent.width, event.resizeEvent.height);
                 BENCH->resized({0, 0, (float)event.resizeEvent.width, (float)event.resizeEvent.height});
                 break;
             case EventType::WindowMoved:
@@ -56,6 +58,11 @@ bool MainWindow::processEvents(AppCallbacks* app) {
                 app->onEvent(event);
                 break;
         }
+    }
+    // Check for programmatic quit request (e.g. from "Exit" menu item)
+    if (m_quitRequested) {
+        m_quitRequested = false;
+        running = false;
     }
     return running;
 }

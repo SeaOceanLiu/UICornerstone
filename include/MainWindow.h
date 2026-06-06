@@ -24,19 +24,30 @@ private:
     float m_displayWidth;
     float m_displayHeight;
 
+    bool m_quitRequested;
     uint64_t m_nextTick;
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
     unordered_map<EventName, uint64_t> m_eventJitter;
 
     MainWindow():
+        m_quitRequested(false),
         m_resourceProvider(nullptr),
         m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
         m_pos({INITIAL_POSX, INITIAL_POSY}),
         m_displayWidth(0),
         m_displayHeight(0)
     {
-        if (!BackendManager::instance()->initialize("sdl3", APP_NAME,
+    #if defined(UICONTROLS_BACKEND_SDL3)
+        const char* backendName = "sdl3";
+    #elif defined(UICONTROLS_BACKEND_SFML)
+        const char* backendName = "sfml";
+    #elif defined(UICONTROLS_BACKEND_RAYLIB)
+        const char* backendName = "raylib";
+    #else
+        const char* backendName = "sdl3";
+    #endif
+        if (!BackendManager::instance()->initialize(backendName, APP_NAME,
                 INITIAL_WIDTH, INITIAL_HEIGHT, WINDOW_FLAG)) {
             printf("BackendManager initialization failed\n");
             return;
@@ -82,6 +93,9 @@ public:
     float getDisplayWidth(void) { return m_displayWidth; }
     float getDisplayHeight(void) { return m_displayHeight; }
     SSize getDisplaySize(void) { return SSize{m_displayWidth, m_displayHeight}; }
+
+    // Request graceful quit from within callbacks (e.g. "Exit" menu item)
+    void quit() { m_quitRequested = true; }
 
     // === Mode 1: Owned loop ===
     // Runs the entire main loop internally.

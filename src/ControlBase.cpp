@@ -1,5 +1,6 @@
 ﻿#include "ControlBase.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
+#include "MainWindow.h"
 ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     // m_weakThis(this),
     // m_sharedThis(nullptr),
@@ -118,9 +119,11 @@ void ControlImpl::update(void){
 
     // 检测鼠标进入/退出状态
     if (getVisible() && getEnable()) {
-        // 获取当前鼠标位置（需要从SDL获取）
-        float mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
+        // 获取当前鼠标位置
+        float mouseX = 0, mouseY = 0;
+        if (MAINWIN && MAINWIN->getWindow()) {
+            MAINWIN->getWindow()->getMousePosition(mouseX, mouseY);
+        }
 
         SRect drawRect = getDrawRect();
         bool isInside = drawRect.contains(mouseX, mouseY);
@@ -182,6 +185,7 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
         switch (m_state){
             case ControlState::Disabled:
                 bgColor = m_bgColor.getDisabled();
+                break;
             case ControlState::Hover:
                 bgColor = m_bgColor.getHover();
                 break;
@@ -376,7 +380,7 @@ RenderDevice* ControlImpl::getRenderDevice(void) {
     } else {
         m_renderDevice = GET_RENDERDEVICE;
         if (m_renderDevice == nullptr) {
-            SDL_Log("ControlImpl::getRenderDevice: No render device found!");
+            Platform::Log("ControlImpl::getRenderDevice: No render device found!");
             return nullptr;
         }
     }
@@ -401,7 +405,7 @@ TextRenderer* ControlImpl::getTextRenderer(void) {
     } else {
         m_textRenderer = GET_RENDERDEVICE ? MAINWIN->getTextRenderer() : nullptr;
         if (m_textRenderer == nullptr) {
-            SDL_Log("ControlImpl::getTextRenderer: No text renderer found!");
+            Platform::Log("ControlImpl::getTextRenderer: No text renderer found!");
             return nullptr;
         }
     }
@@ -426,7 +430,7 @@ InputBackend* ControlImpl::getInputBackend(void) {
     } else {
         m_inputBackend = GET_RENDERDEVICE ? MAINWIN->getInputBackend() : nullptr;
         if (m_inputBackend == nullptr) {
-            SDL_Log("ControlImpl::getInputBackend: No input backend found!");
+            Platform::Log("ControlImpl::getInputBackend: No input backend found!");
             return nullptr;
         }
     }

@@ -1,4 +1,4 @@
-#include "Window.h"
+﻿#include "Window.h"
 #include "RenderDevice.h"
 #include <SDL3/SDL.h>
 
@@ -58,6 +58,12 @@ public:
     void* nativeHandle() override { return (void*)m_window; }
 
     RenderDevice* renderDevice() override { return m_renderDevice; }
+
+    bool getMousePosition(float& x, float& y) override {
+        if (!m_window) return false;
+        SDL_GetMouseState(&x, &y);
+        return true;
+    }
 
     SDL_Window* getSDLWindow() const { return m_window; }
     SDL_Renderer* getSDLRenderer() const { return m_renderer; }

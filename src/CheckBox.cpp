@@ -1,7 +1,7 @@
 ﻿// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #include "CheckBox.h"
 #include "GraphTool.h"
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale),
@@ -76,7 +76,7 @@ shared_ptr<Label> CheckBox::getCaption(void) const {
 // setBoxSize必须在createCaption之后调用，因为setBoxSize需要根据caption的行高来设置checkbox的大小
 void CheckBox::setBoxSize(void) {
     if (m_caption == nullptr) {
-        SDL_Log("CheckBox::setBoxSize: Caption is null");
+        Platform::Log("CheckBox::setBoxSize: Caption is null");
         return;
     }
     m_boxRect.left = 0;
@@ -109,7 +109,7 @@ void CheckBox::adjustSpaceAssignment(void) {
 
 void CheckBox::adjustBoxVerticalAlign(void) {
     if (m_caption == nullptr) {
-        SDL_Log("CheckBox::adjustBoxVerticalAlign: Caption is null");
+        Platform::Log("CheckBox::adjustBoxVerticalAlign: Caption is null");
         return;
     }
     SRect marginRect = getMarginedRect();
@@ -125,7 +125,7 @@ void CheckBox::adjustBoxVerticalAlign(void) {
             m_boxRect.top = marginRect.bottom() - m_boxRect.height;
             break;
         default:
-            SDL_Log("CheckBox::adjustBoxVerticalAlign: Invalid vertical align value");
+            Platform::Log("CheckBox::adjustBoxVerticalAlign: Invalid vertical align value");
             break;
     }
 }

@@ -1,9 +1,9 @@
-// 由A(MinMax V2.5)I生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(MinMax V2.5)生成，可能不完整或有错误，请自行检查和修改
 #define NOMINMAX
 #include "ProgressBar.h"
 #include "GraphTool.h"
 #include <algorithm>
-#include <SDL3/SDL.h>
+#include "PlatformUtils.h"
 
 ProgressBar::ProgressBar(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale),
@@ -175,9 +175,7 @@ void ProgressBar::setOnValueChanged(OnValueChangedHandler handler) {
 
 void ProgressBar::createTextLabel() {
     if (m_textLabel != nullptr) {
-        SDL_Log("ProgressBar::createTextLabel: Text label already exists, reuse it");
-        return;
-
+        Platform::Log("ProgressBar::createTextLabel: Text label already exists, reuse it");
         removeControl(m_textLabel);
         m_textLabel.reset();
     }

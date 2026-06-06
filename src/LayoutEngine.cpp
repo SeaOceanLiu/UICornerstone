@@ -1,4 +1,4 @@
-// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
+﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutEngine.h"
 
 HFlowLayout::HFlowLayout(float gap, Margin padding)

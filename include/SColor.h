@@ -1,4 +1,4 @@
-#ifndef SCOLOR_H
+﻿#ifndef SCOLOR_H
 #define SCOLOR_H
 
 #include <cstdint>
