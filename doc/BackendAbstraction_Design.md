@@ -1579,20 +1579,77 @@ while (!WindowShouldClose()) {
 | nanosvg | ℹ️ 需复用 SFML 后端的 nanosvg 方案或直接引用已有文件 |
 | 测试适配 | ⏳ 10 个测试的 build/scrip 脚本（`build_raylib.bat` 等）|
 
-### 16.4 实现策略
+### 16.4 实施步骤（12 步，按依赖排序）
 
-#### 推荐实现顺序
+每个步骤完成后都应能编译通过（即使运行时功能不完整），确保早期发现集成问题。
 
-1. **BackendPlugin.cpp**（最简，骨架）—— 注册后端入口
-2. **Window.cpp** —— `InitWindow`/`CloseWindow`，让窗口能出现和关闭
-3. **RenderDevice.cpp** —— 基本图元（fillRect/drawRect/drawLine/clear/present）
-4. **InputBackend.cpp** —— 事件轮询（鼠标+键盘），使控件能响应交互
-5. **Cursor.cpp** —— 光标类型映射
-6. **TextRenderer.cpp** —— 字体加载 + 文本测量 + 文本绘制（初始版本不需要缓存）
-7. 测试：用一个简单测试（如 test_label）验证完整渲染管线
-8. 复杂度项目：`drawTriangles`/`drawTriangleStrip`/`drawTriangleFan`（rlgl）, 文本换行, SVG 支持, RenderTexture
+#### 子阶段 A：骨架（可编译，不可运行）
 
-#### 关键风险
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **A1** | 添加 raylib 后端工厂函数声明到公共头文件 | `include/Window.h`（+`CreateRaylibWindow`）、`include/InputBackend.h`（+`CreateRaylibInputBackend`）、`include/TextRenderer.h`（+`CreateRaylibTextRenderer`）、`include/Cursor.h`（即可，raylib 使用静态方法） | ~10 | 编译通过 |
+| **A2** | 编写 BackendPlugin.cpp：工厂函数表 + `RaylibBackend` 注册 | `src/backend/raylib/BackendPlugin.cpp` | ~30 | `build_raylib.bat test_label` 链接成功 |
+| **A3** | 编写 Window.cpp 框架：`InitWindow/CloseWindow/SetTargetFPS`、`getSize/getPosition`、`renderDevice()` 返回 nullptr | `src/backend/raylib/Window.cpp` | ~80 | 编译通过；运行后窗口出现并立即关闭（RenderDevice/InputBackend 未实现） |
+
+#### 子阶段 B：输入 + 光标（可交互）
+
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **B1** | 编写 Cursor.cpp：`SystemCursorType` → `MouseCursor` 映射表（10 种直接映射 + 10 种 fallback）；`createSystem/getDefault/setCurrent` | `src/backend/raylib/Cursor.cpp` | ~50 | 编译通过；内部测试验证映射正确性 |
+| **B2** | 编写 InputBackend.cpp：`pollEvent(Event&)` 实现"帧初处理事件"模式；支持 MouseMove/Down/Up/Wheel、KeyDown/Up、TextInput（`GetCharPressed`）、WindowResize/Close、Focus | `src/backend/raylib/InputBackend.cpp` | ~350 | 编译通过；窗口出现，鼠标键盘事件能传递到控件 |
+
+**B2 关键实现细节**：帧初处理模式——`pollEvent` 在 `BeginDrawing()` 之前调用，读取 raylib 当前帧的输入状态。`EndDrawing()` 内部由 raylib 自动调用 `PollInputEvents()` 更新状态。因此每次 `present()` 后，下一帧 `pollEvent()` 立即读到新状态。窗口关闭检测使用 `WindowShouldClose()`。
+
+#### 子阶段 C：渲染核心（图形可见）
+
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **C1** | 编写 RenderDevice.cpp 基础图元：`setDrawColor`（内部状态）、`fillRect`、`drawRect`、`drawLine`、`drawPoint`、`clear`、`present`、`setClipRect/clearClipRect`、`setBlendMode`、`flush`（空操作）、`getNativeHandle`（返回 nullptr） | `src/backend/raylib/RenderDevice.cpp` | ~120 | 编译通过；run `test_graphtool` 能看到背景色 + 矩形填充 + 线段（但复杂图元不可见） |
+| **C2** | 添加复杂图元：`drawTriangle`、`drawQuad`、`drawTriangles`、`drawTriangleStrip`、`drawTriangleFan`（通过 `rlgl`：`rlBegin`/`rlColor4ub`/`rlVertex2f`/`rlEnd`） | 同上 | ~80 | `test_graphtool` 第 1-3 组全部正确渲染 |
+
+**C2 关键实现细节**：`rlgl` 调用需要在 `BeginDrawing()`/`EndDrawing()` 之间进行。`rlBegin(RL_TRIANGLES)` 接受顶点颜色和位置。注意 raylib 的坐标系原点在左上角（与 SDL3 一致，与 OpenGL 左下角不同——raylib 在 `BeginDrawing()` 内自动翻转 Y 轴）。
+
+#### 子阶段 D：纹理（图片可见）
+
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **D1** | 实现纹理工厂和绘制：`createTextureFromFile`、`createTextureFromSurface`、`destroyTexture`、`drawTexture`（`DrawTexturePro`）、`drawTextureRotated`（同 `DrawTexturePro` 加 rotation） | 同上 | ~80 | `test_button` 中纹理按钮可见（文字仍不可见） |
+| **D2** | 实现渲染目标：`createRenderTexture`（包装 `RenderTexture2D`）、`setRenderTarget`/`resetRenderTarget`（`BeginTextureMode`/`EndTextureMode`）、`readPixels`（`ReadTexturePixels`） | 同上 | ~60 | `render-to-texture` 功能正常（可在 test_graphtool 中验证） |
+
+#### 子阶段 E：文本（文字可见）
+
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **E1** | 编写 TextRenderer.cpp 基础：`loadFont`（`LoadFontEx`）、`loadFontFromMemory`（`LoadFontFromMemory`）、`getFontHeight`、`createText`（分配 `CachedText{font, string, fontSize}`）、`destroyText`（释放 `CachedText`）、`measureText(void*)`（`MeasureTextEx`）、`drawText(void*, x, y, color)`（`DrawTextEx`）、`measureText(Font*, string)`（`MeasureTextEx`）、`drawText(Font*, string, x, y, color)`（`DrawTextEx`） | `src/backend/raylib/TextRenderer.cpp` | ~140 | `test_label` 显示文字（单行） |
+| **E2** | 实现 wrapWidth：`drawText(void*, x, y, wrapWidth, color)` + `drawText(Font*, string, x, y, wrapWidth, color)`；按空格/字符拆分+测量+换行逻辑 | 同上 | ~60 | `test_label` 多行文字换行正常 |
+
+**E1 关键实现细节**：raylib 的 `Font` 类型与 SDL3_ttf 差异大。`LoadFontEx` 加载 TTF 后内部用 `stb_truetype` 生成字型图集（`Font.texture`）。每次 `DrawTextEx` 遍历 `Font.glyphs` 数组查找字型，从图集中取出对应区域绘制。因此 `createText` 不需要预计算——可以直接存储 `(Font*, string, fontSize, 1.0f)` 四元组，实际渲染时即时查字型。这与 SFML 的 `sf::Text`（缓存顶点）不同，但功能等价。
+
+**E2 关键实现细节**：raylib 没有内建的 wrapWidth 文本测量。实现方式：用 `MeasureTextEx` 测量整行，如果 ≤ wrapWidth 则直接一行；否则按空格拆分单词，逐个添加，每次测量累积宽度，超宽则换行。与 SFML 方案完全相同。
+
+#### 子阶段 F：Surface + 完整验证
+
+| 步骤 | 内容 | 文件 | 估计行数 | 验证方式 |
+|------|------|------|---------|---------|
+| **F1** | 在 RenderDevice.cpp 中实现 Surface 相关：`Surface::create`（`GenImageColor`）、`loadFromFile`（`LoadImage`）、`loadFromMemory`（`LoadImageFromMemory` + SVG fallback）、`getPixel`（`GetImageColor`）、`setPixel`（`ImageDrawPixel`）、`blit`（`ImageDraw`）、`createTexture`（`LoadTextureFromImage`）、`rotate`（GPU render-to-texture + readback） | 同上 | ~100 | `test_button` 所有动画按钮正确渲染（含 SVG 图） |
+| **F2** | 构建脚本 + 全测试验证：添加 `build_scripts\build_raylib.bat`、`build_raylib_test.bat`；逐个运行 10 个测试，修复发现的问题 | `build_scripts/*.bat` | ~20 | 全部 10 测试编译+运行通过，行为与 SDL3 一致 |
+
+**F1 关键实现细节**：SVG 检测复用 SFML 方案——检查内存数据前 4 字节魔数（`<?xm`、`<svg`、`<!DO`），通过 nanosvg 栅格化为 RGBA 字节数组，然后用 `GenImageColor` + `ImageDraw` 或直接 `LoadImageFromMemory` 回写格式正确的 Image。nanosvg 源码可直接引用 SFML 后端已有的 `src/backend/sfml/nanosvg.h` 和 `nanosvgrast.h`（或复制到 `src/backend/raylib/`）。
+
+#### 依赖拓扑
+
+```
+A1 ─→ A2 ─→ A3 ─→ B1 ─→ B2 ─→ C1 ─→ C2 ─→ D1 ─→ D2 ─→ E1 ─→ E2 ─→ F1 ─→ F2
+      ↗         ↘                    ↕
+  (工厂声明)   (窗口框架)         (共享 RenderDevice.cpp)
+```
+
+- A1/A2 无依赖，可同时开始
+- B1 依赖 A3（需要窗口存在），C1 依赖 B2（需要事件能传递）
+- C2/C3/D1/D2 共享同一个 RenderDevice.cpp，建议按顺序在一个会话中完成，减少文件开关开销
+- E1/E2 依赖 D1（需要纹理机制加载字体图集），但 TextRenderer.cpp 独立文件
+- F1 依赖 D1（纹理创建），可与其他步骤并行（独立文件）
+- F2 最终集成验证
 
 | 风险 | 等级 | 缓解措施 |
 |------|------|---------|
