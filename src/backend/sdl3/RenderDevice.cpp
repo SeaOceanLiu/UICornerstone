@@ -71,6 +71,7 @@ public:
     SDL3RenderDevice(SDL_Renderer* renderer)
         : m_renderer(renderer)
     {
+        SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_BLEND);
     }
 
     ~SDL3RenderDevice() override = default;
