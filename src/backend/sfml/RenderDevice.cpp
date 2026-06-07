@@ -132,7 +132,7 @@ public:
     SharedTexture createTexture(RenderDevice* device) override {
         if (!m_image || !device) return nullptr;
         auto* tex = new sf::Texture();
-        tex->loadFromImage(*m_image);
+        (void)tex->loadFromImage(*m_image);
         return std::make_shared<SFMLTexture>(tex, width(), height());
     }
 
@@ -142,7 +142,7 @@ public:
         sf::RenderTexture rt(sf::Vector2u(static_cast<unsigned>(w), static_cast<unsigned>(h)));
         rt.clear(sf::Color::Transparent);
         sf::Texture tex;
-        tex.loadFromImage(*m_image);
+        (void)tex.loadFromImage(*m_image);
         sf::Sprite sprite(tex);
         sprite.setPosition(sf::Vector2f(static_cast<float>(w) / 2, static_cast<float>(h) / 2));
         sprite.setOrigin(sf::Vector2f(static_cast<float>(w) / 2, static_cast<float>(h) / 2));
@@ -253,10 +253,15 @@ class SFMLRenderDevice : public RenderDevice {
     sf::RenderTarget* m_target;
     sf::Color m_currentColor;
     bool m_clipEnabled;
+    sf::VertexArray m_fillBatch;
+    sf::VertexArray m_lineBatch;
+    bool m_batchDirty = false;
 public:
     SFMLRenderDevice(sf::RenderWindow* window)
         : m_window(window), m_target(window)
         , m_currentColor(sf::Color::White), m_clipEnabled(false)
+        , m_fillBatch(sf::PrimitiveType::Triangles)
+        , m_lineBatch(sf::PrimitiveType::Lines)
     {
     }
 
@@ -268,9 +273,22 @@ public:
 
     void setBlendMode(BlendMode mode) override {
         (void)mode;
+        m_batchDirty = false;
+    }
+
+    void flushBatches() {
+        if (m_fillBatch.getVertexCount() > 0) {
+            m_target->draw(m_fillBatch);
+            m_fillBatch.clear();
+        }
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
     }
 
     void setClipRect(const SRect& rect) override {
+        flushBatches();
         m_clipEnabled = true;
         glEnable(GL_SCISSOR_TEST);
         int fbH = static_cast<int>(m_target->getSize().y);
@@ -279,115 +297,101 @@ public:
     }
 
     void clearClipRect() override {
+        flushBatches();
         m_clipEnabled = false;
         glDisable(GL_SCISSOR_TEST);
     }
 
     void fillRect(const SRect& rect) override {
-        sf::RectangleShape shape(sf::Vector2f(rect.width, rect.height));
-        shape.setPosition(sf::Vector2f(rect.left, rect.top));
-        shape.setFillColor(m_currentColor);
-        m_target->draw(shape);
+        m_batchDirty = true;
+        float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(r, t), m_currentColor});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(l, b), m_currentColor});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(l, b), m_currentColor});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(r, t), m_currentColor});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(r, b), m_currentColor});
     }
 
     void drawRect(const SRect& rect) override {
+        m_batchDirty = true;
         float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
-        sf::Vertex topLine[] = {
-            sf::Vertex{sf::Vector2f(l, t), m_currentColor},
-            sf::Vertex{sf::Vector2f(r, t), m_currentColor}
-        };
-        sf::Vertex bottomLine[] = {
-            sf::Vertex{sf::Vector2f(l, b - 1), m_currentColor},
-            sf::Vertex{sf::Vector2f(r, b - 1), m_currentColor}
-        };
-        sf::Vertex leftLine[] = {
-            sf::Vertex{sf::Vector2f(l, t), m_currentColor},
-            sf::Vertex{sf::Vector2f(l, b), m_currentColor}
-        };
-        sf::Vertex rightLine[] = {
-            sf::Vertex{sf::Vector2f(r - 1, t), m_currentColor},
-            sf::Vertex{sf::Vector2f(r - 1, b), m_currentColor}
-        };
-        m_target->draw(topLine, 2, sf::PrimitiveType::Lines);
-        m_target->draw(bottomLine, 2, sf::PrimitiveType::Lines);
-        m_target->draw(leftLine, 2, sf::PrimitiveType::Lines);
-        m_target->draw(rightLine, 2, sf::PrimitiveType::Lines);
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(r, t), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, b - 1), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(r, b - 1), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, b), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(r - 1, t), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(r - 1, b), m_currentColor});
     }
 
     void drawLine(float x1, float y1, float x2, float y2) override {
-        sf::Vertex line[] = {
-            sf::Vertex{sf::Vector2f(x1, y1), m_currentColor},
-            sf::Vertex{sf::Vector2f(x2, y2), m_currentColor}
-        };
-        m_target->draw(line, 2, sf::PrimitiveType::Lines);
+        m_batchDirty = true;
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(x1, y1), m_currentColor});
+        m_lineBatch.append(sf::Vertex{sf::Vector2f(x2, y2), m_currentColor});
     }
 
     void drawPoint(float x, float y) override {
+        flushBatches();
         sf::Vertex point{sf::Vector2f(x, y), m_currentColor};
         m_target->draw(&point, 1, sf::PrimitiveType::Points);
     }
 
     void drawTriangles(const Vertex* vertices, int count) override {
         if (count < 3) return;
-        std::vector<sf::Vertex> sfmlVerts(count);
+        m_batchDirty = true;
         for (int i = 0; i < count; ++i) {
-            sfmlVerts[i] = sf::Vertex{
+            m_fillBatch.append(sf::Vertex{
                 sf::Vector2f(vertices[i].x, vertices[i].y),
                 sf::Color(vertices[i].color.redByte(), vertices[i].color.greenByte(),
-                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())};
+                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())});
         }
-        m_target->draw(sfmlVerts.data(), static_cast<std::size_t>(count), sf::PrimitiveType::Triangles);
     }
 
     void drawTriangleStrip(const Vertex* vertices, int count) override {
         if (count < 3) return;
-        std::vector<sf::Vertex> sfmlVerts(count);
+        m_batchDirty = true;
         for (int i = 0; i < count; ++i) {
-            sfmlVerts[i] = sf::Vertex{
+            m_fillBatch.append(sf::Vertex{
                 sf::Vector2f(vertices[i].x, vertices[i].y),
                 sf::Color(vertices[i].color.redByte(), vertices[i].color.greenByte(),
-                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())};
+                          vertices[i].color.blueByte(), vertices[i].color.alphaByte())});
         }
-        m_target->draw(sfmlVerts.data(), static_cast<std::size_t>(count), sf::PrimitiveType::TriangleStrip);
     }
 
     void drawTriangleFan(const Vertex* vertices, int count) override {
         if (count < 3) return;
+        m_batchDirty = true;
         int numTriangles = count - 2;
-        std::vector<sf::Vertex> triVerts(static_cast<std::size_t>(numTriangles * 3));
         for (int i = 0; i < numTriangles; ++i) {
             for (int j = 0; j < 3; ++j) {
                 int idx = (j == 0) ? 0 : (i + j - 1);
-                triVerts[static_cast<std::size_t>(i * 3 + j)] = sf::Vertex{
+                m_fillBatch.append(sf::Vertex{
                     sf::Vector2f(vertices[idx].x, vertices[idx].y),
                     sf::Color(vertices[idx].color.redByte(), vertices[idx].color.greenByte(),
-                              vertices[idx].color.blueByte(), vertices[idx].color.alphaByte())};
+                              vertices[idx].color.blueByte(), vertices[idx].color.alphaByte())});
             }
         }
-        m_target->draw(triVerts.data(), static_cast<std::size_t>(numTriangles * 3), sf::PrimitiveType::Triangles);
     }
 
     void drawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, SColor color) override {
+        m_batchDirty = true;
         sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
-        sf::Vertex verts[3] = {
-            sf::Vertex{sf::Vector2f(x0, y0), c},
-            sf::Vertex{sf::Vector2f(x1, y1), c},
-            sf::Vertex{sf::Vector2f(x2, y2), c}
-        };
-        m_target->draw(verts, 3, sf::PrimitiveType::Triangles);
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x0, y0), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x1, y1), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x2, y2), c});
     }
 
     void drawQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, SColor color) override {
+        m_batchDirty = true;
         sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
-        sf::Vertex verts[6] = {
-            sf::Vertex{sf::Vector2f(x0, y0), c},
-            sf::Vertex{sf::Vector2f(x1, y1), c},
-            sf::Vertex{sf::Vector2f(x2, y2), c},
-            sf::Vertex{sf::Vector2f(x0, y0), c},
-            sf::Vertex{sf::Vector2f(x2, y2), c},
-            sf::Vertex{sf::Vector2f(x3, y3), c}
-        };
-        m_target->draw(verts, 6, sf::PrimitiveType::Triangles);
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x0, y0), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x1, y1), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x2, y2), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x0, y0), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x2, y2), c});
+        m_fillBatch.append(sf::Vertex{sf::Vector2f(x3, y3), c});
     }
 
     SharedTexture createTextureFromFile(const std::string& path) override {
@@ -416,6 +420,7 @@ public:
     }
 
     void drawTexture(Texture* texture, const SRect* srcRect, const SRect* dstRect) override {
+        flushBatches();
         if (!m_target || !texture || !dstRect) return;
         SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
         sf::Texture* nativeTex = sfmlTex->native();
@@ -437,6 +442,7 @@ public:
     }
 
     void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) override {
+        flushBatches();
         if (!m_target || !texture || !dstRect) return;
         SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
         sf::Texture* nativeTex = sfmlTex->native();
@@ -461,6 +467,7 @@ public:
     }
 
     void setRenderTarget(Texture* texture) override {
+        flushBatches();
         if (!texture) {
             m_target = m_window;
             return;
@@ -472,10 +479,12 @@ public:
     }
 
     void resetRenderTarget() override {
+        flushBatches();
         m_target = m_window;
     }
 
     void readPixels(void* buffer, const SRect& rect) override {
+        flushBatches();
         if (!m_target || !buffer) return;
         sf::RenderTexture rt(sf::Vector2u(m_target->getSize().x, m_target->getSize().y));
         sf::Texture tex = rt.getTexture();
@@ -493,11 +502,17 @@ public:
         }
     }
 
+    void flush() override {
+        if (m_batchDirty) flushBatches();
+    }
+
     void clear() override {
+        flushBatches();
         m_target->clear(m_currentColor);
     }
 
     void present() override {
+        flushBatches();
         if (m_window) {
             m_window->display();
         }

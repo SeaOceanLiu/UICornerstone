@@ -61,6 +61,9 @@ public:
     virtual void clear() = 0;
     virtual void present() = 0;
 
+    // === 批处理刷新（供 TextRenderer 等在直接绘制前刷新批处理）===
+    virtual void flush() {}
+
     // === 原生句柄（供后端实现使用，如 TextRenderer 需要 SDL_Renderer*）===
     virtual void* getNativeHandle() = 0;
 };

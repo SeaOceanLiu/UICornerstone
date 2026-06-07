@@ -610,9 +610,14 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (event->m_type == EventType::TextInput) {
         if (m_focused) {
             std::string text(event->textInput.text);
+            std::string filtered;
             for (char c : text) {
                 if (c == '\r') continue;
-                insertText(std::string(1, c));
+                if (static_cast<unsigned char>(c) < 0x20 && c != '\t') continue;
+                filtered += c;
+            }
+            if (!filtered.empty()) {
+                insertText(filtered);
             }
             rebuildLines();
             updateVScrollBar();

@@ -71,23 +71,26 @@ public:
 
     void drawText(void* text, float x, float y, SColor color) override {
         if (!text) return;
+        m_device->flush();
         auto* sfmlText = static_cast<sf::Text*>(text);
         sfmlText->setPosition(sf::Vector2f(x, y));
         sfmlText->setFillColor(sf::Color(color.redByte(), color.greenByte(),
-                                          color.blueByte(), color.alphaByte()));
+                                           color.blueByte(), color.alphaByte()));
         auto* target = static_cast<sf::RenderTarget*>(m_device->getNativeHandle());
         if (target) target->draw(*sfmlText);
     }
 
     void drawText(void* text, float x, float y, float wrapWidth, SColor color) override {
         if (!text) return;
+        m_device->flush();
         auto* sfmlText = static_cast<sf::Text*>(text);
         sfmlText->setFillColor(sf::Color(color.redByte(), color.greenByte(),
-                                          color.blueByte(), color.alphaByte()));
+                                           color.blueByte(), color.alphaByte()));
         auto* target = static_cast<sf::RenderTarget*>(m_device->getNativeHandle());
         if (!target) return;
 
-        std::string fullStr = sfmlText->getString().toAnsiString();
+            auto utf8Str = sfmlText->getString().toUtf8();
+            std::string fullStr(utf8Str.begin(), utf8Str.end());
         const sf::Font* font = &sfmlText->getFont();
         unsigned charSize = sfmlText->getCharacterSize();
         float lineSpacing = font->getLineSpacing(charSize);
@@ -144,6 +147,7 @@ public:
     }
 
     void drawText(Font* font, const std::string& text, float x, float y, SColor color) override {
+        m_device->flush();
         auto* sfmlFont = static_cast<SFMLFont*>(font);
         auto* target = static_cast<sf::RenderTarget*>(m_device->getNativeHandle());
         if (!target) return;
@@ -165,6 +169,7 @@ public:
     }
 
     void drawText(Font* font, const std::string& text, float x, float y, float wrapWidth, SColor color) override {
+        m_device->flush();
         auto* sfmlFont = static_cast<SFMLFont*>(font);
         auto* target = static_cast<sf::RenderTarget*>(m_device->getNativeHandle());
         if (!target) return;

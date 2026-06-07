@@ -88,14 +88,20 @@ static KeyCode SFMLKeycodeToKeyCode(sf::Keyboard::Key sfmlKey) {
     }
 }
 
-static KeyMod SFMLKeymodToKeyMod() {
+static KeyMod SFMLKeymodToKeyMod(bool ctrl, bool alt, bool shift, bool system) {
     KeyMod mod = KeyMod::None;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) mod = mod | KeyMod::LShift;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)) mod = mod | KeyMod::RShift;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl)) mod = mod | KeyMod::LCtrl;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl)) mod = mod | KeyMod::RCtrl;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LAlt)) mod = mod | KeyMod::LAlt;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RAlt)) mod = mod | KeyMod::RAlt;
+    if (shift) {
+        mod = mod | KeyMod::Shift;
+    }
+    if (ctrl) {
+        mod = mod | KeyMod::Ctrl;
+    }
+    if (alt) {
+        mod = mod | KeyMod::Alt;
+    }
+    if (system) {
+        mod = mod | KeyMod::Gui;
+    }
     return mod;
 }
 
@@ -150,7 +156,7 @@ public:
             KeyEventData keyData;
             keyData.keycode = SFMLKeycodeToKeyCode(keyPressed->code);
             keyData.scancode = static_cast<int32_t>(0);
-            keyData.mod = SFMLKeymodToKeyMod();
+            keyData.mod = SFMLKeymodToKeyMod(keyPressed->control, keyPressed->alt, keyPressed->shift, keyPressed->system);
             keyData.repeat = false;
 
             event.m_type = EventType::KeyDown;
@@ -165,7 +171,7 @@ public:
             KeyEventData keyData;
             keyData.keycode = SFMLKeycodeToKeyCode(keyReleased->code);
             keyData.scancode = static_cast<int32_t>(0);
-            keyData.mod = SFMLKeymodToKeyMod();
+            keyData.mod = SFMLKeymodToKeyMod(keyReleased->control, keyReleased->alt, keyReleased->shift, keyReleased->system);
             keyData.repeat = false;
 
             event.m_type = EventType::KeyUp;
