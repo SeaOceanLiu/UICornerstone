@@ -175,14 +175,8 @@ void DrawingContext::drawRect(const ::SRect& rect, bool filled) {
     if (!m_renderDevice) return;
 
     if (filled) {
-        if (m_brush.isValid() && !m_brush.isTransparent()) {
-            m_renderDevice->setDrawColor(m_brush.color());
-            m_renderDevice->fillRect(SRect(rect.left, rect.top, rect.width, rect.height));
-        }
-        if (m_pen.isValid()) {
-            m_renderDevice->setDrawColor(m_pen.color());
-            m_renderDevice->drawRect(SRect(rect.left, rect.top, rect.width, rect.height));
-        }
+        m_renderDevice->setDrawColor(m_brush.color());
+        m_renderDevice->fillRect(SRect(rect.left, rect.top, rect.width, rect.height));
     } else {
         if (m_pen.width() <= 1.0f) {
             m_renderDevice->setDrawColor(m_pen.color());
