@@ -550,7 +550,7 @@ public:
         if (!m_visible) return;
         if (!m_isPrepared || m_frames.empty()) return;
 
-        if (m_isPlaying) {
+        if (m_isPlaying && m_totalFrames > 0) {
             uint64_t currentTick = getTicks();
             uint64_t deltaTick = currentTick - m_lastFrameMsTick;
             if (deltaTick >= m_frameMSDuration) {
@@ -856,7 +856,6 @@ private:
     bool m_isPlaying;
     uint32_t m_frameToDraw;
     uint64_t m_lastFrameMsTick;
-
     shared_ptr<LuotiAni> m_luoAni;
 public:
     LuotiInstance(Control *parent, shared_ptr<LuotiAni> luoAni, uint64_t userId, float xScale=1.0f, float yScale=1.0f):

@@ -20,6 +20,5 @@
 using rlFont       = rlFont_;
 using rlTexture    = rlTexture_;
 using rlMouseButton = int;
-using rlBlendMode   = int;
 
 #endif

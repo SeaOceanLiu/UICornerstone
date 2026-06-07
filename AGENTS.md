@@ -466,3 +466,38 @@ test_label.exe
 
 **Known Issues**:
 - NOMINMAX required in source files because SDL3 headers in `subModules/` pull in `windows.h` transitively via public include dir
+
+### 2026-06-07: Raylib InputBackend — Infinite MouseDown Loop Fix (Complete)
+
+**Problem**: Raylib's `IsMouseButtonPressed()` returned `true` every time `pollEvent()` was called because the phase machine reset to `Keyboard` on every `GetTime()` advancement (which advanced between calls within the same frame). This cleared `m_consumedMouseButtons`, causing the same press to be detected again → infinite `MouseDown` event flood.
+
+**Root cause**: `GetTime()` in `pollEvent()` advanced by microseconds between consecutive calls within `processEvents()`'s `while (pollEvent(event))` loop, restarting the phase machine and clearing consumed state each time.
+
+**Fix (4 files)**:
+- `include/InputBackend.h`: Added `virtual void newFrame() {}` — signals start of a new frame's event processing. Default empty so SDL3/SFML backends need no changes.
+- `src/backend/raylib/InputBackend.cpp`:
+  - `newFrame()` override: Resets `m_phase` to `Keyboard`, `m_consumedMouseButtons` to `0`, `m_keyConsumed`/`m_charConsumed` to `false`.
+  - Modified `GetTime()` check in `pollEvent()` to NOT reset `m_consumedMouseButtons` — it now only resets `m_keyConsumed`/`m_charConsumed` (for multi-key-per-frame processing). `m_consumedMouseButtons` persists across all `pollEvent()` calls within a render frame.
+- `src/MainWindow.cpp`: `processEvents()` calls `inputBackend->newFrame()` before entering the `while (pollEvent(event))` loop.
+- Removed all debug `printf` traces from `MainWindow.cpp` and `RenderDevice.cpp`.
+
+**Result**: `test_button` runs without infinite loop. No more `MouseDown` event flooding.
+
+**Status**: Raylib backend builds and runs. No other backends affected.
+
+### 2026-06-07: Phase 14 C2 — Raylib drawTriangle/drawQuad CCW Winding Fix
+
+**Problem**: test_graphtool only showed the red thin line (width=1, uses `DrawLineEx`). All thick lines (width > 1, via `drawQuad` → `DrawTriangle`) and triangle-based fills (filled rounded rects/ellipses/arcs/polygons via `drawTriangle`) were invisible.
+
+**Root cause**: raylib's `DrawTriangle(v1, v2, v3, color)` requires CCW (counter-clockwise) winding and does NOT flip CW triangles internally. The initial `drawTriangle` and `drawQuad` implementations in `src/backend/raylib/RenderDevice.cpp` had the winding logic inverted:
+- In y-down coordinates: `signed_area > 0` → CW, `signed_area < 0` → CCW
+- Bug: when `area < 0` (CCW), the code **swapped** the last two vertices making the triangle CW; when `area >= 0` (CW), it passed the triangle as-is (still CW)
+- Result: **every triangle** was passed as CW to `DrawTriangle` and culled by OpenGL backface culling
+
+**Fix** (`RaylibRenderDevice::drawTriangle` and `drawQuad`):
+- CCW input (`area < 0`): pass vertices **as-is** → `DrawTriangle(v0, v1, v2)`
+- CW input (`area >= 0`): **swap** last two vertices → `DrawTriangle(v0, v2, v1)`
+
+**Impact**: All triangle-based rendering now works correctly in the raylib backend (thick lines, rounded rects, ellipses, arcs, polygons, styled drawing, checkmarks, menu backgrounds).
+
+**Status**: All 10 tests build and run. SDL3/SFML backends unaffected (they handle winding internally).

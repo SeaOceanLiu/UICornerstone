@@ -7,6 +7,7 @@
 #include "Bench.h"
 #include "AppCallbacks.h"
 #include "TestUtils.h"
+#include "PlatformUtils.h"
 
 using namespace std;
 
@@ -155,10 +156,13 @@ void testBenchInitialize(void) {
 }
 
 class ButtonApp : public AppCallbacks {
+    uint64_t m_frameCount = 0;
+    uint64_t m_lastFpsTime = 0;
 public:
     bool onInit() override {
         logOutput(u8"ButtonApp::onInit");
         BENCH->setOnInitial(testBenchInitialize);
+        m_lastFpsTime = Platform::GetTicks();
         return true;
     }
 
@@ -171,6 +175,14 @@ public:
         GET_RENDERDEVICE->setDrawColor(SColor(40.0f/255.0f, 40.0f/255.0f, 40.0f/255.0f, 1.0f));
         GET_RENDERDEVICE->clear();
         BENCH->draw();
+
+        m_frameCount++;
+        uint64_t now = Platform::GetTicks();
+        if (now - m_lastFpsTime >= 1000) {
+            printf("FPS: %llu\n", m_frameCount);
+            m_frameCount = 0;
+            m_lastFpsTime = now;
+        }
     }
 
     void onQuit() override {

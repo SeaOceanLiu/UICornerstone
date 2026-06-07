@@ -64,7 +64,7 @@ void EditBox::loadFontInternal() {
     }
 
     int scaledFontSize = (int)(m_fontSize * getScaleXX());
-    m_font = getTextRenderer()->loadFontFromMemory(m_fontData->data(), m_fontData->size(), scaledFontSize);
+    m_font = getTextRenderer()->loadFontFromMemoryWithText(m_fontData->data(), m_fontData->size(), scaledFontSize, m_text);
     if (!m_font) {
         printf("Failed to load font for EditBox\n");
     }
@@ -194,6 +194,7 @@ void EditBox::insertText(const std::string& text) {
     m_cursorPosition += (int)text.length();
 
     clearSelection();
+    loadFontInternal();
     updateTextOffset();
 
     if (m_onTextChanged) {
@@ -510,6 +511,7 @@ void EditBox::setText(const std::string& text) {
     m_text = text;
     m_cursorPosition = (int)m_text.length();
     clearSelection();
+    loadFontInternal();
     updateTextOffset();
 }
 

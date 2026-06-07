@@ -26,6 +26,9 @@ public:
 
     // Get current keyboard modifier state (for use outside event handlers)
     virtual KeyMod getModState() = 0;
+
+    // Signal start of a new frame's event processing (for poll-based backends like raylib)
+    virtual void newFrame() {}
 };
 
 // SDL3 backend factory (only available when using SDL3 backend)

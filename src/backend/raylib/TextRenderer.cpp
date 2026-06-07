@@ -1,5 +1,283 @@
+﻿#define NOMINMAX
 #include "TextRenderer.h"
+#include "RenderDevice.h"
+#include "ConstDef.h"
+#include "RaylibCompat.h"
+#include <vector>
+#include <sstream>
+#include <unordered_map>
+#include <memory>
+#include <cstring>
 
+// ============================================================
+// RaylibFont
+// ============================================================
+class RaylibFont : public Font {
+public:
+    RaylibFont(rlFont font, int size)
+        : m_font(font), m_size(size)
+    {
+    }
+
+    ~RaylibFont() override {
+        UnloadFont(m_font);
+    }
+
+    int getSize() const override { return m_size; }
+    rlFont get() const { return m_font; }
+
+private:
+    rlFont m_font;
+    int m_size;
+};
+
+// ============================================================
+// Cached text wrapper
+// ============================================================
+struct RaylibCachedText {
+    std::string text;
+    RaylibFont* font;
+};
+
+// ============================================================
+// RaylibTextRenderer
+// ============================================================
+class RaylibTextRenderer : public TextRenderer {
+public:
+    explicit RaylibTextRenderer(RenderDevice* device)
+        : m_device(device)
+    {
+    }
+
+    ~RaylibTextRenderer() override = default;
+
+    static std::vector<int> extractCodepoints(const std::string& text) {
+        std::vector<int> cps;
+        if (text.empty()) {
+            // Only ASCII printable; CJK codepoints (~0x4E00-0x9FFF) are
+            // loaded on demand when the actual text is known.
+            for (int i = 0x20; i <= 0x7E; i++) cps.push_back(i);
+            return cps;
+        }
+        // Always include ASCII printable
+        for (int i = 0x20; i <= 0x7E; i++) cps.push_back(i);
+        // Decode UTF-8 and add each codepoint
+        size_t i = 0;
+        while (i < text.size()) {
+            unsigned char c = static_cast<unsigned char>(text[i]);
+            int cp;
+            size_t len;
+            if (c < 0x80) { cp = c; len = 1; }
+            else if ((c & 0xE0) == 0xC0) { cp = c & 0x1F; len = 2; }
+            else if ((c & 0xF0) == 0xE0) { cp = c & 0x0F; len = 3; }
+            else if ((c & 0xF8) == 0xF0) { cp = c & 0x07; len = 4; }
+            else { i++; continue; }
+            if (i + len > text.size()) break;
+            for (size_t j = 1; j < len; j++) {
+                cp = (cp << 6) | (static_cast<unsigned char>(text[i + j]) & 0x3F);
+            }
+            cps.push_back(cp);
+            i += len;
+        }
+        return cps;
+    }
+
+    SharedFont loadFont(const std::string& path, int size) override {
+        auto cps = extractCodepoints("");
+        rlFont f = LoadFontEx(path.c_str(), size, cps.data(), static_cast<int>(cps.size()));
+        if (f.texture.id == 0) {
+            printf("RaylibTextRenderer::loadFont: failed to load %s\n", path.c_str());
+            return nullptr;
+        }
+        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+        return std::make_shared<RaylibFont>(f, size);
+    }
+
+    SharedFont loadFontFromMemory(const void* data, size_t len, int size) override {
+        auto cps = extractCodepoints("");
+        rlFont f = LoadFontFromMemory(".ttf",
+            static_cast<const unsigned char*>(data),
+            static_cast<int>(len), size, cps.data(), static_cast<int>(cps.size()));
+        if (f.texture.id == 0) {
+            printf("RaylibTextRenderer::loadFontFromMemory: failed\n");
+            return nullptr;
+        }
+        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+        return std::make_shared<RaylibFont>(f, size);
+    }
+
+    SharedFont loadFontWithText(const std::string& path, int size, const std::string& text) override {
+        auto cps = extractCodepoints(text);
+        rlFont f = LoadFontEx(path.c_str(), size, cps.data(), static_cast<int>(cps.size()));
+        if (f.texture.id == 0) {
+            printf("RaylibTextRenderer::loadFontWithText: failed to load %s\n", path.c_str());
+            return nullptr;
+        }
+        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+        return std::make_shared<RaylibFont>(f, size);
+    }
+
+    SharedFont loadFontFromMemoryWithText(const void* data, size_t len, int size, const std::string& text) override {
+        auto cps = extractCodepoints(text);
+        rlFont f = LoadFontFromMemory(".ttf",
+            static_cast<const unsigned char*>(data),
+            static_cast<int>(len), size, cps.data(), static_cast<int>(cps.size()));
+        if (f.texture.id == 0) {
+            printf("RaylibTextRenderer::loadFontFromMemoryWithText: failed\n");
+            return nullptr;
+        }
+        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+        return std::make_shared<RaylibFont>(f, size);
+    }
+
+    int getFontHeight(Font* font) override {
+        auto* rf = static_cast<RaylibFont*>(font);
+        Vector2 sz = MeasureTextEx(rf->get(), "Ay", static_cast<float>(rf->getSize()), 0);
+        return static_cast<int>(sz.y + 0.5f);
+    }
+
+    void* createText(Font* font, const std::string& text) override {
+        auto* rf = static_cast<RaylibFont*>(font);
+        auto* ct = new RaylibCachedText();
+        ct->text = text;
+        ct->font = rf;
+        return ct;
+    }
+
+    void destroyText(void* text) override {
+        delete static_cast<RaylibCachedText*>(text);
+    }
+
+    SSize measureText(void* text) override {
+        if (!text) return SSize(0, 0);
+        auto* ct = static_cast<RaylibCachedText*>(text);
+        Vector2 sz = MeasureTextEx(ct->font->get(), ct->text.c_str(),
+                                    static_cast<float>(ct->font->getSize()), 0);
+        return SSize(static_cast<int>(sz.x + 0.5f), static_cast<int>(sz.y + 0.5f));
+    }
+
+    void drawText(void* text, float x, float y, SColor color) override {
+        if (!text) return;
+        m_device->flush();
+        auto* ct = static_cast<RaylibCachedText*>(text);
+        Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+        DrawTextEx(ct->font->get(), ct->text.c_str(), {x, y},
+                   static_cast<float>(ct->font->getSize()), 0, c);
+    }
+
+    void drawText(void* text, float x, float y, float wrapWidth, SColor color) override {
+        if (!text) return;
+        m_device->flush();
+        auto* ct = static_cast<RaylibCachedText*>(text);
+        Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+
+        rlFont fnt = ct->font->get();
+        float fontSize = static_cast<float>(ct->font->getSize());
+        float lineSpacing = MeasureTextEx(fnt, "Ay", fontSize, 0).y;
+        float spaceWidth = MeasureTextEx(fnt, " ", fontSize, 0).x;
+        if (spaceWidth <= 0) spaceWidth = lineSpacing * 0.3f;
+
+        std::vector<std::string> lines;
+        std::string currentLine;
+        float currentWidth = 0;
+        std::istringstream stream(ct->text);
+        std::string word;
+        bool firstWord = true;
+
+        while (stream >> word) {
+            float wordWidth = MeasureTextEx(fnt, word.c_str(), fontSize, 0).x;
+            if (!firstWord) wordWidth += spaceWidth;
+
+            if (firstWord) {
+                currentLine = word;
+                currentWidth = wordWidth;
+                firstWord = false;
+            } else if (currentWidth + wordWidth <= wrapWidth) {
+                currentLine += " " + word;
+                currentWidth += wordWidth;
+            } else {
+                lines.push_back(currentLine);
+                currentLine = word;
+                currentWidth = wordWidth;
+                firstWord = false;
+            }
+        }
+        if (!currentLine.empty()) lines.push_back(currentLine);
+
+        float lineY = y;
+        for (const auto& line : lines) {
+            DrawTextEx(fnt, line.c_str(), {x, lineY}, fontSize, 0, c);
+            lineY += lineSpacing;
+        }
+    }
+
+    SSize measureText(Font* font, const std::string& text) override {
+        auto* rf = static_cast<RaylibFont*>(font);
+        Vector2 sz = MeasureTextEx(rf->get(), text.c_str(),
+                                    static_cast<float>(rf->getSize()), 0);
+        return SSize(static_cast<int>(sz.x + 0.5f), static_cast<int>(sz.y + 0.5f));
+    }
+
+    void drawText(Font* font, const std::string& text, float x, float y, SColor color) override {
+        m_device->flush();
+        auto* rf = static_cast<RaylibFont*>(font);
+        Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+        DrawTextEx(rf->get(), text.c_str(), {x, y},
+                   static_cast<float>(rf->getSize()), 0, c);
+    }
+
+    void drawText(Font* font, const std::string& text, float x, float y, float wrapWidth, SColor color) override {
+        m_device->flush();
+        auto* rf = static_cast<RaylibFont*>(font);
+        Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+
+        rlFont fnt = rf->get();
+        float fontSize = static_cast<float>(rf->getSize());
+        float lineSpacing = MeasureTextEx(fnt, "Ay", fontSize, 0).y;
+        float spaceWidth = MeasureTextEx(fnt, " ", fontSize, 0).x;
+        if (spaceWidth <= 0) spaceWidth = lineSpacing * 0.3f;
+
+        std::vector<std::string> lines;
+        std::string currentLine;
+        float currentWidth = 0;
+        std::istringstream stream(text);
+        std::string word;
+        bool firstWord = true;
+
+        while (stream >> word) {
+            float wordWidth = MeasureTextEx(fnt, word.c_str(), fontSize, 0).x;
+            if (!firstWord) wordWidth += spaceWidth;
+
+            if (firstWord) {
+                currentLine = word;
+                currentWidth = wordWidth;
+                firstWord = false;
+            } else if (currentWidth + wordWidth <= wrapWidth) {
+                currentLine += " " + word;
+                currentWidth += wordWidth;
+            } else {
+                lines.push_back(currentLine);
+                currentLine = word;
+                currentWidth = wordWidth;
+                firstWord = false;
+            }
+        }
+        if (!currentLine.empty()) lines.push_back(currentLine);
+
+        float lineY = y;
+        for (const auto& line : lines) {
+            DrawTextEx(fnt, line.c_str(), {x, lineY}, fontSize, 0, c);
+            lineY += lineSpacing;
+        }
+    }
+
+private:
+    RenderDevice* m_device;
+};
+
+// ============================================================
+// Factory entry point
+// ============================================================
 TextRenderer* CreateRaylibTextRenderer(RenderDevice* device) {
-    return nullptr;
+    return new RaylibTextRenderer(device);
 }

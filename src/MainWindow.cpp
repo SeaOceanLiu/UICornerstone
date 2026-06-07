@@ -2,6 +2,7 @@
 #include "Bench.h"
 #include "AppCallbacks.h"
 #include "BackendPlugin.h"
+#include "PlatformUtils.h"
 
 // ============================================================
 // Mode 1: Owned loop — delegates to the tick-based API below
@@ -11,8 +12,8 @@ int MainWindow::run(AppCallbacks* app) {
 
     bool running = true;
     while (running) {
-        running = processEvents(app);
-        if (!running) break;
+        if (!processEvents(app))
+            break;
         update(app);
         render(app);
     }
@@ -31,6 +32,7 @@ bool MainWindow::init(AppCallbacks* app) {
 bool MainWindow::processEvents(AppCallbacks* app) {
     auto* backend = BackendManager::instance();
     auto* inputBackend = backend->inputBackend();
+    inputBackend->newFrame();
 
     Event event;
     bool running = true;
@@ -49,12 +51,12 @@ bool MainWindow::processEvents(AppCallbacks* app) {
                 onWindowMoved(event.windowMoved.x, event.windowMoved.y);
                 break;
             default:
-                // Old-style dispatch (dual-run backward compatibility)
-                if (event.m_eventName != static_cast<EventName>(0)) {
+                {
+                    // Dispatch all events (new-style and old-style) to controls
                     auto sharedEvent = make_shared<Event>(event);
                     BENCH->inputControl(sharedEvent);
                 }
-                // New-style event notification for app-specific handling
+                // Notify app of events via new-style API
                 app->onEvent(event);
                 break;
         }

@@ -316,8 +316,9 @@ void Label::loadFromResource(string resourceId){
         return;
     }
 
-    m_font = renderer->loadFontFromMemory(m_fontData->data(), m_fontData->size(),
-                                           static_cast<int>(m_fontSize * getScaleXX()));
+    m_font = renderer->loadFontFromMemoryWithText(m_fontData->data(), m_fontData->size(),
+                                           static_cast<int>(m_fontSize * getScaleXX()),
+                                           m_caption);
     if (m_font == nullptr) {
         Platform::Log("Label::loadFromResource: Failed to load font");
     }

@@ -14,6 +14,13 @@ public:
     virtual SharedFont loadFont(const std::string& path, int size) = 0;
     virtual SharedFont loadFontFromMemory(const void* data, size_t len, int size) = 0;
 
+    virtual SharedFont loadFontWithText(const std::string& path, int size, const std::string& text) {
+        (void)text; return loadFont(path, size);
+    }
+    virtual SharedFont loadFontFromMemoryWithText(const void* data, size_t len, int size, const std::string& text) {
+        (void)text; return loadFontFromMemory(data, len, size);
+    }
+
     virtual int getFontHeight(Font* font) = 0;
 
     virtual void* createText(Font* font, const std::string& text) = 0;

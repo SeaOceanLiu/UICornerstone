@@ -1,7 +1,10 @@
-#include "Window.h"
+﻿#include "Window.h"
 #include "RenderDevice.h"
 #include "RaylibCompat.h"
 #include <cstdio>
+
+// Forward declaration of the factory
+RenderDevice* CreateRaylibRenderDevice();
 
 // ============================================================
 // RaylibWindow
@@ -9,7 +12,6 @@
 class RaylibWindow : public Window {
 public:
     RaylibWindow(const char* title, int w, int h, uint32_t flags)
-        : m_renderDevice(nullptr)
     {
         // Apply config flags
         unsigned int rlFlags = 0;
@@ -21,9 +23,12 @@ public:
 
         InitWindow(w, h, title);
         SetTargetFPS(60);
+
+        m_renderDevice = CreateRaylibRenderDevice();
     }
 
     ~RaylibWindow() override {
+        delete m_renderDevice;
         CloseWindow();
     }
 

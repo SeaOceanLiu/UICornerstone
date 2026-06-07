@@ -129,6 +129,8 @@ bool Button::handleEvent(shared_ptr<Event> event){
                     return true;
             }
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                printf("[Button] MouseDown event received!\n");
+                fflush(stdout);
                 setState(ControlState::Pressed);
                 return true;
             }
