@@ -38,6 +38,13 @@ bool BackendManager::initialize(const std::string& backendName,
         found = true;
     }
 #endif
+#if defined(UICONTROLS_BACKEND_RAYLIB)
+    if (backendName == "raylib") {
+        extern BackendAPI g_raylibBackend;
+        api = g_raylibBackend;
+        found = true;
+    }
+#endif
     if (!found) {
         if (s_registeredAPI.version > 0) {
             api = s_registeredAPI;

@@ -151,6 +151,7 @@ elseif(_BACKEND_UPPER STREQUAL "RAYLIB")
 
     target_link_libraries(UIControls PUBLIC
         ${RAYLIB_LIB_DIR}/raylib.lib
+        winmm.lib
     )
 
     list(APPEND BACKEND_DLLS "${RAYLIB_LIB_DIR}/raylib.dll")
