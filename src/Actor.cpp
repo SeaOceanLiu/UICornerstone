@@ -51,6 +51,9 @@ Actor& Actor::operator=(const Actor& other) {
 }
 
 void Actor::loadFromFile(fs::path filePath) {
+    if (filePath.is_relative()) {
+        filePath = fs::path(Platform::GetBasePath()) / filePath;
+    }
     m_surface = Surface::loadFromFile(filePath.string());
     if (!m_surface) {
         Platform::Log("LoadFromFile Error\n");
