@@ -257,6 +257,15 @@ protected:
     bool m_mouseInside;
 
     void recreate(void) override; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
+    // 直接更新子控件的复合缩放值，避免通过 setParent(this) 传播缩放（setParent 会触发
+    // inheritRenderer 等不必要开销，且与 Label::setParent 的脏-父检查冲突）
+    void updateChildScale(Control* child) const {
+        auto* impl = dynamic_cast<ControlImpl*>(child);
+        if (impl) {
+            impl->m_xxScale = impl->m_xScale * m_xxScale;
+            impl->m_yyScale = impl->m_yScale * m_yyScale;
+        }
+    }
 public:
     ControlImpl(Control *parent, float xScale=1.0f, float yScale=1.0f);
     ControlImpl(const ControlImpl& other);

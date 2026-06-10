@@ -473,7 +473,11 @@ void Label::setRect(SRect rect){
     recreate();
 }
 void Label::setParent(Control *parent) {
-    if (m_parent == parent) return;
+    if (m_parent == parent) {
+        // 父控件未变，但仍需更新缩放（setScaleX/setScaleY 依赖此路径）
+        ControlImpl::setParent(parent);
+        return;
+    }
     ControlImpl::setParent(parent);
 
     recreate();

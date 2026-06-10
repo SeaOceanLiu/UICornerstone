@@ -54,7 +54,6 @@ private:
     StateColor m_crossStateColor;
     StateColor m_indeterminateStateColor;
     StateColor m_boxBorderStateColor;
-    bool m_layoutDone = false;
 protected:
     void recreate(void) override;
 public:

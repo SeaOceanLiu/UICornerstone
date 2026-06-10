@@ -287,6 +287,12 @@ void ControlImpl::removeControl(shared_ptr<Control> child){
 }
 // 只调用setParent的话，是不会添加到父控件的children中的，用于自行控制绘制逻辑和事件处理逻辑
 // 如果要自动绘制和处理事件，需要调用addControl
+//
+// override 注意：
+// - 可以加 if (m_parent == parent) return 阻止重复 setParent 触发的 recreate，
+//   但仍需调用 ControlImpl::setParent(parent) 以确保 Renderer 继承等更新
+//   （缩放传播由 updateChildScale() 处理，不走 setParent 路径）
+// - 示例如 Label::setParent
 void ControlImpl::setParent(Control *parent){
     m_parent = parent;
     inheritRenderer();
@@ -307,18 +313,20 @@ float ControlImpl::getScaleYY(void){
 void ControlImpl::setScaleX(float xScale){
     m_xScale = xScale;
     for (auto& child : m_children){
-        child->setParent(this); // 通过重新设置父控件来更新子控件的实际缩放值
+        updateChildScale(child.get()); // 直接更新复合缩放，不触发 setParent 的开销和脏标记问题
     }
 }
 void ControlImpl::setScaleY(float yScale){
     m_yScale = yScale;
     for (auto& child : m_children){
-        child->setParent(this); // 通过重新设置父控件来更新子控件的实际缩放值
+        updateChildScale(child.get()); // 直接更新复合缩放，不触发 setParent 的开销和脏标记问题
     }
 }
 
+// 注：override 时建议在最前面加 if (m_rect == rect) return;
+// 以防止不必要的 recreate() cascade（参见 CheckBox::setRect, Label::setRect）
 void ControlImpl::setRect(SRect rect){
-    if (m_rect == rect) return; // dirty check: skip cascade if unchanged
+    if (m_rect == rect) return;
     m_rect = rect;
 }
 
