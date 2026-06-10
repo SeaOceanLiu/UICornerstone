@@ -15,14 +15,13 @@ public:
     {
         // Apply config flags
         unsigned int rlFlags = 0;
-        if (flags & 0x0001) rlFlags |= FLAG_WINDOW_RESIZABLE;
-        if (flags & 0x0002) rlFlags |= FLAG_FULLSCREEN_MODE;
-        if (flags & 0x0004) rlFlags |= FLAG_WINDOW_HIGHDPI;
-        if (flags & 0x0008) rlFlags |= FLAG_VSYNC_HINT;
+        // 0x00000020 = SDL_WINDOW_RESIZABLE → FLAG_WINDOW_RESIZABLE
+        if (flags & 0x00000020) rlFlags |= FLAG_WINDOW_RESIZABLE;
         if (rlFlags) SetConfigFlags(rlFlags);
 
         InitWindow(w, h, title);
-        SetTargetFPS(60);
+        SetTraceLogLevel(LOG_WARNING);  // Suppress raylib's INFO spam (font/texture load logs)
+        // SetTargetFPS is NOT set — present() does its own 60 Hz timing.
 
         m_renderDevice = CreateRaylibRenderDevice();
     }
@@ -74,6 +73,13 @@ public:
         x = pos.x;
         y = pos.y;
         return true;
+    }
+
+    void setResizable(bool resizable) override {
+        if (resizable)
+            SetWindowState(FLAG_WINDOW_RESIZABLE);
+        else
+            ClearWindowState(FLAG_WINDOW_RESIZABLE);
     }
 
     void onResized(int width, int height) override {

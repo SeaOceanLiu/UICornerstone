@@ -1,7 +1,9 @@
 ﻿#include <iostream>
 #include <memory>
+#include <cstdio>
 #include "CheckBox.h"
 #include "Label.h"
+#include "PlatformUtils.h"
 #include "MainWindow.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
@@ -33,6 +35,8 @@ shared_ptr<CheckBox> g_checkbox16;
 void testBenchInitialize(void) {
     TestUtil::log("testCheckBoxInitialize");
 
+    uint64_t t0 = Platform::GetTicks();
+
     StateColor redBorder(StateColor::Type::Border);
     redBorder.setNormal({255, 0, 0, 255});
 
@@ -43,6 +47,7 @@ void testBenchInitialize(void) {
     });
     g_checkbox1->create();
     BENCH->addControl(g_checkbox1);
+    printf("[TIME] cb1: %llu ms\n", (Platform::GetTicks() - t0));
 
     g_checkbox2 = make_shared<CheckBox>(nullptr, SRect(50, 100, 200, 30));
     g_checkbox2->getCaption()->setCaption("2. Enable Feature");
@@ -52,6 +57,7 @@ void testBenchInitialize(void) {
     });
     g_checkbox2->create();
     BENCH->addControl(g_checkbox2);
+    printf("[TIME] cb2: %llu ms\n", (Platform::GetTicks() - t0));
 
     g_checkbox3 = CheckBoxBuilder(nullptr, SRect(50, 150, 200, 30))
         .setStyle(CheckBoxStyle::Cross)
@@ -62,6 +68,7 @@ void testBenchInitialize(void) {
         })
         .build();
     BENCH->addControl(g_checkbox3);
+    printf("[TIME] cb3: %llu ms\n", (Platform::GetTicks() - t0));
 
     g_checkbox4 = CheckBoxBuilder(nullptr, SRect(50, 200, 200, 30))
         .setStyle(CheckBoxStyle::Circle)
@@ -125,6 +132,7 @@ void testBenchInitialize(void) {
         .setBorderStateColor(redBorder)
         .build();
     BENCH->addControl(g_checkbox10);
+    printf("[TIME] cb10: %llu ms\n", (Platform::GetTicks() - t0));
 
     g_checkbox11 = CheckBoxBuilder(nullptr, SRect(300, 200, 300, 60), 2.0f, 2.0f)
         .setCaptionText(u8"11. 2x缩放复选框")
@@ -192,11 +200,13 @@ void testBenchInitialize(void) {
         .setBorderStateColor(redBorder)
         .build();
     BENCH->addControl(g_checkbox16);
+    printf("[TIME] cb16: %llu ms\n", (Platform::GetTicks() - t0));
     StateColor stateColor;
     stateColor.setNormal({0, 0, 255, 255});
     g_checkbox16->getCaption()->setTextStateColor(stateColor);
 
     TestUtil::log("CheckBox test controls created");
+    printf("[TIME] done: %llu ms\n", (Platform::GetTicks() - t0));
 }
 
 class CheckBoxApp : public AppCallbacks {

@@ -63,8 +63,10 @@ void CheckBox::createCaption(void){
         // .setDebugDraw(true)
         .setOnPropertyChanged([this](shared_ptr<Label> label){  // Label的属性改变时，通过回调来触发CheckBox调整布局
             setBoxSize();
-            adjustSpaceAssignment();
-            adjustBoxVerticalAlign();
+            if (!m_layoutDone) {
+                adjustSpaceAssignment();
+                adjustBoxVerticalAlign();
+            }
         })
         .build();
 }
@@ -131,8 +133,10 @@ void CheckBox::adjustBoxVerticalAlign(void) {
 }
 
 void CheckBox::recreate(void) {
-    // 没有创建过，直接退出，待调用create方法时会创建相关资源
+    // 没有创建过，直接退出，待调用create方法时会重新创建相关资源
     if(!m_isCreated) return;
+
+    m_layoutDone = false;
 
     // 释放子控件
     releaseCaption();
@@ -150,6 +154,7 @@ void CheckBox::create(void) {
     setBoxSize();
     adjustSpaceAssignment();
     adjustBoxVerticalAlign();
+    m_layoutDone = true;
 
     // 可以直接添加，因为addControl内部会检查是否已经添加过了，如果已经添加过了，就不会重复添加了
     addControl(m_caption);
@@ -249,6 +254,7 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
 }
 
 void CheckBox::setRect(SRect rect) {
+    if (m_rect == rect) return;
     ControlImpl::setRect(rect);
 
     recreate();

@@ -194,7 +194,6 @@ void EditBox::insertText(const std::string& text) {
     m_cursorPosition += (int)text.length();
 
     clearSelection();
-    loadFontInternal();
     updateTextOffset();
 
     if (m_onTextChanged) {

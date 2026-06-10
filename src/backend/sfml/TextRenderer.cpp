@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <memory>
 #include <cstring>
+#include <string>
 
 class SFMLFont : public Font {
 public:
@@ -19,6 +20,22 @@ private:
     int m_size;
 };
 
+// Font cache key: content hash + pixel size.
+struct SFMLFontCacheKey {
+    size_t contentHash;
+    int size;
+    bool operator==(const SFMLFontCacheKey& o) const {
+        return contentHash == o.contentHash && size == o.size;
+    }
+};
+struct SFMLFontCacheHash {
+    size_t operator()(const SFMLFontCacheKey& k) const {
+        size_t h = k.contentHash;
+        h ^= k.size * 0x9e3779b9;
+        return h;
+    }
+};
+
 class SFMLTextRenderer : public TextRenderer {
 public:
     SFMLTextRenderer(RenderDevice* device)
@@ -29,21 +46,35 @@ public:
     ~SFMLTextRenderer() override = default;
 
     SharedFont loadFont(const std::string& path, int size) override {
+        size_t contentHash = std::hash<std::string>{}(path);
+        SFMLFontCacheKey key{contentHash, size};
+        auto it = m_fontCache.find(key);
+        if (it != m_fontCache.end()) return it->second;
+
         auto* font = new sf::Font();
         if (!font->openFromFile(path)) {
             delete font;
             return nullptr;
         }
-        return std::make_shared<SFMLFont>(font, size);
+        auto sfmlFont = std::make_shared<SFMLFont>(font, size);
+        m_fontCache[key] = sfmlFont;
+        return sfmlFont;
     }
 
     SharedFont loadFontFromMemory(const void* data, size_t len, int size) override {
+        size_t contentHash = std::hash<std::string_view>{}(std::string_view(static_cast<const char*>(data), len));
+        SFMLFontCacheKey key{contentHash, size};
+        auto it = m_fontCache.find(key);
+        if (it != m_fontCache.end()) return it->second;
+
         auto* font = new sf::Font();
         if (!font->openFromMemory(data, len)) {
             delete font;
             return nullptr;
         }
-        return std::make_shared<SFMLFont>(font, size);
+        auto sfmlFont = std::make_shared<SFMLFont>(font, size);
+        m_fontCache[key] = sfmlFont;
+        return sfmlFont;
     }
 
     int getFontHeight(Font* font) override {
@@ -246,6 +277,7 @@ private:
     }
 
     RenderDevice* m_device;
+    std::unordered_map<SFMLFontCacheKey, SharedFont, SFMLFontCacheHash> m_fontCache;
     std::unordered_map<std::string, std::shared_ptr<sf::Text>> m_textCache;
     std::unordered_map<std::string, WrapResult> m_wrapCache;
 };

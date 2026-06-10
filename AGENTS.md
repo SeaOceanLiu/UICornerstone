@@ -501,3 +501,78 @@ test_label.exe
 **Impact**: All triangle-based rendering now works correctly in the raylib backend (thick lines, rounded rects, ellipses, arcs, polygons, styled drawing, checkmarks, menu backgrounds).
 
 **Status**: All 10 tests build and run. SDL3/SFML backends unaffected (they handle winding internally).
+
+### 2026-06-08: Phase 14 D1 — Raylib Resize Freeze & Font Size Fix (Complete)
+
+**Problem (resize freeze)**: Dragging the window border to resize and releasing the mouse caused the raylib backend to freeze. Root cause traced through multiple iterations:
+
+**Root cause chain**:
+1. `EndDrawing()` (called inside `present()`) calls `PollInputEvents()` internally.
+2. `InputBackend::newFrame()` also called `PollInputEvents()` → double‑polling consumed the `IsMouseButtonPressed/Released` one‑shot state, breaking mouse clicks.
+3. Removing `EndDrawing()` from `present()` fixed double‑polling but the resize freeze returned.
+4. **Real freeze cause**: during/after a resize drag, `IsWindowResized()` returned TRUE **500+ times** in a single `processEvents()` call, flooding the event loop with duplicate `WindowResize` events of the same dimensions and preventing rendering.
+5. After the drag, the `MOUSE_UP` arriving in the same event batch triggered a control handler that froze.
+
+**Fixes (6 files)**:
+
+| File | Change |
+|------|--------|
+| `src/backend/raylib/TextRenderer.cpp` | Font cache (`unordered_map<FontCacheKey, weak_ptr<RaylibFont>>`). Load font at `size * 96/72` to match SDL3_ttf point→pixel conversion. `getFontHeight` uses `MeasureTextEx("Ay")`. `wrapWidth` scaled by 96/72. |
+| `src/backend/raylib/InputBackend.cpp` | `newFrame()` calls `PollInputEvents()` once per frame. Phase order changed to `Keyboard → CharInput → **WindowEvents** → MouseButton → MouseMove → MouseWheel → Done`. `m_resizeDetected` flag suppresses `MOUSE_UP` when a `WindowResize` arrives in the same batch. |
+| `src/backend/raylib/RenderDevice.cpp` | `present()` no longer calls `EndDrawing()` (avoids internal `PollInputEvents`). Manually flushes batch + `SwapScreenBuffer()`. 60 Hz `WaitTime` frame limiter. |
+| `src/backend/raylib/Window.cpp` | Removed `SetTargetFPS(60)` (moved to RenderDevice). Added `SetTraceLogLevel(LOG_WARNING)`. Fixed flag‑bit mapping (`0x00000020` → `FLAG_WINDOW_RESIZABLE`). |
+| `include/MainWindow.h` + `src/MainWindow.cpp` | WindowResize dedup by `(w, h)` — skips events with same dimensions as last processed. 500‑event safety guard in `processEvents`. |
+
+**Key insights**:
+- `IsWindowResized()` in the bundled raylib returns TRUE repeatedly for the same dimensions (the flag is set by a GLFW callback but not cleared by the first `IsWindowResized()` call in this raylib build).
+- `EndDrawing()` must not be called in `present()` because its internal `PollInputEvents()` collides with the one in `newFrame()`.
+- Resize drag produces `MOUSE_UP` that confuses controls when arriving without a visible `MOUSE_DOWN` (the press was on the window border / NC area).
+
+**Status**: All 10 raylib tests build and run. Resize is smooth, mouse clicks work, close works. SDL3 backend unaffected.
+
+## Raylib Backend Notes
+
+- `EndDrawing()` is never called — `present()` manually flushes + swaps
+- `PollInputEvents()` is called only in `InputBackend::newFrame()`, once per frame
+- `SetTargetFPS` is not used — frame rate limited by `WaitTime` in `RenderDevice::present()`
+- Fonts loaded at `size * 96/72` and cached by `(data, size, cpHash)`
+
+### 2026-06-09: Phase 15 — CheckBox/Label Performance Optimization (Complete)
+
+**Problem**: `test_checkbox` took ~48s to initialize 16 checkboxes. Root cause was an O(n²) recreate cascade amplified by missing font cache in SDL3 backend.
+
+**Root cause chain**:
+1. `Bench::addControl()` → `resolveChildPercentages()` iterated ALL children, calling `setRect` on every existing child.
+2. `CheckBox::setRect()` called `recreate()` unconditionally (no dirty-rect check).
+3. Each CheckBox recreate destroyed and re-created its Label caption, including font reloading.
+4. SDL3 TextRenderer had **no font cache** — every `loadFontFromMemory()` called `TTF_OpenFontIO()`, taking ~800ms per call.
+5. With 16 checkboxes, the cascade produced 120 redundant recreates × 3 font loads = 360+ font opens.
+
+**Changes (5 files)**:
+
+| File | Change |
+|------|--------|
+| `src/backend/sdl3/TextRenderer.cpp` | Added font cache (`m_fontCache` keyed by `(contentHash, size)`, `m_pathCache` by `(path, size)`). Eliminated redundant `TTF_OpenFontIO` calls. |
+| `include/CheckBox.h` | Added `bool m_layoutDone = false` member. |
+| `src/CheckBox.cpp` | `setRect` dirty-rect check. `recreate()` resets `m_layoutDone` to `false`. `create()` sets `m_layoutDone = true` after layout. `createCaption()` callback checks `m_layoutDone` before calling `adjustSpaceAssignment()`. |
+| `src/Label.cpp` | `setRect` dirty-rect early return. `setParent` dirty-parent early return. |
+| `src/backend/raylib/TextRenderer.cpp` | Removed debug `printf` and `Platform::GetTicks()` timing (leftover from earlier session — only removed unused variables, font cache was already present). |
+
+**Debug instrumentation removed from production sources**:
+- `Label.cpp`: `g_recreateDepth` thread_local + `[LABEL_RECREATE]` printf
+- `CheckBox.cpp`: `[CHECKBOX_RECREATE]` timing printf
+- `SDL3 TextRenderer.cpp`: `[FONT_LOAD]` + `[FONT_HIT]` timing printf
+- `Raylib TextRenderer.cpp`: `[FONT_HIT]` + `[FONT_RELOAD]` timing printf
+- All unused `Platform::GetTicks()` / timing variables removed
+
+**Results**:
+
+| Backend | Before | After |
+|---------|--------|-------|
+| SDL3    | ~48s   | ~7.2s |
+| SFML    | —      | ~6.9s |
+| Raylib  | —      | ~4.6s |
+
+All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
+
+**Remaining cost**: ~80 `TTF_CreateText` calls (~25ms each) during the 16-checkbox initialization. Further optimization would require caching `TTF_Text*` objects across recreates (risky — text content can change).

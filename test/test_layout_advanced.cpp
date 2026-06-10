@@ -117,6 +117,7 @@ void testBenchInitialize(void) {
 class LayoutAdvancedApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->getWindow()->setResizable(true);
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

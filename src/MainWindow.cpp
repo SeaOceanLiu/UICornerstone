@@ -36,17 +36,23 @@ bool MainWindow::processEvents(AppCallbacks* app) {
 
     Event event;
     bool running = true;
+    int eventGuard = 0;
     while (inputBackend->pollEvent(event)) {
+        if (++eventGuard > 500) break; // Safety: prevent infinite event loop
         switch (event.m_type) {
             case EventType::WindowClose:
                 running = false;
                 break;
-            case EventType::WindowResize:
-                onWindowResized(event.resizeEvent.width, event.resizeEvent.height);
-                BackendManager::instance()->window()->onResized(
-                    event.resizeEvent.width, event.resizeEvent.height);
-                BENCH->resized({0, 0, (float)event.resizeEvent.width, (float)event.resizeEvent.height});
+            case EventType::WindowResize: {
+                int w = event.resizeEvent.width;
+                int h = event.resizeEvent.height;
+                m_pendingResizeW = w;
+                m_pendingResizeH = h;
+                m_lastResizeArrival = Platform::GetTicks();
+                onWindowResized(w, h);
+                BackendManager::instance()->window()->onResized(w, h);
                 break;
+            }
             case EventType::WindowMoved:
                 onWindowMoved(event.windowMoved.x, event.windowMoved.y);
                 break;
@@ -70,6 +76,17 @@ bool MainWindow::processEvents(AppCallbacks* app) {
 }
 
 void MainWindow::update(AppCallbacks* app) {
+    // Debounce resize: only call BENCH->resized() once the user has stopped
+    // dragging (200 ms since the last WindowResize event).  During the drag
+    // itself the viewport is updated (window->onResized) so the GL surface
+    // tracks the new size, but control layouts are deferred until settle.
+    uint64_t now = Platform::GetTicks();
+    if (m_pendingResizeW >= 0 && m_pendingResizeH >= 0 &&
+        now - m_lastResizeArrival >= 200) {
+        BENCH->resized({0, 0, (float)m_pendingResizeW, (float)m_pendingResizeH});
+        m_pendingResizeW = -1;
+        m_pendingResizeH = -1;
+    }
     app->onUpdate();
 }
 

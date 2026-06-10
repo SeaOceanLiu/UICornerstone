@@ -19,6 +19,7 @@ public:
     virtual void* nativeHandle() = 0;
     virtual RenderDevice* renderDevice() = 0;
     virtual bool getMousePosition(float& x, float& y) = 0;
+    virtual void setResizable(bool resizable) { (void)resizable; }
     virtual void onResized(int width, int height) {}
 };
 

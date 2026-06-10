@@ -565,7 +565,19 @@ public:
                 EndScissorMode();
                 m_scissorActive = false;
             }
-            EndDrawing();
+            // Do NOT call EndDrawing() — it internally calls PollInputEvents()
+            // which would steal events from our InputBackend's event loop
+            // (called first in newFrame()).  Instead, just flush the batch
+            // and swap buffers; PollInputEvents is handled by InputBackend.
+            rlDrawRenderBatchActive();
+            SwapScreenBuffer();
+            // Limit to ~60 FPS (was previously handled by EndDrawing via SetTargetFPS)
+            double now = GetTime();
+            double target = 1.0 / 60.0;
+            double elapsed = now - m_lastPresentTime;
+            if (elapsed < target)
+                WaitTime(target - elapsed);
+            m_lastPresentTime = GetTime();
             m_frameActive = false;
         }
     }
@@ -579,6 +591,7 @@ private:
     bool m_frameActive;
     bool m_targetActive;
     bool m_scissorActive = false;
+    double m_lastPresentTime = 0.0;
 };
 
 // ============================================================

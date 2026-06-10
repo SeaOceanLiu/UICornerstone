@@ -8,6 +8,10 @@
 #include <unordered_map>
 #include <memory>
 #include <cstring>
+#include <cmath>
+#include <string>
+#include <unordered_set>
+
 
 // ============================================================
 // RaylibFont
@@ -38,6 +42,36 @@ struct RaylibCachedText {
     std::string text;
     RaylibFont* font;
 };
+
+// Font cache key: content hash of font data + pixel size.
+// The cached font stores a union of all codepoint sets ever requested.
+// When a cache hit occurs but the requested codepoints are not fully loaded,
+// the font is reloaded with the merged set (lazy expansion).
+struct FontCacheKey {
+    size_t contentHash;
+    int size;
+    bool operator==(const FontCacheKey& o) const {
+        return contentHash == o.contentHash && size == o.size;
+    }
+};
+struct FontCacheHash {
+    size_t operator()(const FontCacheKey& k) const {
+        size_t h = k.contentHash;
+        h ^= k.size * 0x9e3779b9;
+        return h;
+    }
+};
+
+struct FontCacheEntry {
+    SharedFont font;
+    int scaledSize;
+    std::unordered_set<int> loadedCps; // union of all loaded codepoints
+};
+
+// DPI conversion: SDL3_ttf renders points at 96 DPI (pixels = points * 96/72).
+// Raylib uses raw pixel sizes, so we scale draw positions and font size by 96/72
+// to match SDL3's visual output without affecting layout metrics.
+static constexpr float FONT_DPI_SCALE = 96.0f / 72.0f;
 
 // ============================================================
 // RaylibTextRenderer
@@ -82,58 +116,90 @@ public:
         return cps;
     }
 
-    SharedFont loadFont(const std::string& path, int size) override {
-        auto cps = extractCodepoints("");
-        rlFont f = LoadFontEx(path.c_str(), size, cps.data(), static_cast<int>(cps.size()));
+    static size_t hashVector(const std::vector<int>& v) {
+        size_t h = v.size();
+        for (int i : v) h ^= static_cast<size_t>(i) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+    SharedFont loadOrCreate(const void* data, size_t len, int size, const std::vector<int>& cps, bool fromFile, const std::string& path) {
+        size_t contentHash = fromFile
+            ? std::hash<std::string>{}(path)
+            : std::hash<std::string_view>{}(std::string_view(static_cast<const char*>(data), len));
+        FontCacheKey key{contentHash, size};
+        auto it = m_fontCache.find(key);
+        if (it != m_fontCache.end()) {
+            // Lazy expansion: if the cached font already has all needed codepoints, reuse it.
+            // Otherwise, merge codepoint sets and reload.
+            bool needReload = false;
+            for (int cp : cps) {
+                if (it->second.loadedCps.find(cp) == it->second.loadedCps.end()) {
+                    needReload = true;
+                    it->second.loadedCps.insert(cp);
+                }
+            }
+            if (!needReload) {
+                return it->second.font;
+            }
+
+            // Reload with merged codepoint set
+            std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
+            rlFont f;
+            if (fromFile) {
+                f = LoadFontEx(path.c_str(), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
+            } else {
+                f = LoadFontFromMemory(".ttf", static_cast<const unsigned char*>(data),
+                    static_cast<int>(len), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
+            }
+            if (f.texture.id == 0) return it->second.font; // fallback on failure
+            SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+            it->second.font = std::make_shared<RaylibFont>(f, it->second.scaledSize);
+            return it->second.font;
+        }
+
+        int scaledSize = static_cast<int>(roundf(size * FONT_DPI_SCALE));
+        rlFont f;
+        if (fromFile) {
+            f = LoadFontEx(path.c_str(), scaledSize, cps.data(), static_cast<int>(cps.size()));
+        } else {
+            f = LoadFontFromMemory(".ttf", static_cast<const unsigned char*>(data),
+                static_cast<int>(len), scaledSize, cps.data(), static_cast<int>(cps.size()));
+        }
         if (f.texture.id == 0) {
-            printf("RaylibTextRenderer::loadFont: failed to load %s\n", path.c_str());
             return nullptr;
         }
         SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-        return std::make_shared<RaylibFont>(f, size);
+        auto font = std::make_shared<RaylibFont>(f, scaledSize);
+        FontCacheEntry entry{font, scaledSize, std::unordered_set<int>(cps.begin(), cps.end())};
+        m_fontCache[key] = entry;
+        return font;
+    }
+
+    SharedFont loadFont(const std::string& path, int size) override {
+        auto cps = extractCodepoints("");
+        return loadOrCreate(nullptr, 0, size, cps, true, path);
     }
 
     SharedFont loadFontFromMemory(const void* data, size_t len, int size) override {
         auto cps = extractCodepoints("");
-        rlFont f = LoadFontFromMemory(".ttf",
-            static_cast<const unsigned char*>(data),
-            static_cast<int>(len), size, cps.data(), static_cast<int>(cps.size()));
-        if (f.texture.id == 0) {
-            printf("RaylibTextRenderer::loadFontFromMemory: failed\n");
-            return nullptr;
-        }
-        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-        return std::make_shared<RaylibFont>(f, size);
+        return loadOrCreate(data, len, size, cps, false, "");
     }
 
     SharedFont loadFontWithText(const std::string& path, int size, const std::string& text) override {
         auto cps = extractCodepoints(text);
-        rlFont f = LoadFontEx(path.c_str(), size, cps.data(), static_cast<int>(cps.size()));
-        if (f.texture.id == 0) {
-            printf("RaylibTextRenderer::loadFontWithText: failed to load %s\n", path.c_str());
-            return nullptr;
-        }
-        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-        return std::make_shared<RaylibFont>(f, size);
+        return loadOrCreate(nullptr, 0, size, cps, true, path);
     }
 
     SharedFont loadFontFromMemoryWithText(const void* data, size_t len, int size, const std::string& text) override {
         auto cps = extractCodepoints(text);
-        rlFont f = LoadFontFromMemory(".ttf",
-            static_cast<const unsigned char*>(data),
-            static_cast<int>(len), size, cps.data(), static_cast<int>(cps.size()));
-        if (f.texture.id == 0) {
-            printf("RaylibTextRenderer::loadFontFromMemoryWithText: failed\n");
-            return nullptr;
-        }
-        SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-        return std::make_shared<RaylibFont>(f, size);
+        return loadOrCreate(data, len, size, cps, false, "");
     }
 
     int getFontHeight(Font* font) override {
         auto* rf = static_cast<RaylibFont*>(font);
+        // Use actual font measurement instead of a fixed multiplier
+        // so the returned height closely matches TTF_GetFontHeight in SDL3_ttf.
         Vector2 sz = MeasureTextEx(rf->get(), "Ay", static_cast<float>(rf->getSize()), 0);
-        return static_cast<int>(sz.y + 0.5f);
+        return static_cast<int>(roundf(sz.y));
     }
 
     void* createText(Font* font, const std::string& text) override {
@@ -173,6 +239,7 @@ public:
 
         rlFont fnt = ct->font->get();
         float fontSize = static_cast<float>(ct->font->getSize());
+        float scaledWW = wrapWidth * FONT_DPI_SCALE;
         float lineSpacing = MeasureTextEx(fnt, "Ay", fontSize, 0).y;
         float spaceWidth = MeasureTextEx(fnt, " ", fontSize, 0).x;
         if (spaceWidth <= 0) spaceWidth = lineSpacing * 0.3f;
@@ -192,7 +259,7 @@ public:
                 currentLine = word;
                 currentWidth = wordWidth;
                 firstWord = false;
-            } else if (currentWidth + wordWidth <= wrapWidth) {
+            } else if (currentWidth + wordWidth <= scaledWW) {
                 currentLine += " " + word;
                 currentWidth += wordWidth;
             } else {
@@ -233,6 +300,7 @@ public:
 
         rlFont fnt = rf->get();
         float fontSize = static_cast<float>(rf->getSize());
+        float scaledWW = wrapWidth * FONT_DPI_SCALE;
         float lineSpacing = MeasureTextEx(fnt, "Ay", fontSize, 0).y;
         float spaceWidth = MeasureTextEx(fnt, " ", fontSize, 0).x;
         if (spaceWidth <= 0) spaceWidth = lineSpacing * 0.3f;
@@ -252,7 +320,7 @@ public:
                 currentLine = word;
                 currentWidth = wordWidth;
                 firstWord = false;
-            } else if (currentWidth + wordWidth <= wrapWidth) {
+            } else if (currentWidth + wordWidth <= scaledWW) {
                 currentLine += " " + word;
                 currentWidth += wordWidth;
             } else {
@@ -273,6 +341,7 @@ public:
 
 private:
     RenderDevice* m_device;
+    std::unordered_map<FontCacheKey, FontCacheEntry, FontCacheHash> m_fontCache;
 };
 
 // ============================================================

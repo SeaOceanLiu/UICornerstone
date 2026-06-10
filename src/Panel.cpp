@@ -56,16 +56,20 @@ void Panel::resolveChildPercentages() {
 
 void Panel::setRect(SRect rect) {
     ControlImpl::setRect(rect);
-    resolveChildPercentages();
     if (m_layoutEngine) {
         reflowChildren();
+    } else {
+        resolveChildPercentages();
     }
 }
 
 void Panel::resized(SRect newRect) {
     ControlImpl::resized(newRect);
-    resolveChildPercentages();
-    reflowChildren();
+    if (m_layoutEngine) {
+        reflowChildren();
+    } else {
+        resolveChildPercentages();
+    }
 }
 
 // *********************************************************************************************

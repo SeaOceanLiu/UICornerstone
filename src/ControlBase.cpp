@@ -318,6 +318,7 @@ void ControlImpl::setScaleY(float yScale){
 }
 
 void ControlImpl::setRect(SRect rect){
+    if (m_rect == rect) return; // dirty check: skip cascade if unchanged
     m_rect = rect;
 }
 

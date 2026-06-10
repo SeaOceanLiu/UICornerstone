@@ -619,10 +619,6 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             if (!filtered.empty()) {
                 insertText(filtered);
             }
-            rebuildLines();
-            updateVScrollBar();
-            updateHScrollBar();
-            ensureCursorVisible();
             ensureCursorHorizontalVisible();
             return true;
         }
@@ -1355,6 +1351,7 @@ void TextArea::insertTextAtCursor(const std::string& text) {
 
 void TextArea::insertText(const std::string& text) {
     EditBox::insertText(text);
+    m_lastTextForRebuild = m_text;
     rebuildLines();
     updateVScrollBar();
     updateHScrollBar();

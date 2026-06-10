@@ -29,6 +29,8 @@ private:
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
     unordered_map<EventName, uint64_t> m_eventJitter;
+    int m_pendingResizeW = -1, m_pendingResizeH = -1;
+    uint64_t m_lastResizeArrival = 0;
 
     MainWindow():
         m_quitRequested(false),

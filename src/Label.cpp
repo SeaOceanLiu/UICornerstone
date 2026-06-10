@@ -83,7 +83,6 @@ void Label::recreate() {
         }
     }
 }
-
 void Label::create(void) {
     if (m_isCreated) return;
 
@@ -468,11 +467,13 @@ bool Label::handleEvent(shared_ptr<Event> event){
 }
 
 void Label::setRect(SRect rect){
+    if (m_rect == rect) return;
     ControlImpl::setRect(rect);
 
     recreate();
 }
 void Label::setParent(Control *parent) {
+    if (m_parent == parent) return;
     ControlImpl::setParent(parent);
 
     recreate();

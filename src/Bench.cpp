@@ -99,16 +99,6 @@ void Bench::setOnInitial(OnInitialHandler handler) {
 
 void Bench::resized(SRect newRect) {
     Panel::resized(newRect);
-    for (auto& child : m_children) {
-        if (!child->getVisible()) continue;
-        auto panel = dynamic_pointer_cast<Panel>(child);
-        if (panel) {
-            panel->resolveChildPercentages();
-            if (panel->getLayoutEngine()) {
-                panel->reflowChildren();
-            }
-        }
-    }
 }
 
 void Bench::addControl(shared_ptr<Control> control) {

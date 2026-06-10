@@ -1,9 +1,9 @@
 ﻿#include "TextRenderer.h"
 #include "RenderDevice.h"
-#include "ConstDef.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <unordered_map>
+#include <cstring>
 
 // ============================================================
 // SDL3Font
@@ -17,6 +17,22 @@ public:
 private:
     TTF_Font* m_font;
     int m_size;
+};
+
+// Font cache key: content hash + pixel size
+struct FontCacheKey {
+    size_t contentHash;
+    int size;
+    bool operator==(const FontCacheKey& o) const {
+        return contentHash == o.contentHash && size == o.size;
+    }
+};
+struct FontCacheHash {
+    size_t operator()(const FontCacheKey& k) const {
+        size_t h = k.contentHash;
+        h ^= k.size * 0x9e3779b9;
+        return h;
+    }
 };
 
 // ============================================================
@@ -39,15 +55,16 @@ public:
     }
 
     SharedFont loadFont(const std::string& path, int size) override {
-        TTF_Font* font = TTF_OpenFont(path.c_str(), size);
-        if (!font) {
-            SDL_Log("SDL3TextRenderer::loadFont: %s", SDL_GetError());
-            return nullptr;
-        }
-        return std::make_shared<SDL3Font>(font, size);
+        return loadOrCreate(path, size);
     }
 
     SharedFont loadFontFromMemory(const void* data, size_t len, int size) override {
+        size_t contentHash = std::hash<std::string_view>{}(std::string_view(static_cast<const char*>(data), len));
+        FontCacheKey key{contentHash, size};
+        auto it = m_fontCache.find(key);
+        if (it != m_fontCache.end()) {
+            return it->second;
+        }
         SDL_IOStream* stream = SDL_IOFromConstMem(data, len);
         if (!stream) {
             SDL_Log("SDL3TextRenderer::loadFontFromMemory: SDL_IOFromConstMem failed");
@@ -58,7 +75,9 @@ public:
             SDL_Log("SDL3TextRenderer::loadFontFromMemory: %s", SDL_GetError());
             return nullptr;
         }
-        return std::make_shared<SDL3Font>(font, size);
+        SharedFont sf = std::make_shared<SDL3Font>(font, size);
+        m_fontCache[key] = sf;
+        return sf;
     }
 
     SSize measureText(Font* font, const std::string& text) override {
@@ -127,8 +146,27 @@ public:
     }
 
 private:
+    SharedFont loadOrCreate(const std::string& path, int size) {
+        auto it = m_pathCache.find(path);
+        if (it != m_pathCache.end()) {
+            if (it->second.find(size) != it->second.end()) {
+                return it->second[size];
+            }
+        }
+        TTF_Font* font = TTF_OpenFont(path.c_str(), size);
+        if (!font) {
+            SDL_Log("SDL3TextRenderer::loadFont: %s", SDL_GetError());
+            return nullptr;
+        }
+        SharedFont sf = std::make_shared<SDL3Font>(font, size);
+        m_pathCache[path][size] = sf;
+        return sf;
+    }
+
     RenderDevice* m_device;
     TTF_TextEngine* m_textEngine;
+    std::unordered_map<FontCacheKey, SharedFont, FontCacheHash> m_fontCache;
+    std::unordered_map<std::string, std::unordered_map<int, SharedFont>> m_pathCache;
 };
 
 // ============================================================

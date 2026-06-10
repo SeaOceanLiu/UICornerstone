@@ -47,12 +47,19 @@ public:
     }
 
     void newFrame() override {
+        // Poll input events so raylib/GLFW processes window messages.
+        // This is the ONLY PollInputEvents call per frame — present() no
+        // longer calls EndDrawing() (which would double-poll and destroy
+        // the just-pressed/released state).
+        PollInputEvents();
+
         m_phase = Phase::Keyboard;
         m_consumedMouseButtons = 0;
         m_consumedMouseReleases = 0;
         m_wheelConsumed = false;
         m_keyConsumed = false;
         m_charConsumed = false;
+        m_resizeDetected = false;
     }
 
     bool pollEvent(Event& event) override {
@@ -102,6 +109,32 @@ public:
                             return true;
                         }
                     }
+                    m_phase = Phase::WindowEvents;
+                    break;
+                }
+
+                case Phase::WindowEvents: {
+                    if (IsWindowResized()) {
+                        m_resizeDetected = true;
+                        event.m_type = EventType::WindowResize;
+                        event.resizeEvent.width = GetScreenWidth();
+                        event.resizeEvent.height = GetScreenHeight();
+                        m_phase = Phase::Done;
+                        return true;
+                    }
+                    if (WindowShouldClose()) {
+                        event.m_type = EventType::WindowClose;
+                        m_phase = Phase::Done;
+                        return true;
+                    }
+                    bool focused = IsWindowFocused();
+                    if (focused != m_lastFocused) {
+                        m_lastFocused = focused;
+                        event.m_type = focused ? EventType::FocusGained : EventType::FocusLost;
+                        event.focusEvent.focused = focused;
+                        m_phase = Phase::Done;
+                        return true;
+                    }
                     m_phase = Phase::MouseButton;
                     break;
                 }
@@ -118,13 +151,17 @@ public:
                             return true;
                         }
                     }
-                    // Check released (transition from down to up)
+                    // Check released.  Suppress MOUSE_UP when a WindowResize
+                    // was detected in this same event batch — the release is
+                    // the tail of a resize-edge drag, not a normal click.
                     for (int i = 0; i < 3; i++) {
                         if (!(m_consumedMouseReleases & (1 << i)) && IsMouseButtonReleased(i)) {
                             m_consumedMouseReleases |= (1 << i);
-                            Vector2 pos = GetMousePosition();
-                            fillMouseButton(event, EventType::MouseUp, i, pos);
-                            return true;
+                            if (!m_resizeDetected) {
+                                Vector2 pos = GetMousePosition();
+                                fillMouseButton(event, EventType::MouseUp, i, pos);
+                                return true;
+                            }
                         }
                     }
                     m_phase = Phase::MouseMove;
@@ -159,31 +196,6 @@ public:
                             return true;
                         }
                     }
-                    m_phase = Phase::WindowEvents;
-                    break;
-                }
-
-                case Phase::WindowEvents: {
-                    if (IsWindowResized()) {
-                        event.m_type = EventType::WindowResize;
-                        event.resizeEvent.width = GetScreenWidth();
-                        event.resizeEvent.height = GetScreenHeight();
-                        m_phase = Phase::Done;
-                        return true;
-                    }
-                    if (WindowShouldClose()) {
-                        event.m_type = EventType::WindowClose;
-                        m_phase = Phase::Done;
-                        return true;
-                    }
-                    bool focused = IsWindowFocused();
-                    if (focused != m_lastFocused) {
-                        m_lastFocused = focused;
-                        event.m_type = focused ? EventType::FocusGained : EventType::FocusLost;
-                        event.focusEvent.focused = focused;
-                        m_phase = Phase::Done;
-                        return true;
-                    }
                     m_phase = Phase::Done;
                     break;
                 }
@@ -211,7 +223,7 @@ public:
 
 private:
     enum class Phase {
-        Keyboard, CharInput, MouseButton, MouseMove, MouseWheel, WindowEvents, Done
+        Keyboard, CharInput, WindowEvents, MouseButton, MouseMove, MouseWheel, Done
     };
 
     static KeyCode mapKeycode(int rlKey) {
@@ -351,6 +363,7 @@ private:
     bool m_wheelConsumed;
     bool m_keyConsumed;
     bool m_charConsumed;
+    bool m_resizeDetected = false;
 };
 
 // ============================================================
