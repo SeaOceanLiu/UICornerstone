@@ -60,9 +60,11 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     m_titleBar->addControl(m_titleLabel = LabelBuilder(m_titleBar.get(),
         SRect(0, 0, titleRect.width, titleRect.height))
         .setFontSize((int)titleH - 4)
-        .setAlignmentMode(AlignmentMode::AM_CENTER)
+        .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
         .setFont(FontName::HarmonyOS_Sans_SC_Regular)
         .setCaption(m_title)
+        .setEnableExpand(false)   // 裁剪长标题，防止titleLabel的hotRect延伸到WinFrame边缘外
+        .setClickable(false)      // 标题栏不可点击，保证MouseDown能穿透到WinFrame的拖拽逻辑
         .build());
 
     SRect clientRect = {0, titleH, m_rect.width, m_rect.height - titleH};
@@ -166,10 +168,14 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         hasPos = true;
     }
 
+    bool consumedByFocus = false;
+
     // Step 0: Focus-to-front on any MOUSE_LBUTTON_DOWN within WinFrame
+    // (must consume the event so sibling WinFrames don't also bringToFront, causing Z-order toggle)
     if (hasPos && event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
         if (getDrawRect().contains(mousePos.x, mousePos.y)) {
             bringToFront();
+            consumedByFocus = true;
         }
     }
 
@@ -297,7 +303,12 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         }
     }
 
-    return consumed;
+    // MouseMove: don't consume unless at a resizable edge, so sibling WinFrames
+    // (lower in Z-order) can also process the event and set their resize cursor.
+    if (event->m_type == EventType::MouseMove) {
+        return m_resizable && m_lastEdgeFlags != 0;
+    }
+    return consumed || consumedByFocus;
 }
 
 void WinFrame::setRect(SRect rect) {

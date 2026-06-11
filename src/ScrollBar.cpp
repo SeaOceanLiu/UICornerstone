@@ -137,7 +137,7 @@ void ScrollBar::update(void) {
 void ScrollBar::draw(void) {
     if (!m_visible) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     SRect drawRect = getDrawRect();
 
@@ -161,6 +161,8 @@ void ScrollBar::draw(void) {
 
     GET_RENDERDEVICE->setDrawColor(thumbColor);
     GET_RENDERDEVICE->fillRect(thumbDrawRect);
+
+    afterDraw();
 }
 
 bool ScrollBar::handleEvent(shared_ptr<Event> event) {

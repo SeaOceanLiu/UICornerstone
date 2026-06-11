@@ -49,7 +49,7 @@ shared_ptr<Label> ProgressBar::getTextLabel(void) const {
 void ProgressBar::draw(void) {
     if (!getVisible()) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     SRect drawRect = getDrawRect();
 
@@ -73,6 +73,7 @@ void ProgressBar::draw(void) {
     }
 
     ControlImpl::draw();
+    afterDraw();
 }
 
 bool ProgressBar::handleEvent(shared_ptr<Event> event) {

@@ -225,7 +225,7 @@ void EditBox::update(void) {
 void EditBox::draw(void) {
     if (!m_visible) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     SRect drawRect = getDrawRect();
     float scaledFontSize = m_fontSize * getScaleXX();
@@ -277,6 +277,8 @@ void EditBox::draw(void) {
         GET_RENDERDEVICE->setDrawColor(m_textColor.getNormal());
         GET_RENDERDEVICE->fillRect(cursorRect);
     }
+
+    afterDraw();
 }
 
 bool EditBox::handleEvent(shared_ptr<Event> event) {

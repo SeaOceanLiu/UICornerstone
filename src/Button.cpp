@@ -28,7 +28,7 @@ void Button::update(void){
 void Button::draw(void){
     if (!getVisible()) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     // 2. 绘制当前控件的图标
     auto actor = m_actor;
@@ -69,6 +69,9 @@ void Button::draw(void){
 
     // 4. 接着绘制子控件
     ControlImpl::draw();
+
+    // 5. 最后绘制边框
+    afterDraw();
 
     // // 5. 最后绘制边框
     // if(!m_isTransparent && m_isBorderVisible) {
@@ -129,8 +132,6 @@ bool Button::handleEvent(shared_ptr<Event> event){
                     return true;
             }
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
-                printf("[Button] MouseDown event received!\n");
-                fflush(stdout);
                 setState(ControlState::Pressed);
                 return true;
             }

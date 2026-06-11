@@ -66,6 +66,7 @@ private:
     int m_defaultLineHeight;
     int m_lineHeight;
     bool m_enableExpand;
+    bool m_clickable;
     SRect m_originalRect;
     bool m_debugDraw;
     float m_defaultLineSpacingRatio;
@@ -123,6 +124,8 @@ public:
     void setEnableExpand(bool enable);
     bool getEnableExpand() const;
 
+    void setClickable(bool clickable);
+
     void SetFontStyle(int fontStyle);
 };
 
@@ -147,6 +150,8 @@ public:
     LabelBuilder& setLineHeight(int height);
 
     LabelBuilder& setEnableExpand(bool enable);
+
+    LabelBuilder& setClickable(bool clickable);
 
     LabelBuilder& setBorderStateColor(StateColor stateColor);
 

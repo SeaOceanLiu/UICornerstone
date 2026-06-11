@@ -14,8 +14,9 @@ void Panel::update(void){
 void Panel::draw(void){
     if (!getVisible()) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
     ControlImpl::draw();
+    afterDraw();
 }
 
 bool Panel::handleEvent(shared_ptr<Event> event){

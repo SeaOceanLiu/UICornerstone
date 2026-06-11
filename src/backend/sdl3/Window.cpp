@@ -86,5 +86,6 @@ Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flag
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return nullptr;
     }
+    SDL_SetRenderVSync(renderer, 0);
     return new SDL3Window(window, renderer);
 }

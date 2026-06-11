@@ -17,6 +17,7 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     , m_defaultLineHeight(0)
     , m_lineHeight(0)
     , m_enableExpand(true)
+    , m_clickable(true)
     , m_originalRect(rect)
     , m_debugDraw(false)
     , m_defaultLineSpacingRatio(0)
@@ -332,7 +333,7 @@ void Label::update(void){
 void Label::draw(void){
     if(!getVisible()) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     if (m_lines.empty()) {
         return;
@@ -400,12 +401,15 @@ void Label::draw(void){
     }
 
     ControlImpl::draw();
+    afterDraw();
 }
 
 bool Label::handleEvent(shared_ptr<Event> event){
     if(!getEnable() || !getVisible()) return false;
 
     if (ControlImpl::handleEvent(event)) return true;
+
+    if (!m_clickable) return false;
 
     float mx, my;
     bool gotPos = false;
@@ -574,6 +578,10 @@ bool Label::getEnableExpand() const{
     return m_enableExpand;
 }
 
+void Label::setClickable(bool clickable){
+    m_clickable = clickable;
+}
+
 LabelBuilder::LabelBuilder(Control *parent, SRect rect, float xScale, float yScale):
     m_label(nullptr)
 {
@@ -643,6 +651,11 @@ LabelBuilder& LabelBuilder::setLineHeight(int height){
 
 LabelBuilder& LabelBuilder::setEnableExpand(bool enable){
     m_label->setEnableExpand(enable);
+    return *this;
+}
+
+LabelBuilder& LabelBuilder::setClickable(bool clickable){
+    m_label->setClickable(clickable);
     return *this;
 }
 

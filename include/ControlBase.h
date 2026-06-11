@@ -142,7 +142,8 @@ public:
     virtual void setId(int id) = 0;
     virtual int getId(void) const = 0;
     virtual void update(void) = 0;
-    virtual void preDraw() = 0;
+    virtual void beforeDraw() = 0;
+    virtual void afterDraw() = 0;
     virtual void draw(void) = 0;
     virtual void resized(SRect newRect) = 0;
     virtual void moved(SRect newRect) = 0;
@@ -256,6 +257,9 @@ protected:
     // 鼠标进入/退出状态跟踪
     bool m_mouseInside;
 
+    SRect m_frameDrawRect;
+    bool m_frameDrawRectValid = false;
+
     void recreate(void) override; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
     // 直接更新子控件的复合缩放值，避免通过 setParent(this) 传播缩放（setParent 会触发
     // inheritRenderer 等不必要开销，且与 Label::setParent 的脏-父检查冲突）
@@ -275,7 +279,8 @@ public:
     int getId(void) const override { return m_id; }
     ControlImpl& operator=(const ControlImpl& other);
     void update(void) override;
-    void preDraw() override;
+    void beforeDraw() override;
+    void afterDraw() override;
     void draw(void) override;
     void resized(SRect newRect) override;
     void moved(SRect newRect) override;

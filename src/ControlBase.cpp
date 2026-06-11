@@ -163,12 +163,19 @@ void ControlImpl::draw(void){
         child->draw();
     }
 }
-void ControlImpl::preDraw() {
+void ControlImpl::beforeDraw() {
     if (!getVisible()) return;
 
-    SRect drawRect = getDrawRect();
-    drawBackground(&drawRect);
-    drawBorder(&drawRect);
+    m_frameDrawRect = getDrawRect();
+    m_frameDrawRectValid = true;
+    drawBackground(&m_frameDrawRect);
+}
+
+void ControlImpl::afterDraw() {
+    if (!getVisible()) return;
+
+    drawBorder(&m_frameDrawRect);
+    m_frameDrawRectValid = false;
 }
 void ControlImpl::drawBackground(const SRect *pDrawRect){
     SRect drawRect;
@@ -490,14 +497,14 @@ SRect ControlImpl::getDrawRect(void){
 }
 
 SRect ControlImpl::mapToDrawRect(SRect rect){
-    SRect drawRect = getDrawRect();
+    SRect drawRect = m_frameDrawRectValid ? m_frameDrawRect : getDrawRect();
     return {rect.left * getScaleXX() + drawRect.left,
         rect.top * getScaleYY() + drawRect.top,
         rect.width * getScaleXX(),
         rect.height * getScaleYY()};
 }
 SPoint ControlImpl::mapToDrawPoint(SPoint point){
-    SRect drawRect = getDrawRect();
+    SRect drawRect = m_frameDrawRectValid ? m_frameDrawRect : getDrawRect();
     return {point.x * getScaleXX() + drawRect.left,
         point.y * getScaleYY() + drawRect.top};
 }

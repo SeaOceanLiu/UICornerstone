@@ -164,7 +164,7 @@ void CheckBox::update(void) {
 void CheckBox::draw(void) {
     if (!getVisible()) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     SRect drawRect = getDrawRect();
 
@@ -187,6 +187,7 @@ void CheckBox::draw(void) {
     }
 
     ControlImpl::draw();
+    afterDraw();
 }
 
 bool CheckBox::handleEvent(shared_ptr<Event> event) {

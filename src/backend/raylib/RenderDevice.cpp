@@ -571,13 +571,6 @@ public:
             // and swap buffers; PollInputEvents is handled by InputBackend.
             rlDrawRenderBatchActive();
             SwapScreenBuffer();
-            // Limit to ~60 FPS (was previously handled by EndDrawing via SetTargetFPS)
-            double now = GetTime();
-            double target = 1.0 / 60.0;
-            double elapsed = now - m_lastPresentTime;
-            if (elapsed < target)
-                WaitTime(target - elapsed);
-            m_lastPresentTime = GetTime();
             m_frameActive = false;
         }
     }

@@ -29,8 +29,8 @@ class Margin; // 前向声明Margin类
 #define INITIAL_POSX 0x2FFF0000
 // 主窗体初始位置Y坐标，0x2FFF0000表示居中(SDL_WINDOWPOS_CENTERED)
 #define INITIAL_POSY 0x2FFF0000
-// 在这里定义窗口特性标志：0x00000020=可调整大小, 0x00020000=高DPI支持
-#define WINDOW_FLAG (0x00000020 | 0x00020000)
+// 在这里定义窗口特性标志：0x00000020=可调整大小, 0x00002000=高DPI支持
+#define WINDOW_FLAG (0x00000020 | 0x00002000)
 // 是否开启垂直同步，0表示不启用垂直同步，1表示启用垂直同步
 #define VSYNC_FLAG (0)
 

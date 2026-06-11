@@ -417,7 +417,7 @@ void TextArea::update(void) {
 void TextArea::draw(void) {
     if (!m_visible) return;
 
-    ControlImpl::preDraw();
+    ControlImpl::beforeDraw();
 
     if (m_lines.empty() || m_lineStartPositions.empty()) {
         rebuildLines();
@@ -602,6 +602,8 @@ void TextArea::draw(void) {
     }
 
     GET_RENDERDEVICE->clearClipRect();
+
+    afterDraw();
 }
 
 bool TextArea::handleEvent(shared_ptr<Event> event) {
