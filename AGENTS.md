@@ -21,14 +21,17 @@
 ```batch
 build_scripts\build.bat sdl3    # SDL3 backend (default)
 build_scripts\build.bat sfml    # SFML backend
+build_scripts\build.bat raylib  # Raylib backend
 ```
 
 **Build single test:**
 ```batch
 build_scripts\build_test.bat test_label             # SDL3 (default)
 build_scripts\build_test.bat test_label sfml        # SFML
+build_scripts\build_test.bat test_label raylib      # Raylib
 build_scripts\build_sdl3.bat test_label             # shortcut for SDL3
 build_scripts\build_sfml.bat test_label             # shortcut for SFML
+build_scripts\build_raylib.bat test_label           # shortcut for Raylib
 ```
 
 **Available tests**: test_menu, test_label, test_editbox, test_checkbox, test_progressbar, test_layout, test_layout_advanced, test_winframe, test_graphtool, test_button
