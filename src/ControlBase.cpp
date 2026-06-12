@@ -252,19 +252,40 @@ void ControlImpl::moved(SRect newRect){
 bool ControlImpl::handleEvent(shared_ptr<Event> event){
     // 检查当前控件是否可见且启用
     if (getVisible() && getEnable()){
+        // 提取事件坐标（仅对有位置的事件做遮挡检测）
+        float mx = 0, my = 0;
+        bool hasPos = false;
+        if (event->m_type == EventType::MouseMove) {
+            mx = event->mousePos.x; my = event->mousePos.y; hasPos = true;
+        } else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+            mx = event->mouseButton.x; my = event->mouseButton.y; hasPos = true;
+        } else if (event->m_type == EventType::MouseWheel) {
+            mx = event->mouseWheel.x; my = event->mouseWheel.y; hasPos = true;
+        } else if (event->m_type == EventType::FingerDown || event->m_type == EventType::FingerUp || event->m_type == EventType::FingerMotion) {
+            mx = event->mousePos.x; my = event->mousePos.y; hasPos = true;
+        }
+
         // 逆向遍历当前控件的所有子控件，保证后添加的控件先处理事件，因为后添加的控件在屏幕上位于上层
         // 使用副本遍历，防止子控件的 bringToFront 等操作修改 m_children 导致迭代器失效
         auto childrenCopy = m_children;
         for (auto it = childrenCopy.rbegin(); it != childrenCopy.rend(); ++it){
-            // 调用子控件的handleEvent函数处理事件
+            // 对有位置的事件：检查当前子控件是否被更高层级的兄弟控件遮挡
+            if (hasPos) {
+                bool covered = false;
+                for (auto coverIt = childrenCopy.rbegin(); coverIt != it; ++coverIt) {
+                    if ((*coverIt)->getVisible() && (*coverIt)->getDrawRect().contains(mx, my)) {
+                        covered = true;
+                        break;
+                    }
+                }
+                if (covered) continue;
+            }
             if ((*it)->handleEvent(event)){
-                // 如果子控件处理了事件，则返回true
                 return true;
             }
         }
 
     }
-    // 如果当前控件及其子控件均未处理事件，则返回false
     return false;
 }
 
