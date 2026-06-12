@@ -1,25 +1,20 @@
 ﻿#ifndef StateMachineH
 #define StateMachineH
 
-#include <any>
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <cstdint>
 #include <cstdio>
 #include "EventTypes.h"
 
 using namespace std;
 
-enum class State: int;      // 使用时，需要重新定义该枚举值
-enum class EventName: int;  // 使用时，需要重新定义该枚举值
+enum class State: int;    // 使用时，需要重新定义该枚举值
+enum class EventName: int; // 自定义事件路由类型
 
 class Event{
 public:
-    // OLD API (std::any based) - kept for backward compatibility
-    EventName m_eventName;
-    std::any m_eventParam;
-
-    // NEW API (union based) - cross-DLL safe
     EventType m_type;
 
     union {
@@ -34,57 +29,53 @@ public:
         EventFocus       focusEvent;
         char _pad;
     };
+    int   customInt;
+    void* customPtr;
 
     Event():
-        m_eventName(static_cast<EventName>(0)),
         m_type(EventType::None),
-        _pad(0)
+        customInt(0),
+        customPtr(nullptr)
     {
     }
-
-    Event(EventName eventName, std::any param);
 
     Event(EventType type):
-        m_eventName(static_cast<EventName>(0)),
         m_type(type),
-        _pad(0)
+        customInt(0),
+        customPtr(nullptr)
     {
     }
 
-    // 拷贝构造函数
     Event(const Event& event):
-        m_eventName(event.m_eventName),
-        m_eventParam(event.m_eventParam),
-        m_type(event.m_type)
+        m_type(event.m_type),
+        customInt(event.customInt),
+        customPtr(event.customPtr)
     {
         copyUnion(event);
     }
-    // 移动构造函数
     Event(Event&& event):
-        m_eventName(event.m_eventName),
-        m_eventParam(event.m_eventParam),
-        m_type(event.m_type)
+        m_type(event.m_type),
+        customInt(event.customInt),
+        customPtr(event.customPtr)
     {
         copyUnion(event);
     }
-    // 赋值运算符重载
     Event& operator=(const Event& event){
-        m_eventName = event.m_eventName;
-        m_eventParam = event.m_eventParam;
         m_type = event.m_type;
+        customInt = event.customInt;
+        customPtr = event.customPtr;
         copyUnion(event);
         return *this;
     }
-    // 移动赋值运算符重载
     Event& operator=(Event&& event){
-        m_eventName = event.m_eventName;
-        m_eventParam = event.m_eventParam;
         m_type = event.m_type;
+        customInt = event.customInt;
+        customPtr = event.customPtr;
         copyUnion(event);
         return *this;
     }
 
-    virtual ~Event(){};
+    ~Event(){};
 
 private:
     void copyUnion(const Event& event) {
@@ -110,6 +101,10 @@ private:
             case EventType::FocusGained:
             case EventType::FocusLost:
                 focusEvent = event.focusEvent; break;
+            case EventType::FingerDown:
+            case EventType::FingerUp:
+            case EventType::FingerMotion:
+                mousePos = event.mousePos; break;
             default:
                 _pad = 0; break;
         }
@@ -173,7 +168,7 @@ public:
         if (it != m_stateEventHandlers.end()) {
             return it->second(event);
         } else {
-            printf("No handler for event %d in state %d\n", static_cast<int>(event->m_eventName), static_cast<int>(m_currentState));
+            printf("No handler for event %d in state %d\n", static_cast<int>(event->m_type), static_cast<int>(m_currentState));
             return false;
         }
     }

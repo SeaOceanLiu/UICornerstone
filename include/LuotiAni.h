@@ -561,7 +561,7 @@ public:
                         m_frameToDraw = 0;
                         m_isPlaying = false;
 
-                        triggerEvent(make_shared<Event>(EventName::AnimationEnded, m_id));
+                        { auto evt = make_shared<Event>(EventType::Custom); evt->customInt = static_cast<int>(EventName::AnimationEnded); evt->customPtr = reinterpret_cast<void*>(static_cast<intptr_t>(m_id)); triggerEvent(evt); }
                         return;
                     }
                 }
@@ -883,7 +883,7 @@ public:
                         m_frameToDraw = 0;
                         m_isPlaying = false;
 
-                        triggerEvent(make_shared<Event>(EventName::LuotiInstanceEnded, m_userId));
+                        { auto evt = make_shared<Event>(EventType::Custom); evt->customInt = static_cast<int>(EventName::LuotiInstanceEnded); evt->customPtr = reinterpret_cast<void*>(static_cast<intptr_t>(m_userId)); triggerEvent(evt); }
                         return;
                     }
                 }

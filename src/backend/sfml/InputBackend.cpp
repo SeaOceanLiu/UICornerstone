@@ -138,14 +138,12 @@ public:
 
         const auto& sfmlEvent = *optEvent;
 
-        event.m_eventName = static_cast<EventName>(0);
-        event.m_eventParam = {};
         event.m_type = EventType::None;
-        event._pad = 0;
+        event.customInt = 0;
+        event.customPtr = nullptr;
 
         if (sfmlEvent.is<sf::Event::Closed>()) {
             event.m_type = EventType::WindowClose;
-            event.m_eventName = EventName::Exit;
         }
         else if (const auto* resized = sfmlEvent.getIf<sf::Event::Resized>()) {
             event.m_type = EventType::WindowResize;
@@ -153,37 +151,20 @@ public:
             event.resizeEvent.height = static_cast<int>(resized->size.y);
         }
         else if (const auto* keyPressed = sfmlEvent.getIf<sf::Event::KeyPressed>()) {
-            KeyEventData keyData;
-            keyData.keycode = SFMLKeycodeToKeyCode(keyPressed->code);
-            keyData.scancode = static_cast<int32_t>(0);
-            keyData.mod = SFMLKeymodToKeyMod(keyPressed->control, keyPressed->alt, keyPressed->shift, keyPressed->system);
-            keyData.repeat = false;
-
             event.m_type = EventType::KeyDown;
-            event.keyEvent.keycode = keyData.keycode;
-            event.keyEvent.mod = keyData.mod;
-            event.keyEvent.scancode = keyData.scancode;
-            event.keyEvent.repeat = keyData.repeat;
-            event.m_eventName = EventName::KEY_DOWN;
-            event.m_eventParam = keyData;
+            event.keyEvent.keycode = SFMLKeycodeToKeyCode(keyPressed->code);
+            event.keyEvent.mod = SFMLKeymodToKeyMod(keyPressed->control, keyPressed->alt, keyPressed->shift, keyPressed->system);
+            event.keyEvent.scancode = 0;
+            event.keyEvent.repeat = false;
         }
         else if (const auto* keyReleased = sfmlEvent.getIf<sf::Event::KeyReleased>()) {
-            KeyEventData keyData;
-            keyData.keycode = SFMLKeycodeToKeyCode(keyReleased->code);
-            keyData.scancode = static_cast<int32_t>(0);
-            keyData.mod = SFMLKeymodToKeyMod(keyReleased->control, keyReleased->alt, keyReleased->shift, keyReleased->system);
-            keyData.repeat = false;
-
             event.m_type = EventType::KeyUp;
-            event.keyEvent.keycode = keyData.keycode;
-            event.keyEvent.mod = keyData.mod;
-            event.keyEvent.scancode = keyData.scancode;
-            event.keyEvent.repeat = keyData.repeat;
-            event.m_eventName = EventName::KEY_UP;
-            event.m_eventParam = keyData;
+            event.keyEvent.keycode = SFMLKeycodeToKeyCode(keyReleased->code);
+            event.keyEvent.mod = SFMLKeymodToKeyMod(keyReleased->control, keyReleased->alt, keyReleased->shift, keyReleased->system);
+            event.keyEvent.scancode = 0;
+            event.keyEvent.repeat = false;
         }
         else if (const auto* textEntered = sfmlEvent.getIf<sf::Event::TextEntered>()) {
-            TextInputEventData textData;
             char32_t unicode = textEntered->unicode;
             char utf8[8] = {};
             if (unicode < 0x80) {
@@ -201,47 +182,24 @@ public:
                 utf8[2] = static_cast<char>(0x80 | ((unicode >> 6) & 0x3F));
                 utf8[3] = static_cast<char>(0x80 | (unicode & 0x3F));
             }
-            textData.text = utf8;
-            textData.start = -1;
-            textData.length = -1;
 
             event.m_type = EventType::TextInput;
             std::memset(event.textInput.text, 0, sizeof(event.textInput.text));
             std::strncpy(event.textInput.text, utf8, sizeof(event.textInput.text) - 1);
-            event.m_eventName = EventName::TEXT_INPUT;
-            event.m_eventParam = textData;
         }
         else if (const auto* scrolled = sfmlEvent.getIf<sf::Event::MouseWheelScrolled>()) {
-            MouseWheelEventData wheelData;
-            wheelData.x = static_cast<float>(scrolled->position.x);
-            wheelData.y = static_cast<float>(scrolled->position.y);
-            wheelData.mouseX = static_cast<float>(scrolled->position.x);
-            wheelData.mouseY = static_cast<float>(scrolled->position.y);
-
             event.m_type = EventType::MouseWheel;
             event.mouseWheel.x = static_cast<float>(scrolled->position.x);
             event.mouseWheel.y = static_cast<float>(scrolled->position.y);
             event.mouseWheel.scrollX = 0;
             event.mouseWheel.scrollY = scrolled->delta * 120.0f;
-            event.m_eventName = EventName::MOUSE_WHEEL;
-            event.m_eventParam = wheelData;
         }
         else if (const auto* moved = sfmlEvent.getIf<sf::Event::MouseMoved>()) {
-            auto mousePos = std::make_shared<SPoint>(
-                static_cast<float>(moved->position.x),
-                static_cast<float>(moved->position.y));
-
             event.m_type = EventType::MouseMove;
             event.mousePos.x = static_cast<float>(moved->position.x);
             event.mousePos.y = static_cast<float>(moved->position.y);
-            event.m_eventName = EventName::MOUSE_MOVING;
-            event.m_eventParam = mousePos;
         }
         else if (const auto* btnPressed = sfmlEvent.getIf<sf::Event::MouseButtonPressed>()) {
-            auto mousePos = std::make_shared<SPoint>(
-                static_cast<float>(btnPressed->position.x),
-                static_cast<float>(btnPressed->position.y));
-
             MouseButton btn = MouseButton::None;
             switch (btnPressed->button) {
                 case sf::Mouse::Button::Left:   btn = MouseButton::Left; break;
@@ -256,19 +214,8 @@ public:
             event.mouseButton.x = static_cast<float>(btnPressed->position.x);
             event.mouseButton.y = static_cast<float>(btnPressed->position.y);
             event.mouseButton.button = btn;
-            switch (btnPressed->button) {
-                case sf::Mouse::Button::Left:   event.m_eventName = EventName::MOUSE_LBUTTON_DOWN; break;
-                case sf::Mouse::Button::Right:  event.m_eventName = EventName::MOUSE_RBUTTON_DOWN; break;
-                case sf::Mouse::Button::Middle: event.m_eventName = EventName::MOUSE_MBUTTON_DOWN; break;
-                default:                         event.m_eventName = EventName::MOUSE_LBUTTON_DOWN; break;
-            }
-            event.m_eventParam = mousePos;
         }
         else if (const auto* btnReleased = sfmlEvent.getIf<sf::Event::MouseButtonReleased>()) {
-            auto mousePos = std::make_shared<SPoint>(
-                static_cast<float>(btnReleased->position.x),
-                static_cast<float>(btnReleased->position.y));
-
             MouseButton btn = MouseButton::None;
             switch (btnReleased->button) {
                 case sf::Mouse::Button::Left:   btn = MouseButton::Left; break;
@@ -283,13 +230,6 @@ public:
             event.mouseButton.x = static_cast<float>(btnReleased->position.x);
             event.mouseButton.y = static_cast<float>(btnReleased->position.y);
             event.mouseButton.button = btn;
-            switch (btnReleased->button) {
-                case sf::Mouse::Button::Left:   event.m_eventName = EventName::MOUSE_LBUTTON_UP; break;
-                case sf::Mouse::Button::Right:  event.m_eventName = EventName::MOUSE_RBUTTON_UP; break;
-                case sf::Mouse::Button::Middle: event.m_eventName = EventName::MOUSE_MBUTTON_UP; break;
-                default:                         event.m_eventName = EventName::MOUSE_LBUTTON_UP; break;
-            }
-            event.m_eventParam = mousePos;
         }
 
         return true;

@@ -194,6 +194,10 @@ void EditBox::insertText(const std::string& text) {
     m_cursorPosition += (int)text.length();
 
     clearSelection();
+
+    // Reload font with new text to pick up any new codepoints (e.g., CJK)
+    loadFontInternal();
+
     updateTextOffset();
 
     if (m_onTextChanged) {
@@ -622,15 +626,13 @@ void EditBox::setFocused(bool focused) {
 
     if (focused) {
         if (!m_focusWatcherRegistered) {
-            EventQueue::getInstance()->addBeforeEventHandlingWatcher(EventName::ON_FOCUS, getThis());
+            EventQueue::getInstance()->addBeforeEventHandlingWatcher(EventType::Custom, getThis());
             m_focusWatcherRegistered = true;
         }
 
-        FocusEventData focusData;
-        focusData.controlPtr = this;
-        focusData.focused = true;
-
-        shared_ptr<Event> event = make_shared<Event>(EventName::ON_FOCUS, focusData);
+        auto event = make_shared<Event>(EventType::Custom);
+        event->customInt = static_cast<int>(EventName::ON_FOCUS);
+        event->customPtr = this;
         EventQueue::getInstance()->pushEventIntoQueue(event);
 
         m_focused = true;
@@ -651,13 +653,9 @@ void EditBox::setMargin(const Margin& margin) {
 }
 
 bool EditBox::beforeEventHandlingWatcher(shared_ptr<Event> event) {
-    if (event->m_eventName == EventName::ON_FOCUS && m_focused) {
-        try {
-            FocusEventData focusData = std::any_cast<FocusEventData>(event->m_eventParam);
-            if (focusData.controlPtr != this) {
-                setFocused(false);
-            }
-        } catch (const std::bad_any_cast& e) {
+    if (event->m_type == EventType::Custom && event->customInt == static_cast<int>(EventName::ON_FOCUS) && m_focused) {
+        if (event->customPtr != this) {
+            setFocused(false);
         }
     }
     return false;

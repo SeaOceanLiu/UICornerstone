@@ -125,6 +125,7 @@ void testBenchInitialize(void) {
 class EditBoxApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_editbox");
         cout << "test_editbox test" << endl;
 
         SSize displaySize = MAINWIN->getDisplaySize();

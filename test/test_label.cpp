@@ -216,6 +216,7 @@ void testBenchInitialize(void) {
 class LabelApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_label");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

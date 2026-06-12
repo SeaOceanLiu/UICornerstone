@@ -303,6 +303,11 @@ public:
     }
 
     void fillRect(const SRect& rect) override {
+        // flush pending lines first to preserve z-order across controls
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
         m_fillBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
@@ -314,6 +319,11 @@ public:
     }
 
     void drawRect(const SRect& rect) override {
+        // flush pending fills first to preserve z-order across controls
+        if (m_fillBatch.getVertexCount() > 0) {
+            m_target->draw(m_fillBatch);
+            m_fillBatch.clear();
+        }
         m_batchDirty = true;
         float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
         m_lineBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
@@ -327,6 +337,11 @@ public:
     }
 
     void drawLine(float x1, float y1, float x2, float y2) override {
+        // flush pending fills first to preserve z-order
+        if (m_fillBatch.getVertexCount() > 0) {
+            m_target->draw(m_fillBatch);
+            m_fillBatch.clear();
+        }
         m_batchDirty = true;
         m_lineBatch.append(sf::Vertex{sf::Vector2f(x1, y1), m_currentColor});
         m_lineBatch.append(sf::Vertex{sf::Vector2f(x2, y2), m_currentColor});
@@ -340,6 +355,10 @@ public:
 
     void drawTriangles(const Vertex* vertices, int count) override {
         if (count < 3) return;
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         for (int i = 0; i < count; ++i) {
             m_fillBatch.append(sf::Vertex{
@@ -351,6 +370,10 @@ public:
 
     void drawTriangleStrip(const Vertex* vertices, int count) override {
         if (count < 3) return;
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         for (int i = 0; i < count; ++i) {
             m_fillBatch.append(sf::Vertex{
@@ -362,6 +385,10 @@ public:
 
     void drawTriangleFan(const Vertex* vertices, int count) override {
         if (count < 3) return;
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         int numTriangles = count - 2;
         for (int i = 0; i < numTriangles; ++i) {
@@ -376,6 +403,10 @@ public:
     }
 
     void drawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, SColor color) override {
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
         m_fillBatch.append(sf::Vertex{sf::Vector2f(x0, y0), c});
@@ -384,6 +415,10 @@ public:
     }
 
     void drawQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, SColor color) override {
+        if (m_lineBatch.getVertexCount() > 0) {
+            m_target->draw(m_lineBatch);
+            m_lineBatch.clear();
+        }
         m_batchDirty = true;
         sf::Color c(color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte());
         m_fillBatch.append(sf::Vertex{sf::Vector2f(x0, y0), c});

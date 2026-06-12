@@ -417,23 +417,18 @@ bool Label::handleEvent(shared_ptr<Event> event){
     else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
         mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
     }
-    if (!gotPos && EventQueue::isPositionEvent(event->m_eventName) && event->m_eventParam.has_value()) {
-        try {
-            auto p = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (p) { mx = p->x; my = p->y; gotPos = true; }
-        } catch (...) { }
+    else if (event->m_type == EventType::FingerDown || event->m_type == EventType::FingerUp || event->m_type == EventType::FingerMotion) {
+        mx = event->mousePos.x; my = event->mousePos.y; gotPos = true;
     }
     if (gotPos) {
         SRect detectRect = mapToDrawRect(m_hotRect);
         if (detectRect.contains(mx, my)){
-            switch(event->m_eventName){
-                case EventName::FINGER_DOWN:
-                case EventName::FINGER_MOTION:
-                    if (m_onClick != nullptr){
-                        m_onClick(dynamic_pointer_cast<Label>(this->getThis()));
-                    }
-                    setState(ControlState::Pressed);
-                    return true;
+            if (event->m_type == EventType::FingerDown || event->m_type == EventType::FingerMotion) {
+                if (m_onClick != nullptr){
+                    m_onClick(dynamic_pointer_cast<Label>(this->getThis()));
+                }
+                setState(ControlState::Pressed);
+                return true;
             }
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
                 setState(ControlState::Pressed);

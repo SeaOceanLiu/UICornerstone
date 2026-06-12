@@ -153,6 +153,7 @@ void testGraphTool(void){
 class MenuApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_menu");
         cout << "test_menu test" << endl;
 
         SSize displaySize = MAINWIN->getDisplaySize();

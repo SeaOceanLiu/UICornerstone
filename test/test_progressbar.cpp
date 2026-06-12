@@ -227,6 +227,7 @@ void testBenchInitialize(void) {
 class ProgressBarApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_progressbar");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

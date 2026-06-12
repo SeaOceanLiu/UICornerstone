@@ -126,6 +126,7 @@ void testBenchInitialize(void) {
 class LayoutApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_layout");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

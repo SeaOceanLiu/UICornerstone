@@ -2636,7 +2636,6 @@ set(SOURCES
     src/GraphTool.cpp
     src/GraphOperaAdapt2d.cpp
     src/LayoutParser.cpp              # ← 新增
-    subModules/DebugTrace/DebugTrace.cpp
 )
 ```
 

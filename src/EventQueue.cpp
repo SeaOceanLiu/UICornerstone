@@ -1,7 +1,7 @@
 ﻿// #include "EventQueue.h"
 #include "ControlBase.h"
 
-std::mutex EventQueue::m_mtxForEventQueue; // 定义静态成员变量
+std::mutex EventQueue::m_mtxForEventQueue;
 std::mutex EventQueue::m_mtxForBeforeEventHandlingWatcher;
 std::mutex EventQueue::m_mtxForAfterEventHandlingWatcher;
 
@@ -23,15 +23,11 @@ shared_ptr<Event> EventQueue::popEventFromQueue(void){
     return event;
 }
 void EventQueue::clear(void){
-    //m_mtxForEventQueue.lock();
     shared_ptr<Event> event = popEventFromQueue();
     while(event != nullptr){
-        // 改为shared_ptr后，不需要手动释放内存
         event = popEventFromQueue();
     }
-    //m_mtxForEventQueue.unlock();
 
-    // 清理事件处理观察者
     for(auto& it : m_beforeEventHandlingWatcherMap){
         it.second.clear();
     }
@@ -42,25 +38,25 @@ void EventQueue::clear(void){
     m_afterEventHandlingWatcherMap.clear();
 }
 
-bool EventQueue::addBeforeEventHandlingWatcher(EventName eventName, shared_ptr<Control> control){
-    if (control == nullptr || eventName == EventName::None) return false;
+bool EventQueue::addBeforeEventHandlingWatcher(EventType eventType, shared_ptr<Control> control){
+    if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForBeforeEventHandlingWatcher.lock();
-    if (m_beforeEventHandlingWatcherMap.find(eventName) == m_beforeEventHandlingWatcherMap.end() ||
-        std::find(m_beforeEventHandlingWatcherMap[eventName].begin(), m_beforeEventHandlingWatcherMap[eventName].end(), control) ==
-            m_beforeEventHandlingWatcherMap[eventName].end()){
-        m_beforeEventHandlingWatcherMap[eventName].push_back(control);
+    if (m_beforeEventHandlingWatcherMap.find(eventType) == m_beforeEventHandlingWatcherMap.end() ||
+        std::find(m_beforeEventHandlingWatcherMap[eventType].begin(), m_beforeEventHandlingWatcherMap[eventType].end(), control) ==
+            m_beforeEventHandlingWatcherMap[eventType].end()){
+        m_beforeEventHandlingWatcherMap[eventType].push_back(control);
     }
     m_mtxForBeforeEventHandlingWatcher.unlock();
 
     return true;
 }
 
-bool EventQueue::removeBeforeEventHandlingWatcher(EventName eventName, shared_ptr<Control> control){
-    if (control == nullptr || eventName == EventName::None) return false;
+bool EventQueue::removeBeforeEventHandlingWatcher(EventType eventType, shared_ptr<Control> control){
+    if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForBeforeEventHandlingWatcher.lock();
-    auto it = m_beforeEventHandlingWatcherMap.find(eventName);
+    auto it = m_beforeEventHandlingWatcherMap.find(eventType);
     if (it != m_beforeEventHandlingWatcherMap.end()){
         auto it2 = std::find(it->second.begin(), it->second.end(), control);
         if (it2 != it->second.end()){
@@ -74,40 +70,40 @@ bool EventQueue::removeBeforeEventHandlingWatcher(EventName eventName, shared_pt
 }
 
 void EventQueue::notifyBeforeEventHandlingWatchers(shared_ptr<Event> event){
-    if (event->m_eventName == EventName::None) return;
+    if (event->m_type == EventType::None) return;
 
     m_mtxForBeforeEventHandlingWatcher.lock();
-    auto it = m_beforeEventHandlingWatcherMap.find(event->m_eventName);
+    auto it = m_beforeEventHandlingWatcherMap.find(event->m_type);
     if (it != m_beforeEventHandlingWatcherMap.end()){
         for (auto control : it->second){
             if(control->beforeEventHandlingWatcher(event))
-                break; // 如果有控件申请吃掉事件，则不再通知其他控件
+                break;
         }
     }
     m_mtxForBeforeEventHandlingWatcher.unlock();
 }
 
 
-bool EventQueue::addAfterEventHandlingWatcher(EventName eventName, shared_ptr<Control> control){
-    if (control == nullptr || eventName == EventName::None) return false;
+bool EventQueue::addAfterEventHandlingWatcher(EventType eventType, shared_ptr<Control> control){
+    if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForAfterEventHandlingWatcher.lock();
-    if (m_afterEventHandlingWatcherMap.find(eventName) == m_afterEventHandlingWatcherMap.end() ||
-        std::find(m_afterEventHandlingWatcherMap[eventName].begin(), m_afterEventHandlingWatcherMap[eventName].end(), control) ==
-            m_afterEventHandlingWatcherMap[eventName].end()){
-        m_beforeEventHandlingWatcherMap[eventName].push_back(control);
+    if (m_afterEventHandlingWatcherMap.find(eventType) == m_afterEventHandlingWatcherMap.end() ||
+        std::find(m_afterEventHandlingWatcherMap[eventType].begin(), m_afterEventHandlingWatcherMap[eventType].end(), control) ==
+            m_afterEventHandlingWatcherMap[eventType].end()){
+        m_afterEventHandlingWatcherMap[eventType].push_back(control);
     }
     m_mtxForAfterEventHandlingWatcher.unlock();
 
     return true;
 }
 
-bool EventQueue::removeAfterEventHandlingWatcher(EventName eventName, shared_ptr<Control> control){
-    if (control == nullptr || eventName == EventName::None) return false;
+bool EventQueue::removeAfterEventHandlingWatcher(EventType eventType, shared_ptr<Control> control){
+    if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForAfterEventHandlingWatcher.lock();
-    auto it = m_beforeEventHandlingWatcherMap.find(eventName);
-    if (it != m_beforeEventHandlingWatcherMap.end()){
+    auto it = m_afterEventHandlingWatcherMap.find(eventType);
+    if (it != m_afterEventHandlingWatcherMap.end()){
         auto it2 = std::find(it->second.begin(), it->second.end(), control);
         if (it2 != it->second.end()){
             it->second.erase(it2);
@@ -120,14 +116,14 @@ bool EventQueue::removeAfterEventHandlingWatcher(EventName eventName, shared_ptr
 }
 
 void EventQueue::notifyAfterEventHandlingWatchers(shared_ptr<Event> event){
-    if (event->m_eventName == EventName::None) return;
+    if (event->m_type == EventType::None) return;
 
     m_mtxForAfterEventHandlingWatcher.lock();
-    auto it = m_beforeEventHandlingWatcherMap.find(event->m_eventName);
-    if (it != m_beforeEventHandlingWatcherMap.end()){
+    auto it = m_afterEventHandlingWatcherMap.find(event->m_type);
+    if (it != m_afterEventHandlingWatcherMap.end()){
         for (auto control : it->second){
             if(control->afterEventHandlingWatcher(event))
-                break; // 如果有控件申请吃掉事件，则不再通知其他控件
+                break;
         }
     }
     m_mtxForAfterEventHandlingWatcher.unlock();

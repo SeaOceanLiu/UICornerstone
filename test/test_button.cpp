@@ -160,6 +160,7 @@ class ButtonApp : public AppCallbacks {
     uint64_t m_lastFpsTime = 0;
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_button");
         logOutput(u8"ButtonApp::onInit");
         BENCH->setOnInitial(testBenchInitialize);
         m_lastFpsTime = Platform::GetTicks();

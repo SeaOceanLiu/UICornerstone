@@ -95,6 +95,7 @@ void testBenchInitialize(void) {
 class WinFrameApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_winframe");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

@@ -40,7 +40,7 @@ private:
 // ============================================================
 struct RaylibCachedText {
     std::string text;
-    RaylibFont* font;
+    SharedFont font;
 };
 
 // Font cache key: content hash of font data + pixel size.
@@ -66,6 +66,11 @@ struct FontCacheEntry {
     SharedFont font;
     int scaledSize;
     std::unordered_set<int> loadedCps; // union of all loaded codepoints
+
+    // Original font data for on-demand reload
+    bool fromFile = false;
+    std::string path;
+    std::vector<char> data; // for memory-loaded fonts
 };
 
 // DPI conversion: SDL3_ttf renders points at 96 DPI (pixels = points * 96/72).
@@ -125,6 +130,7 @@ public:
         size_t contentHash = fromFile
             ? std::hash<std::string>{}(path)
             : std::hash<std::string_view>{}(std::string_view(static_cast<const char*>(data), len));
+        int scaledSize = static_cast<int>(roundf(size * FONT_DPI_SCALE));
         FontCacheKey key{contentHash, size};
         auto it = m_fontCache.find(key);
         if (it != m_fontCache.end()) {
@@ -144,11 +150,13 @@ public:
             // Reload with merged codepoint set
             std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
             rlFont f;
-            if (fromFile) {
-                f = LoadFontEx(path.c_str(), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
+            if (it->second.fromFile) {
+                f = LoadFontEx(it->second.path.c_str(), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
             } else {
-                f = LoadFontFromMemory(".ttf", static_cast<const unsigned char*>(data),
-                    static_cast<int>(len), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
+                f = LoadFontFromMemory(".ttf",
+                    reinterpret_cast<const unsigned char*>(it->second.data.data()),
+                    static_cast<int>(it->second.data.size()),
+                    it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
             }
             if (f.texture.id == 0) return it->second.font; // fallback on failure
             SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
@@ -156,7 +164,6 @@ public:
             return it->second.font;
         }
 
-        int scaledSize = static_cast<int>(roundf(size * FONT_DPI_SCALE));
         rlFont f;
         if (fromFile) {
             f = LoadFontEx(path.c_str(), scaledSize, cps.data(), static_cast<int>(cps.size()));
@@ -169,9 +176,58 @@ public:
         }
         SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
         auto font = std::make_shared<RaylibFont>(f, scaledSize);
-        FontCacheEntry entry{font, scaledSize, std::unordered_set<int>(cps.begin(), cps.end())};
+        FontCacheEntry entry;
+        entry.font = font;
+        entry.scaledSize = scaledSize;
+        entry.loadedCps = std::unordered_set<int>(cps.begin(), cps.end());
+        entry.fromFile = fromFile;
+        if (fromFile) {
+            entry.path = path;
+        } else {
+            entry.data.assign(static_cast<const char*>(data), static_cast<const char*>(data) + len);
+        }
         m_fontCache[key] = entry;
         return font;
+    }
+
+    // Ensure a font has all codepoints for the given text. Reloads the font
+    // on demand if new codepoints are encountered, updating the cache entry.
+    void ensureFontCodepoints(SharedFont& fontRef, const std::string& text) {
+        if (text.empty() || !fontRef) return;
+        // Extract codepoints from text
+        auto cps = extractCodepoints(text);
+
+        // Check if all codepoints are already loaded
+        for (auto it = m_fontCache.begin(); it != m_fontCache.end(); ++it) {
+            if (it->second.font == fontRef) {
+                bool needReload = false;
+                for (int cp : cps) {
+                    if (it->second.loadedCps.find(cp) == it->second.loadedCps.end()) {
+                        needReload = true;
+                        it->second.loadedCps.insert(cp);
+                    }
+                }
+                if (!needReload) return;
+
+                // Reload with merged set
+                std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
+                rlFont f;
+                if (it->second.fromFile) {
+                    f = LoadFontEx(it->second.path.c_str(), it->second.scaledSize,
+                                   mergedCps.data(), static_cast<int>(mergedCps.size()));
+                } else {
+                    f = LoadFontFromMemory(".ttf",
+                        reinterpret_cast<const unsigned char*>(it->second.data.data()),
+                        static_cast<int>(it->second.data.size()),
+                        it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
+                }
+                if (f.texture.id == 0) return;
+                SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
+                fontRef = std::make_shared<RaylibFont>(f, it->second.scaledSize);
+                it->second.font = fontRef;
+                return;
+            }
+        }
     }
 
     SharedFont loadFont(const std::string& path, int size) override {
@@ -203,10 +259,17 @@ public:
     }
 
     void* createText(Font* font, const std::string& text) override {
-        auto* rf = static_cast<RaylibFont*>(font);
+        // Find SharedFont from cache that wraps this Font*
+        SharedFont sf;
+        for (auto& [key, entry] : m_fontCache) {
+            if (entry.font.get() == font) {
+                sf = entry.font;
+                break;
+            }
+        }
         auto* ct = new RaylibCachedText();
         ct->text = text;
-        ct->font = rf;
+        ct->font = sf;
         return ct;
     }
 
@@ -217,8 +280,12 @@ public:
     SSize measureText(void* text) override {
         if (!text) return SSize(0, 0);
         auto* ct = static_cast<RaylibCachedText*>(text);
-        Vector2 sz = MeasureTextEx(ct->font->get(), ct->text.c_str(),
-                                    static_cast<float>(ct->font->getSize()), 0);
+        SharedFont font = ct->font;
+        ensureFontCodepoints(font, ct->text);
+        ct->font = font;
+        auto* rf = static_cast<RaylibFont*>(font.get());
+        Vector2 sz = MeasureTextEx(rf->get(), ct->text.c_str(),
+                                    static_cast<float>(rf->getSize()), 0);
         return SSize(static_cast<int>(sz.x + 0.5f), static_cast<int>(sz.y + 0.5f));
     }
 
@@ -226,19 +293,27 @@ public:
         if (!text) return;
         m_device->flush();
         auto* ct = static_cast<RaylibCachedText*>(text);
+        SharedFont font = ct->font;
+        ensureFontCodepoints(font, ct->text);
+        ct->font = font;
+        auto* rf = static_cast<RaylibFont*>(font.get());
         Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
-        DrawTextEx(ct->font->get(), ct->text.c_str(), {x, y},
-                   static_cast<float>(ct->font->getSize()), 0, c);
+        DrawTextEx(rf->get(), ct->text.c_str(), {x, y},
+                   static_cast<float>(rf->getSize()), 0, c);
     }
 
     void drawText(void* text, float x, float y, float wrapWidth, SColor color) override {
         if (!text) return;
         m_device->flush();
         auto* ct = static_cast<RaylibCachedText*>(text);
+        SharedFont font = ct->font;
+        ensureFontCodepoints(font, ct->text);
+        ct->font = font;
+        auto* rf = static_cast<RaylibFont*>(font.get());
         Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
 
-        rlFont fnt = ct->font->get();
-        float fontSize = static_cast<float>(ct->font->getSize());
+        rlFont fnt = rf->get();
+        float fontSize = static_cast<float>(rf->getSize());
         float scaledWW = wrapWidth * FONT_DPI_SCALE;
         float lineSpacing = MeasureTextEx(fnt, "Ay", fontSize, 0).y;
         float spaceWidth = MeasureTextEx(fnt, " ", fontSize, 0).x;
@@ -279,7 +354,15 @@ public:
     }
 
     SSize measureText(Font* font, const std::string& text) override {
-        auto* rf = static_cast<RaylibFont*>(font);
+        SharedFont sf;
+        for (auto& [key, entry] : m_fontCache) {
+            if (entry.font.get() == font) {
+                sf = entry.font;
+                break;
+            }
+        }
+        if (sf) ensureFontCodepoints(sf, text);
+        auto* rf = static_cast<RaylibFont*>(sf ? sf.get() : font);
         Vector2 sz = MeasureTextEx(rf->get(), text.c_str(),
                                     static_cast<float>(rf->getSize()), 0);
         return SSize(static_cast<int>(sz.x + 0.5f), static_cast<int>(sz.y + 0.5f));
@@ -287,7 +370,15 @@ public:
 
     void drawText(Font* font, const std::string& text, float x, float y, SColor color) override {
         m_device->flush();
-        auto* rf = static_cast<RaylibFont*>(font);
+        SharedFont sf;
+        for (auto& [key, entry] : m_fontCache) {
+            if (entry.font.get() == font) {
+                sf = entry.font;
+                break;
+            }
+        }
+        if (sf) ensureFontCodepoints(sf, text);
+        auto* rf = static_cast<RaylibFont*>(sf ? sf.get() : font);
         Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
         DrawTextEx(rf->get(), text.c_str(), {x, y},
                    static_cast<float>(rf->getSize()), 0, c);
@@ -295,7 +386,15 @@ public:
 
     void drawText(Font* font, const std::string& text, float x, float y, float wrapWidth, SColor color) override {
         m_device->flush();
-        auto* rf = static_cast<RaylibFont*>(font);
+        SharedFont sf;
+        for (auto& [key, entry] : m_fontCache) {
+            if (entry.font.get() == font) {
+                sf = entry.font;
+                break;
+            }
+        }
+        if (sf) ensureFontCodepoints(sf, text);
+        auto* rf = static_cast<RaylibFont*>(sf ? sf.get() : font);
         Color c = {color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
 
         rlFont fnt = rf->get();

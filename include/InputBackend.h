@@ -20,7 +20,7 @@ public:
     virtual bool hasScreenKeyboard() const = 0;
 
     // Poll an abstract event from the backend.
-    // Populates both new (EventType+union) and old (EventName+std::any) fields.
+    // Populates EventType+union fields.
     // Returns true if an event was polled, false if no events pending.
     virtual bool pollEvent(Event& event) = 0;
 

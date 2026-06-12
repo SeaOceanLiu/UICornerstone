@@ -2,7 +2,6 @@
 #define EVENTTYPES_H
 
 #include <cstdint>
-#include <string>
 
 // Event type enum - cross-DLL safe, no std::any dependency
 enum class EventType : uint8_t {
@@ -11,6 +10,8 @@ enum class EventType : uint8_t {
     KeyDown, KeyUp, TextInput, TextEditing,
     WindowResize, WindowMoved, WindowClose,
     FocusGained, FocusLost,
+    FingerDown, FingerUp, FingerMotion,
+    Custom,
 };
 
 // ========== Canonical KeyCode ==========
@@ -163,33 +164,5 @@ struct EventTextEditing  { char text[32]; int32_t start; int32_t length; };
 struct EventResize       { int width, height; };
 struct EventWindowMoved  { int x, y; };
 struct EventFocus        { bool focused; };
-
-// ========== Legacy event data structs (old API, phased out) ==========
-// These are populated by EventQueue.h's Event(EventName, any) constructor
-// to fill the new union fields, and kept for backward compatibility.
-struct KeyEventData {
-    KeyCode keycode;
-    int32_t scancode;
-    KeyMod mod;
-    bool repeat;
-};
-
-struct TextInputEventData {
-    std::string text;
-    int32_t start;
-    int32_t length;
-};
-
-struct FocusEventData {
-    void* controlPtr;
-    bool focused;
-};
-
-struct MouseWheelEventData {
-    float x;
-    float y;
-    float mouseX;
-    float mouseY;
-};
 
 #endif // EVENTTYPES_H

@@ -407,6 +407,7 @@ void testUtils(DrawingContext& dc) {
 class GraphToolApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_graphtool");
         g_stepTimer = TestUtil::getTicks();
         return true;
     }

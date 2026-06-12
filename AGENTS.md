@@ -61,7 +61,6 @@ test_label.exe
 | SDL3 | subModules/SDL3 | SeaOceanLiu/UIControls-sdl3 |
 | SDL3_ttf | subModules/SDL3_ttf | SeaOceanLiu/UIControls-sdl3_ttf |
 | SDL3_image | subModules/SDL3_image | libsdl-org/SDL_image (tag: release-3.2.4) |
-| DebugTrace | subModules/DebugTrace | SeaOceanLiu/DebugTrace |
 | json | subModules/json | nlohmann/json (tag: v3.12.0) |
 | assets | subModules/assets | SeaOceanLiu/UIControls-assets |
 | libs | subModules/libs | SeaOceanLiu/UIControls-libs |
@@ -576,3 +575,30 @@ test_label.exe
 All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **Remaining cost**: ~80 `TTF_CreateText` calls (~25ms each) during the 16-checkbox initialization. Further optimization would require caching `TTF_Text*` objects across recreates (risky — text content can change).
+
+### 2026-06-12: Phase 15 Bugfix Round 1 — 6 Fixes Across All Backends
+
+**Fix 1 — EditBox ON_FOCUS event union corruption (all backends)**:
+- Root cause: `Event` class in `include/StateMachine.h` had `customInt` and `customPtr` in the same union. When `EditBox::setFocused()` set both fields, the second assignment (`customPtr = this`) overwrote the first (`customInt = ON_FOCUS`), so `beforeEventHandlingWatcher` could never match `EventName::ON_FOCUS` and never called `setFocused(false)` on the previously-focused EditBox.
+- Fix: Moved `customInt` and `customPtr` out of the union as regular members. Updated all constructors, copy/move operators, and `copyUnion()` (removed `case EventType::Custom`).
+
+**Fix 2 — WinFrame title bar drag area (all backends)**:
+- Problem: Title bar drag (Step 4) covered the full title bar height at any X. Left edge dragging was possible on non-resizable WinFrames.
+- Fix: Added `localMouse.x >= m_edgeMargin` and `localMouse.y >= m_edgeMargin` checks to restrict drag to the interior of the title bar, excluding resize edge zones and the close button area.
+
+**Fix 3 — Raylib Chinese TextInput shows "?"**:
+- Problem: `RaylibTextRenderer::loadFontFromMemory()` only loaded ASCII codepoints (0x20–0x7E) on initial font load. `EditBox::insertText()` modified `m_text` but never called `loadFontInternal()`, so the TextRenderer's lazy expansion (via `loadFontFromMemoryWithText`) was never triggered with the new CJK codepoints.
+- Fix: Added `loadFontInternal()` call in `EditBox::insertText()` to reload the font with the updated text's codepoints via `loadFontFromMemoryWithText()`. Also added `ensureFontCodepoints()` lazy expansion in the raylib TextRenderer's `drawText()`/`measureText()` for the cached `void*` text path used by Label.
+
+**Fix 4 — Raylib EditBox direction key repeat**:
+- Problem: `m_repeatKey` was reset to 0 in `newFrame()`, losing the key repeat state between frames. Holding Left/Right arrow keys did not generate repeated `KeyDown` events.
+- Fix: Removed `m_repeatKey = 0;` from `newFrame()` so the repeat state persists across frames. The `IsKeyDown(m_repeatKey)` check ensures stale keys are ignored. Key repeat timing: 350ms initial delay / 50ms repeat interval.
+
+**Fix 5 — Remove DebugTrace**:
+- Removed `#include "DebugTrace.h"` from `include/MainWindow.h`. Removed two `DEBUG_STREAM` calls in `onWindowResized()` and `onWindowMoved()`.
+
+**Fix 6 — Add test name to window title**:
+- Added `MainWindow::setTitle()` delegating to `Window::setTitle()`.
+- Added `MAINWIN->setTitle("test_xxx");` as first line in each of the 10 test files' `onInit()` method.
+
+**Verification**: All 10 tests build and run on all 3 backends (SDL3, SFML, Raylib).

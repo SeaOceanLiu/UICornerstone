@@ -92,11 +92,4 @@ test_label.exe
 
 ### 链接错误 LNK1104
 
-如果出现 `无法打开文件 DebugTrace.lib` 错误，先编译主项目的 DebugTrace：
-
-```batch
-cd build_scripts
-build.bat Debug
-```
-
-然后再编译测试。
+确保所有依赖项（SDL3 / SFML / raylib 等）已正确配置。

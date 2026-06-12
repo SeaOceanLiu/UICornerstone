@@ -196,16 +196,14 @@ public:
             return false;
         }
 
-        event.m_eventName = static_cast<EventName>(0);
-        event.m_eventParam = {};
         event.m_type = EventType::None;
-        event._pad = 0;
+        event.customInt = 0;
+        event.customPtr = nullptr;
 
         switch (sdlEvent.type) {
             case SDL_EVENT_QUIT:
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 event.m_type = EventType::WindowClose;
-                event.m_eventName = EventName::Exit;
                 break;
 
             case SDL_EVENT_WINDOW_RESIZED:
@@ -221,136 +219,60 @@ public:
                 break;
 
             case SDL_EVENT_KEY_DOWN:
-            {
-                KeyEventData keyData;
-                keyData.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
-                keyData.scancode = sdlEvent.key.scancode;
-                keyData.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
-                keyData.repeat = sdlEvent.key.repeat != 0;
-
                 event.m_type = EventType::KeyDown;
-                event.keyEvent.keycode = keyData.keycode;
-                event.keyEvent.mod = keyData.mod;
-                event.keyEvent.scancode = keyData.scancode;
-                event.keyEvent.repeat = keyData.repeat;
-                event.m_eventName = EventName::KEY_DOWN;
-                event.m_eventParam = keyData;
+                event.keyEvent.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
+                event.keyEvent.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
+                event.keyEvent.scancode = sdlEvent.key.scancode;
+                event.keyEvent.repeat = sdlEvent.key.repeat != 0;
                 break;
-            }
 
             case SDL_EVENT_KEY_UP:
-            {
-                KeyEventData keyData;
-                keyData.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
-                keyData.scancode = sdlEvent.key.scancode;
-                keyData.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
-                keyData.repeat = sdlEvent.key.repeat != 0;
-
                 event.m_type = EventType::KeyUp;
-                event.keyEvent.keycode = keyData.keycode;
-                event.keyEvent.mod = keyData.mod;
-                event.keyEvent.scancode = keyData.scancode;
-                event.keyEvent.repeat = keyData.repeat;
-                event.m_eventName = EventName::KEY_UP;
-                event.m_eventParam = keyData;
+                event.keyEvent.keycode = SDLKeycodeToKeyCode(sdlEvent.key.key);
+                event.keyEvent.mod = SDLKeymodToKeyMod(sdlEvent.key.mod);
+                event.keyEvent.scancode = sdlEvent.key.scancode;
+                event.keyEvent.repeat = sdlEvent.key.repeat != 0;
                 break;
-            }
 
             case SDL_EVENT_TEXT_INPUT:
-            {
-                TextInputEventData textData;
-                textData.text = sdlEvent.text.text;
-                textData.start = -1;
-                textData.length = -1;
-
                 event.m_type = EventType::TextInput;
                 SDL_strlcpy(event.textInput.text, sdlEvent.text.text, sizeof(event.textInput.text));
-                event.m_eventName = EventName::TEXT_INPUT;
-                event.m_eventParam = textData;
                 break;
-            }
 
             case SDL_EVENT_TEXT_EDITING:
-            {
-                TextInputEventData textData;
-                textData.text = sdlEvent.edit.text ? sdlEvent.edit.text : "";
-                textData.start = sdlEvent.edit.start;
-                textData.length = sdlEvent.edit.length;
-
                 event.m_type = EventType::TextEditing;
                 SDL_strlcpy(event.textEditing.text, sdlEvent.edit.text ? sdlEvent.edit.text : "", sizeof(event.textEditing.text));
                 event.textEditing.start = sdlEvent.edit.start;
                 event.textEditing.length = sdlEvent.edit.length;
-                event.m_eventName = EventName::TEXT_EDITING;
-                event.m_eventParam = textData;
                 break;
-            }
 
             case SDL_EVENT_MOUSE_WHEEL:
-            {
-                MouseWheelEventData wheelData;
-                wheelData.x = sdlEvent.wheel.x;
-                wheelData.y = sdlEvent.wheel.y;
-                wheelData.mouseX = sdlEvent.wheel.mouse_x;
-                wheelData.mouseY = sdlEvent.wheel.mouse_y;
-
                 event.m_type = EventType::MouseWheel;
                 event.mouseWheel.x = sdlEvent.wheel.mouse_x;
                 event.mouseWheel.y = sdlEvent.wheel.mouse_y;
                 event.mouseWheel.scrollX = sdlEvent.wheel.x;
                 event.mouseWheel.scrollY = sdlEvent.wheel.y;
-                event.m_eventName = EventName::MOUSE_WHEEL;
-                event.m_eventParam = wheelData;
                 break;
-            }
 
             case SDL_EVENT_MOUSE_MOTION:
-            {
-                auto mousePos = make_shared<SPoint>((float)sdlEvent.motion.x, (float)sdlEvent.motion.y);
-
                 event.m_type = EventType::MouseMove;
                 event.mousePos.x = sdlEvent.motion.x;
                 event.mousePos.y = sdlEvent.motion.y;
-                event.m_eventName = EventName::MOUSE_MOVING;
-                event.m_eventParam = mousePos;
                 break;
-            }
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            {
-                auto mousePos = make_shared<SPoint>((float)sdlEvent.button.x, (float)sdlEvent.button.y);
-
                 event.m_type = EventType::MouseDown;
                 event.mouseButton.x = sdlEvent.button.x;
                 event.mouseButton.y = sdlEvent.button.y;
                 event.mouseButton.button = static_cast<MouseButton>(sdlEvent.button.button);
-                switch (sdlEvent.button.button) {
-                    case SDL_BUTTON_LEFT:   event.m_eventName = EventName::MOUSE_LBUTTON_DOWN; break;
-                    case SDL_BUTTON_RIGHT:  event.m_eventName = EventName::MOUSE_RBUTTON_DOWN; break;
-                    case SDL_BUTTON_MIDDLE: event.m_eventName = EventName::MOUSE_MBUTTON_DOWN; break;
-                    default:                event.m_eventName = EventName::MOUSE_LBUTTON_DOWN; break;
-                }
-                event.m_eventParam = mousePos;
                 break;
-            }
 
             case SDL_EVENT_MOUSE_BUTTON_UP:
-            {
-                auto mousePos = make_shared<SPoint>((float)sdlEvent.button.x, (float)sdlEvent.button.y);
-
                 event.m_type = EventType::MouseUp;
                 event.mouseButton.x = sdlEvent.button.x;
                 event.mouseButton.y = sdlEvent.button.y;
                 event.mouseButton.button = static_cast<MouseButton>(sdlEvent.button.button);
-                switch (sdlEvent.button.button) {
-                    case SDL_BUTTON_LEFT:   event.m_eventName = EventName::MOUSE_LBUTTON_UP; break;
-                    case SDL_BUTTON_RIGHT:  event.m_eventName = EventName::MOUSE_RBUTTON_UP; break;
-                    case SDL_BUTTON_MIDDLE: event.m_eventName = EventName::MOUSE_MBUTTON_UP; break;
-                    default:                event.m_eventName = EventName::MOUSE_LBUTTON_UP; break;
-                }
-                event.m_eventParam = mousePos;
                 break;
-            }
         }
 
         return true;

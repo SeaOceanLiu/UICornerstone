@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 get_filename_component(JSON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/subModules/json" ABSOLUTE)
-get_filename_component(DEBUG_TRACE_DIR "${CMAKE_SOURCE_DIR}/subModules/DebugTrace" ABSOLUTE)
 get_filename_component(ASSETS_DIR "${CMAKE_SOURCE_DIR}/subModules/assets" ABSOLUTE)
 
 # Retrieve the backend choice from the parent project
@@ -22,10 +21,9 @@ set(TEST_LIBS UIControls)
 set(TEST_INCLUDES
     ${CMAKE_SOURCE_DIR}/subModules
     ${JSON_INCLUDE_DIR}/include
-    ${DEBUG_TRACE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
-set(TEST_DLLS "${DEBUG_TRACE_DIR}/DebugInfoX64.dll")
+set(TEST_DLLS)
 
 if(_BACKEND_UPPER STREQUAL "SDL3")
     get_filename_component(SDL3_LIB_DIR "${CMAKE_SOURCE_DIR}/subModules/libs" ABSOLUTE)

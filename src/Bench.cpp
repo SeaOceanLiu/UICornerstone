@@ -31,35 +31,20 @@ Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
 }
 
 void Bench::inputControl(shared_ptr<Event> event) {
-    // if (m_eventJitter.find(event->m_eventName) != m_eventJitter.end()){
-    //     if (SDL_GetTicks() < m_eventJitter[event->m_eventName]){
-    //         SDL_Log("Event %d is jittering", event->m_eventName);
-    //         return;
-    //     }
-    //     m_eventJitter[event->m_eventName] = SDL_GetTicks() + DEFAULT_BTN_MS_INTERVAL;
-    // }
-
-    // if(EventQueue::isPositionEvent(event->m_eventName)){
-    //     m_lastAction = event;
-    //     m_nextTick = SDL_GetTicks() + DEFAULT_BTN_MS_INTERVAL;
-    // }
-
     triggerEvent(event);
 }
 
 void Bench::repeatTrigger(void){
     if (m_lastAction != nullptr){
         uint64_t currentTick = Platform::GetTicks();
-        if (currentTick < m_nextRepeatTick || currentTick < m_eventJitter[m_lastAction->m_eventName]){
+        if (currentTick < m_nextRepeatTick || currentTick < m_eventJitter[m_lastAction->m_type]){
             return;
         }
 
-        switch(m_lastAction->m_eventName){
-            case EventName::FINGER_DOWN:
-            case EventName::FINGER_MOTION:
-            case EventName::MOUSE_LBUTTON_DOWN:
-            case EventName::MOUSE_MBUTTON_DOWN:
-            case EventName::MOUSE_RBUTTON_DOWN:
+        switch(m_lastAction->m_type){
+            case EventType::FingerDown:
+            case EventType::FingerMotion:
+            case EventType::MouseDown:
                 triggerEvent(m_lastAction);
                 break;
             default:

@@ -76,7 +76,7 @@ UIControls/
 │   ├── SDL3/         # SDL3 头文件
 │   ├── SDL3_ttf/     # SDL3_ttf 头文件
 │   ├── SDL3_image/   # SDL3_image 头文件
-│   ├── DebugTrace/   # 调试追踪库
+
 │   ├── json/         # nlohmann/json
 │   └── assets/       # 字体、图片等资源文件
 └── CMakeLists.txt
@@ -89,7 +89,6 @@ UIControls/
 | SDL3 | zlib | 底层窗口/输入/渲染 |
 | SDL3_ttf | zlib | 字体渲染 |
 | SDL3_image | zlib | 图片加载 |
-| DebugTrace | MIT | 调试追踪 |
 | json (nlohmann) | MIT | JSON 解析 |
 | 字体资源 | SIL OFL | HarmonyOS Sans / MapleMono 等 |
 
@@ -111,7 +110,6 @@ UIControls/
 
 第三方组件许可证：
 - SDL3 / SDL3_ttf / SDL3_image：zlib License
-- DebugTrace：MIT License
 - json (nlohmann)：MIT License
 - 字体资源：SIL Open Font License v1.1
 

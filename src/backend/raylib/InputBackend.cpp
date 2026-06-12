@@ -24,6 +24,9 @@ public:
         , m_wheelConsumed(false)
         , m_keyConsumed(false)
         , m_charConsumed(false)
+        , m_repeatKey(0)
+        , m_repeatStartTime(0.0)
+        , m_lastRepeatTime(0.0)
     {
     }
 
@@ -93,6 +96,21 @@ public:
                         if (key != 0) {
                             fillKeyEvent(event, key, false);
                             m_keyConsumed = true;
+                            m_repeatKey = key;
+                            m_repeatStartTime = GetTime();
+                            m_lastRepeatTime = m_repeatStartTime;
+                            return true;
+                        }
+                    }
+                    // Key repeat: generate repeated KeyDown events for held keys
+                    if (m_repeatKey != 0 && IsKeyDown(m_repeatKey)) {
+                        double now = GetTime();
+                        double elapsed = now - m_repeatStartTime;
+                        double sinceLastRepeat = now - m_lastRepeatTime;
+                        // Initial delay 350ms, repeat interval 50ms
+                        if (elapsed >= 0.35 && sinceLastRepeat >= 0.05) {
+                            fillKeyEvent(event, m_repeatKey, true);
+                            m_lastRepeatTime = now;
                             return true;
                         }
                     }
@@ -364,6 +382,9 @@ private:
     bool m_keyConsumed;
     bool m_charConsumed;
     bool m_resizeDetected = false;
+    int m_repeatKey;
+    double m_repeatStartTime;
+    double m_lastRepeatTime;
 };
 
 // ============================================================

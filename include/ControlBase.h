@@ -395,18 +395,11 @@ public:
         shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
         while(eventInQueue != nullptr){
             evCount++;
-            int etype = (int)eventInQueue->m_type;
-            printf("[eventLoopEntry] processing event #%d type=%d\n", evCount, etype);
-            fflush(stdout);
             m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
             handleEvent(eventInQueue);
             m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
 
             eventInQueue = m_eventQueueInstance->popEventFromQueue();
-        }
-        if (evCount > 0) {
-            printf("[eventLoopEntry] done, processed %d events\n", evCount);
-            fflush(stdout);
         }
     }
 };

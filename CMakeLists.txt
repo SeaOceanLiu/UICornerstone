@@ -16,11 +16,9 @@ endif()
 # Common dependency paths
 # ============================================================
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/json" JSON_INCLUDE_DIR)
-file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/DebugTrace" DEBUG_TRACE_DIR)
 
 message(STATUS "UICONTROLS_BACKEND: ${UICONTROLS_BACKEND}")
 message(STATUS "JSON Include Dir: ${JSON_INCLUDE_DIR}")
-message(STATUS "Debug Trace Dir: ${DEBUG_TRACE_DIR}")
 
 # ============================================================
 # Library target (must be before target_* calls)
@@ -51,14 +49,12 @@ add_library(UIControls STATIC
     src/ScrollBar.cpp
     src/TextArea.cpp
     src/Theme.cpp
-    ${DEBUG_TRACE_DIR}/DebugTrace.cpp
 )
 
 target_include_directories(UIControls PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/subModules
     ${JSON_INCLUDE_DIR}/include
-    ${DEBUG_TRACE_DIR}
 )
 
 # ============================================================
@@ -177,10 +173,6 @@ if(WIN32 AND BACKEND_DLLS)
                 $<TARGET_FILE_DIR:UIControls>)
     endforeach()
 
-    add_custom_command(TARGET UIControls POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${DEBUG_TRACE_DIR}/DebugInfoX64.dll"
-            $<TARGET_FILE_DIR:UIControls>)
 endif()
 
 add_subdirectory(test)

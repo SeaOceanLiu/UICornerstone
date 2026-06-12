@@ -283,14 +283,18 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     }
 
     // Step 4: Title bar drag (if no child consumed MOUSE_LBUTTON_DOWN)
+    // Only the label area is draggable — exclude left/right edges (resize margin)
+    // and the close button area.
     if (hasPos && !consumed && !m_dragging && !m_resizing) {
         if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
             SPoint localMouse = screenToLocal(mousePos.x, mousePos.y);
             float titleH = ConstDef::WINDOW_TITLE_HEIGHT;
-            bool onTitleBar = localMouse.y >= 0 && localMouse.y < titleH;
-            bool onCloseBtn = localMouse.x >= m_rect.width - titleH && localMouse.x < m_rect.width;
+            bool onTitleBar = localMouse.y >= m_edgeMargin &&
+                              localMouse.y < titleH &&
+                              localMouse.x >= m_edgeMargin &&
+                              localMouse.x < m_rect.width - titleH;
 
-            if (onTitleBar && !onCloseBtn) {
+            if (onTitleBar) {
                 Control* parent = getParent();
                 SRect parentDraw = parent->getDrawRect();
                 float parentX = (mousePos.x - parentDraw.left) / parent->getScaleXX();

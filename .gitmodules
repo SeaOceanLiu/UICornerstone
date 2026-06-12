@@ -13,10 +13,6 @@
 [submodule "subModules/SDL3_image"]
 	path = subModules/SDL3_image
 	url = https://github.com/libsdl-org/SDL_image.git
-[submodule "subModules/DebugTrace"]
-	path = subModules/DebugTrace
-	url = https://github.com/SeaOceanLiu/DebugTrace.git
-	branch = main
 [submodule "subModules/assets"]
 	path = subModules/assets
 	url = https://github.com/SeaOceanLiu/UIControls-assets.git

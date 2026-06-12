@@ -1,6 +1,5 @@
 ﻿#ifndef MainWindowH
 #define MainWindowH
-#include "DebugTrace.h"
 #include "ConstDef.h"
 #include "EventQueue.h"
 #include "Utility.h"
@@ -28,7 +27,7 @@ private:
     uint64_t m_nextTick;
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
-    unordered_map<EventName, uint64_t> m_eventJitter;
+    unordered_map<EventType, uint64_t> m_eventJitter;
     int m_pendingResizeW = -1, m_pendingResizeH = -1;
     uint64_t m_lastResizeArrival = 0;
 
@@ -76,12 +75,10 @@ public:
     }
 
     void onWindowResized(int w, int h) {
-        DEBUG_STREAM << "Window size changed: " << w << " x " << h << std::endl;
         m_size = SSize{(float)w, (float)h};
     }
 
     void onWindowMoved(int x, int y) {
-        DEBUG_STREAM << "Window position changed: (" << x << ", " << y << ")" << std::endl;
         m_pos = SPoint{(float)x, (float)y};
     }
 
@@ -95,6 +92,12 @@ public:
     float getDisplayWidth(void) { return m_displayWidth; }
     float getDisplayHeight(void) { return m_displayHeight; }
     SSize getDisplaySize(void) { return SSize{m_displayWidth, m_displayHeight}; }
+
+    // Set window title
+    void setTitle(const std::string& title) {
+        Window* w = BackendManager::instance()->window();
+        if (w) w->setTitle(title);
+    }
 
     // Request graceful quit from within callbacks (e.g. "Exit" menu item)
     void quit() { m_quitRequested = true; }

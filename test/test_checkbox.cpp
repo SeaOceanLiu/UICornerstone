@@ -212,6 +212,7 @@ void testBenchInitialize(void) {
 class CheckBoxApp : public AppCallbacks {
 public:
     bool onInit() override {
+        MAINWIN->setTitle("test_checkbox");
         BENCH->setOnInitial(testBenchInitialize);
         return true;
     }

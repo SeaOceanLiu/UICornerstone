@@ -22,7 +22,7 @@ private:
     float m_M; // multiple of BG
 
     uint64_t m_nextTick;
-    unordered_map<EventName, uint64_t> m_eventJitter; // jitter for each event
+    unordered_map<EventType, uint64_t> m_eventJitter; // jitter for each event
     uint64_t m_nextRepeatTick;
     shared_ptr<Event> m_lastAction;
     int m_isExiting;
