@@ -1,4 +1,6 @@
 ﻿#include "BackendPlugin.h"
+#include "UICornerstoneAPI.h"
+#include "CallbackAdapters.h"
 #include <cstdio>
 
 // ============================================================
@@ -76,6 +78,57 @@ bool BackendManager::initialize(const std::string& backendName,
     return true;
 }
 
+bool BackendManager::initialize(const UIBackendCallbacks* callbacks) {
+    if (s_initialized) return true;
+    if (!callbacks || callbacks->version != 1) {
+        printf("BackendManager: invalid callback table\n");
+        return false;
+    }
+
+    UIWindowHandle winHandle = nullptr;
+    if (callbacks->createWindow) {
+        winHandle = callbacks->createWindow("UICornerstone", 1024, 768, 0);
+        if (!winHandle) {
+            printf("BackendManager: callback createWindow failed\n");
+            return false;
+        }
+    }
+    m_window = new CallbackWindow(callbacks, winHandle);
+
+    UIRenderDeviceHandle rdHandle = nullptr;
+    if (callbacks->createRenderDevice) {
+        rdHandle = callbacks->createRenderDevice(nullptr);
+        if (!rdHandle) {
+            printf("BackendManager: callback createRenderDevice failed\n");
+            delete m_window; m_window = nullptr;
+            return false;
+        }
+    }
+    m_renderDevice = new CallbackRenderDevice(callbacks, rdHandle);
+
+    UITextRendererHandle trHandle = nullptr;
+    if (callbacks->createTextRenderer) {
+        trHandle = callbacks->createTextRenderer(rdHandle);
+        if (!trHandle) {
+            printf("BackendManager: callback createTextRenderer failed\n");
+            delete m_window; m_window = nullptr;
+            delete m_renderDevice; m_renderDevice = nullptr;
+            return false;
+        }
+    }
+    m_textRenderer = new CallbackTextRenderer(callbacks, trHandle, rdHandle);
+
+    UIInputBackendHandle ibHandle = nullptr;
+    if (callbacks->createInputBackend) {
+        ibHandle = callbacks->createInputBackend(winHandle);
+    }
+    m_inputBackend = new CallbackInputBackend(callbacks, ibHandle);
+
+    printf("BackendManager: initialized from callback table\n");
+    s_initialized = true;
+    return true;
+}
+
 void BackendManager::shutdown() {
     if (!s_initialized) return;
 
@@ -83,7 +136,12 @@ void BackendManager::shutdown() {
     m_textRenderer = nullptr;
     delete m_inputBackend;
     m_inputBackend = nullptr;
+
+    // 回调查表路径：m_api 未设置，需手动删除
+    // 内置路径：由 bm->m_api.destroy() 统一清理，此处仅置空
+    if (m_api.version == 0) delete m_renderDevice;
     m_renderDevice = nullptr;
+
     delete m_window;
     m_window = nullptr;
 

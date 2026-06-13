@@ -1,5 +1,6 @@
 ﻿#include "UICornerstoneAPI.h"
 #include "CallbackAdapters.h"
+#include "BackendPlugin.h"
 #include "Bench.h"
 #include "Button.h"
 #include "Label.h"
@@ -21,10 +22,10 @@
 namespace {
 
 const UIBackendCallbacks* g_callbacks = nullptr;
-CallbackWindow*           g_window = nullptr;
-CallbackRenderDevice*     g_renderDevice = nullptr;
-CallbackInputBackend*     g_inputBackend = nullptr;
-CallbackTextRenderer*     g_textRenderer = nullptr;
+Window*                   g_window = nullptr;
+RenderDevice*             g_renderDevice = nullptr;
+InputBackend*             g_inputBackend = nullptr;
+TextRenderer*             g_textRenderer = nullptr;
 CallbackResourceProvider* g_resourceProvider = nullptr;
 bool g_initialized = false;
 bool g_quit = false;
@@ -50,32 +51,16 @@ int UICornerstone_Init(const UIBackendCallbacks* callbacks) {
     g_callbacks = callbacks;
     g_quit = false;
 
-    UIWindowHandle winHandle = nullptr;
-    if (callbacks->createWindow) {
-        winHandle = callbacks->createWindow("UICornerstone", 1024, 768, 0);
-        if (!winHandle) { printf("UICornerstone: createWindow failed\n"); return 0; }
+    if (!BackendManager::instance()->initialize(callbacks)) {
+        printf("UICornerstone: BackendManager::initialize(callbacks) failed\n");
+        return 0;
     }
-    g_window = new CallbackWindow(callbacks, winHandle);
 
-    UIRenderDeviceHandle rdHandle = nullptr;
-    if (callbacks->createRenderDevice) {
-        rdHandle = callbacks->createRenderDevice(nullptr);
-        if (!rdHandle) { printf("UICornerstone: createRenderDevice failed\n"); return 0; }
-    }
-    g_renderDevice = new CallbackRenderDevice(callbacks, rdHandle);
-
-    UITextRendererHandle trHandle = nullptr;
-    if (callbacks->createTextRenderer) {
-        trHandle = callbacks->createTextRenderer(rdHandle);
-        if (!trHandle) { printf("UICornerstone: createTextRenderer failed\n"); return 0; }
-    }
-    g_textRenderer = new CallbackTextRenderer(callbacks, trHandle, rdHandle);
-
-    UIInputBackendHandle ibHandle = nullptr;
-    if (callbacks->createInputBackend) {
-        ibHandle = callbacks->createInputBackend(winHandle);
-    }
-    g_inputBackend = new CallbackInputBackend(callbacks, ibHandle);
+    auto* bm = BackendManager::instance();
+    g_window = bm->window();
+    g_renderDevice = bm->renderDevice();
+    g_textRenderer = bm->textRenderer();
+    g_inputBackend = bm->inputBackend();
 
     if (callbacks->createResourceProvider) {
         UIResourceProviderHandle rpHandle = callbacks->createResourceProvider(".");
@@ -104,11 +89,13 @@ void UICornerstone_Shutdown(void) {
     g_controlsById.clear();
     g_actions.clear();
 
-    delete g_textRenderer;    g_textRenderer = nullptr;
-    delete g_inputBackend;    g_inputBackend = nullptr;
-    g_renderDevice = nullptr;
-    delete g_window;          g_window = nullptr;
     delete g_resourceProvider; g_resourceProvider = nullptr;
+
+    BackendManager::instance()->shutdown();
+    g_window = nullptr;
+    g_renderDevice = nullptr;
+    g_textRenderer = nullptr;
+    g_inputBackend = nullptr;
 
     g_callbacks = nullptr;
     g_initialized = false;

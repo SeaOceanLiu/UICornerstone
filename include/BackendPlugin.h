@@ -6,6 +6,7 @@
 #include "RenderDevice.h"
 #include "TextRenderer.h"
 #include "InputBackend.h"
+#include "UICornerstoneAPI.h"
 
 // BackendAPI - C ABI compatible function table for backend plugin DLLs.
 // Each backend DLL exports a GetBackendAPI() function returning a pointer
@@ -30,6 +31,10 @@ public:
     bool initialize(const std::string& backendName = "sdl3",
                     const char* title = "UICornerstone",
                     int width = 1024, int height = 768, uint32_t flags = 0);
+
+    // 从 C ABI 回调查表初始化（R6 新增）
+    bool initialize(const UIBackendCallbacks* callbacks);
+
     void shutdown();
 
     Window* window() const { return m_window; }
