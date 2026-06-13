@@ -39,11 +39,11 @@ private:
         m_displayWidth(0),
         m_displayHeight(0)
     {
-    #if defined(UICONTROLS_BACKEND_SDL3)
+    #if defined(UICORNERSTONE_BACKEND_SDL3)
         const char* backendName = "sdl3";
-    #elif defined(UICONTROLS_BACKEND_SFML)
+    #elif defined(UICORNERSTONE_BACKEND_SFML)
         const char* backendName = "sfml";
-    #elif defined(UICONTROLS_BACKEND_RAYLIB)
+    #elif defined(UICORNERSTONE_BACKEND_RAYLIB)
         const char* backendName = "raylib";
     #else
         const char* backendName = "sdl3";

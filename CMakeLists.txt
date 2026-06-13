@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
-project(UIControls VERSION 1.0.0 LANGUAGES CXX)
+project(UICornerstone VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(UICONTROLS_BACKEND "SDL3" CACHE STRING "Backend library (SDL3|SFML|RAYLIB)")
-set_property(CACHE UICONTROLS_BACKEND PROPERTY STRINGS SDL3 SFML RAYLIB)
+set(UICORNERSTONE_BACKEND "SDL3" CACHE STRING "Backend library (SDL3|SFML|RAYLIB)")
+set_property(CACHE UICORNERSTONE_BACKEND PROPERTY STRINGS SDL3 SFML RAYLIB)
 
 if(WIN32)
     add_definitions(-D_HAS_STD_BYTE=0)
@@ -17,17 +17,18 @@ endif()
 # ============================================================
 file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/json" JSON_INCLUDE_DIR)
 
-message(STATUS "UICONTROLS_BACKEND: ${UICONTROLS_BACKEND}")
+message(STATUS "UICORNERSTONE_BACKEND: ${UICORNERSTONE_BACKEND}")
 message(STATUS "JSON Include Dir: ${JSON_INCLUDE_DIR}")
 
 # ============================================================
 # Library target (must be before target_* calls)
 # ============================================================
-add_library(UIControls STATIC
+add_library(UICornerstone STATIC
     src/Actor.cpp
     src/BackendManager.cpp
     src/Bench.cpp
     src/Button.cpp
+    src/CallbackAdapters.cpp
     src/CheckBox.cpp
     src/ConstDef.cpp
     src/ControlBase.cpp
@@ -49,9 +50,10 @@ add_library(UIControls STATIC
     src/ScrollBar.cpp
     src/TextArea.cpp
     src/Theme.cpp
+    src/UICornerstoneAPI.cpp
 )
 
-target_include_directories(UIControls PUBLIC
+target_include_directories(UICornerstone PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/subModules
     ${JSON_INCLUDE_DIR}/include
@@ -61,19 +63,19 @@ target_include_directories(UIControls PUBLIC
 # Backend-specific configuration
 # ============================================================
 set(BACKEND_SOURCES
-    src/backend/${UICONTROLS_BACKEND}/BackendPlugin.cpp
-    src/backend/${UICONTROLS_BACKEND}/RenderDevice.cpp
-    src/backend/${UICONTROLS_BACKEND}/TextRenderer.cpp
-    src/backend/${UICONTROLS_BACKEND}/Window.cpp
-    src/backend/${UICONTROLS_BACKEND}/InputBackend.cpp
-    src/backend/${UICONTROLS_BACKEND}/Cursor.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/BackendPlugin.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/RenderDevice.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/TextRenderer.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/Window.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/InputBackend.cpp
+    src/backend/${UICORNERSTONE_BACKEND}/Cursor.cpp
 )
 
-target_sources(UIControls PRIVATE ${BACKEND_SOURCES})
+target_sources(UICornerstone PRIVATE ${BACKEND_SOURCES})
 
 set(BACKEND_DLLS)
 
-string(TOUPPER "${UICONTROLS_BACKEND}" _BACKEND_UPPER)
+string(TOUPPER "${UICORNERSTONE_BACKEND}" _BACKEND_UPPER)
 if(_BACKEND_UPPER STREQUAL "SDL3")
     file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/libs" SDL3_LIB_DIR)
     file(REAL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/subModules/SDL3" SDL3_INCLUDE_DIR)
@@ -84,13 +86,13 @@ if(_BACKEND_UPPER STREQUAL "SDL3")
     message(STATUS "SDL3 TTF Include Dir: ${SDL3_TTF_INCLUDE_DIR}")
     message(STATUS "SDL3 Image Include Dir: ${SDL3_IMAGE_INCLUDE_DIR}")
 
-    target_include_directories(UIControls PUBLIC
+    target_include_directories(UICornerstone PUBLIC
         ${SDL3_INCLUDE_DIR}
         ${SDL3_TTF_INCLUDE_DIR}
         ${SDL3_IMAGE_INCLUDE_DIR}/include
     )
 
-    target_link_libraries(UIControls PUBLIC
+    target_link_libraries(UICornerstone PUBLIC
         ${SDL3_LIB_DIR}/SDL3.lib
         ${SDL3_LIB_DIR}/SDL3_ttf.lib
         ${SDL3_LIB_DIR}/SDL3_image.lib
@@ -111,11 +113,11 @@ elseif(_BACKEND_UPPER STREQUAL "SFML")
     message(STATUS "SFML Lib Dir: ${SFML_LIB_DIR}")
     message(STATUS "SFML Bin Dir: ${SFML_BIN_DIR}")
 
-    target_include_directories(UIControls PUBLIC
+    target_include_directories(UICornerstone PUBLIC
         ${SFML_INCLUDE_DIR}
     )
 
-    target_link_libraries(UIControls PUBLIC
+    target_link_libraries(UICornerstone PUBLIC
         debug ${SFML_LIB_DIR}/sfml-graphics-d.lib
         optimized ${SFML_LIB_DIR}/sfml-graphics.lib
         debug ${SFML_LIB_DIR}/sfml-window-d.lib
@@ -141,11 +143,11 @@ elseif(_BACKEND_UPPER STREQUAL "RAYLIB")
     message(STATUS "raylib Include Dir: ${RAYLIB_INCLUDE_DIR}")
     message(STATUS "raylib Lib Dir: ${RAYLIB_LIB_DIR}")
 
-    target_include_directories(UIControls PUBLIC
+    target_include_directories(UICornerstone PUBLIC
         ${RAYLIB_INCLUDE_DIR}
     )
 
-    target_link_libraries(UIControls PUBLIC
+    target_link_libraries(UICornerstone PUBLIC
         ${RAYLIB_LIB_DIR}/raylib.lib
         winmm.lib
     )
@@ -153,13 +155,13 @@ elseif(_BACKEND_UPPER STREQUAL "RAYLIB")
     list(APPEND BACKEND_DLLS "${RAYLIB_LIB_DIR}/raylib.dll")
 endif()
 
-string(TOUPPER "${UICONTROLS_BACKEND}" _BACKEND_UPPER_DEFINE)
-target_compile_definitions(UIControls PUBLIC
-    UICONTROLS_BACKEND_${_BACKEND_UPPER_DEFINE}=1
+string(TOUPPER "${UICORNERSTONE_BACKEND}" _BACKEND_UPPER_DEFINE)
+target_compile_definitions(UICornerstone PUBLIC
+    UICORNERSTONE_BACKEND_${_BACKEND_UPPER_DEFINE}=1
 )
 
 if(WIN32)
-    target_link_libraries(UIControls PRIVATE user32 kernel32)
+    target_link_libraries(UICornerstone PRIVATE user32 kernel32)
 endif()
 
 # ============================================================
@@ -167,10 +169,10 @@ endif()
 # ============================================================
 if(WIN32 AND BACKEND_DLLS)
     foreach(dll ${BACKEND_DLLS})
-        add_custom_command(TARGET UIControls POST_BUILD
+        add_custom_command(TARGET UICornerstone POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${dll}"
-                $<TARGET_FILE_DIR:UIControls>)
+                $<TARGET_FILE_DIR:UICornerstone>)
     endforeach()
 
 endif()

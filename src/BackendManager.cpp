@@ -24,21 +24,21 @@ bool BackendManager::initialize(const std::string& backendName,
 
     BackendAPI api = {};
     bool found = false;
-#if defined(UICONTROLS_BACKEND_SDL3)
+#if defined(UICORNERSTONE_BACKEND_SDL3)
     if (backendName == "sdl3") {
         extern BackendAPI g_sdl3Backend;
         api = g_sdl3Backend;
         found = true;
     }
 #endif
-#if defined(UICONTROLS_BACKEND_SFML)
+#if defined(UICORNERSTONE_BACKEND_SFML)
     if (backendName == "sfml") {
         extern BackendAPI g_sfmlBackend;
         api = g_sfmlBackend;
         found = true;
     }
 #endif
-#if defined(UICONTROLS_BACKEND_RAYLIB)
+#if defined(UICORNERSTONE_BACKEND_RAYLIB)
     if (backendName == "raylib") {
         extern BackendAPI g_raylibBackend;
         api = g_raylibBackend;

@@ -188,7 +188,7 @@ void TextArea::ensureCursorVisible() {
 ## 5. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── TextArea.h
 ├── src/

@@ -412,7 +412,7 @@ BENCH->addControl(button3);
 ## 9. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── Button.h        # 头文件
 ├── src/

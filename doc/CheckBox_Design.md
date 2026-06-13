@@ -643,7 +643,7 @@ void testCustomColors() {
 ## 10. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   ├── CheckBox.h        # 头文件
 │   ├── ControlBase.h     # 基类（含 create/recreate）
@@ -666,8 +666,8 @@ doc/
 1. 在 `ConstDef.h` 添加常量声明（包含新增的 BOX_PEN_WIDTH、MARK_PEN_WIDTH）
 2. 在 `ConstDef.cpp` 添加常量定义
 3. 更新 `ControlBase.h` 和 `ControlBase.cpp`（添加 create/recreate/preDraw）
-4. 创建/更新 `UIControls/include/CheckBox.h`
-5. 创建/更新 `UIControls/src/CheckBox.cpp`
-6. 更新 `UIControls/CMakeLists.txt`
+4. 创建/更新 `UICornerstone/include/CheckBox.h`
+5. 创建/更新 `UICornerstone/src/CheckBox.cpp`
+6. 更新 `UICornerstone/CMakeLists.txt`
 7. 创建/更新 `test/test_checkbox.cpp`
 8. 编译测试

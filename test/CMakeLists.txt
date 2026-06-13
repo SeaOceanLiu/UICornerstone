@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(UIControlsTests)
+project(UICornerstoneTests)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,16 +8,16 @@ get_filename_component(JSON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/subModules/json" AB
 get_filename_component(ASSETS_DIR "${CMAKE_SOURCE_DIR}/subModules/assets" ABSOLUTE)
 
 # Retrieve the backend choice from the parent project
-if(NOT UICONTROLS_BACKEND)
-    set(UICONTROLS_BACKEND "SDL3")
+if(NOT UICORNERSTONE_BACKEND)
+    set(UICORNERSTONE_BACKEND "SDL3")
 endif()
 
-string(TOUPPER "${UICONTROLS_BACKEND}" _BACKEND_UPPER)
+string(TOUPPER "${UICORNERSTONE_BACKEND}" _BACKEND_UPPER)
 
 # ============================================================
 # Backend-specific test configuration
 # ============================================================
-set(TEST_LIBS UIControls)
+ set(TEST_LIBS UICornerstone)
 set(TEST_INCLUDES
     ${CMAKE_SOURCE_DIR}/subModules
     ${JSON_INCLUDE_DIR}/include

@@ -227,7 +227,7 @@ static const char EDITBOX_DEFAULT_PASSWORD_CHAR;
 ## 6. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── EditBox.h
 ├── src/

@@ -209,7 +209,7 @@ bool ScrollBar::shouldShow() const {
 ## 6. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── ScrollBar.h
 ├── src/

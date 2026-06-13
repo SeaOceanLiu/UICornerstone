@@ -2645,13 +2645,13 @@ set(SOURCES
 # 在底部添加（或与其他 test_xxx 并列的区域添加）：
 
 add_executable(test_layout test_layout.cpp)
-target_link_libraries(test_layout UIControls SDL3.lib SDL3_ttf.lib SDL3_image.lib)
+target_link_libraries(test_layout UICornerstone SDL3.lib SDL3_ttf.lib SDL3_image.lib)
 
 add_executable(test_layout_advanced test_layout_advanced.cpp)
-target_link_libraries(test_layout_advanced UIControls SDL3.lib SDL3_ttf.lib SDL3_image.lib)
+target_link_libraries(test_layout_advanced UICornerstone SDL3.lib SDL3_ttf.lib SDL3_image.lib)
 
 add_executable(test_winframe test_winframe.cpp)
-target_link_libraries(test_winframe UIControls SDL3.lib SDL3_ttf.lib SDL3_image.lib)
+target_link_libraries(test_winframe UICornerstone SDL3.lib SDL3_ttf.lib SDL3_image.lib)
 
 # 复制 DLL 的 POST_BUILD（以 test_layout 为例，其余类似）
 add_custom_command(TARGET test_layout POST_BUILD

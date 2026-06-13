@@ -297,7 +297,7 @@ void testFullCustomProgressBar() {
 ## 7. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── ProgressBar.h
 ├── src/
@@ -309,8 +309,8 @@ UIControls/
 
 1. 在 `ConstDef.h` 添加常量声明
 2. 在 `ConstDef.cpp` 添加常量定义
-3. 创建 `UIControls/include/ProgressBar.h`
-4. 创建 `UIControls/src/ProgressBar.cpp`
-5. 更新 `UIControls/CMakeLists.txt`
-6. 创建测试用例 `UIControls/test/test_progressbar.cpp`
+3. 创建 `UICornerstone/include/ProgressBar.h`
+4. 创建 `UICornerstone/src/ProgressBar.cpp`
+5. 更新 `UICornerstone/CMakeLists.txt`
+6. 创建测试用例 `UICornerstone/test/test_progressbar.cpp`
 7. 编译测试

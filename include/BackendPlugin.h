@@ -28,7 +28,7 @@ public:
     static BackendManager* instance();
 
     bool initialize(const std::string& backendName = "sdl3",
-                    const char* title = "UIControls",
+                    const char* title = "UICornerstone",
                     int width = 1024, int height = 768, uint32_t flags = 0);
     void shutdown();
 

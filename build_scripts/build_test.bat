@@ -1,7 +1,7 @@
 @echo off
 call "d:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64
 
-set UICONTROLS_ROOT=%~dp0..
+set UICORNERSTONE_ROOT=%~dp0..
 
 if "%1"=="" (
     echo Usage: build_test.bat [test_name] [sdl3^|sfml]
@@ -16,11 +16,11 @@ set TEST_NAME=%1
 set BACKEND=%2
 if "%BACKEND%"=="" set BACKEND=sdl3
 
-set BUILD_DIR=%UICONTROLS_ROOT%\build\%BACKEND%
+set BUILD_DIR=%UICORNERSTONE_ROOT%\build\%BACKEND%
 
 echo Building %TEST_NAME% [%BACKEND% backend]...
 
-cmake -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug -DUICONTROLS_BACKEND=%BACKEND% >nul 2>&1
+cmake -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug -DUICORNERSTONE_BACKEND=%BACKEND% >nul 2>&1
 
 cmake --build "%BUILD_DIR%" --config Debug --target %TEST_NAME%
 

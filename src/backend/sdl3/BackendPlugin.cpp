@@ -23,7 +23,7 @@ static InputBackend* sdl3CreateInputBackend(Window* window) {
 }
 
 static bool sdl3Init() {
-    SDL_SetAppMetadata("UIControls", "1.0.0", "com.uicontrols.app");
+    SDL_SetAppMetadata("UICornerstone", "1.0.0", "com.uicornerstone.app");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         printf("SDL_Init failed: %s\n", SDL_GetError());
         return false;

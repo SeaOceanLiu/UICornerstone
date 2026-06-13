@@ -1,8 +1,8 @@
 @echo off
 call "d:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64
 
-set UICONTROLS_ROOT=%~dp0..
-set BUILD_DIR=%UICONTROLS_ROOT%\build\raylib
+set UICORNERSTONE_ROOT=%~dp0..
+set BUILD_DIR=%UICORNERSTONE_ROOT%\build\raylib
 
 if "%1"=="" (
     echo Usage: build_raylib.bat [test_name]
@@ -16,7 +16,7 @@ set TEST_NAME=%1
 
 echo Building %TEST_NAME% [raylib backend]...
 
-cmake -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug -DUICONTROLS_BACKEND=RAYLIB >nul 2>&1
+cmake -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug -DUICORNERSTONE_BACKEND=RAYLIB >nul 2>&1
 cmake --build "%BUILD_DIR%" --config Debug --target %TEST_NAME%
 
 echo.

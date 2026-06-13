@@ -1,13 +1,13 @@
-# UIControls 编译指南
+# UICornerstone 编译指南
 
 ## 概述
 
-本文档说明如何编译 UIControls 库的测试程序。
+本文档说明如何编译 UICornerstone 库的测试程序。
 
 ## 目录结构
 
 ```
-UIControls/
+UICornerstone/
 ├── build/              # 编译输出目录
 ├── build_scripts/      # 编译脚本
 ├── doc/                # 设计文档
@@ -28,7 +28,7 @@ UIControls/
 ### 编译所有测试
 
 ```batch
-cd UIControls\build_scripts
+cd UICornerstone\build_scripts
 build_test.bat
 ```
 
@@ -54,7 +54,7 @@ build_test.bat
 编译完成后，可执行文件位于：
 
 ```
-UIControls/build/test/Debug/
+UICornerstone/build/test/Debug/
 ├── test_label.exe
 ├── test_checkbox.exe
 ├── test_editbox.exe
@@ -70,7 +70,7 @@ UIControls/build/test/Debug/
 直接在 `Debug` 目录中运行对应的 exe 文件即可。
 
 ```batch
-cd UIControls\build\test\Debug
+cd UICornerstone\build\test\Debug
 test_label.exe
 ```
 

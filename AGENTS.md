@@ -1,4 +1,4 @@
-﻿# AGENTS.md - UIControls
+﻿# AGENTS.md - UICornerstone
 
 ## Language
 
@@ -61,12 +61,12 @@ test_label.exe
 
 | Submodule | Path | Source |
 |----------|------|--------|
-| SDL3 | subModules/SDL3 | SeaOceanLiu/UIControls-sdl3 |
-| SDL3_ttf | subModules/SDL3_ttf | SeaOceanLiu/UIControls-sdl3_ttf |
+| SDL3 | subModules/SDL3 | SeaOceanLiu/UICornerstone-sdl3 |
+| SDL3_ttf | subModules/SDL3_ttf | SeaOceanLiu/UICornerstone-sdl3_ttf |
 | SDL3_image | subModules/SDL3_image | libsdl-org/SDL_image (tag: release-3.2.4) |
 | json | subModules/json | nlohmann/json (tag: v3.12.0) |
-| assets | subModules/assets | SeaOceanLiu/UIControls-assets |
-| libs | subModules/libs | SeaOceanLiu/UIControls-libs |
+| assets | subModules/assets | SeaOceanLiu/UICornerstone-assets |
+| libs | subModules/libs | SeaOceanLiu/UICornerstone-libs |
 | SFML | subModules/SFML | SFML (v3, Debug DLLs) |
 
 ## Session History
@@ -434,7 +434,7 @@ test_label.exe
 
 **Build Results**:
 - SDL3 backend: All 10 test executables compile and run (`test_button` verified)
-- SFML backend: `UIControls.lib` compiles; all 10 test executables compile and link; `test_button` runs without errors (no more `Failed to load image from memory`), animation buttons render via nanosvg SVG rasterization
+- SFML backend: `UICornerstone.lib` compiles; all 10 test executables compile and link; `test_button` runs without errors (no more `Failed to load image from memory`), animation buttons render via nanosvg SVG rasterization
 
 ### 2026-06-06: Phase 13 Fixes — 4 SFML Visual/Performance Issues (Complete)
 
@@ -605,3 +605,22 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - Added `MAINWIN->setTitle("test_xxx");` as first line in each of the 10 test files' `onInit()` method.
 
 **Verification**: All 10 tests build and run on all 3 backends (SDL3, SFML, Raylib).
+
+### 2026-06-12: R2-R4 — UICornerstone C ABI Implementation (Compile Complete)
+
+**New files**:
+- `include/UICornerstoneAPI.h`: 公有 C ABI 头文件 — `UIBackendCallbacks` 回调查表（7 类回调约 40 个函数指针）、`UIControlHandle`/`UIRenderDeviceHandle` 等 10+ 个不透明句柄、所有 `UICornerstone_*` 函数声明
+- `src/CallbackAdapters.h` + `.cpp`: 5 个 Adapter 类（CallbackWindow/RenderDevice/InputBackend/TextRenderer/ResourceProvider）将回调查表委托为现有的 C++ 抽象接口
+- `src/UICornerstoneAPI.cpp`: C ABI 实现 — `Init` / `Shutdown` / `SetViewport` / `ProcessEvents` / `Update` / `Render` / `IsQuitRequested` + 6 个控件工厂（Button/Label/CheckBox/EditBox/ProgressBar/Panel）+ 通用控件操作 + `LoadLayout`/`FindControl`/`RegisterAction` 骨架
+
+**编译修复**:
+- SRect 成员名：所有 `.x`/`.y`/`.w`/`.h` → `.left`/`.top`/`.width`/`.height`
+- CheckBox 文本：通过 `getCaption()->setCaption(text)` 设置
+- `Button::setOnClick` lambda：参数包装为 `shared_ptr<Button>`
+- `LayoutParser` 接口：使用 `parseLayout()` 而非 `parse()`
+- 添加 `#include "StateMachine.h"` 到 CallbackAdapters.cpp 以使用完整 Event 类型
+- 所有 4 个新文件保存为 UTF-8 with BOM 解决 MSVC C4819
+
+**验证**：
+- `UICornerstone.lib` 编译 0 错误
+- 全部 10 个 SDL3 测试编译通过（无回归）

@@ -87,7 +87,7 @@ Window* CreateSFMLWindow(const char* title, int width, int height, uint32_t flag
     ctxSettings.stencilBits = 8;
     auto* window = new sf::RenderWindow(
         sf::VideoMode(sf::Vector2u(static_cast<unsigned>(width), static_cast<unsigned>(height))),
-        title ? sf::String::fromUtf8(title, title + strlen(title)) : sf::String("UIControls"),
+        title ? sf::String::fromUtf8(title, title + strlen(title)) : sf::String("UICornerstone"),
         style,
         winState,
         ctxSettings

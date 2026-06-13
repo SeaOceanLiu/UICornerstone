@@ -320,7 +320,7 @@ m_label->setOnPropertyChanged([this](shared_ptr<Label> label){
 ## 7. 文件结构
 
 ```
-UIControls/
+UICornerstone/
 ├── include/
 │   └── Label.h
 ├── src/

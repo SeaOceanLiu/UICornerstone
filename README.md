@@ -1,4 +1,4 @@
-# UIControls
+# UICornerstone
 
 基于 SDL3 的 C++17 UI 控件库，使用 Direct3D 11 渲染，适用于游戏和图形应用。
 
@@ -22,8 +22,8 @@
 ### 克隆仓库（包含所有依赖）
 
 ```bash
-git clone --recursive https://github.com/SeaOceanLiu/UIControls.git
-cd UIControls
+git clone --recursive https://github.com/SeaOceanLiu/UICornerstone.git
+cd UICornerstone
 ```
 
 ### 编译全部
@@ -64,7 +64,7 @@ cmake --build . --config Debug
 ## 项目结构
 
 ```
-UIControls/
+UICornerstone/
 ├── src/              # 源代码（LayoutParser、各控件实现、Bench、ResourceLoader）
 ├── include/          # 头文件
 ├── test/             # 测试用例（test_*.cpp）

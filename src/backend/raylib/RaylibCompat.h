@@ -2,7 +2,7 @@
 #define RAYLIBCOMPAT_H
 
 // RaylibCompat.h
-// Renames raylib types that conflict with UIControls abstractions
+// Renames raylib types that conflict with UICornerstone abstractions
 // before including raylib.h, then provides friendly aliases.
 
 #define Font        rlFont_
