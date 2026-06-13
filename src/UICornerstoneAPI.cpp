@@ -184,11 +184,34 @@ int UICornerstone_IsQuitRequested(void) {
 // ============================================================
 int UICornerstone_LoadLayout(const char* jsonContent) {
     if (!jsonContent) return 0;
+
     LayoutParser parser;
+
+    // 注册所有 g_actions 到 LayoutParser
+    for (auto& [name, pair] : g_actions) {
+        UIActionCallback cb = pair.first;
+        void* userData = pair.second;
+        parser.registerHandler(name, [cb, userData](shared_ptr<Control> ctl) {
+            cb(reinterpret_cast<UIControlHandle>(ctl.get()), userData);
+        });
+    }
+
     auto root = parser.parseLayout(std::string(jsonContent));
     if (!root) return 0;
-    // TODO: R5 完善 — 将解析出的控件注册到 g_controlsById
-    printf("UICornerstone: LoadLayout parsing OK\n");
+
+    BENCH->addControl(root);
+
+    for (auto& mb : parser.getMenuBars()) {
+        BENCH->addControl(mb);
+    }
+
+    for (auto& id : parser.getAllControlIds()) {
+        auto ctl = parser.findControlById(id);
+        if (ctl) g_controlsById[id] = reinterpret_cast<UIControlHandle>(ctl.get());
+    }
+
+    printf("UICornerstone: LoadLayout OK (%zu control ids, %zu menu bars)\n",
+           parser.getAllControlIds().size(), parser.getMenuBars().size());
     return 1;
 }
 
