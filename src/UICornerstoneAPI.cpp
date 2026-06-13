@@ -1,4 +1,5 @@
 ﻿#include "UICornerstoneAPI.h"
+#include "SColor.h"
 #include "CallbackAdapters.h"
 #include "BackendPlugin.h"
 #include "Bench.h"
@@ -66,7 +67,8 @@ int UICornerstone_Init(const UIBackendCallbacks* callbacks) {
     g_inputBackend = bm->inputBackend();
 
     if (callbacks->createResourceProvider) {
-        UIResourceProviderHandle rpHandle = callbacks->createResourceProvider(".");
+        std::string rpBasePath = Platform::GetBasePath() + "assets";
+        UIResourceProviderHandle rpHandle = callbacks->createResourceProvider(rpBasePath.c_str());
         g_resourceProvider = new CallbackResourceProvider(callbacks, rpHandle);
     }
 
@@ -173,6 +175,7 @@ void UICornerstone_ProcessEvents(void) {
 
 void UICornerstone_Update(double deltaTime) {
     (void)deltaTime;
+    BENCH->eventLoopEntry();
     BENCH->update();
 }
 
@@ -183,6 +186,17 @@ void UICornerstone_Render(void) {
     g_renderDevice->setClipRect(g_viewport);
     BENCH->draw();
     g_renderDevice->clearClipRect();
+}
+
+void UICornerstone_Clear(void) {
+    if (!g_renderDevice) return;
+    g_renderDevice->setDrawColor(SColor(0.2f, 0.2f, 0.22f, 1.0f));
+    g_renderDevice->clear();
+}
+
+void UICornerstone_Present(void) {
+    if (!g_renderDevice) return;
+    g_renderDevice->present();
 }
 
 int UICornerstone_IsQuitRequested(void) {
@@ -255,7 +269,7 @@ UIControlHandle UICornerstone_CreateButton(const char* text,
 {
     auto* ctl = new Button(BENCH, SRect(x, y, w, h));
     if (text) ctl->setCaption(text);
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreateLabel(const char* text, float fontSize,
@@ -264,7 +278,7 @@ UIControlHandle UICornerstone_CreateLabel(const char* text, float fontSize,
     auto* ctl = new Label(BENCH, SRect(x, y, w, h));
     if (text) ctl->setCaption(text);
     (void)fontSize;
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreateCheckBox(const char* text,
@@ -273,28 +287,28 @@ UIControlHandle UICornerstone_CreateCheckBox(const char* text,
     auto* ctl = new CheckBox(BENCH, SRect(x, y, w, h));
     ctl->createCaption();
     if (text) ctl->getCaption()->setCaption(text);
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreateEditBox(
     float x, float y, float w, float h)
 {
     auto* ctl = new EditBox(BENCH, SRect(x, y, w, h));
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreateProgressBar(
     float x, float y, float w, float h)
 {
     auto* ctl = new ProgressBar(BENCH, SRect(x, y, w, h));
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreatePanel(
     float x, float y, float w, float h)
 {
     auto* ctl = new Panel(BENCH, SRect(x, y, w, h));
-    return reinterpret_cast<UIControlHandle>(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl));
 }
 
 UIControlHandle UICornerstone_CreateMenu(void) {

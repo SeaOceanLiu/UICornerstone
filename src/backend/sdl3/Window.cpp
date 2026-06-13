@@ -23,7 +23,8 @@ public:
     }
 
     ~SDL3Window() override {
-        delete m_renderDevice;
+        // Render device is owned and deleted by BackendManager
+        m_renderDevice = nullptr;
         if (m_renderer) SDL_DestroyRenderer(m_renderer);
         if (m_window) SDL_DestroyWindow(m_window);
     }

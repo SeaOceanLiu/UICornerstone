@@ -130,6 +130,17 @@ inline void bridge_stopTextInput(UIInputBackendHandle h) {
 inline int bridge_getModState(UIInputBackendHandle h) {
     return static_cast<int>(static_cast<InputBackend*>(h)->getModState());
 }
+inline void bridge_setClipboardText(UIInputBackendHandle h, const char* text) {
+    static_cast<InputBackend*>(h)->setClipboardText(text ? text : "");
+}
+inline int bridge_getClipboardText(UIInputBackendHandle h, char* buf, int maxLen) {
+    auto s = static_cast<InputBackend*>(h)->getClipboardText();
+    if (s.empty() || maxLen <= 0) return 0;
+    int len = (int)s.size() < maxLen ? (int)s.size() : maxLen - 1;
+    memcpy(buf, s.data(), len);
+    buf[len] = '\0';
+    return len;
+}
 
 // Event conversion: C++ Event → UIEvent
 inline int bridge_pollEvent(UIInputBackendHandle h, UIEvent* ue) {
@@ -164,10 +175,12 @@ inline int bridge_pollEvent(UIInputBackendHandle h, UIEvent* ue) {
     case EventType::KeyDown:
         ue->type = UI_EVENT_KEY_DOWN;
         { int kc = (int)event.keyEvent.keycode; memcpy(ue->data, &kc, sizeof(int)); }
+        { uint16_t mod = (uint16_t)event.keyEvent.mod; memcpy(ue->data + 4, &mod, sizeof(uint16_t)); }
         break;
     case EventType::KeyUp:
         ue->type = UI_EVENT_KEY_UP;
         { int kc = (int)event.keyEvent.keycode; memcpy(ue->data, &kc, sizeof(int)); }
+        { uint16_t mod = (uint16_t)event.keyEvent.mod; memcpy(ue->data + 4, &mod, sizeof(uint16_t)); }
         break;
     case EventType::TextInput:
         ue->type = UI_EVENT_TEXT_INPUT;
@@ -235,8 +248,21 @@ inline void bridge_drawTextWrapped(UITextRendererHandle h, UIFontHandle f, const
     static_cast<TextRenderer*>(h)->drawText(sp->get(), text ? text : "", x, y, wrapWidth, color);
 }
 
+// ============ Filled triangle/quad bridge ============
+
+inline void bridge_fillTriangle(UIRenderDeviceHandle h, float x0, float y0, float x1, float y1, float x2, float y2, UIColor c) {
+    static_cast<RenderDevice*>(h)->drawTriangle(x0, y0, x1, y1, x2, y2, SColor((int)c.r, (int)c.g, (int)c.b, (int)c.a));
+}
+inline void bridge_fillQuad(UIRenderDeviceHandle h, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, UIColor c) {
+    static_cast<RenderDevice*>(h)->drawQuad(x0, y0, x1, y1, x2, y2, x3, y3, SColor((int)c.r, (int)c.g, (int)c.b, (int)c.a));
+}
+
 // ============ ResourceProvider bridge ============
 
+inline UIResourceProviderHandle bridge_createResourceProvider(const char* basePath) {
+    auto* rp = ResourceProvider::createFilesystem(basePath ? basePath : "");
+    return static_cast<UIResourceProviderHandle>(rp);
+}
 inline void bridge_destroyResourceProvider(UIResourceProviderHandle h) {
     delete static_cast<ResourceProvider*>(h);
 }

@@ -137,9 +137,7 @@ void BackendManager::shutdown() {
     delete m_inputBackend;
     m_inputBackend = nullptr;
 
-    // 回调查表路径：m_api 未设置，需手动删除
-    // 内置路径：由 bm->m_api.destroy() 统一清理，此处仅置空
-    if (m_api.version == 0) delete m_renderDevice;
+    delete m_renderDevice;
     m_renderDevice = nullptr;
 
     delete m_window;

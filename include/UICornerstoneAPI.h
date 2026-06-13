@@ -61,9 +61,10 @@ typedef struct {
 /* 便捷访问宏 */
 #define UI_EVENT_MOUSE_X(ev)     (*(float*)(ev)->data)
 #define UI_EVENT_MOUSE_Y(ev)     (*(float*)((ev)->data + 4))
-#define UI_EVENT_BUTTON(ev)      (*(int*)(ev)->data)
+#define UI_EVENT_BUTTON(ev)      (*(int*)((ev)->data + 8))
 #define UI_EVENT_WHEEL_DELTA(ev) (*(float*)(ev)->data)
 #define UI_EVENT_KEY_CODE(ev)    (*(int*)(ev)->data)
+#define UI_EVENT_KEY_MOD(ev)     (*(uint16_t*)((ev)->data + 4))
 #define UI_EVENT_TEXT(ev)        ((const char*)(ev)->data)
 #define UI_EVENT_RESIZE_W(ev)    (*(int*)(ev)->data)
 #define UI_EVENT_RESIZE_H(ev)    (*(int*)((ev)->data + 4))
@@ -111,6 +112,8 @@ typedef struct {
     void                 (*startTextInput)(UIInputBackendHandle);
     void                 (*stopTextInput)(UIInputBackendHandle);
     int                  (*getModState)(UIInputBackendHandle);
+    void                 (*setClipboardText)(UIInputBackendHandle, const char* text);
+    int                  (*getClipboardText)(UIInputBackendHandle, char* buf, int maxLen);
 
     // --- TextRenderer (必须) ---
     UITextRendererHandle (*createTextRenderer)(UIRenderDeviceHandle);
@@ -122,6 +125,10 @@ typedef struct {
     float                (*getFontHeight)(UITextRendererHandle, UIFontHandle);
     void                 (*drawText)(UITextRendererHandle, UIFontHandle, const char* text, float x, float y, UIColor color);
     void                 (*drawTextWrapped)(UITextRendererHandle, UIFontHandle, const char* text, float x, float y, float wrapWidth, UIColor color);
+
+    // --- filled triangle/quad (可选，可为 NULL — 退化到轮廓绘制) ---
+    void (*fillTriangle)(UIRenderDeviceHandle, float x0, float y0, float x1, float y1, float x2, float y2, UIColor color);
+    void (*fillQuad)(UIRenderDeviceHandle, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, UIColor color);
 
     // --- ResourceProvider (可选，可为 NULL) ---
     UIResourceProviderHandle (*createResourceProvider)(const char* basePath);
@@ -146,6 +153,10 @@ UICORNERSTONE_API void UICornerstone_Update(double deltaTime);
 // 只渲染视口区域。不清除帧缓冲区、不 present。
 // 调用者必须在外层自行 clear + render + present。
 UICORNERSTONE_API void UICornerstone_Render(void);
+
+// 清除帧缓冲区和翻转缓冲区（可选，仅在调用者不自行管理帧时使用）
+UICORNERSTONE_API void UICornerstone_Clear(void);
+UICORNERSTONE_API void UICornerstone_Present(void);
 
 UICORNERSTONE_API int  UICornerstone_IsQuitRequested(void);
 

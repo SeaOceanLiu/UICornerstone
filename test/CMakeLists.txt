@@ -132,3 +132,13 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
         endif()
     endif()
 endforeach()
+
+# ============================================================
+# C ABI test (pure C, only uses UICornerstoneAPI.h)
+# ============================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
+    add_executable(test_api test_api.c)
+    target_include_directories(test_api PRIVATE ${TEST_INCLUDES})
+    target_link_libraries(test_api PRIVATE ${TEST_LIBS})
+endif()
+

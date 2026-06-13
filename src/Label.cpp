@@ -111,9 +111,11 @@ void Label::create(void) {
         m_lineSpacing = static_cast<int>(m_lineHeight * 0.2f);
     }
 
-    for (const auto& line : m_lines) {
-        void* textObj = renderer->createText(m_font.get(), line);
-        m_cachedTexts.push_back(textObj);
+    if (m_font) {
+        for (const auto& line : m_lines) {
+            void* textObj = renderer->createText(m_font.get(), line);
+            m_cachedTexts.push_back(textObj);
+        }
     }
 
     computeLineOffsets();

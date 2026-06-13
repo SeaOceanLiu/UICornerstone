@@ -640,6 +640,101 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-13: R9 Bugfix Round — C ABI 事件循环 + 稠密图元修复
+
+**Bug 1 — UI_EVENT_BUTTON 宏偏移错误 (所有点击交互失效)**：
+- Root cause: `#define UI_EVENT_BUTTON(ev) (*(int*)(ev)->data)` 从 `data[0]` 读取，但 `bridge_pollEvent` 把鼠标按键值写到 `data[8]`
+- 结果：`event.mouseButton.button` 始终是垃圾值，`== MouseButton::Left` 永假 → Button/CheckBox/EditBox 全部无视点击
+- 修复：`UI_EVENT_BUTTON(ev)` → `(*(int*)((ev)->data + 8))`
+
+**Bug 2 — 键盘修饰键丢失 (Ctrl-C/V/X/Shift-Arrow 无效)**：
+- Root cause: `bridge_pollEvent` 只存 keycode 到 UIEvent，跳过 `key.mod`；`CallbackInputBackend::pollEvent` 硬编码 `KeyMod::None`
+- 修复：`bridge_pollEvent` 在 `data[4..5]` 写入 `uint16_t` modifier；新增 `UI_EVENT_KEY_MOD(ev)` 宏；`CallbackInputBackend` 读取并传给 `EventKey`
+
+**Bug 3 — CallbackRenderDevice::drawTriangle/drawQuad 画轮廓而非实心**：
+- Root cause: 两个方法都用 `drawLine` 画 3/4 条轮廓线
+- 结果：CheckBox 框框和钩钩变成空心线，EditBox/TextArea 选择不可见，所有粗线渲染异常
+- 修复链：
+  - `UIBackendCallbacks` 末尾新增 `fillTriangle`/`fillQuad` 函数指针
+  - `BackendBridge.h` 新增 `bridge_fillTriangle`/`bridge_fillQuad` 委托到原生 `RenderDevice::drawTriangle/drawQuad`（实心）
+  - 3 个 `BackendPlugin.cpp` 全部接通新回调
+  - `CallbackRenderDevice` 优先调 `fillTriangle`/`fillQuad`，退化为 2 个三角形拼 Quad
+
+**Bug 4 — 剪贴板 stub (Ctrl-C/V 无反应)**：
+- Root cause: `CallbackInputBackend::setClipboardText/getClipboardText` 是空实现
+- 修复：`UIBackendCallbacks` 新增 `setClipboardText`/`getClipboardText`；`BackendBridge.h` 新增 bridge；3 个 BackendPlugin 接通；Adapter 委托到原生 `InputBackend`
+
+**其他 stub 检查**：`Texture::setBlendMode/setAlphaMod`、`createTextureFromSurface/createRenderTexture`、`setRenderTarget/resetRenderTarget/readPixels` 均为 C ABI 未使用功能，无害暂不改。
+
+**test_api.c 增强**：
+- 布局改为 3 行：Button/Label/CheckBox(行0) → EditBox/ProgressBar/Panel(行1) → TextArea(行2)
+- 提示标签高度 12→16px；控件间隙 4→8px
+- 新增 `hint_textarea`、`ta_demo` ID，共 18 个 ID 全数验证
+- 帧循环改为 `while (!UICornerstone_IsQuitRequested())` 等待用户关闭窗口
+- 新增 `UICornerstone_Clear`/`UICornerstone_Present` API
+
+**验证**：全部 11 个目标（10 测试 + test_api）SDL3 编译通过。test_api 运行 ALL PASS。
+
+### 2026-06-13: R7 — GetUIBackendCallbacks 三后端实现 (Complete)
+
+**Files**:
+- `src/backend/BackendBridge.h` (new, 250 行): 桥接函数头文件，将 `UIBackendCallbacks` 回调查表委托为 C++ 抽象接口（RenderDevice/InputBackend/TextRenderer/Window/ResourceProvider 五个模块全部虚方法已实现）
+- `src/backend/sdl3/BackendPlugin.cpp`: 添加 `GetUIBackendCallbacks()` — 用 BackendBridge 初始化 `UIBackendCallbacks` 结构体
+- `src/backend/sfml/BackendPlugin.cpp`: 同上
+- `src/backend/raylib/BackendPlugin.cpp`: 同上
+
+**`UICornerstone_InitFromPlugin` 双路径**：先 `LoadLibraryA("UIBackend_sdl3.dll")` + `GetProcAddress` 动态加载，失败后回退 `extern "C" GetUIBackendCallbacks()` 静态链接
+
+**桥接策略**：通过 `reinterpret_cast` 将 `void*` 句柄转为 C++ 抽象接口指针，调用对应虚方法（避免每后端单独实现原生调用）
+
+**纹理/字体所有权**：Texture 和 Font 通过堆上分配的 `shared_ptr` 管理，`destroy` 时 `delete` 释放
+
+**验证**：SDK3/SFML/Raylib 三个后端均编译通过，`InitFromPlugin("sdl3")` 静态链接路径验证通过
+
+### 2026-06-13: R8 — CMake DLL 模式 (Complete)
+
+**`UICORNERSTONE_BUILD_DLL` 选项** (默认 OFF):
+- `UICornerstone` 目标保持 STATIC（向后兼容）
+- `UICornerstone_dll` 独立 SHARED 目标
+- `UICORNERSTONE_API` 导出宏 (`__declspec(dllexport/dllimport)`)
+- 三后端 DLL 模式编译通过
+
+**"编译两次"策略**：UICornerstone 编译为静态库后，DLL 目标单独编译。以编译时间换 consumer 零感知、CMake 结构清晰、导出控制精确。
+
+**验证**：6 配置全量编译通过（SDK3/SFML/Raylib × 静态/DLL）
+
+### 2026-06-13: R10 — 构建验证（Complete）
+
+**6 配置验证结果**：
+
+| 后端 | 静态 (UICornerstone.lib) | DLL (UICornerstone_dll.dll) |
+|------|------------------------|---------------------------|
+| SDL3 | 10/10 测试通过 | 3.3MB DLL + 10/10 测试通过 |
+| SFML | 10/10 测试通过 | 3.5MB DLL + 测试通过 |
+| Raylib | 10/10 测试通过 (LNK4098 已知) | 4.7MB DLL + test_button 通过 |
+
+### 2026-06-13: R9 — 纯 C ABI 测试 (Complete)
+
+**test_api.c**：`test/test_api.c`，只包含 `UICornerstoneAPI.h`，编译为 C（`.c` 扩展名）。
+
+显示所有 6 种静态控件（Button/Label/CheckBox/EditBox/ProgressBar/Panel）的视觉测试：
+1. `InitFromPlugin("sdl3")` 创建原生窗口
+2. `SetViewport` 设置 800×480 视口
+3. `RegisterAction` + `LoadLayout` 从 JSON 布局加载 3×2 网格
+4. `FindControl` 验证 9 个控件 ID 全部存在
+5. `SetText` 设置 CheckBox 标题和 EditBox 文本
+6. 帧循环：`ProcessEvents` → `Update` → `Render`，用户关闭窗口退出
+7. `Shutdown`
+
+**Virtual Inheritance 指针调整 Bug**：
+- Root cause: `ControlImpl` 使用 `virtual public Control`（`include/ControlBase.h:226`），虚拟继承导致 `Control*` 子对象地址与派生类对象地址不同
+- 工厂函数原先 `reinterpret_cast<UIControlHandle>(buttonPtr)` 存储的是派生类地址
+- 通用操作 `static_cast<Control*>(voidPtr)` 不做指针调整（`static_cast` 从 `void*` 到 `T*` 相当于 `reinterpret_cast`）
+- 修复：所有工厂函数改为 `reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl))`，确保存储 `Control*` 地址
+- 影响：6 种控件工厂全部修复，`UICornerstone_CreateButton/Label/CheckBox/EditBox/ProgressBar/Panel`
+
+**验证**：SDL3 静态/DLL、SFML 静态、Raylib 静态全部编译通过，test_api 在所有配置上 ALL PASS。
+
 ### 2026-06-12: R6 — BackendManager 回调表初始化 (Complete)
 
 **BackendManager 改造**：

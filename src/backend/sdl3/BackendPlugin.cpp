@@ -106,6 +106,8 @@ extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void) {
     cb.drawRect             = bridge_drawRect;
     cb.drawLine             = bridge_drawLine;
     cb.drawPoint            = bridge_drawPoint;
+    cb.fillTriangle         = bridge_fillTriangle;
+    cb.fillQuad             = bridge_fillQuad;
     cb.clear                = bridge_clear;
     cb.present              = bridge_present;
     cb.flush                = bridge_flush;
@@ -122,6 +124,8 @@ extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void) {
     cb.startTextInput       = bridge_startTextInput;
     cb.stopTextInput        = bridge_stopTextInput;
     cb.getModState          = bridge_getModState;
+    cb.setClipboardText     = bridge_setClipboardText;
+    cb.getClipboardText     = bridge_getClipboardText;
 
     // TextRenderer
     cb.createTextRenderer   = plugin_createTextRenderer;
@@ -134,11 +138,11 @@ extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void) {
     cb.drawText             = bridge_drawText;
     cb.drawTextWrapped      = bridge_drawTextWrapped;
 
-    // ResourceProvider (NULL — not provided by backend plugins)
-    cb.createResourceProvider   = nullptr;
-    cb.destroyResourceProvider  = nullptr;
-    cb.readFile                 = nullptr;
-    cb.fileExists               = nullptr;
+    // ResourceProvider
+    cb.createResourceProvider   = bridge_createResourceProvider;
+    cb.destroyResourceProvider  = bridge_destroyResourceProvider;
+    cb.readFile                 = bridge_readFile;
+    cb.fileExists               = bridge_fileExists;
 
     printf("SDL3: GetUIBackendCallbacks ready\n");
     return &cb;

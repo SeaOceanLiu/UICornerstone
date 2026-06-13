@@ -2,6 +2,7 @@
 #include "StateMachine.h"
 #include <cstring>
 #include <cstdio>
+#include <string>
 
 // ============================================================
 // CallbackWindow
@@ -113,17 +114,25 @@ void CallbackRenderDevice::drawTriangleFan(const Vertex* vertices, int count) {
 }
 
 void CallbackRenderDevice::drawTriangle(float x0, float y0, float x1, float y1, float x2, float y2, SColor color) {
-    setDrawColor(color);
-    drawLine(x0, y0, x1, y1);
-    drawLine(x1, y1, x2, y2);
-    drawLine(x2, y2, x0, y0);
+    UIColor uc{color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+    if (m_cbs->fillTriangle) {
+        m_cbs->fillTriangle(m_handle, x0, y0, x1, y1, x2, y2, uc);
+    } else {
+        setDrawColor(color);
+        drawLine(x0, y0, x1, y1);
+        drawLine(x1, y1, x2, y2);
+        drawLine(x2, y2, x0, y0);
+    }
 }
 void CallbackRenderDevice::drawQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, SColor color) {
-    setDrawColor(color);
-    drawLine(x0, y0, x1, y1);
-    drawLine(x1, y1, x2, y2);
-    drawLine(x2, y2, x3, y3);
-    drawLine(x3, y3, x0, y0);
+    UIColor uc{color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()};
+    if (m_cbs->fillQuad) {
+        m_cbs->fillQuad(m_handle, x0, y0, x1, y1, x2, y2, x3, y3, uc);
+    } else {
+        // fallback: two triangles
+        drawTriangle(x0, y0, x1, y1, x2, y2, color);
+        drawTriangle(x0, y0, x2, y2, x3, y3, color);
+    }
 }
 
 SharedTexture CallbackRenderDevice::createTextureFromFile(const std::string& path) {
@@ -182,8 +191,15 @@ void CallbackInputBackend::stopTextInput() {
     m_textInputActive = false;
     if (m_cbs->stopTextInput) m_cbs->stopTextInput(m_handle);
 }
-void CallbackInputBackend::setClipboardText(const std::string&) {}
-std::string CallbackInputBackend::getClipboardText() const { return {}; }
+void CallbackInputBackend::setClipboardText(const std::string& text) {
+    if (m_cbs->setClipboardText) m_cbs->setClipboardText(m_handle, text.c_str());
+}
+std::string CallbackInputBackend::getClipboardText() const {
+    if (!m_cbs->getClipboardText) return {};
+    char buf[4096];
+    int len = m_cbs->getClipboardText(m_handle, buf, (int)sizeof(buf));
+    return len > 0 ? std::string(buf, (size_t)len) : "";
+}
 
 bool CallbackInputBackend::pollEvent(Event& event) {
     if (!m_cbs->pollEvent) return false;
@@ -217,7 +233,7 @@ bool CallbackInputBackend::pollEvent(Event& event) {
     case UI_EVENT_KEY_DOWN:
     case UI_EVENT_KEY_UP: {
         event.m_type = (ue.type == UI_EVENT_KEY_DOWN) ? EventType::KeyDown : EventType::KeyUp;
-        event.keyEvent = EventKey{static_cast<KeyCode>(UI_EVENT_KEY_CODE(&ue)), KeyMod::None, 0, false};
+        event.keyEvent = EventKey{static_cast<KeyCode>(UI_EVENT_KEY_CODE(&ue)), static_cast<KeyMod>(UI_EVENT_KEY_MOD(&ue)), 0, false};
         break;
     }
     case UI_EVENT_TEXT_INPUT: {
@@ -297,11 +313,39 @@ int CallbackTextRenderer::getFontHeight(Font* font) {
     if (!cf || !m_cbs->getFontHeight) return 0;
     return static_cast<int>(m_cbs->getFontHeight(m_handle, cf->handle()));
 }
-void* CallbackTextRenderer::createText(Font*, const std::string&) { return nullptr; }
-void CallbackTextRenderer::destroyText(void*) {}
-SSize CallbackTextRenderer::measureText(void*) { return SSize{0,0}; }
-void CallbackTextRenderer::drawText(void*, float, float, SColor) {}
-void CallbackTextRenderer::drawText(void*, float, float, float, SColor) {}
+// Internal cached text handle: stores (font, text) for delegation to backend
+struct CachedText {
+    CallbackFont* font;
+    std::string   text;
+};
+void* CallbackTextRenderer::createText(Font* font, const std::string& text) {
+    auto* cf = dynamic_cast<CallbackFont*>(font);
+    if (!cf) return nullptr;
+    auto* ct = new CachedText{cf, text};
+    return ct;
+}
+void CallbackTextRenderer::destroyText(void* h) {
+    delete static_cast<CachedText*>(h);
+}
+SSize CallbackTextRenderer::measureText(void* h) {
+    auto* ct = static_cast<CachedText*>(h);
+    if (!ct || !m_cbs->measureTextWidth) return SSize{0,0};
+    float w = m_cbs->measureTextWidth(m_handle, ct->font->handle(), ct->text.c_str());
+    float hh = m_cbs->getFontHeight ? m_cbs->getFontHeight(m_handle, ct->font->handle()) : 0;
+    return SSize{w, hh};
+}
+void CallbackTextRenderer::drawText(void* h, float x, float y, SColor color) {
+    auto* ct = static_cast<CachedText*>(h);
+    if (!ct || !m_cbs->drawText) return;
+    m_cbs->drawText(m_handle, ct->font->handle(), ct->text.c_str(), x, y,
+                     UIColor{color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()});
+}
+void CallbackTextRenderer::drawText(void* h, float x, float y, float wrapWidth, SColor color) {
+    auto* ct = static_cast<CachedText*>(h);
+    if (!ct || !m_cbs->drawTextWrapped) return;
+    m_cbs->drawTextWrapped(m_handle, ct->font->handle(), ct->text.c_str(), x, y, wrapWidth,
+                            UIColor{color.redByte(), color.greenByte(), color.blueByte(), color.alphaByte()});
+}
 
 SSize CallbackTextRenderer::measureText(Font* font, const std::string& text) {
     auto* cf = dynamic_cast<CallbackFont*>(font);
