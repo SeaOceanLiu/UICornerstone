@@ -47,8 +47,27 @@ BackendAPI g_sdl3Backend = {
 };
 
 // ============================================================
-// GetUIBackendCallbacks — C ABI callback table for plugin mode
+// Factory registration — forward declarations from other
+// backend source files (compiled into this same DLL).
 // ============================================================
+
+extern void RegisterSDL3SurfaceFactories(void);
+extern void RegisterSDL3CursorFactories(void);
+
+// ============================================================
+// GetUIBackendCallbacks — C ABI callback table for plugin mode
+// When compiled as a standalone plugin DLL, export the symbol.
+// ============================================================
+
+#ifdef UICORNERSTONE_BACKEND_PLUGIN
+  #ifdef _MSC_VER
+    #define BACKEND_PLUGIN_EXPORT __declspec(dllexport)
+  #else
+    #define BACKEND_PLUGIN_EXPORT __attribute__((visibility("default")))
+  #endif
+#else
+  #define BACKEND_PLUGIN_EXPORT
+#endif
 
 static Window*      g_pluginWin = nullptr;
 static RenderDevice* g_pluginRD = nullptr;
@@ -73,7 +92,7 @@ static UIInputBackendHandle plugin_createInputBackend(void*) {
     return (UIInputBackendHandle)g_pluginIB;
 }
 
-extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void) {
+extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void) {
     static UIBackendCallbacks cb;
     static bool init = false;
     if (init) return &cb;
@@ -81,6 +100,11 @@ extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void) {
 
     // Backend init
     if (!sdl3Init()) return nullptr;
+
+    // Register surface and cursor factories so core (UICornerstone.dll)
+    // can delegate to our concrete implementations
+    RegisterSDL3SurfaceFactories();
+    RegisterSDL3CursorFactories();
 
     cb.version = 1;
 

@@ -17,9 +17,6 @@
 #include <unordered_map>
 #include <functional>
 
-// Forward declaration for InitFromPlugin static link fallback
-extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
-
 // ============================================================
 // 全局状态
 // ============================================================
@@ -110,25 +107,29 @@ void UICornerstone_Shutdown(void) {
 int UICornerstone_InitFromPlugin(const char* pluginName) {
     if (!pluginName || !pluginName[0]) return 0;
 
-    UIBackendCallbacks* callbacks = nullptr;
-
-    // Try dynamic loading (Windows HMODULE is available via SDL3 transitively)
     char dllName[128];
     snprintf(dllName, sizeof(dllName), "UIBackend_%s.dll", pluginName);
     HMODULE dll = LoadLibraryA(dllName);
-    if (dll) {
-        auto getter = (UIBackendCallbacks*(*)())GetProcAddress(dll, "GetUIBackendCallbacks");
-        if (getter) callbacks = getter();
-        if (!callbacks) { printf("UICornerstone: %s has no GetUIBackendCallbacks\n", dllName); FreeLibrary(dll); return 0; }
-        printf("UICornerstone: loaded %s\n", dllName);
+    if (!dll) {
+        printf("UICornerstone: InitFromPlugin(%s) — LoadLibrary failed\n", pluginName);
+        return 0;
     }
 
-    // Static link fallback: backend's GetUIBackendCallbacks is linked directly
+    auto getter = (UIBackendCallbacks*(*)())GetProcAddress(dll, "GetUIBackendCallbacks");
+    if (!getter) {
+        printf("UICornerstone: %s has no GetUIBackendCallbacks\n", dllName);
+        FreeLibrary(dll);
+        return 0;
+    }
+
+    UIBackendCallbacks* callbacks = getter();
     if (!callbacks) {
-        callbacks = GetUIBackendCallbacks();
+        printf("UICornerstone: %s GetUIBackendCallbacks returned null\n", dllName);
+        FreeLibrary(dll);
+        return 0;
     }
 
-    if (!callbacks) { printf("UICornerstone: InitFromPlugin(%s) failed\n", pluginName); return 0; }
+    printf("UICornerstone: loaded %s\n", dllName);
     return UICornerstone_Init(callbacks);
 }
 

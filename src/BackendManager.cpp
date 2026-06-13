@@ -26,9 +26,16 @@ bool BackendManager::initialize(const std::string& backendName,
 
     BackendAPI api = {};
     bool found = false;
+#if !defined(UICORNERSTONE_BUILD_SHARED)
+    // DLL plugin mode: backend lives in UIBackend_xxx.dll loaded via LoadLibrary,
+    // so these symbols are not available in UICornerstone.dll.
 #if defined(UICORNERSTONE_BACKEND_SDL3)
     if (backendName == "sdl3") {
         extern BackendAPI g_sdl3Backend;
+        extern void RegisterSDL3SurfaceFactories(void);
+        extern void RegisterSDL3CursorFactories(void);
+        RegisterSDL3SurfaceFactories();
+        RegisterSDL3CursorFactories();
         api = g_sdl3Backend;
         found = true;
     }
@@ -47,6 +54,7 @@ bool BackendManager::initialize(const std::string& backendName,
         found = true;
     }
 #endif
+#endif // !UICORNERSTONE_BUILD_SHARED
     if (!found) {
         if (s_registeredAPI.version > 0) {
             api = s_registeredAPI;

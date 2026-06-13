@@ -416,35 +416,41 @@ private:
 };
 
 // ============================================================
-// Surface factory implementations
+// Surface factory — registers backend-agnostic factories
+// so that core code can call Surface::create / loadFromFile / loadFromMemory
 // ============================================================
-std::shared_ptr<Surface> Surface::create(int width, int height) {
-    SDL_Surface* s = SDL_CreateSurface(width, height, SDL_PIXELFORMAT_RGBA8888);
+
+static std::shared_ptr<Surface> sdl3CreateSurface(int w, int h) {
+    SDL_Surface* s = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_RGBA8888);
     if (!s) {
-        SDL_Log("Surface::create: %s", SDL_GetError());
+        SDL_Log("SDL3Surface::create: %s", SDL_GetError());
         return nullptr;
     }
     return std::make_shared<SDL3Surface>(s);
 }
 
-std::shared_ptr<Surface> Surface::loadFromFile(const std::string& path) {
+static std::shared_ptr<Surface> sdl3LoadFromFile(const std::string& path) {
     SDL_Surface* s = IMG_Load(path.c_str());
     if (!s) {
-        SDL_Log("Surface::loadFromFile: %s", SDL_GetError());
+        SDL_Log("SDL3Surface::loadFromFile: %s", SDL_GetError());
         return nullptr;
     }
     return std::make_shared<SDL3Surface>(s);
 }
 
-std::shared_ptr<Surface> Surface::loadFromMemory(const void* data, size_t len) {
+static std::shared_ptr<Surface> sdl3LoadFromMemory(const void* data, size_t len) {
     SDL_IOStream* stream = SDL_IOFromConstMem(data, len);
     if (!stream) return nullptr;
     SDL_Surface* s = IMG_Load_IO(stream, true);
     if (!s) {
-        SDL_Log("Surface::loadFromMemory: %s", SDL_GetError());
+        SDL_Log("SDL3Surface::loadFromMemory: %s", SDL_GetError());
         return nullptr;
     }
     return std::make_shared<SDL3Surface>(s);
+}
+
+void RegisterSDL3SurfaceFactories() {
+    Surface::registerFactories(sdl3CreateSurface, sdl3LoadFromFile, sdl3LoadFromMemory);
 }
 
 // ============================================================

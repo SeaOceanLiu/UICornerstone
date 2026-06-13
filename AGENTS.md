@@ -640,6 +640,23 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-13: R10b — UICornerstone.dll 拆分：核心 DLL + 后端插件 DLL
+
+**DLL 拆分方案**：
+- `UICornerstone.dll`（原名 `UICornerstone_dll.dll`，3.2MB）：只含 CORE_SOURCES（控件、布局、C ABI），不再包含后端实现
+- `UIBackend_sdl3.dll`（268KB）：独立的后端插件 DLL，包含 BACKEND_SOURCES（RenderDevice/TextRenderer/Window/InputBackend/Cursor + BackendPlugin），通过 `LoadLibrary` 动态加载
+- 静态 `UICornerstone.lib` 保持不变（CORE_SOURCES + BACKEND_SOURCES），10 个现有测试无回归
+
+**关键技术变更**：
+- `CMakeLists.txt`：`UICornerstone_dll` target 移除 BACKEND_SOURCES，`OUTPUT_NAME` 设为 `UICornerstone`；新增 `UIBackend_sdl3` SHARED target（连接 UICornerstone_dll 导入库）
+- `Surface.h/cpp`、`Cursor.h/cpp`：静态工厂方法（`create`/`loadFromFile`/`loadFromMemory` / `createSystem`/`getDefault`/`setCurrent`）从后端文件迁移到核心，使用 `registerFactories` 委托机制；`CORE_API` 宏控制跨 DLL 导出
+- `BackendPlugin.cpp`（三后端）：`GetUIBackendCallbacks` 用 `BACKEND_PLUGIN_EXPORT` 导出；内部调用 `RegisterSDL3SurfaceFactories()` / `RegisterSDL3CursorFactories()` 注册工厂
+- `BackendManager.cpp`：`initialize(string)` 路径守卫 `#if !UICORNERSTONE_BUILD_SHARED`，静态链接时也注册工厂
+- `UICornerstoneAPI.cpp`：`InitFromPlugin` 移除静态回退，纯 `LoadLibrary` 路径
+- `test/CMakeLists.txt`：test_api 额外复制 `UIBackend_sdl3.dll` 到输出目录
+
+**验证**：SDL3 静态/DLL 全部编译通过。test_api 输出显示 `UICornerstone: loaded UIBackend_sdl3.dll`，确认纯动态加载路径。
+
 ### 2026-06-13: R9 Bugfix Round — C ABI 事件循环 + 稠密图元修复
 
 **Bug 1 — UI_EVENT_BUTTON 宏偏移错误 (所有点击交互失效)**：

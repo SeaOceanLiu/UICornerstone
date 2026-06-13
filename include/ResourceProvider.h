@@ -6,7 +6,19 @@
 #include <vector>
 #include <cstdio>
 
-class ResourceProvider {
+// Export/import for cross-DLL safety
+#ifndef UICORNERSTONE_CORE_API_DEFINED
+#define UICORNERSTONE_CORE_API_DEFINED
+#if defined(UICORNERSTONE_CORE_API_EXPORT)
+  #define CORE_API __declspec(dllexport)
+#elif defined(UICORNERSTONE_BUILD_SHARED)
+  #define CORE_API __declspec(dllimport)
+#else
+  #define CORE_API
+#endif
+#endif
+
+class CORE_API ResourceProvider {
 public:
     virtual ~ResourceProvider() = default;
 

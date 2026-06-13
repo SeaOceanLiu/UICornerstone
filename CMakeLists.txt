@@ -37,6 +37,7 @@ set(CORE_SOURCES
     src/CheckBox.cpp
     src/ConstDef.cpp
     src/ControlBase.cpp
+    src/Cursor.cpp
     src/DataContext.cpp
     src/WinFrame.cpp
     src/EditBox.cpp
@@ -53,6 +54,7 @@ set(CORE_SOURCES
     src/ProgressBar.cpp
     src/ResourceProvider.cpp
     src/ScrollBar.cpp
+    src/Surface.cpp
     src/TextArea.cpp
     src/Theme.cpp
     src/UICornerstoneAPI.cpp
@@ -174,39 +176,79 @@ endif()
 
 # ============================================================
 # UICornerstone_dll — shared library (optional, for C ABI consumers)
+# Outputs UICornerstone.dll (not UICornerstone_dll.dll).
+# Contains only core sources — backend is a separate plugin DLL.
 # ============================================================
 if(UICORNERSTONE_BUILD_DLL)
-    add_library(UICornerstone_dll SHARED ${CORE_SOURCES} ${BACKEND_SOURCES})
+    add_library(UICornerstone_dll SHARED ${CORE_SOURCES})
+
+    set_target_properties(UICornerstone_dll PROPERTIES
+        OUTPUT_NAME "UICornerstone"
+    )
 
     target_include_directories(UICornerstone_dll PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/subModules
+        ${JSON_INCLUDE_DIR}/include
+    )
+
+    target_compile_definitions(UICornerstone_dll
+        PRIVATE UICORNERSTONE_API_EXPORT=1
+        PRIVATE UICORNERSTONE_CORE_API_EXPORT=1
+        PUBLIC UICORNERSTONE_BUILD_SHARED=1
+        PUBLIC UICORNERSTONE_BACKEND_${_BACKEND_UPPER_DEFINE}=1
+    )
+
+    target_link_libraries(UICornerstone_dll PRIVATE)
+
+    if(WIN32)
+        target_link_libraries(UICornerstone_dll PRIVATE user32 kernel32)
+    endif()
+
+    message(STATUS "UICornerstone_dll target created → UICornerstone.dll")
+endif()
+
+# ============================================================
+# UIBackend_xxx — backend plugin DLL (optional)
+# Separate shared library that exports GetUIBackendCallbacks.
+# Dynamically loaded by UICornerstone_InitFromPlugin.
+# ============================================================
+if(UICORNERSTONE_BUILD_DLL)
+    string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
+
+    set(UIBACKEND_TARGET "UIBackend_${_BACKEND_LOWER}")
+
+    add_library(${UIBACKEND_TARGET} SHARED ${BACKEND_SOURCES})
+
+    target_include_directories(${UIBACKEND_TARGET} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/subModules
         ${JSON_INCLUDE_DIR}/include
         ${BACKEND_INCLUDE_DIRS}
     )
 
-    target_compile_definitions(UICornerstone_dll
-        PRIVATE UICORNERSTONE_API_EXPORT=1
+    target_compile_definitions(${UIBACKEND_TARGET}
+        PRIVATE UICORNERSTONE_BACKEND_PLUGIN=1
+        PRIVATE UICORNERSTONE_BACKEND_${_BACKEND_UPPER_DEFINE}=1
         PUBLIC UICORNERSTONE_BUILD_SHARED=1
-        PUBLIC UICORNERSTONE_BACKEND_${_BACKEND_UPPER_DEFINE}=1
     )
 
-    target_link_libraries(UICornerstone_dll PRIVATE ${BACKEND_LIBS})
+    target_link_libraries(${UIBACKEND_TARGET} PRIVATE UICornerstone_dll ${BACKEND_LIBS})
 
     if(WIN32)
-        target_link_libraries(UICornerstone_dll PRIVATE user32 kernel32)
+        target_link_libraries(${UIBACKEND_TARGET} PRIVATE user32 kernel32)
     endif()
 
     if(WIN32 AND BACKEND_DLLS)
         foreach(dll ${BACKEND_DLLS})
-            add_custom_command(TARGET UICornerstone_dll POST_BUILD
+            add_custom_command(TARGET ${UIBACKEND_TARGET} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "${dll}"
-                    $<TARGET_FILE_DIR:UICornerstone_dll>)
+                    $<TARGET_FILE_DIR:${UIBACKEND_TARGET}>)
         endforeach()
     endif()
 
-    message(STATUS "UICornerstone_dll target created")
+    message(STATUS "${UIBACKEND_TARGET} target created → ${UIBACKEND_TARGET}.dll")
 endif()
 
 # ============================================================

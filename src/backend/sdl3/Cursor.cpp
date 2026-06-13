@@ -14,7 +14,7 @@ public:
     SDL_Cursor* get() const { return m_cursor; }
 };
 
-Cursor* Cursor::createSystem(SystemCursorType type) {
+static Cursor* sdl3CreateSystemCursor(SystemCursorType type) {
     static const SDL_SystemCursor mapping[] = {
         SDL_SYSTEM_CURSOR_DEFAULT,
         SDL_SYSTEM_CURSOR_TEXT,
@@ -46,15 +46,19 @@ Cursor* Cursor::createSystem(SystemCursorType type) {
     return new SDLCursor(sdlCursor, true);
 }
 
-Cursor* Cursor::getDefault() {
+static Cursor* sdl3GetDefaultCursor() {
     static SDLCursor defaultCursor(SDL_GetCursor(), false);
     return &defaultCursor;
 }
 
-void Cursor::setCurrent(Cursor* cursor) {
+static void sdl3SetCurrentCursor(Cursor* cursor) {
     if (!cursor) return;
     SDLCursor* sdlCursor = dynamic_cast<SDLCursor*>(cursor);
     if (sdlCursor && sdlCursor->get()) {
         SDL_SetCursor(sdlCursor->get());
     }
+}
+
+void RegisterSDL3CursorFactories() {
+    Cursor::registerFactories(sdl3CreateSystemCursor, sdl3GetDefaultCursor, sdl3SetCurrentCursor);
 }

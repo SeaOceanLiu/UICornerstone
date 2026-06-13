@@ -5,6 +5,11 @@
 #include <string>
 #include "RenderDevice.h"
 
+// Factory function pointer types — set by backend plugin
+using SurfaceCreateFn      = SharedSurface(*)(int width, int height);
+using SurfaceLoadFromFileFn = SharedSurface(*)(const std::string& path);
+using SurfaceLoadFromMemFn  = SharedSurface(*)(const void* data, size_t len);
+
 class Surface {
 public:
     virtual ~Surface() = default;
@@ -30,6 +35,20 @@ public:
     static SharedSurface create(int width, int height);
     static SharedSurface loadFromFile(const std::string& path);
     static SharedSurface loadFromMemory(const void* data, size_t len);
+
+    // Backend plugin registration (called from UIBackend_xxx.dll during init)
+    // Exported via CORE_API so backend plugin can call it
+#ifndef UICORNERSTONE_CORE_API_DEFINED
+#define UICORNERSTONE_CORE_API_DEFINED
+#if defined(UICORNERSTONE_CORE_API_EXPORT)
+  #define CORE_API __declspec(dllexport)
+#elif defined(UICORNERSTONE_BUILD_SHARED)
+  #define CORE_API __declspec(dllimport)
+#else
+  #define CORE_API
+#endif
+#endif
+    static CORE_API void registerFactories(SurfaceCreateFn c, SurfaceLoadFromFileFn lf, SurfaceLoadFromMemFn lm);
 };
 
 #endif

@@ -135,10 +135,33 @@ endforeach()
 
 # ============================================================
 # C ABI test (pure C, only uses UICornerstoneAPI.h)
+# When DLL mode is on, test_api links the shared library for real
+# DLL loading. Otherwise it stays static (code linked into exe).
 # ============================================================
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
     add_executable(test_api test_api.c)
     target_include_directories(test_api PRIVATE ${TEST_INCLUDES})
-    target_link_libraries(test_api PRIVATE ${TEST_LIBS})
+
+    if(UICORNERSTONE_BUILD_DLL)
+        target_link_libraries(test_api PRIVATE UICornerstone_dll)
+        target_compile_definitions(test_api PRIVATE UICORNERSTONE_BUILD_SHARED=1)
+
+        if(WIN32)
+            # Copy UICornerstone.dll from the core DLL output dir
+            add_custom_command(TARGET test_api POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
+                    "$<TARGET_FILE_DIR:test_api>")
+
+            # Copy the backend plugin DLL (e.g. UIBackend_sdl3.dll)
+            string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
+            add_custom_command(TARGET test_api POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UIBackend_${_BACKEND_LOWER}>/UIBackend_${_BACKEND_LOWER}.dll"
+                    "$<TARGET_FILE_DIR:test_api>")
+        endif()
+    else()
+        target_link_libraries(test_api PRIVATE ${TEST_LIBS})
+    endif()
 endif()
 
