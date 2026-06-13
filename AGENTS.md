@@ -624,3 +624,18 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **验证**：
 - `UICornerstone.lib` 编译 0 错误
 - 全部 10 个 SDL3 测试编译通过（无回归）
+
+### 2026-06-12: R5 — JSON 布局 C ABI 包装 (Complete)
+
+**`UICornerstone_LoadLayout` 实现**：
+- 注册所有 `g_actions` 中的回调到 LayoutParser（通过 `registerHandler` 适配 `UIActionCallback` → `function<void(shared_ptr<Control>)>`）
+- 调用 `parser.parseLayout()` 解析 JSON
+- 成功后添加根控件到 `BENCH`（`BENCH->addControl(root)`）
+- 添加所有 MenuBar 到 `BENCH`
+- 遍历 `parser.getAllControlIds()`，将每个控件注册到 `g_controlsById`（使 `UICornerstone_FindControl` 可用）
+
+**`UICornerstone_Render` 修正**：
+- 移除 `clear()` 和 `present()` — 调用者负责管理全帧生命周期
+- 仅做 `setClipRect(g_viewport)` → `BENCH->draw()` → `clearClipRect()`
+
+**验证**：编译通过，全部 10 个 SDL3 测试无回归。

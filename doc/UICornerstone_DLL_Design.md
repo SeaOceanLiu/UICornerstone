@@ -1,6 +1,6 @@
 # UICornerstone DLL + C ABI 设计
 
-> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-12 | 状态: **实施中** — R1~R4 编码完成
+> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-12 | 状态: **实施中** — R1~R5 编码完成
 
 ---
 
@@ -618,7 +618,7 @@ game.exe + UICornerstone.dll + UICornerstoneAPI.h
 | **R2** | 创建 `include/UICornerstoneAPI.h` | 1 新建 | ✅ 完成 |
 | **R3** | 实现 5 个 CallbackAdapter 类（合并为 CallbackAdapters.h/cpp） | 2 新建 | ✅ 完成 |
 | **R4** | 实现 `src/UICornerstoneAPI.cpp`（初始化+控件工厂+viewport） | 1 新建 | ✅ 完成 |
-| **R5** | JSON 布局 C ABI 包装 | 修改 `LayoutParser` | ⬜ 待实施 |
+| **R5** | JSON 布局 C ABI 包装 | `src/UICornerstoneAPI.cpp` | ✅ 完成 |
 | **R6** | BackendManager 改造：支持回调表初始化 | `src/BackendManager.cpp` | ⬜ 待实施 |
 | **R7** | 3 个 BackendPlugin.cpp 改造：导出 `GetUIBackendCallbacks` | 3 文件 | ⬜ 待实施 |
 | **R8** | CMake DLL 模式分支 | `CMakeLists.txt`, `test/CMakeLists.txt` | ⬜ 待实施 |
@@ -663,6 +663,18 @@ R9 → R10 (验证)
 #### 初始化流程差异
 
 设计文档假设 `BackendManager` 改造后才支持回调表路径，实际 R4 中 `UICornerstone_Init` 直接管理全局 Adapter 实例，不经过 BackendManager。BackendManager 改造（R6）将作为后续独立步骤。
+
+#### R5 JSON 布局 C ABI 包装（已完成）
+
+`UICornerstone_LoadLayout` 完成以下操作：
+
+1. 遍历 `g_actions` 映射，通过 `parser.registerHandler(name, lambda)` 将 C ABI 的 `UIActionCallback` 适配为 LayoutParser 期望的 `function<void(shared_ptr<Control>)>`
+2. 调用 `parser.parseLayout(jsonContent)` 解析 JSON
+3. 根控件通过 `BENCH->addControl(root)` 注册到 Bench
+4. MenuBar 通过 `BENCH->addControl(mb)` 逐个添加
+5. 遍历 `parser.getAllControlIds()`，每个带 ID 的控件注册到 `g_controlsById`，供 `UICornerstone_FindControl` 查找
+
+**验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
 ### 9.4 回退计划
 
@@ -856,4 +868,5 @@ int main() {
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 1.0 | 2026-06-12 | 初版 — 草案待确认 |
-| 1.1 | 2026-06-12 | R2~R4 编码完成：更新 Adapter 文件结构（合并为 CallbackAdapters.h/cpp）、修正 SRect 成员名示例（.left/.top/.width/.height）、修正控件工厂示例（parent=BENCH + setCaption）、标记进度状态 |
+| 1.1 | 2026-06-12 | R2~R4 编码完成：更新 Adapter 文件结构（合并为 CallbackAdapters.h/cpp）、修正 SRect 成员名示例、修正控件工厂示例、标记进度状态 |
+| 1.2 | 2026-06-12 | R5 编码完成 + Render 修正：LoadLayout 实现（Action 绑定 + ID 注册）、Render 移除 clear/present |
