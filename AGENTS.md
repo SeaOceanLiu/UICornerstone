@@ -639,3 +639,18 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - 仅做 `setClipRect(g_viewport)` → `BENCH->draw()` → `clearClipRect()`
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
+
+### 2026-06-12: R6 — BackendManager 回调表初始化 (Complete)
+
+**BackendManager 改造**：
+- 新增 `BackendManager::initialize(const UIBackendCallbacks* callbacks)` 方法
+- 从回调查表创建 CallbackAdapter 实例（Window/RenderDevice/TextRenderer/InputBackend）
+- 适配器通过标准访问器对外暴露，与内置后端路径共存
+- `BackendPlugin.h` 包含 `UICornerstoneAPI.h` 以使用 `UIBackendCallbacks` 类型
+
+**UICornerstone_Init/Shutdown 重构**：
+- `Init` 委托 BackendManager 创建适配器，不再直接管理
+- `Shutdown` 委托 BackendManager::shutdown()，配合 `delete g_resourceProvider`
+- 修复 `shutdown()` 中 `m_renderDevice` 未 delete 的泄漏
+
+**验证**：编译通过，全部 10 个 SDL3 测试无回归。

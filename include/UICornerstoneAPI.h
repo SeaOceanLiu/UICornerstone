@@ -4,6 +4,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* DLL export/import macro */
+#if defined(UICORNERSTONE_BUILD_SHARED)
+#  if defined(UICORNERSTONE_API_EXPORT)
+#    define UICORNERSTONE_API __declspec(dllexport)
+#  else
+#    define UICORNERSTONE_API __declspec(dllimport)
+#  endif
+#else
+#  define UICORNERSTONE_API
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -120,55 +131,55 @@ typedef struct {
 } UIBackendCallbacks;
 
 /* ============ 初始化 ============ */
-int  UICornerstone_Init(const UIBackendCallbacks* callbacks);
-void UICornerstone_Shutdown(void);
-int  UICornerstone_InitFromPlugin(const char* pluginName);
+UICORNERSTONE_API int  UICornerstone_Init(const UIBackendCallbacks* callbacks);
+UICORNERSTONE_API void UICornerstone_Shutdown(void);
+UICORNERSTONE_API int  UICornerstone_InitFromPlugin(const char* pluginName);
 
 /* ============ 视口控制 ============ */
-void UICornerstone_SetViewport(float x, float y, float w, float h);
-void UICornerstone_GetViewport(float* x, float* y, float* w, float* h);
+UICORNERSTONE_API void UICornerstone_SetViewport(float x, float y, float w, float h);
+UICORNERSTONE_API void UICornerstone_GetViewport(float* x, float* y, float* w, float* h);
 
 /* ============ 帧循环 ============ */
-void UICornerstone_ProcessEvents(void);
-void UICornerstone_Update(double deltaTime);
+UICORNERSTONE_API void UICornerstone_ProcessEvents(void);
+UICORNERSTONE_API void UICornerstone_Update(double deltaTime);
 
 // 只渲染视口区域。不清除帧缓冲区、不 present。
 // 调用者必须在外层自行 clear + render + present。
-void UICornerstone_Render(void);
+UICORNERSTONE_API void UICornerstone_Render(void);
 
-int  UICornerstone_IsQuitRequested(void);
+UICORNERSTONE_API int  UICornerstone_IsQuitRequested(void);
 
 /* ============ 布局系统 ============ */
-int               UICornerstone_LoadLayout(const char* jsonContent);
-int               UICornerstone_LoadLayoutFromFile(const char* filePath);
-UIControlHandle   UICornerstone_FindControl(const char* id);
+UICORNERSTONE_API int               UICornerstone_LoadLayout(const char* jsonContent);
+UICORNERSTONE_API int               UICornerstone_LoadLayoutFromFile(const char* filePath);
+UICORNERSTONE_API UIControlHandle   UICornerstone_FindControl(const char* id);
 
 typedef void (*UIActionCallback)(UIControlHandle ctl, void* userData);
-void UICornerstone_RegisterAction(const char* name, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_RegisterAction(const char* name, UIActionCallback cb, void* userData);
 
 /* ============ 编程式控件创建 ============ */
-UIControlHandle UICornerstone_CreateButton(const char* text,
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateButton(const char* text,
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreateLabel(const char* text, float fontSize,
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateLabel(const char* text, float fontSize,
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreateCheckBox(const char* text,
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateCheckBox(const char* text,
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreateEditBox(
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateEditBox(
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreateProgressBar(
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateProgressBar(
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreatePanel(
+UICORNERSTONE_API UIControlHandle UICornerstone_CreatePanel(
     float x, float y, float w, float h);
-UIControlHandle UICornerstone_CreateMenu(void);
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateMenu(void);
 
 /* ============ 控件通用操作 ============ */
-void UICornerstone_SetRect(UIControlHandle ctl, float x, float y, float w, float h);
-void UICornerstone_GetRect(UIControlHandle ctl, float* x, float* y, float* w, float* h);
-void UICornerstone_SetVisible(UIControlHandle ctl, int visible);
-void UICornerstone_SetEnabled(UIControlHandle ctl, int enabled);
-void UICornerstone_SetText(UIControlHandle ctl, const char* text);
-void UICornerstone_AddChild(UIControlHandle parent, UIControlHandle child);
-void UICornerstone_SetOnClick(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetRect(UIControlHandle ctl, float x, float y, float w, float h);
+UICORNERSTONE_API void UICornerstone_GetRect(UIControlHandle ctl, float* x, float* y, float* w, float* h);
+UICORNERSTONE_API void UICornerstone_SetVisible(UIControlHandle ctl, int visible);
+UICORNERSTONE_API void UICornerstone_SetEnabled(UIControlHandle ctl, int enabled);
+UICORNERSTONE_API void UICornerstone_SetText(UIControlHandle ctl, const char* text);
+UICORNERSTONE_API void UICornerstone_AddChild(UIControlHandle parent, UIControlHandle child);
+UICORNERSTONE_API void UICornerstone_SetOnClick(UIControlHandle ctl, UIActionCallback cb, void* userData);
 
 #ifdef __cplusplus
 }

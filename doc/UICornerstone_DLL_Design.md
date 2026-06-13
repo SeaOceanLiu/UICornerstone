@@ -1,6 +1,6 @@
 # UICornerstone DLL + C ABI 设计
 
-> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-12 | 状态: **实施中** — R1~R5 编码完成
+> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-13 | 状态: **实施中** — R1~R8 编码完成
 
 ---
 
@@ -560,48 +560,73 @@ UICornerstone_Render()
 
 ```c
 int UICornerstone_InitFromPlugin(const char* pluginName) {
+    if (!pluginName || !pluginName[0]) return 0;
+
+    UIBackendCallbacks* callbacks = nullptr;
+
+    // 1. 尝试 LoadLibrary 动态加载 UIBackend_xxx.dll
     char dllName[128];
     snprintf(dllName, sizeof(dllName), "UIBackend_%s.dll", pluginName);
     HMODULE dll = LoadLibraryA(dllName);
-    if (!dll) return 0;
+    if (dll) {
+        auto getter = (UIBackendCallbacks*(*)())GetProcAddress(dll, "GetUIBackendCallbacks");
+        if (getter) callbacks = getter();
+    }
 
-    auto getCallbacks = (UIBackendCallbacks*(*)())GetProcAddress(dll, "GetUIBackendCallbacks");
-    if (!getCallbacks) { FreeLibrary(dll); return 0; }
+    // 2. 静态链接回退（UICornerstone 包含了 backend 源码时）
+    if (!callbacks) {
+        extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
+        callbacks = GetUIBackendCallbacks();
+    }
 
-    UIBackendCallbacks* callbacks = getCallbacks();
-    int result = UICornerstone_Init(callbacks);
-    // 注意：FreeLibrary 在 UICornerstone_Shutdown 中调用
-    return result;
+    if (!callbacks) return 0;
+    return UICornerstone_Init(callbacks);
 }
 ```
+
+> **说明**：静态回退使同一套代码同时支持动态加载和静态链接模式。R7 为所有 3 个后端添加了 `GetUIBackendCallbacks()` 实现，通过 `BackendBridge.h` 的桥接函数将 C ABI 回调委托为 C++ 接口调用。
 
 ---
 
 ## 8. CMake 构建模式
 
-### 8.1 静态模式（开发用，完全向后兼容）
+### 8.1 静态模式（默认，开发用，完全向后兼容）
 
 ```cmake
 cmake -B build\sdl3 -DUICORNERSTONE_BACKEND=SDL3
 # 编译 UICornerstone.lib（含 backend 源码）+ test 可执行文件
 ```
 
-### 8.2 DLL 模式（发布用）
+### 8.2 DLL 模式（通过选项开启）
 
 ```cmake
-cmake -B build\dll -DUICORNERSTONE_DLL=ON -DUICORNERSTONE_BACKEND=SDL3
+cmake -B build\sdl3_dll -DUICORNERSTONE_BACKEND=SDL3 -DUICORNERSTONE_BUILD_DLL=ON
 # 编译:
-#   UICornerstone.dll  — 闭源核心（不含后端源码，导出 C ABI）
-#   UIBackend_sdl3.dll — 开源助手（导出 GetUIBackendCallbacks）
-#   test_xxx.exe       — 链接 UICornerstone.lib，运行时 LoadLibrary
+#   UICornerstone.lib      — 静态库（test 链接此目标，无变化）
+#   UICornerstone_dll.dll  — 共享库（导出所有 UICORNERSTONE_API 函数）
+#   test_xxx.exe           — 链接静态 UICornerstone.lib
 ```
 
-### 8.3 纯 DLL 集成（第三方游戏用）
+### 8.3 静态/DLL 关系
+
+```
+UICORNERSTONE_BUILD_DLL=OFF (默认):
+  └─ UICornerstone (STATIC) — 所有源码 + backend 编译入库
+
+UICORNERSTONE_BUILD_DLL=ON:
+  ├─ UICornerstone (STATIC)     — 不变，供 test 链接
+  └─ UICornerstone_dll (SHARED) — 同源码二次编译，带 UICORNERSTONE_API_EXPORT
+      导出 __declspec(dllexport) 修饰的 UICORNERSTONE_API 函数
+```
+
+> **设计决策**：两个目标编译两次源代码，优点是 test 不需感知 DLL 模式、完全向后兼容、DLL 导出控制精确。编译耗时约增加 60~100%。
+
+### 8.4 纯 DLL 集成（第三方游戏用）
 
 游戏开发者只需：
 
 ```
-game.exe + UICornerstone.dll + UICornerstoneAPI.h
+game.exe + UICornerstone_dll.dll + UICornerstone_dll.lib + UICornerstoneAPI.h
 ```
 
 游戏提供自己的 `UIBackendCallbacks` 实现，无需 `UIBackend_*.dll`。
@@ -619,9 +644,9 @@ game.exe + UICornerstone.dll + UICornerstoneAPI.h
 | **R3** | 实现 5 个 CallbackAdapter 类（合并为 CallbackAdapters.h/cpp） | 2 新建 | ✅ 完成 |
 | **R4** | 实现 `src/UICornerstoneAPI.cpp`（初始化+控件工厂+viewport） | 1 新建 | ✅ 完成 |
 | **R5** | JSON 布局 C ABI 包装 | `src/UICornerstoneAPI.cpp` | ✅ 完成 |
-| **R6** | BackendManager 改造：支持回调表初始化 | `src/BackendManager.cpp` | ⬜ 待实施 |
-| **R7** | 3 个 BackendPlugin.cpp 改造：导出 `GetUIBackendCallbacks` | 3 文件 | ⬜ 待实施 |
-| **R8** | CMake DLL 模式分支 | `CMakeLists.txt`, `test/CMakeLists.txt` | ⬜ 待实施 |
+| **R6** | BackendManager 改造：支持回调表初始化 | `BackendPlugin.h`, `BackendManager.cpp` | ✅ 完成 |
+| **R7** | 3 个 BackendPlugin.cpp 改造：导出 `GetUIBackendCallbacks` | `BackendBridge.h`, 3×`BackendPlugin.cpp` | ✅ 完成 |
+| **R8** | CMake DLL 模式分支 | `CMakeLists.txt`, `test/CMakeLists.txt`, `UICornerstoneAPI.h` | ✅ 完成 |
 | **R9** | 测试适配：静态模式不受影响，DLL 模式新增 | `test/*.cpp` | ⬜ 待实施 |
 | **R10** | 构建验证：3 后端 × 2 模式 | — | ⬜ 待实施 |
 
@@ -676,14 +701,96 @@ R9 → R10 (验证)
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+#### R6 BackendManager 回调表初始化（已完成）
+
+`BackendManager::initialize(const UIBackendCallbacks* callbacks)` 新增：
+- 接收 C ABI 回调查表，创建 5 个 CallbackAdapter 实例（Window/RenderDevice/TextRenderer/InputBackend/ResourceProvider）
+- 适配器实例通过标准访问器 `window()` / `renderDevice()` / `textRenderer()` / `inputBackend()` 对外暴露
+- 与现有的 `initialize(backendName, ...)`（内置后端）共存
+
+**`UICornerstone_Init` 改造**：
+- 不再直接管理适配器创建，改为委托 `BackendManager::instance()->initialize(callbacks)`
+- 全局状态（`g_renderDevice` 等）改为抽象指针类型（`RenderDevice*` 而非 `CallbackRenderDevice*`），仅缓存 BackendManager 返回的指针
+- 注销流程改为 `BackendManager::instance()->shutdown()` + `delete g_resourceProvider`
+- 修复 `BackendManager::shutdown()` 中 `m_renderDevice` 未 delete 的泄漏（回调查表路径下删除，内置路径保持原有行为）
+
+**验证**：编译通过，全部 10 个 SDL3 测试无回归。
+
+#### R7 BackendPlugin 导出 GetUIBackendCallbacks（已完成）
+
+`src/backend/BackendBridge.h` 桥接函数将 C ABI 回调查表委托回 C++ 抽象接口：
+
+| 模块 | 桥接函数 |
+|------|---------|
+| Window | `bridge_destroyWindow`, `bridge_getWindowSize`, `bridge_getWindowPosition`, `bridge_getDisplayWidth/Height`, `bridge_getDpiScale`, `bridge_setWindowTitle`, `bridge_getMousePosition` |
+| RenderDevice | `bridge_destroyRenderDevice`, `bridge_setDrawColor`, `bridge_setBlendMode`, `bridge_setClipRect/clearClipRect`, `bridge_fillRect/drawRect/drawLine/drawPoint`, `bridge_clear/present/flush`, `bridge_getNativeHandle`, `bridge_createTextureFromFile/destroyTexture/drawTexture/getTextureSize` |
+| InputBackend | `bridge_destroyInputBackend`, `bridge_pollEvent`（事件转换 12 种类型）, `bridge_startTextInput/stopTextInput`, `bridge_getModState` |
+| TextRenderer | `bridge_destroyTextRenderer`, `bridge_loadFont/loadFontFromMemory/destroyFont`, `bridge_measureTextWidth/getFontHeight/drawText/drawTextWrapped` |
+| ResourceProvider | `bridge_destroyResourceProvider`, `bridge_readFile`, `bridge_fileExists` |
+
+每个后端通过 `plugin_createWindow/RenderDevice/TextRenderer/InputBackend` 静态工厂创建对象，填入 `UIBackendCallbacks` 表。
+
+桥接函数使用 `reinterpret_cast` 将 `void*` 句柄转为 C++ 抽象接口指针，调用虚方法。`Texture` 和 `Font` 通过堆分配的 `shared_ptr` 管理生命周期。
+
+**实现文件**：
+- `src/backend/BackendBridge.h` — 250 行 inline 桥接函数（共享）
+- `src/backend/sdl3/BackendPlugin.cpp` — 已添加 `GetUIBackendCallbacks()`
+- `src/backend/sfml/BackendPlugin.cpp` — 已添加
+- `src/backend/raylib/BackendPlugin.cpp` — 已添加
+
+**验证**：编译通过，全部 10 个 SDL3/SFML/raylib 测试无回归。
+
+#### R8 CMake DLL 模式分支（已完成）
+
+新增 `UICORNERSTONE_BUILD_DLL` CMake 选项（BOOL，默认 OFF）：
+
+| 模式 | 目标 | 类型 | 用途 |
+|------|------|------|------|
+| OFF | `UICornerstone` | STATIC | 测试/开发（现有行为不变） |
+| ON | `UICornerstone` | STATIC | 同上，保持向后兼容 |
+| ON | `UICornerstone_dll` | SHARED | 导出 C ABI 函数的 DLL |
+
+**UICornerstoneAPI.h 导出宏**：
+
+```c
+#if defined(UICORNERSTONE_BUILD_SHARED)
+#  if defined(UICORNERSTONE_API_EXPORT)
+#    define UICORNERSTONE_API __declspec(dllexport)
+#  else
+#    define UICORNERSTONE_API __declspec(dllimport)
+#  endif
+#else
+#  define UICORNERSTONE_API
+#endif
+```
+
+- 静态模式：`UICORNERSTONE_API` 为空
+- DLL 模式：所有 `UICornerstone_*` 函数标记 `__declspec(dllexport)`
+
+**CMake 关键变更**：
+
+```cmake
+add_library(UICornerstone STATIC ${CORE_SOURCES} ${BACKEND_SOURCES})
+
+if(UICORNERSTONE_BUILD_DLL)
+    add_library(UICornerstone_dll SHARED ${CORE_SOURCES} ${BACKEND_SOURCES})
+    target_compile_definitions(UICornerstone_dll
+        PRIVATE UICORNERSTONE_API_EXPORT=1
+        PUBLIC UICORNERSTONE_BUILD_SHARED=1)
+endif()
+```
+
+> **设计决策**：两个目标编译两次源码而非 OBJECT 库。优点是 test 完全不感知 DLL 模式、CMake 结构清晰、导出控制精确。缺点约增加 60~100% 的编译时间（~3 分钟/后端）。
+
+**验证**：静态模式 10/10 测试通过，DLL 模式 3 后端均生成 `UICornerstone_dll.dll`（SDL3: 3.3MB）。
+
 ### 9.4 回退计划
 
 任何步骤出现问题：
 
 - **R1 重命名错误**：通过 git diff 确认所有替换正确，可回退单个文件
 - **R2–R5 新代码错误**：不修改现有代码，仅添加新文件，不影响现有构建
-- **R6–R7 后端改造错误**：通过 `#if UICORNERSTONE_DLL` 条件编译隔离，静态模式不受影响
-- **R8–R10** 只影响 DLL 模式，静态模式完全隔离
+- **R6–R8 后端/CMake 改造**：静态模式（`UICORNERSTONE_BUILD_DLL=OFF`）完全不影响，仅影响 DLL 模式。DLL 目标为独立 `add_library(... SHARED)`，不存在任何 `#ifdef` 条件，完全隔离。
 
 ---
 
@@ -870,3 +977,5 @@ int main() {
 | 1.0 | 2026-06-12 | 初版 — 草案待确认 |
 | 1.1 | 2026-06-12 | R2~R4 编码完成：更新 Adapter 文件结构（合并为 CallbackAdapters.h/cpp）、修正 SRect 成员名示例、修正控件工厂示例、标记进度状态 |
 | 1.2 | 2026-06-12 | R5 编码完成 + Render 修正：LoadLayout 实现（Action 绑定 + ID 注册）、Render 移除 clear/present |
+| 1.3 | 2026-06-12 | R6 编码完成：BackendManager 回调表初始化路径、UICornerstone_Init 委托重构、RenderDevice 泄漏修复 |
+| 1.4 | 2026-06-13 | R7 编码完成：BackendBridge.h 桥接函数、3 后端 GetUIBackendCallbacks 导出、InitFromPlugin 实现。R8 编码完成：UICORNERSTONE_BUILD_DLL 选项、UICORNERSTONE_API 导出宏、独立 UICornerstone_dll 目标
