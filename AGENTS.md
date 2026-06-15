@@ -57,6 +57,29 @@ test_label.exe
 - SFML backend DLLs and assets are auto-copied to `build\sfml\test\Debug\`
 - `NOMINMAX` must appear before any `#include` in files using `std::min`/`std::max` because SDL3 headers pull in `windows.h` transitively
 
+## RGBA8888 Pixel Format (CRITICAL)
+
+`Surface::create(w, h)` creates an RGBA8888 surface. On **little-endian x86** (the only relevant target), RGBA8888 memory layout is:
+
+| Byte offset | 0 (LSB) | 1 | 2 | 3 (MSB) |
+|------------|---------|---|---|---------|
+| Channel | A | B | G | R |
+
+When writing pixels as `uint32_t`, the value MUST be formatted as:
+
+```cpp
+uint32_t pixel = (R<<24) | (G<<16) | (B<<8) | A;
+// Example: opaque black = 0x000000FF, opaque red = 0xFF0000FF
+```
+
+Common mistakes:
+- `0xFF000000` = R=255, G=0, B=0, A=0 = **transparent red** (NOT opaque black!)
+- `0x000000FF` = R=0, G=0, B=0, A=255 = **opaque black** (correct for black)
+- `0xFFFFFFFF` = R=255, G=255, B=255, A=255 = opaque white (correct)
+- `0x00000000` = R=0, G=0, B=0, A=0 = transparent (correct)
+
+TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits 24-31).**
+
 ## Dependencies (Submodules)
 
 | Submodule | Path | Source |
@@ -639,6 +662,106 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - 仅做 `setClipRect(g_viewport)` → `BENCH->draw()` → `clearClipRect()`
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
+
+### 2026-06-15: Phase 16 — RGBA8888 像素格式根因排查 + DLL 桥接验证
+
+**问题**：test_fromsource 中 WinFrame 关闭按钮的黑色 X 不可见（仅深灰色背景），怀疑 DLL 桥接存在问题。
+
+**Root cause**：
+- `Surface::create(32, 32)` 创建 RGBA8888 surface。在 little-endian x86 上，字节顺序为 A(LSB), B, G, R(MSB)
+- 代码中 `0xFF000000` 实际上是 **R=255, G=0, B=0, A=0** → 透明红色，而非期望的不透明黑色
+- 修复后用 `0x000000FF` (R=0,G=0,B=0,A=255) = 不透明黑；`0x505050FF` (R=80,G=80,B=80,A=255) = 不透明深灰
+
+**DLL 桥接验证**：
+- 通过 `GetUIBackendCallbacks` 桥接的 `drawTexture` 正确工作（SDL_RenderTexture 经桥接到 SDL3RenderDevice）
+- PNG 文件加载和程序化表面两种纹理来源均通过桥接正常工作
+- Bench 的 `getRenderDevice()` 通过 `GET_RENDERDEVICE`（`BackendManager::instance()->renderDevice()`）正确获取，无空指针问题
+- Hover/Press 状态图片也可见（证明三个状态 Actor 的纹理绘制全部正常）
+
+**关键教训**：
+- 初次看到"没有黑 X"是因为黑 X (0,0,0) 在深灰背景 (80,80,80) 上确实容易被忽略，而非 DLL 桥接问题
+- 所有后续"sdl3/dll/backend bridge"方向的排查都是误判
+
+**验证**：test_fromsource 运行正常，所有控件可见，点击/悬停交互正常。
+
+### 2026-06-14: test_fromsource — 单文件编译 + 窗口复用 + 控件可见性 + 事件注入
+
+**单文件编译**（CMakeLists.txt）：
+- 去掉 `BACKEND_SRC` glob，`test_fromsource.cpp` 通过 `#include` 引入后端 `.cpp` 文件（Window.cpp / RenderDevice.cpp / TextRenderer.cpp / InputBackend.cpp / Cursor.cpp / **BackendPlugin.cpp**）
+- 添加 `src/backend/` 到 include 路径供 `BackendBridge.h` 查找
+
+**BackendPlugin.cpp 复用**（取代内联拷贝）：
+- `BackendPlugin.cpp` 新增 `#ifdef UICORNERSTONE_REUSE_SDL_WINDOW` 条件编译路径
+- 复用路径：`sdl3CreateWindow` 用 `new SDL3Window(g_reuseWindow, g_reuseRenderer)`（不创建新窗口）；`sdl3Init`/`sdl3Destroy` 为空操作
+- 默认路径保持原装不动（`CreateSDL3Window` + `SDL_Init`/`SDL_Quit`），不影响现有 10 个测试 + test_api
+- `SDL3Backend_SetReuseWindow(g_window, g_renderer)` 在 SDL_AppInit 中 `SDL_CreateWindowAndRenderer` 后调用
+- `test_fromsource.cpp` 中的 136 行内联拷贝替换为 `#define UICORNERSTONE_REUSE_SDL_WINDOW` + `#include "../../src/backend/sdl3/BackendPlugin.cpp"`
+
+**窗口复用**：
+- `SDL_AppQuit` 调用 `UICornerstone_Shutdown` 清理（`~SDL3Window` 销毁 SDL 句柄）
+
+**控件可见性修复**（UICornerstoneAPI.cpp）：
+- 所有 6 个工厂函数新增 `ctl->create()` 调用（Builder/LayoutParser 模式需要显式 create，控制器才真正初始化）
+- 所有工厂新增 `ctl->setVisible(true)`
+- 原来 Label 的 `m_isCreated` 初始为 `false` → `recreate()` 中的 `if(!m_isCreated) return;` 跳过所有初始化
+- 工厂新增 `setFont(FontName::HarmonyOS_Sans_SC_Regular)` 确保 Label 有默认字体
+- 新增 `UICornerstone_SetBGColor` API，同时设置 Normal/Hover/Pressed 三态背景色（hover = brighter(0.3), pressed = darker(0.3)）
+
+**事件注入机制**（UICornerstoneAPI.h/.cpp）：
+- 新增 `UICornerstone_PushUIEvent(const UIEvent*)` API + 内部 `std::queue<UIEvent>` 队列
+- `UICornerstone_ProcessEvents` 改为先处理队列事件，再后备轮询 InputBackend
+- 解决 SDL_MAIN_USE_CALLBACKS 模式下 `SDL_PollEvent` 不返回事件的问题
+
+**test_fromsource 事件桥接**：
+- `sdlEventToUIEvent()` 函数将 SDL_Event 转为 UIEvent（data buffer 格式）
+- `SDL_AppEvent` 中调用 `uiPushUIEvent(&ue)` 注入
+- 添加 `UICornerstone_SetOnClick` 回调指针，点击按钮输出 `"Button clicked!"`
+
+**测试验证**：
+- SDL3 静态/DLL 全部 11 个目标（10 测试 + test_fromsource）编译通过
+- test_fromsource 运行：Button/Label 可见，Hover 变色正常，点击输出 Button clicked!
+
+### 2026-06-13: test_fromsource — DLL 动态加载 + 后端源码编译 (Complete)
+
+**问题**：之前的 `test_fromsource` 使用 `test_api` 模式（`UICornerstone_InitFromPlugin` + `UIBackend_sdl3.dll` + JSON 布局），未满足"只使用 UICornerstone.dll，后端/控件从源码编译，无声明式 UI"的需求。
+
+**设计原则**：
+- `UICornerstone.dll` 是唯一的 DLL 依赖（含控件 + C ABI 实现）
+- 后端（SDL3 RenderDevice/Window/InputBackend/TextRenderer/Cursor）从源码编译进 exe
+- 控件通过 C ABI 工厂函数编程式创建（`UICornerstone_CreateButton/Label/CheckBox/EditBox/ProgressBar`）
+- 无 JSON 布局，无 `UIBackend_sdl3.dll` 依赖
+
+**架构图**：
+```
+test_fromsource.exe
+  ├── 动态加载: LoadLibrary("UICornerstone.dll")
+  │     → GetProcAddress 解析所有 C ABI 函数指针
+  │     → UICornerstone_Init(callbacks) 传入回调查表
+  ├── 源码编译 (src/backend/sdl3/*.cpp):
+  │     → BackendPlugin.cpp (GetUIBackendCallbacks)
+  │     → RenderDevice.cpp, Window.cpp, InputBackend.cpp
+  │     → TextRenderer.cpp, Cursor.cpp
+  ├── 控件工厂: UICornerstone*.dll C ABI 函数
+  └── 帧循环: ProcessEvents → Update → Clear → Render → Present
+```
+
+**编译策略**：
+- 链接 `UICornerstone_dll`（import lib）供后端源码解析 `Surface::registerFactories` 等 `CORE_API dllimport` 符号
+- `UICORNERSTONE_BUILD_SHARED=1` 作用于整个 target，后端源码正确从 DLL 导入符号
+- test_fromsource.cpp 尽管 sees dllimport 声明，但只通过 GetProcAddress 函数指针调用，无直接函数引用 → 无 LNK2001
+- `test/CMakeLists.txt` + `test_fromsource.cpp`：全新实现，不依赖 `test_api.c` 代码
+- 180 帧后自动退出（非手动关闭窗口）
+
+**验证**：
+```
+=== test_fromsource: UICornerstone.dll + backend from source ===
+OK: loaded UICornerstone.dll           # LoadLibrary 成功
+SDL3: GetUIBackendCallbacks ready       # 后端源码编译
+BackendManager: initialized from callback table  # C ABI Init
+Controls: 5/5 created                   # Button/Label/CheckBox/EditBox/ProgressBar
+Frame loop...
+Done, 180 frames                        # 帧循环正常完成
+```
 
 ### 2026-06-13: R10b — UICornerstone.dll 拆分：核心 DLL + 后端插件 DLL
 

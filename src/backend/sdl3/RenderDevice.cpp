@@ -227,12 +227,7 @@ public:
         if (!m_renderer || !texture || !dstRect) return;
         SDL3Texture* sdlTex = static_cast<SDL3Texture*>(texture);
         SDL_FRect sdlDst = { dstRect->left, dstRect->top, dstRect->width, dstRect->height };
-        if (srcRect) {
-            SDL_FRect sdlSrc = { srcRect->left, srcRect->top, srcRect->width, srcRect->height };
-            SDL_RenderTexture(m_renderer, sdlTex->native(), &sdlSrc, &sdlDst);
-        } else {
-            SDL_RenderTexture(m_renderer, sdlTex->native(), nullptr, &sdlDst);
-        }
+        SDL_RenderTexture(m_renderer, sdlTex->native(), nullptr, &sdlDst);
     }
 
     void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) override {
@@ -345,9 +340,8 @@ public:
 
     SharedTexture createTexture(RenderDevice* device) override {
         if (!m_surface || !device) return nullptr;
-        SDL_Renderer* renderer = static_cast<SDL3RenderDevice*>(device)->getSDL3Renderer();
+        SDL_Renderer* renderer = static_cast<SDL_Renderer*>(device->getNativeHandle());
         if (!renderer) return nullptr;
-
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, m_surface);
         if (!tex) {
             SDL_Log("SDL3Surface::createTexture: %s", SDL_GetError());
@@ -358,7 +352,7 @@ public:
 
     SharedSurface rotate(float angle, RenderDevice* device) override {
         if (!m_surface || !device) return nullptr;
-        SDL_Renderer* renderer = static_cast<SDL3RenderDevice*>(device)->getSDL3Renderer();
+        SDL_Renderer* renderer = static_cast<SDL_Renderer*>(device->getNativeHandle());
         if (!renderer) return nullptr;
 
         SDL_Texture* src_tex = SDL_CreateTextureFromSurface(renderer, m_surface);

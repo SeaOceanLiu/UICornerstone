@@ -424,3 +424,6 @@ label_log.txt
 # Test output
 test_stdout.txt
 test_stderr.txt
+
+# SDL wiki HTML scraped pages (auto-generated, not source code)
+subModules/sdlwiki/
