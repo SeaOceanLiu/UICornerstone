@@ -259,43 +259,33 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     printf("OK: UICornerstone initialized\n"); fflush(stdout);
 
     // 创建测试控件 — 按关联分组布局
-    if (uiCreateButton) {
-        g_btnHandle = uiCreateButton("Click Me", 20, 15, 160, 30);
-        if (g_btnHandle) {
-            printf("OK: created Button\n");
-            if (uiSetBGColor)
-                uiSetBGColor(g_btnHandle, 100, 149, 237, 255);
-            if (uiSetOnClick)
-                uiSetOnClick(g_btnHandle, onButtonClick, nullptr);
-        }
-    }
-    // 分组 1: CheckBox + 状态标签
+    // 分组 1: CheckBox + 状态标签（靠左）
     if (uiCreateCheckBox) {
-        g_checkHandle = uiCreateCheckBox("Check me", 250, 15, 180, 30);
+        g_checkHandle = uiCreateCheckBox("Check me", 20, 15, 180, 30);
         if (g_checkHandle) {
             printf("OK: created CheckBox\n");
             if (uiSetChecked) uiSetChecked(g_checkHandle, 1);
         }
     }
     if (uiCreateLabel) {
-        g_chkStatus = uiCreateLabel("CheckBox: Checked", 12.0f, 250, 50, 200, 16);
+        g_chkStatus = uiCreateLabel("CheckBox: Checked", 12.0f, 20, 50, 180, 16);
         if (g_chkStatus) printf("OK: created chkStatus\n");
     }
-    // 分组 2: EditBox + 状态标签
+    // 分组 2: EditBox + 状态标签（紧接 CheckBox，宽度延伸到窗体边缘）
     if (uiCreateEditBox) {
-        g_editHandle = uiCreateEditBox(500, 15, 200, 30);
+        g_editHandle = uiCreateEditBox(220, 15, 560, 30);
         if (g_editHandle) {
             printf("OK: created EditBox\n");
             if (uiSetText) uiSetText(g_editHandle, "Type here...");
         }
     }
     if (uiCreateLabel) {
-        g_edtStatus = uiCreateLabel("Edit: ", 12.0f, 500, 50, 250, 16);
+        g_edtStatus = uiCreateLabel("Edit: ", 12.0f, 220, 50, 560, 16);
         if (g_edtStatus) printf("OK: created edtStatus\n");
     }
-    // 分组 3: ProgressBar + 状态标签
+    // 分组 3: ProgressBar + 状态标签（宽度与 EditBox 对齐）
     if (uiCreateProgressBar) {
-        g_progressHandle = uiCreateProgressBar(20, 80, 500, 20);
+        g_progressHandle = uiCreateProgressBar(20, 80, 760, 20);
         if (g_progressHandle) {
             printf("OK: created ProgressBar\n");
             if (uiSetBGColor) uiSetBGColor(g_progressHandle, 60, 60, 60, 255);
@@ -306,19 +296,33 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         g_prgStatus = uiCreateLabel("Progress: 0.0%", 12.0f, 20, 105, 230, 16);
         if (g_prgStatus) printf("OK: created prgStatus\n");
     }
-    // 分组 4: Panel + TextArea
+    // 分组 4: Panel + TextArea + Button（按钮放在面板内）
     if (uiCreatePanel && uiCreateTextArea && uiAddChild) {
-        g_panelHandle = uiCreatePanel(20, 135, 600, 330);
+        g_panelHandle = uiCreatePanel(20, 135, 760, 330);
         if (g_panelHandle) {
             printf("OK: created Panel\n");
             if (uiSetBGColor) uiSetBGColor(g_panelHandle, 50, 55, 60, 255);
         }
-        g_textAreaHandle = uiCreateTextArea(5, 5, 590, 320);
+        // TextArea 占据面板大部分区域
+        g_textAreaHandle = uiCreateTextArea(5, 5, 750, 260);
         if (g_textAreaHandle) {
             printf("OK: created TextArea\n");
             if (uiSetText) uiSetText(g_textAreaHandle, "Hello from TextArea!\nEdit me and click the button.");
             uiAddChild(g_panelHandle, g_textAreaHandle);
             printf("OK: added TextArea to Panel\n");
+        }
+        // Button 放在 TextArea 下方右侧
+        if (uiCreateButton) {
+            g_btnHandle = uiCreateButton(u8"读取TextArea文本内容", 555, 270, 200, 30);
+            if (g_btnHandle) {
+                printf("OK: created Button (in Panel)\n");
+                if (uiSetBGColor)
+                    uiSetBGColor(g_btnHandle, 100, 149, 237, 255);
+                if (uiSetOnClick)
+                    uiSetOnClick(g_btnHandle, onButtonClick, nullptr);
+                uiAddChild(g_panelHandle, g_btnHandle);
+                printf("OK: added Button to Panel\n");
+            }
         }
     }
     fflush(stdout);
