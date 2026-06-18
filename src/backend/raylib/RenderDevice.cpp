@@ -54,6 +54,7 @@ public:
     uint8_t getAlphaMod() const override { return m_alphaMod; }
 
     Texture2D native() const { return m_texture; }
+
     RenderTexture2D renderTexture() const { return m_renderTexture; }
     bool isRenderTexture() const { return m_isRenderTexture; }
 
@@ -227,6 +228,60 @@ SharedSurface Surface::loadFromMemory(const void* data, size_t len) {
         return nullptr;
     }
     return std::make_shared<RaylibSurface>(img);
+}
+
+// ============================================================
+// Surface factory registration for fromsource/DLL callback path
+// ============================================================
+void RegisterRaylibSurfaceFactories() {
+    Surface::registerFactories(
+        [](int w, int h) -> SharedSurface {
+            if (w <= 0 || h <= 0) return nullptr;
+            Image img = GenImageColor(w, h, BLANK);
+            if (!img.data) return nullptr;
+            return std::make_shared<RaylibSurface>(img);
+        },
+        [](const std::string& path) -> SharedSurface {
+            Image img = LoadImage(path.c_str());
+            if (!img.data) return nullptr;
+            return std::make_shared<RaylibSurface>(img);
+        },
+        [](const void* data, size_t len) -> SharedSurface {
+            if (!data || len == 0) return nullptr;
+            const char* str = static_cast<const char*>(data);
+            bool isSvg = (len > 4 && (strncmp(str, "<?xm", 4) == 0 ||
+                                       strncmp(str, "<svg", 4) == 0 ||
+                                       strncmp(str, "<!DO", 4) == 0));
+            if (isSvg) {
+                char* svgData = static_cast<char*>(malloc(len + 1));
+                if (!svgData) return nullptr;
+                memcpy(svgData, data, len); svgData[len] = '\0';
+                NSVGimage* svgImage = nsvgParse(svgData, "px", 96.0f);
+                free(svgData);
+                if (!svgImage) return nullptr;
+                int w = static_cast<int>(ceilf(svgImage->width));
+                int h = static_cast<int>(ceilf(svgImage->height));
+                if (w <= 0 || h <= 0) { nsvgDelete(svgImage); return nullptr; }
+                unsigned char* pixels = static_cast<unsigned char*>(malloc(static_cast<size_t>(w) * h * 4));
+                if (!pixels) { nsvgDelete(svgImage); return nullptr; }
+                NSVGrasterizer* rast = nsvgCreateRasterizer();
+                if (!rast) { free(pixels); nsvgDelete(svgImage); return nullptr; }
+                nsvgRasterize(rast, svgImage, 0.0f, 0.0f, 1.0f, pixels, w, h, w * 4);
+                nsvgDeleteRasterizer(rast); nsvgDelete(svgImage);
+                Image img = GenImageColor(w, h, BLANK);
+                if (!img.data) { free(pixels); return nullptr; }
+                size_t pitch = static_cast<size_t>(w) * 4;
+                unsigned char* dst = static_cast<unsigned char*>(img.data);
+                for (int y = 0; y < h; y++)
+                    memcpy(dst + y * pitch, pixels + y * pitch, pitch);
+                free(pixels);
+                return std::make_shared<RaylibSurface>(img);
+            }
+            Image img = LoadImageFromMemory(".png", static_cast<const unsigned char*>(data), static_cast<int>(len));
+            if (!img.data) return nullptr;
+            return std::make_shared<RaylibSurface>(img);
+        }
+    );
 }
 
 SharedTexture RaylibSurface::createTexture(RenderDevice* device) {
@@ -485,8 +540,19 @@ public:
             src = {0, 0, static_cast<float>(nativeTex.width),
                          static_cast<float>(nativeTex.height)};
         }
-        Color tint = {255, 255, 255, rlTex->getAlphaMod()};
-        DrawTexturePro(nativeTex, src, dst, {0, 0}, 0.0f, tint);
+
+        // Draw via rlPushMatrix/rlScalef + DrawTextureEx for non-uniform scaling.
+        // DrawTexturePro and raw rlBegin/rlEnd do not render in fromsource/bridge
+        // mode; root cause unknown.  DrawTextureEx at scale=1 (native size) works,
+        // so we scale the matrix before it to achieve any dest rect.
+        float sx = dst.width / src.width;
+        float sy = dst.height / src.height;
+        rlPushMatrix();
+        rlTranslatef(dst.x, dst.y, 0);
+        rlScalef(sx, sy, 1.0f);
+        rlTranslatef(-src.x, -src.y, 0);
+        { Vector2 zero = {0, 0}; DrawTextureEx(nativeTex, zero, 0, 1.0f, WHITE); }
+        rlPopMatrix();
     }
 
     void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) override {
@@ -494,6 +560,16 @@ public:
         RaylibTexture* rlTex = static_cast<RaylibTexture*>(texture);
         Texture2D nativeTex = rlTex->native();
         if (nativeTex.id == 0) return;
+
+        // Apply the texture's stored blend mode
+        bool blendSet = false;
+        switch (rlTex->getBlendMode()) {
+            case BlendMode::Blend: BeginBlendMode(BLEND_ALPHA); blendSet = true; break;
+            case BlendMode::Add:   BeginBlendMode(BLEND_ADDITIVE); blendSet = true; break;
+            case BlendMode::Mod:
+            case BlendMode::Mul:   BeginBlendMode(BLEND_MULTIPLIED); blendSet = true; break;
+            default: break;
+        }
 
         Rectangle src, dst;
         dst = {dstRect->left, dstRect->top, dstRect->width, dstRect->height};
@@ -503,9 +579,21 @@ public:
             src = {0, 0, static_cast<float>(nativeTex.width),
                          static_cast<float>(nativeTex.height)};
         }
-        Vector2 origin = {dstRect->width / 2, dstRect->height / 2};
+
+        float sx = dst.width / src.width;
+        float sy = dst.height / src.height;
         Color tint = {255, 255, 255, rlTex->getAlphaMod()};
-        DrawTexturePro(nativeTex, src, dst, origin, angle, tint);
+
+        rlPushMatrix();
+        rlTranslatef(dst.x + dst.width / 2, dst.y + dst.height / 2, 0);
+        rlRotatef(angle, 0, 0, 1);
+        rlTranslatef(-dst.width / 2, -dst.height / 2, 0);
+        rlScalef(sx, sy, 1.0f);
+        rlTranslatef(-src.x, -src.y, 0);
+        { Vector2 zero = {0, 0}; DrawTextureEx(nativeTex, zero, 0, 1.0f, tint); }
+        rlPopMatrix();
+
+        if (blendSet) EndBlendMode();
     }
 
     void setRenderTarget(Texture* texture) override {

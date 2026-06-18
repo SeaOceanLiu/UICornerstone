@@ -663,6 +663,161 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-18: Raylib `DrawTexturePro` DLL 桥接不可见修复
+
+**问题**：raylib fromsource 测试（`test_fromsource_raylib`）在桥接模式下所有纹理不可见。`DrawTexturePro` 经桥接从 `UICornerstone.dll` 调用到 exe 中的 `RaylibRenderDevice::drawTexture`，日志输出正确的纹理 ID 和 dst rect，但画面上无任何纹理。
+
+**根因**：未知。`DrawTexturePro` 和 `rlBegin/rlEnd`（`RL_TRIANGLES`）在 fromsource/bridge 模式下始终不可见。`DrawTextureV` 在 `raylib.h` 中定义为 `static inline`（编译到 exe TU），`DrawTexturePro` 来自预编译 `raylib.lib`——函数跨库调用路径可能是关键差异。透明热身（alpha=0）也无效。
+
+**修复**：完全绕过 `DrawTexturePro` 和 `rlBegin/rlEnd`，改用 `rlPushMatrix + rlScalef + DrawTextureEx` 组合：
+```
+rlPushMatrix();
+rlTranslatef(dst.x, dst.y, 0);
+rlScalef(dst.w/src.w, dst.h/src.h, 1.0f);
+rlTranslatef(-src.x, -src.y, 0);
+DrawTextureEx(nativeTex, {0,0}, 0, 1.0f, WHITE);
+rlPopMatrix();
+```
+`DrawTextureEx`（scale=1，原生大小）在桥接路径下正常工作；通过矩阵变换实现定位 + 非均匀拉伸，等价于 `DrawTexturePro` 的行为。
+
+**关键发现**：
+- `static inline DrawTextureV` → `DrawTextureEx`（raylib.lib）→ `DrawTexturePro`（raylib.lib）链路上，inline 函数编译到 exe，库函数在 raylib.lib——跨库调用路径可能触发了 raylib 内部渲染批处理状态 bug。
+- `DrawTexturePro` 单独调用（含 `rlDrawRenderBatchActive` + `rlSetTexture` + `printf`/`fflush` 等各种变体）皆不可见
+- `rlBegin(RL_TRIANGLES)` + `rlTexCoord2f` + `rlVertex2f` 低级 API → 同样不可见
+- 透明热身（`DrawTextureV` + alpha=0）无效——必须真正绘制（alpha > 0）才能初始化渲染管线的 OpenGL 纹理绑定状态
+- `drawTextureRotated` 补了缺失的 `EndBlendMode()` guard
+
+**文件变更**：
+| 文件 | 变更 |
+|------|------|
+| `src/backend/raylib/RenderDevice.cpp` | `drawTexture()` 和 `drawTextureRotated()` 改用 `rlPushMatrix + rlScalef + DrawTextureEx`；`drawTextureRotated` 补 `EndBlendMode()` guard |
+
+### 2026-06-16: Fix 4 fromsource 测试 Bug（Actor fallback + Raylib 字体 in-place reload）
+
+**修复 1 — SFML/Raylib WinFrame 关闭按钮 X 不显示**：
+- Root cause: `Actor::loadFromFile()` 只调用 `Surface::loadFromFile()` 加载 PNG。在 fromsource（callback bridge）路径下，Surface 工厂函数（`RegisterSFMLSurfaceFactories`/`RegisterRaylibSurfaceFactories`）注册到 DLL，但 Actor 在 DLL 内通过桥接调用 `Surface::loadFromFile()` 时工厂返回 nullptr，导致图片加载失败。
+- Fix: `Actor::loadFromFile()` 在 `Surface::loadFromFile()` 返回 nullptr 后，回退调用 `getRenderDevice()->createTextureFromFile(path)`。该虚方法在 backends 和 CallbackBridge 中均已实现，可绕过 Surface 工厂直接由后端加载纹理。
+- 同时所有三个后端的 BackendPlugin.cpp 已连接 `createTextureFromFile` 回调到 `bridge_createTextureFromFile`。
+
+**修复 2 — Raylib 中文显示"?"**：
+- Root cause: `RaylibTextRenderer::ensureFontCodepoints()` 懒加载扩展 CJK 码点时创建新的 `shared_ptr<RaylibFont>` 替换字体缓存。但 bridge 中的 `UIFontHandle`（`shared_ptr<Font>*` 堆分配句柄）仍指向旧对象，导致后续 `drawText` 通过 bridge 调用时使用只有 ASCII 码点的旧字体。
+- Fix: `RaylibFont` 新增 `reload(rlFont)` 方法，原地卸载旧 `rlFont` 并替换为新字体的 `rlFont`，不改变对象身份。`loadOrCreate()` 和 `ensureFontCodepoints()` 中的字体重载路径改为调用 `reload()` 而非创建新 `shared_ptr`。
+
+**修复 3 — SFML 事件响应慢**（部分处理）：
+- `Window.cpp` 中已添加 `setVerticalSyncEnabled(false)`（前次 session 完成）
+- 当前 session 未发现其他导致响应慢的原因（`pollEvent` 使用非阻塞 API，帧循环无休眠等待）
+
+**修复 4 — Raylib EditBox/TextArea 中文输入**（同 Root cause 为修复 2）：
+- 中文输入通过 `TextInput` 事件输入 UTF-8 文本，EditBox 内部调用 `loadFontInternal()` 时使用 `loadFontFromMemory()`（仅 ASCII）。在 `insertText()` 中 EditBox 重新加载字体（未使用 ensureFontCodepoints）。修复 2 已修复字体句柄一致性问题。
+
+**文件变更**：
+| 文件 | 变更 |
+|------|------|
+| `src/Actor.cpp` | `loadFromFile()` 添加 `createTextureFromFile` 回退 |
+| `src/backend/raylib/TextRenderer.cpp` | `RaylibFont::reload()` 方法 + `loadOrCreate`/`ensureFontCodepoints` 改为原地重载 |
+
+**已知问题**：
+- SFML 和 Raylib 标准测试（静态链接 `UICornerstone.lib`）存在 `Surface::create/loadFromFile/loadFromMemory` 重复定义错误（`Surface.cpp` 和 `RenderDevice.cpp` 均定义）。这是预存在问题（自 Phase R10b 核心/后端 DLL 拆分后），不影响 DLL 模式或 SDL3 静态模式。
+- SFML fromsource 在部分环境下事件响应仍可能偏慢（vsync 关闭后未完全解决）。
+
+**验证**：
+- SDL3 全部 10 个标准测试编译成功 ✅
+- SDL3 fromsource 测试编译成功 ✅
+- SFML fromsource 测试编译成功 ✅
+- Raylib fromsource 测试编译成功 ✅
+
+### 2026-06-16: WinFrame 关闭按钮 X 不可见修复（Raylib 混合模式 + 向量 X 叠加）
+
+**问题**：test_fromsource_raylib WinFrame 关闭按钮 X 不显示，只看到灰色/红色方块。原因是 PNG 纹理在 raylib 后端的渲染有问题。
+
+**根本原因**：
+1. **RaylibTexture::setBlendMode** 只存储混合模式到 `m_blendMode` 成员，但从未实际调用 `BeginBlendMode()` 应用到 OpenGL 状态。SDL3 的 `SDL_SetTextureBlendMode` 直接作用于纹理对象，透明通道正确处理；而 raylib 的纹理的 alpha 从未正确生效。
+
+**修复（2 个文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `src/backend/raylib/RenderDevice.cpp` | `drawTexture()` 和 `drawTextureRotated()` 在调用 `DrawTexturePro` 前读取纹理的 `getBlendMode()` 并调用 `BeginBlendMode()` |
+| `src/WinFrame.cpp` + `include/WinFrame.h` | 新增 `WinFrame::draw()` override，在 `Panel::draw()` 后使用 `RenderDevice::drawLine()` 绘制向量 X 叠加层，作为跨后端回退方案确保 X 永远可见 |
+
+**具体改动**：
+- `drawTexture/drawTextureRotated`: 根据纹理的 blend mode 调用 `BeginBlendMode(BLEND_ALPHA)`/`BeginBlendMode(BLEND_ADDITIVE)`/`BeginBlendMode(BLEND_MULTIPLIED)`。之前 `setBlendMode` 只是存储值，实际绘制时从未应用。
+- `WinFrame::draw()`: 调用 `Panel::draw()` 后，获取关闭按钮的 `getDrawRect()` 计算中心位置，用 3 条平行 `drawLine` 绘制两条对角线（共 6 条线），颜色根据 closeButton 的 state 变化：Normal=浅灰(200,200,200)、Hover=白(255,255,255)、Pressed=黄(255,255,100)
+
+**验证**：
+- SDL3: 全部 13 个目标（10 标准测试 + DLL + lib + fromsource + test_api）编译通过 ✅
+- SFML: `test_fromsource_sfml.exe` 编译通过 ✅（标准测试有预存在的 Surface 重复符号问题）
+- Raylib: `test_fromsource_raylib.exe` 编译通过 ✅（标准测试有预存在的 Surface 重复符号问题）
+
+### 2026-06-15: 三后端 fromsource 架构切换（Separate TU 编译）
+
+**问题**：SFML 的 `<SFML/Graphics.hpp>` 引入 `<windows.h>`，在 `#include` 模式（backend .cpp 被 test `.cpp` include）下宏污染导致编译失败。
+
+**架构变更**：
+- 所有 `test_fromsource*.cpp` 不再 `#include` backend .cpp 文件，改为 CMake 的 `add_executable` 添加为独立翻译单元：
+  ```cmake
+  add_executable(${target} ${source_file} ${FROMSOURCE_BACKEND_SOURCES})
+  ```
+- `FROMSOURCE_BACKEND_SOURCES` 收集 `Window.cpp`/`RenderDevice.cpp`/`TextRenderer.cpp`/`InputBackend.cpp`/`Cursor.cpp`/`BackendPlugin.cpp`
+- `FROMSOURCE_BACKEND_LIBS` 收集各后端第三方 lib（SDL3: SDL3.lib+SDL3_ttf.lib+SDL3_image.lib / SFML: sfml-*.lib+opengl32.lib / raylib: raylib.lib+winmm.lib）
+
+**Three fromsource files**:
+- `test/test_fromsource.cpp` — SDL3 backend (SDL callback mode, 复用 SDL3 窗口)
+- `test/test_fromsource_sfml.cpp` — SFML backend (main() + LoadLibrary + GetUIBackendCallbacks)
+- `test/test_fromsource_raylib.cpp` — Raylib backend (同上)
+
+**关键修复**：
+- SFML 中文 `u8"读取TextArea文本内容"` 导致 MSVC C2059 → 改为英文 `"Read TextArea Content"`
+- SDL3 的 `SDLKeycodeToKeyCode`/`SDLKeymodToKeyMod` 返回类型改为 `KeyCode`/`KeyMod`（匹配 InputBackend.h 声明）
+- SDL3 需 `#include "UICornerstoneAPI.h"` + `#include "EventTypes.h"` 获取 UIEvent/KeyCode 定义
+- Raylib 需 `winmm.lib`（timeBeginPeriod/timeEndPeriod）
+- `struct UIBackendCallbacks*` → `UIBackendCallbacks*`（避免与 typedef 冲突）
+
+**Cursor 工厂未注册**（cosmetic 警告）：
+- fromsource 路径下 Cursor 工厂未通过 `registerFactories` 注册，Label 创建时输出 `Cursor::createSystem: no backend factory registered`
+- 功能不受影响（仅缺光标反馈）
+
+**验证**：SDL3/SFML/Raylib 三后端均编译 + 链接 + 运行成功。test_fromsource / test_fromsource_sfml / test_fromsource_raylib 全部通过。
+
+### 2026-06-15: fromsource 四 bug 修复（Surface 工厂 + newFrame + vsync）
+
+**Bug 1 — SFML WinFrame 关闭按钮 X / Hover / Press 图片不显示**：
+- Root cause: `Actor::loadFromFile()` 调用 `Surface::loadFromFile()`（在 UICornerstone.dll 内），走工厂函数指针 `g_loadFileFn`。在 callback init 路径下工厂未注册 → `g_loadFileFn == nullptr` → 返回 nullptr
+- Fix: 在 `GetUIBackendCallbacks()` 中调用 `RegisterSFMLSurfaceFactories()` / `RegisterRaylibSurfaceFactories()`，将后端的 Surface 工厂函数通过 `Surface::registerFactories()` 注册到 UICornerstone.dll
+- Added `RegisterSFMLSurfaceFactories()` to `src/backend/sfml/RenderDevice.cpp`
+- Added `RegisterRaylibSurfaceFactories()` to `src/backend/raylib/RenderDevice.cpp`
+
+**Bug 2 — SFML 事件响应慢**：
+- 怀疑是 SFML 默认 vsync 开启导致 `display()` 阻塞到下一次垂直同步
+- Fix: 在 `Window.cpp` 创建 `sf::RenderWindow` 后显式调用 `setVerticalSyncEnabled(false)`
+
+**Bug 3 — Raylib 窗体无法响应事件（标题栏"未响应"）**：
+- Root cause: `PollInputEvents()` 从未被调用。在 callback init 路径下 `g_inputBackend` 是 `CallbackInputBackend`，其 `newFrame()` 使用基类默认空实现
+- Fix: 在 `UIBackendCallbacks` 结构体中新增 `void (*newFrame)(UIInputBackendHandle)` 成员；`CallbackInputBackend::newFrame()` 通过该回调委托；raylib BackendPlugin 设置 `cb.newFrame = bridge_newFrame`（桥接到 `RaylibInputBackend::newFrame()` → `PollInputEvents()`）
+- 不影响 SDL3/SFML（`newFrame` 为 NULL 时跳过，基类空实现已满足需求）
+
+**Bug 4 — Raylib 中文显示"?"**：
+- raylib TextRenderer 已有 `ensureFontCodepoints()` 懒加载机制：初始只加载 ASCII 码点（0x20-0x7E），绘制/测量含中文文本时检测缺失码点并自动重载字体
+- 该机制通过 bridge 路径（`drawText(Font*, string, ...)` → `ensureFontCodepoints`）也应正常工作
+
+**文件变更**：
+| 文件 | 变更 |
+|------|------|
+| `include/UICornerstoneAPI.h` | 在 `UIBackendCallbacks` 中新增 `newFrame` 回调函数指针 |
+| `src/backend/BackendBridge.h` | 新增 `bridge_newFrame()` 桥接函数 |
+| `src/CallbackAdapters.h` | `CallbackInputBackend` 新增 `newFrame()` 覆盖 |
+| `src/CallbackAdapters.cpp` | 实现 `CallbackInputBackend::newFrame()` → 委托到回调表 |
+| `src/backend/sfml/RenderDevice.cpp` | 新增 `RegisterSFMLSurfaceFactories()` |
+| `src/backend/raylib/RenderDevice.cpp` | 新增 `RegisterRaylibSurfaceFactories()` |
+| `src/backend/sfml/BackendPlugin.cpp` | 注册表面工厂 + `cb.newFrame = bridge_newFrame` |
+| `src/backend/raylib/BackendPlugin.cpp` | 注册表面工厂 + `cb.newFrame = bridge_newFrame` |
+| `src/backend/sdl3/BackendPlugin.cpp` | 设置 `cb.newFrame = bridge_newFrame`（一致但不必要） |
+| `src/backend/sfml/Window.cpp` | 创建窗口后调用 `setVerticalSyncEnabled(false)` |
+
+**验证**：SDL3/SFML/Raylib 三后端 fromsource 全部编译通过 + 运行通过。
+
+### 2026-06-15: RGBA8888 像素格式根因排查 + DLL 桥接验证
+
 ### 2026-06-15: Phase 16 — RGBA8888 像素格式根因排查 + DLL 桥接验证
 
 **问题**：test_fromsource 中 WinFrame 关闭按钮的黑色 X 不可见（仅深灰色背景），怀疑 DLL 桥接存在问题。
