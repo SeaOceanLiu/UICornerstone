@@ -663,6 +663,49 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-19: 14 份设计文档批量更新 (Complete)
+
+**更新列表**：
+
+| 文档 | 主要变更 |
+|------|----------|
+| ControlBase_Design.md | 移除 `SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
+| Button_Design.md | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer` |
+| CheckBox_Design.md | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15） |
+| EditBox_Design.md | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal` |
+| TextArea_Design.md | 移除 `TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码 |
+| ProgressBar_Design.md | `SDL_Color` → `SColor`；移除 `setRenderer` |
+| ScrollBar_Design.md | handleEvent union API（移除 `std::any_cast`/`try-catch`）；移除 `setRenderer` |
+| WinFrame_Design.md | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API |
+| Menu_Design.md | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor` |
+| GraphTool_Design.md | 全面去 SDL3：架构图/代码 `SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry` |
+| LayoutSystem_Design.md | 移除 `#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h |
+| ComponentSystem_Design.md | 最小变更：`SDL_Log` → `Platform::Log` |
+| UICornerstone_DLL_Design.md | 状态从"实施中"→"已完成"；新增 §9.4 Fromsource 集成模式（架构/工厂注册/修复表/回调查表扩展）；版本历史扩充至 1.11 |
+
+**验证**：所有 15 份设计文档（`*_Design.md`）均反映当前代码库状态。Label_Design.md 已在 2026-06-05 session 中更新，ResourceLoader_Design.md 已标为废弃，无需重复修改。
+
+### 2026-06-19: 13 份设计文档批量更新 (Complete)
+
+**更新列表**：
+
+| 文档 | 主要变更 |
+|------|----------|
+| ControlBase_Design.md | 移除 `SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
+| Button_Design.md | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer` |
+| CheckBox_Design.md | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15） |
+| EditBox_Design.md | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal` |
+| TextArea_Design.md | 移除 `TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码 |
+| ProgressBar_Design.md | `SDL_Color` → `SColor`；移除 `setRenderer` |
+| ScrollBar_Design.md | handleEvent union API（移除 `std::any_cast`/`try-catch`）；移除 `setRenderer` |
+| WinFrame_Design.md | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API |
+| Menu_Design.md | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor` |
+| GraphTool_Design.md | 全面去 SDL3：架构图/代码 `SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry` |
+| LayoutSystem_Design.md | 移除 `#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h |
+| ComponentSystem_Design.md | 最小变更：`SDL_Log` → `Platform::Log` |
+
+**验证**：所有 14 份设计文档（`*_Design.md`）+ `ResourceLoader_Design.md`（已废弃）+ `BackendAbstraction_Design.md`（已在前序 session 更新）均反映当前代码库状态。Label_Design.md 已在 2026-06-05 session 中更新，无需重复修改。
+
 ### 2026-06-19: Raylib fromsource 纹理不可见根因排查 + 修复
 
 **根因（双重）**：

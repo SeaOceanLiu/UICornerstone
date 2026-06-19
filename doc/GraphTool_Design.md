@@ -2,11 +2,11 @@
 
 ## 1. 概述
 
-GraphTool 是一个基于 SDL3 的 2D 绘图工具库，提供完整的颜色系统、画笔/画刷抽象、基本图形绘制、渐变填充、高级绘图效果等功能。该库封装了 SDL3 的底层渲染 API，提供面向对象、类型安全的绘图接口。
+GraphTool 是一个后端无关的 2D 绘图工具库，提供完整的颜色系统、画笔/画刷抽象、基本图形绘制、渐变填充、高级绘图效果等功能。该库通过 `RenderDevice` 抽象接口封装底层渲染 API，提供面向对象、类型安全的绘图接口。
 
 ### 1.1 设计目标
 
-- **抽象层次**：在 SDL3 渲染 API 之上提供高级绘图抽象，屏蔽底层细节
+- **抽象层次**：在 `RenderDevice` 抽象接口之上提供高级绘图抽象，屏蔽底层细节
 - **类型安全**：使用强类型枚举和类，避免原始整数和魔法值
 - **易用性**：提供直观的 API，支持链式调用和工厂方法
 - **可扩展性**：支持自定义画笔样式、虚线模式、渐变等
@@ -22,9 +22,13 @@ GraphTool 是一个基于 SDL3 的 2D 绘图工具库，提供完整的颜色系
 ├────────┬────────┬────────┬────────┬─────────────┤
 │ SColor │  SPen  │ SBrush │SGradient│   Utils     │  ← 基础组件
 ├────────┴────────┴────────┴────────┴─────────────┤
-│              SDL3 Renderer API                   │  ← 底层渲染
+│              RenderDevice Interface              │  ← 抽象渲染接口
 └─────────────────────────────────────────────────┘
 ```
+
+### 1.3 后端无关性
+
+所有绘图操作通过 `RenderDevice` 抽象接口分发，后端实现（SDL3、SFML、Raylib）各自提供 `RenderDevice` 的具体实现。GraphTool 本身不依赖任何后端头文件。
 
 ## 2. 文件结构
 
@@ -38,16 +42,26 @@ GraphTool 是一个基于 SDL3 的 2D 绘图工具库，提供完整的颜色系
 
 ### 3.1 SColor 类
 
-SColor 是核心颜色类，使用浮点数（0.0-1.0）存储 RGBA 分量，避免整数精度损失。
+SColor 是独立于 GraphTool 命名空间的颜色类（位于 `include/SColor.h`），GraphTool 通过 `using SColor = ::SColor;` 引入。使用浮点数（0.0-1.0）存储 RGBA 分量，避免整数精度损失。
 
 #### 构造方式
 
 ```cpp
 SColor c1;                                    // 默认黑色 (0,0,0,1)
 SColor c2(1.0f, 0.0f, 0.0f);                 // 浮点 RGBA
-SColor c3((uint8_t)255, (uint8_t)0, (uint8_t)0);  // 字节 RGB
-SColor c4(0xFF0000FF);                        // uint32_t RGBA
+SColor c3(255, 0, 0);                         // 整数 RGB (0-255)
+SColor c4(0xFF0000FF);                        // uint32_t RGBA8888 格式
 ```
+
+**RGBA8888 格式说明**（little-endian x86）：
+
+| Byte offset | 0 (LSB) | 1 | 2 | 3 (MSB) |
+|------------|---------|---|---|---------|
+| Channel | A | B | G | R |
+
+`uint32_t` 值构造方式：`(R<<24) | (G<<16) | (B<<8) | A`
+例：`0xFF0000FF` = R=255,G=0,B=0,A=255 = 不透明红色
+`0x000000FF` = R=0,G=0,B=0,A=255 = 不透明黑色
 
 #### 静态工厂方法
 
@@ -75,11 +89,13 @@ SColor::Transparent()    // 透明
 | `darker(float)` | 返回变暗后的新颜色，factor 控制变暗程度 |
 | `blend(other, ratio)` | 线性插值混合两个颜色 |
 
-#### 格式转换
+#### SDL 桥接（仅内部后端使用）
+
+SColor 保留了 `toSDLColor()` / `toSDLFColor()` 桥接方法，供 SDL3 后端内部使用。GraphTool 的用户代码无需调用这些方法：
 
 ```cpp
-SDL_Color sdlColor = color.toSDLColor();     // 转为 SDL_Color（字节）
-SDL_FColor fColor = color.toSDLFColor();     // 转为 SDL_FColor（浮点）
+SDL_Color sdlColor = color.toSDLColor();     // 转为 SDL_Color（SDK3 内部使用）
+SDL_FColor fColor = color.toSDLFColor();     // 转为 SDL_FColor（SDK3 内部使用）
 ```
 
 ## 4. 画笔系统
@@ -329,12 +345,12 @@ Utils 命名空间提供几何计算和图形生成的工具函数，全部为 i
 
 ## 9. DrawingContext 绘图上下文
 
-DrawingContext 是核心绘图类，封装了 SDL_Renderer，提供完整的 2D 绘图功能。
+DrawingContext 是核心绘图类，封装了 `RenderDevice*`，提供完整的 2D 绘图功能。
 
 ### 9.1 构造与基本设置
 
 ```cpp
-DrawingContext dc(renderer);
+DrawingContext dc(renderDevice);   // 传入 RenderDevice*，非 SDL_Renderer*
 
 // 画笔/画刷设置
 dc.setPen(SPen(SColor::Red(), 2.0f));
@@ -410,7 +426,7 @@ dc.setFillColor(SColor::White());
 当线宽 > 1.0f 时，线段绘制采用以下策略：
 
 1. 使用 `Utils::generateLineRectPoints()` 将线段扩展为矩形（4个顶点）
-2. 使用 `SDL_RenderGeometry()` 渲染矩形三角形
+2. 使用 `getRenderDevice()->drawTriangle()` 渲染为两个三角形组成的矩形
 
 对于粗边框矩形和圆角矩形，采用内外两个轮廓之间的区域填充策略：
 
@@ -473,7 +489,7 @@ test_graphtool.cpp 包含 12 个测试场景，覆盖所有功能模块：
 
 | 编号 | 测试场景 | 覆盖内容 |
 |------|----------|----------|
-| 1 | SColor 颜色系统 | 构造、工厂方法、混合、变亮/变暗、SDL 转换 |
+| 1 | SColor 颜色系统 | 构造、工厂方法、混合、变亮/变暗 |
 | 2 | SPen 画笔系统 | 构造、样式、虚线模式、工厂方法 |
 | 3 | SBrush 画刷系统 | 实心、渐变、透明画刷 |
 | 4 | 渐变系统 | 线性渐变、径向渐变、颜色插值 |
@@ -491,7 +507,7 @@ test_graphtool.cpp 包含 12 个测试场景，覆盖所有功能模块：
 ### 12.1 基本绘图
 
 ```cpp
-DrawingContext dc(renderer);
+DrawingContext dc(renderDevice);
 
 // 绘制红色填充矩形
 dc.setFillColor(SColor::Red());
@@ -568,4 +584,5 @@ AdvancedDrawing::drawGlow(dc,
 4. **虚线偏移**：`setDashOffset()` 控制虚线起始偏移，可用于动画
 5. **状态保存**：AdvancedDrawing 的 styled 方法会自动保存/恢复画笔画刷状态
 6. **裁剪栈**：`pushClipRect`/`popClipRect` 支持嵌套裁剪
-7. **编码警告**：源文件包含中文注释，MSVC 可能报 C4819 警告，不影响功能
+7. **后端无关**：所有渲染通过 `RenderDevice` 接口分发，不依赖任何特定后端
+8. **编码警告**：源文件包含中文注释，MSVC 可能报 C4819 警告，不影响功能

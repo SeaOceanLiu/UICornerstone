@@ -167,11 +167,11 @@
 十六进制颜色字符串包含 `#` 前缀 + 十六进制数字，支持三种长度：
 
 
-| 格式        | 总字符数 | 示例          | 说明                 | 结果 SDL_Color  |
+| 格式        | 总字符数 | 示例          | 说明                 | 结果 SColor  |
 | ----------- | -------- | ------------- | -------------------- | --------------- |
-| `#RGB`      | 4 字符   | `"#F00"`      | 每位重复 →`#RRGGBB` | `{255,0,0,255}` |
-| `#RRGGBB`   | 7 字符   | `"#FF0000"`   | 标准 RGB             | `{255,0,0,255}` |
-| `#RRGGBBAA` | 9 字符   | `"#FF000080"` | RGB + Alpha          | `{255,0,0,128}` |
+| `#RGB`      | 4 字符   | `"#F00"`      | 每位重复 →`#RRGGBB` | `(255,0,0,255)` |
+| `#RRGGBB`   | 7 字符   | `"#FF0000"`   | 标准 RGB             | `(255,0,0,255)` |
+| `#RRGGBBAA` | 9 字符   | `"#FF000080"` | RGB + Alpha          | `(255,0,0,128)` |
 
 - 必须以 `#` 开头
 - 不区分大小写（`"#ff0000"` 等同于 `"#FF0000"`）
@@ -189,7 +189,7 @@
 #### 例外处理
 
 - JSON 中该字段为 `null` 或缺失 → 使用系统默认值
-- 格式无法解析 → SDL_Log 警告 + 使用系统默认值（不崩溃）
+- 格式无法解析 → `Platform::Log` 输出警告 + 使用系统默认值（不崩溃）
 
 ### 4.4 状态颜色结构
 
@@ -230,7 +230,7 @@
     "font": {
         "name": "HarmonyOS_Sans_SC_Regular",      // FontName 枚举字符串
         "size": 16,                                // 字体大小 (px)
-        "style": "NORMAL"                          // TTF_FontStyleFlags: NORMAL / BOLD / ITALIC / UNDERLINE / STRIKETHROUGH
+        "style": "NORMAL"                          // 字体样式: NORMAL / BOLD / ITALIC / UNDERLINE / STRIKETHROUGH
     },
     "shadow": {
         "enabled": true,                           // 是否显示阴影
@@ -258,7 +258,7 @@
 | `"BOTTOM_CENTER"` | `AlignmentMode::AM_BOTTOM_CENTER` |
 | `"BOTTOM_RIGHT"`  | `AlignmentMode::AM_BOTTOM_RIGHT`  |
 
-**FontName 枚举字符串对应表**（节选常用，完整见 `ResourceLoader.h`）：
+**FontName 枚举字符串对应表**（节选常用，完整见 `ConstDef.h`）：
 
 
 | JSON 字符串                   | C++ 枚举值                            |
@@ -317,10 +317,9 @@ Button 可以为每个交互状态指定一个 Actor（图片），Actor 会在 
 每个状态的值可以是：
 
 - **字符串**：文件路径，通过 `Actor::loadFromFile` 加载，`scaleType` 使用默认值 `STRETCH`
-- **对象**：显式配置 `file` 或 `resourceId`，可选加 `scaleType`
+- **对象**：显式配置 `file`，可选加 `scaleType`
   ```jsonc
   "normal": { "file": "assets/images/play.png" },
-  "hover":  { "resourceId": "btnHoverImage" },         // 通过 ResourceLoader 预加载的资源
   "pressed": {
       "file": "assets/images/btn_pressed.png",
       "scaleType": "FIT_CENTER"                        // 可选，覆盖默认缩放模式
@@ -352,7 +351,7 @@ Button 可额外挂载粒子动画（在 Actor 之上、标题文字之下绘制
 `luotiAni` 的值可以是：
 
 - **字符串**：文件路径，通过 `LuotiAni::loadAniDesc` 加载
-- **对象**：`{ "file": "..." }` 或 `{ "resourceId": "..." }`
+- **对象**：`{ "file": "..." }`
 
 **绘制顺序**（从上到下）：
 
@@ -675,7 +674,7 @@ C++ 代码注册处理器：
 parser.registerHandler("handleSubmitClick", [](shared_ptr<Control> ctrl) {
     auto btn = dynamic_pointer_cast<Button>(ctrl);
     if (btn) {
-        SDL_Log("Button '%s' clicked!", btn->getCaption().c_str());
+        Platform::Log("Button '%s' clicked!", btn->getCaption().c_str());
     }
 });
 ```
@@ -697,14 +696,14 @@ BENCH->addControl(root);
 auto btn = dynamic_pointer_cast<Button>(parser.findControlById("submitBtn"));
 if (btn) {
     btn->setOnClick([](shared_ptr<Button> b) {
-        SDL_Log("Button clicked via manual binding!");
+        Platform::Log("Button clicked via manual binding!");
     });
 }
 
 auto editBox = dynamic_pointer_cast<EditBox>(parser.findControlById("nameEdit"));
 if (editBox) {
     editBox->setOnTextChanged([](shared_ptr<Control>, string text) {
-        SDL_Log("Text changed: %s", text.c_str());
+        Platform::Log("Text changed: %s", text.c_str());
     });
 }
 ```
@@ -1099,7 +1098,7 @@ Panel::reflowChildren()
 #include <unordered_map>
 #include <functional>
 #include <filesystem>
-#include <SDL3/SDL.h>
+#include "SColor.h"
 #include "nlohmann/json.hpp"
 #include "ControlBase.h"
 #include "Label.h"
@@ -1204,7 +1203,7 @@ private:
     string m_currentJsonPath;
 
     /**
-     * @brief 日志辅助宏 — 在 SDL_Log 中注入行号和路径信息
+     * @brief 日志辅助宏 — 在 Platform::Log 中注入行号和路径信息
      *
      * 使用示例：
      *   PARSE_ERROR("type field is missing at %s", m_currentJsonPath.c_str());
@@ -1287,9 +1286,9 @@ private:
      * @brief 解析颜色值，支持两种格式
      * 格式1: "#RRGGBB" / "#RRGGBBAA"
      * 格式2: {"r","g","b","a"}
-     * @return 解析后的 SDL_Color，解析失败返回默认值
+     * @return 解析后的 SColor，解析失败返回默认值
      */
-    SDL_Color parseColor(const json& j);
+    SColor parseColor(const json& j);
 
     /**
      * @brief 解析状态颜色（4 状态）
@@ -1312,9 +1311,9 @@ private:
 
     /**
      * @brief 解析字体样式字符串
-     * @return TTF_FontStyleFlags，解析失败返回 NORMAL
+     * @return int 位标志值（0=NORMAL, 1=BOLD, 2=ITALIC, 4=UNDERLINE, 8=STRIKETHROUGH）
      */
-    TTF_FontStyleFlags parseFontStyle(const string& style);
+    int parseFontStyle(const string& style);
 };
 
 #endif
@@ -1328,11 +1327,11 @@ private:
 parseLayoutFile(path)
   │
   ├─ 1. 检查文件是否存在
-  │     ├─ 不存在 → SDL_LogError("[LayoutParser] ERROR: Layout file not found: <path>")
+  │     ├─ 不存在 → logError("[LayoutParser] ERROR: Layout file not found: <path>")
   │     └─ return nullptr
   │
   ├─ 2. 读取文件到 string
-  │     ├─ 读取失败 → SDL_LogError("[LayoutParser] ERROR: Failed to read layout file: <path>")
+  │     ├─ 读取失败 → logError("[LayoutParser] ERROR: Failed to read layout file: <path>")
   │     └─ return nullptr
   │
   └─ 3. 调用 parseLayout(jsonString)
@@ -1347,7 +1346,7 @@ parseLayout(jsonString)
   ├─ 1. json::parse(jsonString) — 使用 try/catch 捕获 parse_error
   │     ├─ 成功 → 继续
   │     ├─ 失败 → 从异常 e.byte 通过 byteOffsetToLineNo 转为行号
-  │     │       → SDL_LogError("[LayoutParser] [Line %d] JSON parse error: %s",
+  │     │       → logError("[LayoutParser] [Line %d] JSON parse error: %s",
   │     │                      lineNo, e.what())
   │     │       → return nullptr
   │
@@ -1783,50 +1782,51 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
 #### parseColor 实现逻辑
 
 ```cpp
-SDL_Color LayoutParser::parseColor(const json& j, const string& fieldName) {
-    SDL_Color color = {255, 255, 255, 255}; // 默认白色
+SColor LayoutParser::parseColor(const json& j) {
+    SColor color(255, 255, 255, 255); // 默认白色
 
     if (j.is_string()) {
         // 格式 1: "#RRGGBB" / "#RRGGBBAA" / "#RGB"
         string hex = j.get<string>();
         if (hex.empty() || hex[0] != '#') {
-            logWarn(fieldName + ": invalid hex color \"" + hex + "\", using default white");
+            logWarn("invalid color format \"" + hex + "\", using default white");
             return color;
         }
         hex = hex.substr(1); // 去掉 '#'
 
         if (hex.length() == 3) {
-            string r(2, hex[0]), g(2, hex[1]), b(2, hex[2]);
-            color.r = (uint8_t)stoi(r, nullptr, 16);
-            color.g = (uint8_t)stoi(g, nullptr, 16);
-            color.b = (uint8_t)stoi(b, nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(string(2, hex[0]), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(string(2, hex[1]), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(string(2, hex[2]), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 6) {
-            color.r = (uint8_t)stoi(hex.substr(0,2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2,2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4,2), nullptr, 16);
-            color.a = 255;
+            uint8_t r = (uint8_t)stoi(hex.substr(0,2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2,2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4,2), nullptr, 16);
+            return SColor(r, g, b, 255);
         } else if (hex.length() == 8) {
-            color.r = (uint8_t)stoi(hex.substr(0,2), nullptr, 16);
-            color.g = (uint8_t)stoi(hex.substr(2,2), nullptr, 16);
-            color.b = (uint8_t)stoi(hex.substr(4,2), nullptr, 16);
-            color.a = (uint8_t)stoi(hex.substr(6,2), nullptr, 16);
+            uint8_t r = (uint8_t)stoi(hex.substr(0,2), nullptr, 16);
+            uint8_t g = (uint8_t)stoi(hex.substr(2,2), nullptr, 16);
+            uint8_t b = (uint8_t)stoi(hex.substr(4,2), nullptr, 16);
+            uint8_t a = (uint8_t)stoi(hex.substr(6,2), nullptr, 16);
+            return SColor(r, g, b, a);
         } else {
-            logWarn(fieldName + ": invalid hex color length \"" + hex + "\", using default white");
+            logWarn("invalid hex color length \"" + hex + "\", using default white");
         }
     } else if (j.is_object()) {
         // 格式 2: {"r","g","b","a"}
-        color.r = j.value("r", 255);
-        color.g = j.value("g", 255);
-        color.b = j.value("b", 255);
-        color.a = j.value("a", 255);
+        uint8_t r = (uint8_t)j.value("r", 255);
+        uint8_t g = (uint8_t)j.value("g", 255);
+        uint8_t b = (uint8_t)j.value("b", 255);
+        uint8_t a = (uint8_t)j.value("a", 255);
+        return SColor(r, g, b, a);
     }
 
     return color;
 }
 ```
 
-注意：`parseColor` 的参数增加 `fieldName` 只是其中一种实现方案。另一种方案是在调用 `parseColor` 之前和之后维护 `pushJsonPath/popJsonPath`，由 `logWarn` 自动获取当前路径。具体采用哪种方案在实现时确定，目标都是确保日志能输出 `[path] WARN: ...` 格式。
+注意：`parseColor` 返回类型为 `SColor`（非 `SDL_Color`），SColor 是框架的统一颜色类，独立于 SDL3 后端。
 
 #### parseStateColor 实现逻辑
 
@@ -1836,10 +1836,10 @@ StateColor LayoutParser::parseStateColor(const json& j, StateColor::Type type) {
 
     if (j.is_null()) return stateColor;
 
-    if (j.contains("normal"))   stateColor.setNormal(parseColor(j["normal"], "normal"));
-    if (j.contains("hover"))    stateColor.setHover(parseColor(j["hover"], "hover"));
-    if (j.contains("pressed"))  stateColor.setPressed(parseColor(j["pressed"], "pressed"));
-    if (j.contains("disabled")) stateColor.setDisabled(parseColor(j["disabled"], "disabled"));
+    if (j.contains("normal"))   stateColor.setNormal(parseColor(j["normal"]));
+    if (j.contains("hover"))    stateColor.setHover(parseColor(j["hover"]));
+    if (j.contains("pressed"))  stateColor.setPressed(parseColor(j["pressed"]));
+    if (j.contains("disabled")) stateColor.setDisabled(parseColor(j["disabled"]));
 
     return stateColor;
 }
@@ -1897,21 +1897,23 @@ AlignmentMode LayoutParser::parseAlignment(const string& align) {
 #### parseFontStyle 实现逻辑
 
 ```cpp
-TTF_FontStyleFlags LayoutParser::parseFontStyle(const string& style) {
-    static const unordered_map<string, TTF_FontStyleFlags> styleMap = {
-        {"NORMAL",        TTF_STYLE_NORMAL},
-        {"BOLD",          TTF_STYLE_BOLD},
-        {"ITALIC",        TTF_STYLE_ITALIC},
-        {"UNDERLINE",     TTF_STYLE_UNDERLINE},
-        {"STRIKETHROUGH", TTF_STYLE_STRIKETHROUGH},
+int LayoutParser::parseFontStyle(const string& style) {
+    static const unordered_map<string, int> styleMap = {
+        {"NORMAL",        0},
+        {"BOLD",          1},
+        {"ITALIC",        2},
+        {"UNDERLINE",     4},
+        {"STRIKETHROUGH", 8},
     };
 
     auto it = styleMap.find(style);
     if (it != styleMap.end()) return it->second;
 
-    return TTF_STYLE_NORMAL;
+    return 0;
 }
 ```
+
+注意：`parseFontStyle` 返回 `int` 位标志值（而非 `TTF_FontStyleFlags`），0 表示正常，1 表示粗体等。该类型不再依赖 SDL3_ttf 头文件。
 
 #### parseRect 实现逻辑
 
@@ -2087,7 +2089,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 ### 6.3 控件类型与颜色属性映射
 
 
-| 控件        | Theme Category | 通用颜色属性 (StateColor)    | 专用颜色属性 (plain SDL_Color)         |
+| 控件        | Theme Category | 通用颜色属性 (StateColor)    | 专用颜色属性 (plain SColor)         |
 | ----------- | -------------- | ---------------------------- | -------------------------------------- |
 | Button      | `button`       | bg, border, text, textShadow | —                                     |
 | Label       | `label`        | bg, border, text, textShadow | —                                     |
@@ -2118,7 +2120,7 @@ Margin LayoutParser::parseMargin(const json& j) {
 | `parse(json j)`                             | 从 JSON 对象加载主题                                     |
 | `has(path)`                                 | 检查`"colors.button.bg"` 这类点分隔路径是否存在          |
 | `getStateColor(path, type)`                 | 返回 StateColor（含 normal/hover/pressed/disabled 四态） |
-| `getColor(path)` / `getColorOpt(path, out)` | 返回单个 SDL_Color                                       |
+| `getColor(path)` / `getColorOpt(path, out)` | 返回单个 SColor                                       |
 | `getFontName(category)`                     | 返回字体名称，`category` 为控件类型                      |
 | `getFontSize(category)`                     | 返回字体大小，`category` 为控件类型                      |
 | `applyCommonColors(ctrl, category)`         | 将主题的 bg/border/text/textShadow 四态颜色应用到控件    |
@@ -2190,7 +2192,7 @@ void reloadLayout() {
 g_layoutPath = fs::path(basePath) / "layouts" / "test_layout_advanced.json";
 g_reloader = HotReloader(g_layoutPath, reloadLayout);
 
-// 帧循环（SDL_AppIterate）
+// 帧循环
 g_reloader.poll();
 ```
 
@@ -2370,11 +2372,6 @@ Phase 4 全部完成 🎉
 
 ```cpp
 // 在 parseLayout 中使用带位置信息的解析方式：
-struct JsonContext {
-    int lineNo;
-    string jsonPath;
-};
-
 void LayoutParser::parseLayout(const string& jsonContent) {
     // 预扫描：将 JSON 字符串按行分割，建立 行号→行内容 的映射
     // 用于错误日志中输出上下文行
@@ -2395,7 +2392,7 @@ void LayoutParser::parseLayout(const string& jsonContent) {
         // 从异常中提取行号
         // e.byte 是字节偏移，需要通过预扫描的行映射转为行号
         int lineNo = byteOffsetToLineNo(jsonContent, e.byte);
-        SDL_LogError("[LayoutParser] [Line %d] JSON parse error: %s",
+        Platform::Log("[LayoutParser] [Line %d] JSON parse error: %s",
                      lineNo, e.what());
     }
 }
@@ -2417,14 +2414,14 @@ void LayoutParser::parseControl(const json& j, Control* parent) {
 
 ```cpp
 void LayoutParser::logError(const string& message) const {
-    SDL_LogError(
+    Platform::Log(
         "[LayoutParser] [Line %d] [%s] ERROR: %s",
         m_currentLineNo, m_currentJsonPath.c_str(), message.c_str()
     );
 }
 
 void LayoutParser::logWarn(const string& message) const {
-    SDL_LogWarn(
+    Platform::Log(
         "[LayoutParser] [Line %d] [%s] WARN: %s",
         m_currentLineNo, m_currentJsonPath.c_str(), message.c_str()
     );
@@ -2503,7 +2500,6 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
     if (j.contains("rect")) {
         ctrl->setRect(parseRect(j["rect"]));
     } else {
-        // parseRect 内部有 push/pop，但若 j 不含 rect 则需自行记录
         logError("'rect' field is required, skipping control");
     }
 
@@ -2583,7 +2579,7 @@ void testBenchInitialize(void) {
     parser.registerHandler("onSubmitClick", [](shared_ptr<Control> ctrl) {
         auto btn = dynamic_pointer_cast<Button>(ctrl);
         if (btn) {
-            SDL_Log("Button '%s' clicked via auto-binding!",
+            Platform::Log("Button '%s' clicked via auto-binding!",
                     btn->getCaption().c_str());
         }
     });
@@ -2598,7 +2594,7 @@ void testBenchInitialize(void) {
             parser.findControlById("nameEdit"));
         if (editBox) {
             editBox->setOnTextChanged([](shared_ptr<Control>, string text) {
-                SDL_Log("Text changed: %s", text.c_str());
+                Platform::Log("Text changed: %s", text.c_str());
             });
         }
     }
@@ -2631,7 +2627,6 @@ set(SOURCES
     src/MainWindow.cpp
     src/Utility.cpp
     src/ConstDef.cpp
-    src/ResourceLoader.cpp
     src/EventQueue.cpp
     src/GraphTool.cpp
     src/GraphOperaAdapt2d.cpp
@@ -2818,21 +2813,21 @@ add_custom_command(TARGET test_layout POST_BUILD
 
 测试文件：`test/test_layout.cpp`
 
-结构与现有测试相同（`SDL_AppInit` → `BENCH->setOnInitial` → `SDL_AppEvent/Iterate/Quit`）。
+结构与现有测试相同。
 
 #### 初始化函数 `testBenchInitialize` 逻辑：
 
 ```
 1. 创建 LayoutParser 实例
 2. 注册事件处理器
-   - "onSubmitClick" → SDL_Log("Submit button clicked")
+   - "onSubmitClick" → Platform::Log("Submit button clicked")
 3. 调用 parseLayoutFile("layouts/test_layout.json")
 4. 如果解析成功，添加到 BENCH
 5. 使用 findControlById 查找各控件
-   - "nameEdit" → 手动绑定 onTextChanged → SDL_Log("Text: %s", text)
+   - "nameEdit" → 手动绑定 onTextChanged → Platform::Log("Text: %s", text)
    - "titleLabel" → 验证非 nullptr
    - "statusLabel" → 手动修改 caption
-6. 如果解析失败 → SDL_LogError
+6. 如果解析失败 → logError
 ```
 
 #### 验证清单（Phase 1 已完成 ✅）
@@ -2854,15 +2849,13 @@ add_custom_command(TARGET test_layout POST_BUILD
 ### 14.1 当前硬编码入口
 
 ```
-SDL_AppInit()
-  └─ BENCH->setOnInitial(testBenchInitialize)   ← 注册初始化回调
-       └─ testBenchInitialize()
-            ├─ LabelBuilder(...).build()          ← 硬编码创建控件
-            ├─ g_label1->setCaption("...")
-            ├─ ButtonBuilder(...).build()
-            ├─ g_button1->setOnClick(...)         ← 手动绑定事件
-            ├─ BENCH->addControl(g_label1)        ← 逐个添加到 Bench
-            └─ BENCH->addControl(g_button1)
+testBenchInitialize()
+  ├─ LabelBuilder(...).build()          ← 硬编码创建控件
+  ├─ g_label1->setCaption("...")
+  ├─ ButtonBuilder(...).build()
+  ├─ g_button1->setOnClick(...)         ← 手动绑定事件
+  ├─ BENCH->addControl(g_label1)        ← 逐个添加到 Bench
+  └─ BENCH->addControl(g_button1)
 ```
 
 每个测试文件在 `testBenchInitialize()` 中依次创建控件、设置属性、绑定事件、添加到 Bench。
@@ -2870,29 +2863,22 @@ SDL_AppInit()
 ### 14.2 配置文件化入口
 
 ```
-SDL_AppInit()
-  └─ BENCH->setOnInitial(testLayoutInitialize)   ← 注册新回调
-       └─ testLayoutInitialize()
-            ├─ LayoutParser parser;
-            ├─ parser.registerHandler(...)         ← 注册事件处理器
-            ├─ auto root = parser.parseLayoutFile(
-            │       "layouts/test_layout.json")    ← 从配置文件一步加载布局
-            ├─ if (root) BENCH->addControl(root)   ← 将整棵树一次性添加到 Bench
-            └─ // 可选：再通过 findControlById 补充绑定
-                 auto btn = parser.findControlById("submitBtn");
-                 btn->setOnClick(...);
+testLayoutInitialize()
+  ├─ LayoutParser parser;
+  ├─ parser.registerHandler(...)         ← 注册事件处理器
+  ├─ auto root = parser.parseLayoutFile(
+  │       "layouts/test_layout.json")    ← 从配置文件一步加载布局
+  ├─ if (root) BENCH->addControl(root)   ← 将整棵树一次性添加到 Bench
+  └─ // 可选：再通过 findControlById 补充绑定
+       auto btn = parser.findControlById("submitBtn");
+       btn->setOnClick(...);
 ```
 
 ### 14.3 两种入口的关系
 
 ```
                     ┌──────────────────────────────────────┐
-                    │          SDL_AppInit()               │
-                    │        BENCH->setOnInitial(fn)       │
-                    └────────────┬─────────────────────────┘
-                                 │
-                    ┌────────────▼─────────────────────────┐
-                    │        testBenchInitialize()         │
+                    │       testBenchInitialize()          │
                     │         (由开发者实现的回调)           │
                     ├──────────────────┬───────────────────┤
                     │                  │                   │
@@ -3003,6 +2989,6 @@ Phase 3:  test_checkbox 等 纯配置文件模式    ← 完全替换
 ### 15.2 安全性
 
 - 所有 `json` 访问均使用 `.value()` 或 `contains()` + 默认值的方式，不会因字段缺失而崩溃
-- 错误信息通过 `SDL_LogError/SDL_LogWarn` 输出，不抛出异常
+- 错误信息通过 `Platform::Log` 输出，不抛出异常
 - 配置文件需放置在项目目录中（非用户可上传路径）
 - 不执行配置文件中的任意代码（事件处理函数需在 C++ 侧注册）

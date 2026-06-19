@@ -51,9 +51,9 @@ private:
     ProgressBarTextMode m_textMode;
     string m_customText;
     
-    SDL_Color m_progressColor;
-    SDL_Color m_backgroundColor;
-    SDL_Color m_textColor;
+    SColor m_progressColor;
+    SColor m_backgroundColor;
+    SColor m_textColor;
     float m_animationSpeed;
     
     FontName m_fontName;
@@ -70,6 +70,7 @@ private:
 public:
     ProgressBar(Control *parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
     void update(void) override;
+    shared_ptr<Label> getTextLabel(void) const;
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
@@ -80,13 +81,20 @@ public:
     
     void setRange(float minValue, float maxValue);
     void setStyle(ProgressBarStyle style);
+    ProgressBarStyle getStyle() const { return m_style; }
     void setTextMode(ProgressBarTextMode mode);
+    ProgressBarTextMode getTextMode() const { return m_textMode; }
     void setCustomText(string text);
+    string getCustomText() const { return m_customText; }
     
-    void setProgressColor(SDL_Color color);
-    void setBackgroundColor(SDL_Color color);
-    void setTextColor(SDL_Color color);
+    void setProgressColor(SColor color);
+    SColor getProgressColor() const { return m_progressColor; }
+    void setBackgroundColor(SColor color);
+    SColor getBackgroundColor() const { return m_backgroundColor; }
+    void setTextColor(SColor color);
+    SColor getTextColor() const { return m_textColor; }
     void setAnimationSpeed(float speed);
+    float getAnimationSpeed() const { return m_animationSpeed; }
     
     void setFont(FontName fontName);
     void setFontSize(int fontSize);
@@ -112,9 +120,9 @@ public:
     ProgressBarBuilder& setStyle(ProgressBarStyle style);
     ProgressBarBuilder& setTextMode(ProgressBarTextMode mode);
     ProgressBarBuilder& setCustomText(string text);
-    ProgressBarBuilder& setProgressColor(SDL_Color color);
-    ProgressBarBuilder& setBackgroundColor(SDL_Color color);
-    ProgressBarBuilder& setTextColor(SDL_Color color);
+    ProgressBarBuilder& setProgressColor(SColor color);
+    ProgressBarBuilder& setBackgroundColor(SColor color);
+    ProgressBarBuilder& setTextColor(SColor color);
     ProgressBarBuilder& setAnimationSpeed(float speed);
     ProgressBarBuilder& setFont(FontName fontName);
     ProgressBarBuilder& setFontSize(int fontSize);
@@ -134,8 +142,8 @@ public:
 // 进度条相关常量
 static const float PROGRESSBAR_DEFAULT_HEIGHT;
 static const float PROGRESSBAR_MIN_HEIGHT;
-static const SDL_Color PROGRESSBAR_DEFAULT_PROGRESS_COLOR;
-static const SDL_Color PROGRESSBAR_DEFAULT_BACKGROUND_COLOR;
+static const SColor PROGRESSBAR_DEFAULT_PROGRESS_COLOR;
+static const SColor PROGRESSBAR_DEFAULT_BACKGROUND_COLOR;
 static const float PROGRESSBAR_DEFAULT_ANIMATION_SPEED;
 ```
 
@@ -203,7 +211,7 @@ void testBasicProgressBar() {
 void testScaledProgressBar() {
     auto progress2 = ProgressBarBuilder(nullptr, SRect(50, 80, 300, 20), 2.0f, 2.0f)
         .setValue(75)
-        .setProgressColor({0, 255, 0, 255})
+        .setProgressColor(SColor(0, 255, 0, 255))
         .build();
     BENCH->addControl(progress2);
 }
@@ -217,7 +225,7 @@ void testPercentProgressBar() {
     auto progress3 = ProgressBarBuilder(nullptr, SRect(50, 130, 300, 30))
         .setValue(75)
         .setTextMode(ProgressBarTextMode::Percent)
-        .setProgressColor({0, 200, 255, 255})
+        .setProgressColor(SColor(0, 200, 255, 255))
         .build();
     BENCH->addControl(progress3);
 }
@@ -232,8 +240,8 @@ void testCustomTextProgressBar() {
         .setValue(60)
         .setTextMode(ProgressBarTextMode::Custom)
         .setCustomText("Loading: 60%")
-        .setProgressColor({255, 200, 0, 255})
-        .setBackgroundColor({50, 50, 50, 255})
+        .setProgressColor(SColor(255, 200, 0, 255))
+        .setBackgroundColor(SColor(50, 50, 50, 255))
         .build();
     BENCH->addControl(progress4);
 }
@@ -250,8 +258,8 @@ void testCustomTextProperties() {
         .setFont(FontName::HarmonyOS_Sans_SC_Regular)
         .setFontSize(16)
         .setAlignmentMode(AlignmentMode::AM_CENTER)
-        .setTextColor({255, 255, 255, 255})
-        .setProgressColor({0, 255, 128, 255})
+        .setTextColor(SColor(255, 255, 255, 255))
+        .setProgressColor(SColor(0, 255, 128, 255))
         .build();
     BENCH->addControl(progress5);
 }
@@ -266,7 +274,7 @@ void testAnimatedProgressBar() {
         .setRange(0, 100)
         .setValue(0)
         .setAnimationSpeed(0.05f)
-        .setProgressColor({100, 149, 237, 255})
+        .setProgressColor(SColor(100, 149, 237, 255))
         .build();
     BENCH->addControl(progress6);
     
@@ -286,9 +294,9 @@ void testFullCustomProgressBar() {
         .setFont(FontName::HarmonyOS_Sans_SC_Regular)
         .setFontSize(20)
         .setAlignmentMode(AlignmentMode::AM_CENTER)
-        .setProgressColor({255, 100, 100, 255})
-        .setBackgroundColor({80, 80, 80, 255})
-        .setTextColor({255, 255, 255, 255})
+        .setProgressColor(SColor(255, 100, 100, 255))
+        .setBackgroundColor(SColor(80, 80, 80, 255))
+        .setTextColor(SColor(255, 255, 255, 255))
         .build();
     BENCH->addControl(progress7);
 }

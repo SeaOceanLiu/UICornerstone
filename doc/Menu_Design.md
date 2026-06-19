@@ -236,18 +236,20 @@ auto panel = MenuPanelBuilder().addItem(...).build();  // 再构建面板
 
 ### 3.3 事件处理流程
 
+handleEvent 使用新的 union API。事件类型通过 EventType 枚举和 union 字段访问：
+
 ```
-SDL_EVENT_MOUSE_BUTTON_DOWN:
+MouseDown (MouseButton):
   ├─ 在菜单栏上 → 进入菜单模式，展开对应下拉菜单
   ├─ 在菜单项上 → 执行操作/展开子菜单，退出菜单模式
   └─ 在菜单外部 → 退出菜单模式，关闭所有菜单
 
-SDL_EVENT_MOUSE_MOTION:
+MouseMove (mousePos):
   ├─ 菜单模式中，在菜单栏上移动 → 切换下拉菜单
   ├─ 在菜单项上hover → 高亮该菜单项
   └─ 在子菜单项上hover → 延迟展开子菜单
 
-SDL_EVENT_KEY_DOWN:
+KeyDown (keyEvent):
   └─ ESC → 关闭当前子菜单，或退出菜单模式
 ```
 
@@ -278,6 +280,8 @@ SDL_EVENT_KEY_DOWN:
 | 快捷键文字 | #858585 |
 | **字体** | MapleMono_NF_CN_Regular（含 ▶ 等 Nerd Font 图标） |
 | **缺省字体大小** | 20px（运行时可通过 `MenuBar::setFontSize()` 修改） |
+
+所有颜色值在代码中使用 `SColor` 类型存储（非 `SDL_Color`），构造方式为 `SColor(r, g, b, a)` 整数或浮点数形式。
 
 ### 4.2 尺寸规格
 
@@ -414,14 +418,13 @@ parseControl(j, parent)
 ```cpp
 // C++ 注册事件处理器
 g_parser.registerHandler("onMenuNew", [](shared_ptr<Control> c) {
-    SDL_Log("Menu: New file");
+    Platform::Log("Menu: New file");
 });
 
 g_parser.registerHandler("onMenuExit", [](shared_ptr<Control> c) {
-    SDL_Log("Menu: Exit");
-    SDL_Event quitEvent;
-    quitEvent.type = SDL_EVENT_QUIT;
-    SDL_PushEvent(&quitEvent);
+    Platform::Log("Menu: Exit");
+    // 请求退出 - 通过 AppCallbacks 或全局标志
+    // 具体机制取决于应用程序的事件循环
 });
 ```
 

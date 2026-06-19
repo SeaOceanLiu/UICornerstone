@@ -29,7 +29,7 @@
 - **垂直对齐**：支持三种垂直对齐方式（居中、顶部、底部）
 - **尺寸比例**：复选框尺寸基于字体大小的比例计算
 - **颜色自定义**：支持自定义勾选符号、叉号、三态、边框颜色
-- **Label 暴露**：通过 `getCaption()` 方法暴露内部 Label，支持直接配置
+- **Label 暴露**：通过 `getCaption()` 方法暴露内部 Label（返回 `shared_ptr<Label>`），支持直接配置
 
 ### 3.2 状态定义
 
@@ -128,7 +128,7 @@ m_caption->setOnPropertyChanged([this](shared_ptr<Label> label){
 })
 ```
 
-3. **直接访问**：通过 `getCaption()` 方法获取内部 Label，可直接配置字体、大小、对齐等
+3. **直接访问**：通过 `getCaption()` 方法获取内部 Label（返回 `shared_ptr<Label>`），可直接配置字体、大小、对齐等
 
 ## 5. 接口设计
 
@@ -167,7 +167,7 @@ public:
 
     void releaseCaption(void);
     void createCaption(void);
-    Label& getCaption(void) const;    // 暴露内部 Label
+    shared_ptr<Label> getCaption(void) const;    // 暴露内部 Label（shared_ptr）
     void create(void) override;
 
     void update(void) override;
@@ -198,15 +198,15 @@ public:
 
     void setOnCheckChanged(OnCheckChangedHandler handler);
 
-    void setCheckColor(SDL_Color color);
-    SDL_Color getCheckColor();
-    void setCrossColor(SDL_Color color);
-    SDL_Color getCrossColor();
-    void setIndeterminateColor(SDL_Color color);
-    SDL_Color getIndeterminateColor();
+    void setCheckColor(SColor color);
+    SColor getCheckColor();
+    void setCrossColor(SColor color);
+    SColor getCrossColor();
+    void setIndeterminateColor(SColor color);
+    SColor getIndeterminateColor();
 
-    void setBoxBorderColor(SDL_Color color);
-    SDL_Color getBoxBorderColor();
+    void setBoxBorderColor(SColor color);
+    SColor getBoxBorderColor();
 
 private:
     void setBoxSize(void);
@@ -236,14 +236,14 @@ public:
     CheckBoxBuilder& setVerticalAlign(CheckBoxVerticalAlign align);
     CheckBoxBuilder& setCheckState(CheckState state);
     CheckBoxBuilder& setSizeRatio(float ratio);
-    CheckBoxBuilder& setCaptionText(string caption);    // 改为设置内部 Label 文本
-    CheckBoxBuilder& setCaptionSize(float size);        // 实际上是设置内部 Label 字体大小
+    CheckBoxBuilder& setCaptionText(string caption);    // 设置内部 Label 文本
+    CheckBoxBuilder& setCaptionSize(float size);        // 设置内部 Label 字体大小
     CheckBoxBuilder& setTriStateEnabled(bool enabled);
     CheckBoxBuilder& setOnCheckChanged(CheckBox::OnCheckChangedHandler handler);
-    CheckBoxBuilder& setCheckColor(SDL_Color color);
-    CheckBoxBuilder& setCrossColor(SDL_Color color);
-    CheckBoxBuilder& setIndeterminateColor(SDL_Color color);
-    CheckBoxBuilder& setBoxBorderColor(SDL_Color color);
+    CheckBoxBuilder& setCheckColor(SColor color);
+    CheckBoxBuilder& setCrossColor(SColor color);
+    CheckBoxBuilder& setIndeterminateColor(SColor color);
+    CheckBoxBuilder& setBoxBorderColor(SColor color);
     CheckBoxBuilder& setBackgroundStateColor(StateColor stateColor);
     CheckBoxBuilder& setBorderStateColor(StateColor stateColor);
     CheckBoxBuilder& setTextStateColor(StateColor stateColor);
@@ -266,9 +266,9 @@ static const Margin CHECKBOX_MARGIN;             // 复选框整体外边距
 static const float CHECKBOX_SIZE_RATIO;           // 默认尺寸倍率（1.0）
 static const Margin CHECKBOX_BOX_MARGIN;          // 复选框与文字的间距
 static const float CHECKBOX_DEFAULT_CAPTION_SIZE; // 文字默认大小
-static const SDL_Color CHECKBOX_CHECK_COLOR;      // 勾选符号颜色
-static const SDL_Color CHECKBOX_CROSS_COLOR;      // X 符号颜色
-static const SDL_Color CHECKBOX_INDETERMINATE_COLOR; // 三态颜色
+static const SColor CHECKBOX_CHECK_COLOR;          // 勾选符号颜色
+static const SColor CHECKBOX_CROSS_COLOR;          // X 符号颜色
+static const SColor CHECKBOX_INDETERMINATE_COLOR; // 三态颜色
 ```
 
 ### 常量变更说明
@@ -295,62 +295,76 @@ Unchecked → Checked → Indeterminate → Unchecked
 Unchecked → Checked → Unchecked
 ```
 
-### 7.2 事件处理流程
+### 7.2 事件处理流程（Phase 12 — 基于 Union 的新 Event API）
 
 ```cpp
 bool CheckBox::handleEvent(shared_ptr<Event> event) {
     if (!getEnable() || !getVisible()) return false;
 
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        if (!event->m_eventParam.has_value()) return false;
-
-        try {
-            auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-
-            if (getDrawRect().contains(pos->x, pos->y)) {
-                switch (event->m_eventName) {
-                    case EventName::MOUSE_LBUTTON_UP:
-                        // 循环切换状态
-                        switch (m_checkState) {
-                            case CheckState::Unchecked:
-                                setCheckState(CheckState::Checked);
-                                break;
-                            case CheckState::Checked:
-                                if (m_triStateEnabled) {
-                                    setCheckState(CheckState::Indeterminate);
-                                } else {
-                                    setCheckState(CheckState::Unchecked);
-                                }
-                                break;
-                            case CheckState::Indeterminate:
-                                setCheckState(CheckState::Unchecked);
-                                break;
-                        }
-                        if (m_onCheckChanged) {
-                            m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()), m_checkState);
-                        }
-                        return true;
-
-                    case EventName::MOUSE_MOVING:
-                        if (getState() != ControlState::Hover) {
-                            setState(ControlState::Hover);
-                        }
-                        return true;
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    if (gotPos) {
+        if (getDrawRect().contains(mx, my)) {
+            if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+                CheckState oldState = m_checkState;
+                if (m_triStateEnabled) {
+                    switch (m_checkState) {
+                        case CheckState::Unchecked:
+                            setCheckState(CheckState::Checked);
+                            break;
+                        case CheckState::Checked:
+                            setCheckState(CheckState::Indeterminate);
+                            break;
+                        case CheckState::Indeterminate:
+                            setCheckState(CheckState::Unchecked);
+                            break;
+                    }
+                } else {
+                    switch (m_checkState) {
+                        case CheckState::Unchecked:
+                            setCheckState(CheckState::Checked);
+                            break;
+                        case CheckState::Checked:
+                        case CheckState::Indeterminate:
+                            setCheckState(CheckState::Unchecked);
+                            break;
+                    }
                 }
-            } else {
-                if (getState() == ControlState::Hover) {
-                    setState(ControlState::Normal);
+                if (m_onCheckChanged) {
+                    m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()), oldState, m_checkState);
                 }
+                return true;
             }
-        } catch (...) {
-            return false;
+            if (event->m_type == EventType::MouseMove) {
+                if (getState() != ControlState::Hover) {
+                    setState(ControlState::Hover);
+                }
+                return true;
+            }
+        } else {
+            if (getState() == ControlState::Hover) {
+                setState(ControlState::Normal);
+            }
         }
     }
 
     return ControlImpl::handleEvent(event);
 }
 ```
+
+**变更说明（Phase 12）**：
+- 移除 `EventQueue::isPositionEvent()` 调用
+- 移除 `std::any_cast<shared_ptr<SPoint>>`
+- 移除 `try { ... } catch (...) { return false; }` 块
+- 改用 `event->m_type == EventType::MouseUp` / `MouseMove` / `MouseDown`
+- 使用 `event->mousePos` 获取 MouseMove 坐标，`event->mouseButton` 获取 MouseDown/Up 坐标及按键信息
+- 位置检测通过 `getDrawRect().contains(mx, my)` 实现
+
+**回调签名变更**：`OnCheckChangedHandler` 从旧 API 的 `(CheckBox*, CheckState)` 改为 `(CheckBox*, CheckState, CheckState)`（oldState 和 newState 两个参数）。
 
 ## 8. 实现细节
 
@@ -370,7 +384,7 @@ void CheckBox::create(void) {
 }
 
 void CheckBox::recreate(void) {
-    if(!m_isCreated) return;
+    if (!m_isCreated) return;
 
     releaseCaption();  // 释放内部 Label
 
@@ -379,7 +393,21 @@ void CheckBox::recreate(void) {
 }
 ```
 
-### 8.2 布局实现
+### 8.2 脏矩形优化（Phase 15）
+
+`setRect` 在 `CheckBox` 覆写中包含脏矩形检测，避免冗余的 `recreate()` 调用：
+
+```cpp
+void CheckBox::setRect(SRect rect) {
+    if (m_rect == rect) return;  // 脏矩形检查：矩形未变时直接返回
+    ControlImpl::setRect(rect);
+    recreate();
+}
+```
+
+该优化防止了 `resolveChildPercentages()` 级联时触发大量不必要的 `recreate()` 调用。在 16 个 CheckBox 初始化场景中，为 SDL3 后端带来约 6.5 倍加速（~48s → ~7.2s）。
+
+### 8.3 布局实现
 
 #### 设置复选框尺寸
 
@@ -434,7 +462,7 @@ void CheckBox::adjustBoxVerticalAlign(void) {
 }
 ```
 
-### 8.3 缩放处理
+### 8.4 缩放处理
 
 所有位置数据（`m_boxRect`、`m_caption` 的位置）存储为未缩放的值，绘制时使用 `getBoxDrawRect()` 转换：
 
@@ -448,15 +476,17 @@ SRect CheckBox::getBoxDrawRect(){
 }
 ```
 
-### 8.4 绘制逻辑
+### 8.5 绘制逻辑
 
 绘制流程：
 1. 调用 `preDraw()` 绘制背景和边框
-2. 调用 `drawCheckBoxFrame()` 绘制复选框外框
+2. 调用 `drawCheckBoxFrame()` 绘制复选框外框（使用 `getRenderDevice()->setDrawColor()` 和 `GraphTool::DrawingContext`）
 3. 根据状态绘制标记（勾选、X、或横线）
 4. 子控件（内部 Label）由 `ControlImpl::draw()` 绘制
 
-### 8.5 样式绘制
+所有绘制均使用 `RenderDevice` 抽象接口（Phase 2），无直接 SDL 调用。
+
+### 8.6 样式绘制
 
 | 样式 | 外框 | 选中状态 | 三态 |
 |------|------|----------|------|
@@ -464,11 +494,12 @@ SRect CheckBox::getBoxDrawRect(){
 | Cross | 方框边框 | X 符号（×） | 横线 |
 | Circle | 圆形边框 | 勾选符号（√） | 横线 |
 
-### 8.6 特殊实现说明
+### 8.7 特殊实现说明
 
 1. **内部 Label**：CheckBox 拥有内部 Label 作为子控件，通过 `addControl()` 添加
 2. **属性变化监听**：Label 属性变化时，通过回调触发 CheckBox 重新布局
 3. **尺寸来源**：复选框尺寸基于内部 Label 的行高，而非字体大小
+4. **颜色存储**：使用 `StateColor` 类型（`m_checkStateColor`、`m_crossStateColor`、`m_indeterminateStateColor`、`m_boxBorderStateColor`），通过 `setCheckColor(SColor)` 等 Setter 设置 Normal 态颜色
 
 ## 9. 测试用例
 
@@ -477,7 +508,7 @@ SRect CheckBox::getBoxDrawRect(){
 ```cpp
 void testBasicCheckBox() {
     auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 50, 100, 30))
-        .setCaptionText("1. Accept Terms")   // 使用 setCaptionText
+        .setCaptionText("1. Accept Terms")
         .build();
     BENCH->addControl(checkbox);
 }
@@ -490,8 +521,9 @@ void testStateChange() {
     auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 100, 200, 30))
         .setCaptionText("2. Enable Feature")
         .setCheckState(CheckState::Checked)
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
-            cout << "State changed to: " << (int)state << endl;
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState oldState, CheckState newState) {
+            // oldState 和 newState 两个参数
+            Platform::Log("State changed");
         })
         .build();
 }
@@ -545,10 +577,10 @@ void testCaptionAccess() {
         .setCaptionSize(24)  // 设置内部 Label 字体大小
         .build();
 
-    // 直接访问内部 Label
-    StateColor sc = checkbox->getCaption().getTextStateColor();
+    // 直接访问内部 Label（返回 shared_ptr<Label>）
+    StateColor sc = checkbox->getCaption()->getTextStateColor();
     sc.setNormal({0, 0, 255, 255});
-    checkbox->getCaption().setTextStateColor(sc);
+    checkbox->getCaption()->setTextStateColor(sc);
 }
 ```
 
@@ -606,10 +638,10 @@ void testDisabled() {
 void testCallbacks() {
     auto checkbox = CheckBoxBuilder(nullptr, SRect(50, 650, 200, 30))
         .setCaptionText("15. Callback Test")
-        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState state) {
+        .setOnCheckChanged([](shared_ptr<CheckBox> cb, CheckState oldState, CheckState newState) {
             static int count = 0;
             count++;
-            cout << "Callback #" << count << ": State = " << (int)state << endl;
+            Platform::Log("Callback #%d: newState = %d", count, (int)newState);
         })
         .build();
 }
@@ -622,20 +654,20 @@ void testCustomColors() {
     auto customCheck = CheckBoxBuilder(nullptr, SRect(50, 50, 250, 30))
         .setCaptionText("16. Custom Check Color")
         .setCheckState(CheckState::Checked)
-        .setCheckColor({255, 0, 255, 255})  // 紫色勾选
+        .setCheckColor({255, 0, 255, 255})  // SColor: 紫色勾选（R,G,B,A）
         .build();
 
     auto customCross = CheckBoxBuilder(nullptr, SRect(50, 100, 250, 30))
         .setStyle(CheckBoxStyle::Cross)
         .setCaptionText("17. Custom Cross Color")
         .setCheckState(CheckState::Checked)
-        .setCrossColor({0, 255, 255, 255})  // 青色 X
+        .setCrossColor({0, 255, 255, 255})  // SColor: 青色 X
         .build();
 
     auto customIndeterminate = CheckBoxBuilder(nullptr, SRect(50, 150, 250, 30))
         .setCaptionText("18. Custom Indeterminate Color")
         .setCheckState(CheckState::Indeterminate)
-        .setIndeterminateColor({255, 165, 0, 255})  // 橙色横线
+        .setIndeterminateColor({255, 165, 0, 255})  // SColor: 橙色横线
         .build();
 }
 ```
@@ -671,3 +703,13 @@ doc/
 6. 更新 `UICornerstone/CMakeLists.txt`
 7. 创建/更新 `test/test_checkbox.cpp`
 8. 编译测试
+
+## 12. Phase 变更记录
+
+| Phase | 日期 | 变更说明 |
+|-------|------|----------|
+| Phase 1 | 2026-06-01 | `SDL_Color` → `SColor`：所有颜色相关的成员、Setter、Getter 及 Builder 方法统一使用 `SColor` 类型 |
+| Phase 2 | 2026-06-01 | `RenderDevice` 抽象：所有绘制操作从 `SDL_Renderer` API 迁移到 `GraphTool::DrawingContext(getRenderDevice())` 模式 |
+| Phase 9 | 2026-06-04 | `ResourceLoader` 移除：CheckBox 不再依赖 `ResourceLoader`，字体通过 `ResourceProvider` 加载 |
+| Phase 12 | 2026-06-05 | 事件系统迁移：`handleEvent` 从旧 `EventName` + `std::any` API 切换到新 union 基 API（`EventType` + union 字段） |
+| Phase 15 | 2026-06-09 | 脏矩形优化：`setRect` 添加 `if (m_rect == rect) return;` 检测，避免 `resolveChildPercentages()` 级联时产生大量冗余 `recreate()` 调用 |

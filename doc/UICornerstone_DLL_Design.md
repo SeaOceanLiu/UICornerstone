@@ -1,6 +1,6 @@
 # UICornerstone DLL + C ABI 设计
 
-> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-19 | 状态: **实施中** — R1~R10b 编码完成, 三后端 fromsource 测试通过
+> 对应 Phase 16 | 编制 2026-06-12 | 最后更新 2026-06-19 | 状态: **已完成** — R1~R10b + fromsource + 16c~16i 全部三后端验证通过
 
 ---
 
@@ -836,7 +836,78 @@ UICornerstone: LoadLayout OK (18 control ids, 0 menu bars)
 FindControl: 18/18 found
 ```
 
-### 9.4 回退计划
+### 9.4 Fromsource 集成模式（2026-06-13 ~ 06-19 新增）
+
+#### 9.4.1 动机
+
+除了 DLL + 回调路径，部分场景希望后端从源码编译进 EXE（而非插件 DLL）：
+
+- **单文件编译调试**：后端 `.cpp` 通过 `#include` 纳入测试 exe，无需 DLL 构建
+- **窗口复用**：SDL3 回调模式下复用已有 SDL 窗口和渲染器，免去二次窗口创建
+- **避免跨 DLL 符号解析**：Surface/Cursor 工厂函数通过静态链接直接调用，无需 `CORE_API` 导出
+
+#### 9.4.2 架构
+
+```
+test_fromsource.exe
+  ├── 动态加载: LoadLibrary("UICornerstone.dll")
+  │     → GetProcAddress 解析所有 C ABI 函数指针
+  │     → UICornerstone_Init(callbacks) 传入回调查表
+  ├── 源码编译:
+  │     → BackendPlugin.cpp, RenderDevice.cpp, Window.cpp,
+  │       InputBackend.cpp, TextRenderer.cpp, Cursor.cpp
+  │     → GetUIBackendCallbacks() 填入回调表
+  ├── 控件工厂: UICornerstone.dll 的 C ABI 函数
+  └── 帧循环: ProcessEvents → Update → Clear → Render → Present
+```
+
+三个 fromsource 测试文件：
+
+| 文件 | 后端 | 入口 |
+|------|------|------|
+| `test/test_fromsource.cpp` | SDL3 | `SDL_AppEvent` 回调（SDL 管主循环） |
+| `test/test_fromsource_sfml.cpp` | SFML | `main()` + `LoadLibrary` |
+| `test/test_fromsource_raylib.cpp` | Raylib | `main()` + `LoadLibrary` |
+
+#### 9.4.3 后端工厂注册
+
+`UICornerstone.dll` 中的 `Surface::loadFromFile()` / `Cursor::createSystem()` 等静态工厂函数依赖后端回调。fromsource 模式下通过 `GetUIBackendCallbacks()` 中的 `Register*Factories()` 完成注册：
+
+| 工厂 | 注册函数 | 调用时机 |
+|------|---------|---------|
+| `Surface::create` / `loadFromFile` / `loadFromMemory` | `RegisterSDL3SurfaceFactories()` | `BackendPlugin.cpp` 的 `GetUIBackendCallbacks` |
+| `Cursor::createSystem` / `getDefault` / `setCurrent` | `RegisterSDL3CursorFactories()` | 同上 |
+
+静态模式下（`UICORNERSTONE_BUILD_SHARED=0`），`BackendManager::initialize(string)` 也在 `BackendPlugin.cpp` 路径下调用相同注册函数。
+
+#### 9.4.4 关键修复项（2026-06-15 ~ 06-19）
+
+| 修复 | 根因 | 文件 |
+|------|------|------|
+| SFML/WinFrame 关闭按钮 X 不显示 | Surface 工厂未注册 → `loadFromFile` 返回 nullptr | `RenderDevice.cpp` 新增 `RegisterSFMLSurfaceFactories` |
+| SFML 事件响应慢 | VSync 开启阻塞 `display()` | `Window.cpp` 添加 `setVerticalSyncEnabled(false)` |
+| Raylib 窗体"未响应" | `PollInputEvents()` 从未被调用 | `UICornerstoneAPI.h` 新增 `newFrame` 回调 + `CallbackInputBackend::newFrame` |
+| Raylib 中文显示"?" | 字体码点懒加载时新 `shared_ptr` 替换旧对象，Brige 句柄悬空 | `RaylibFont::reload()` 原地重载 |
+| SFML 事件响应慢（二次） | Label::recreate 每帧 ~5-10MB 字体文件磁盘 I/O | `Label::loadFromResource()` 缓存命中提前返回 |
+| RaYlib `DrawTexturePro` DLL 桥接不可见 | `DrawTexturePro` 在跨 DLL 调用链下失效 | 改用 `rlPushMatrix + rlScalef + DrawTextureEx` |
+| raylib texture src=(0,0,0,0) | `bridge_drawTexture` 将 `nullptr` src 转为零 SRect | `BackendBridge.h` 不再转换 `nullptr` |
+| SFML `Actor::setParent` 覆盖纹理 | `setParent` 无条件调用 `createTexture` 覆盖已有纹理 | `src/Actor.cpp` 添加 `&& !m_texture` 保护 |
+| WinFrame 关闭按钮 X 不显示（跨后端） | PNG 纹理在部分后端渲染不可见 | `WinFrame::draw()` 新增向量 X 叠加层（6 线粗） |
+| Actor PNG 加载回退 | `Surface::loadFromFile()` 桥接路径返回 nullptr | `Actor::loadFromFile()` 回退 `createTextureFromFile` |
+
+#### 9.4.5 回调查表扩展
+
+fromsource 测试暴露了回调查表的不完整，以下字段在 R9 之后追加：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `newFrame` | `void (*)(UIInputBackendHandle)` | 帧开始事件轮询前调用（Raylib 需要 `PollInputEvents()`） |
+| `fillTriangle` | `void (*)(UIRenderDeviceHandle, float x1,float y1, float x2,float y2, float x3,float y3, UIColor)` | 实心三角形（Bridge 路径下 `drawTriangle` 退化） |
+| `fillQuad` | `void (*)(UIRenderDeviceHandle, float x1,float y1, float x2,float y2, float x3,float y3, float x4,float y4, UIColor)` | 实心四边形 |
+| `setClipboardText` | `void (*)(UIInputBackendHandle, const char*)` | 剪贴板写入 |
+| `getClipboardText` | `const char* (*)(UIInputBackendHandle)` | 剪贴板读取 |
+
+### 9.5 回退计划
 
 任何步骤出现问题：
 
@@ -1031,4 +1102,10 @@ int main() {
 | 1.2 | 2026-06-12 | R5 编码完成 + Render 修正：LoadLayout 实现（Action 绑定 + ID 注册）、Render 移除 clear/present |
 | 1.3 | 2026-06-12 | R6 编码完成：BackendManager 回调表初始化路径、UICornerstone_Init 委托重构、RenderDevice 泄漏修复 |
 | 1.4 | 2026-06-13 | R7 编码完成：BackendBridge.h 桥接函数、3 后端 GetUIBackendCallbacks 导出、InitFromPlugin 实现。R8 编码完成：UICORNERSTONE_BUILD_DLL 选项、UICORNERSTONE_API 导出宏、独立 UICornerstone_dll 目标 |
-| 1.5 | 2026-06-13 | R10b DLL 拆分：UICornerstone.dll 仅含 CORE_SOURCES，UIBackend_sdl3.dll 独立后端插件；Surface/Cursor 静态工厂委托注册；CORE_API 跨 DLL 导出机制
+| 1.5 | 2026-06-13 | R10b DLL 拆分：UICornerstone.dll 仅含 CORE_SOURCES，UIBackend_sdl3.dll 独立后端插件；Surface/Cursor 静态工厂委托注册；CORE_API 跨 DLL 导出机制 |
+| 1.6 | 2026-06-14 | test_fromsource — 单文件编译 + 窗口复用 + 控件可见性修复 + 事件注入机制 |
+| 1.7 | 2026-06-15 | fromsource 4 bug 修复：Surface 工厂注册、newFrame 桥接、SFML vsync、Raylib 窗体事件；RGBA8888 像素格式确认 |
+| 1.8 | 2026-06-15 | 三后端 fromsource 架构切换（Separate TU 编译），避免 SFML `<windows.h>` 宏污染 |
+| 1.9 | 2026-06-16 | WinFrame 向量 X 叠加层（`draw()` override）；Actor `loadFromFile` 回退 `createTextureFromFile`；Raylib 字体 `reload()` 原地重载；回调查表新增 `fillTriangle/fillQuad/setClipboardText/getClipboardText` |
+| 1.10 | 2026-06-18 | Raylib `DrawTexturePro` DLL 桥接不可见修复：改用 `rlPushMatrix + rlScalef + DrawTextureEx` |
+| 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化）

@@ -346,7 +346,7 @@ instantiateComponent(name, instanceJ, parent)
 
 ```cpp
 g_parser.registerHandler("handleSearch", [](shared_ptr<Control>) {
-    SDL_Log("Search triggered!");
+    Platform::Log("Search triggered!");
 });
 ```
 

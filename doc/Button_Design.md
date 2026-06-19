@@ -162,11 +162,13 @@ Button::Button(Control *parent, SRect rect, float xScale, float yScale):
 
 ### 5.2 绘制流程
 
+`ControlImpl::beforeDraw()` 通过 `getRenderDevice()` 填充背景色并绘制边框。Button 在此基础上叠加 Actor 外观、动画和标题：
+
 ```cpp
 void Button::draw(void){
-    ControlImpl::preDraw();
-
     if (!getVisible()) return;
+
+    ControlImpl::beforeDraw();
 
     // 1. 根据状态选择对应的Actor
     auto actor = m_actor;
@@ -190,7 +192,7 @@ void Button::draw(void){
     }
 
     // 3. 绘制动画
-    if (m_luotiAni != nullptr){
+    if(m_luotiAni != nullptr){
         m_luotiAni->draw();
     }
 
@@ -201,61 +203,63 @@ void Button::draw(void){
 
     // 5. 绘制子控件
     ControlImpl::draw();
+
+    // 6. 最后绘制边框
+    afterDraw();
 }
 ```
 
 ### 5.3 事件处理
 
+使用 Phase 12 的 union 式 Event API。FINGER 事件作为旧 API 回退保留：
+
 ```cpp
 bool Button::handleEvent(shared_ptr<Event> event){
     if (!getEnable() || !getVisible()) return false;
 
-    if (EventQueue::isPositionEvent(event->m_eventName)){
-        if (!event->m_eventParam.has_value()) return false;
-
-        try {
-            shared_ptr<SPoint> pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
-            if (!pos) return false;
-
-            SRect drawRect = getDrawRect();
-            if (drawRect.contains(pos->x, pos->y)){
-                switch(event->m_eventName){
-                    case EventName::FINGER_DOWN:
-                    case EventName::FINGER_MOTION:
-                        if (m_onClick != nullptr){
-                            m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
-                        }
-                        setState(ControlState::Pressed);
-                        return true;
-
-                    case EventName::MOUSE_LBUTTON_DOWN:
-                        setState(ControlState::Pressed);
-                        return true;
-
-                    case EventName::MOUSE_LBUTTON_UP:
-                        if (m_onClick != nullptr && m_state == ControlState::Pressed){
-                            m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
-                        }
-                    case EventName::FINGER_UP:
-                        setState(ControlState::Normal);
-                        return true;
-
-                    case EventName::MOUSE_MOVING:
-                        setState(ControlState::Hover);
-                        return true;
-
-                    default:
-                        break;
+    float mx, my;
+    bool gotPos = false;
+    if (event->m_type == EventType::MouseMove) { mx = event->mousePos.x; my = event->mousePos.y; gotPos = true; }
+    else if (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; gotPos = true;
+    }
+    else if (event->m_type == EventType::FingerDown || event->m_type == EventType::FingerUp || event->m_type == EventType::FingerMotion) {
+        mx = event->mousePos.x; my = event->mousePos.y; gotPos = true;
+    }
+    if (gotPos) {
+        SRect drawRect = getDrawRect();
+        if (drawRect.contains(mx, my)){
+            if (event->m_type == EventType::FingerDown || event->m_type == EventType::FingerMotion) {
+                if (m_onClick != nullptr){
+                    m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
                 }
+                setState(ControlState::Pressed);
                 return true;
-            } else {
-                setState(ControlState::Normal);
             }
-        } catch (...) {
-            return false;
+            if (event->m_type == EventType::FingerUp) {
+                setState(ControlState::Normal);
+                return true;
+            }
+            if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                setState(ControlState::Pressed);
+                return true;
+            }
+            if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+                if (m_onClick != nullptr && m_state == ControlState::Pressed){
+                    m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
+                }
+                setState(ControlState::Normal);
+                return true;
+            }
+            if (event->m_type == EventType::MouseMove) {
+                setState(ControlState::Hover);
+                return true;
+            }
+            return true;
+        } else {
+            setState(ControlState::Normal);
         }
     }
-
     if (ControlImpl::handleEvent(event)) return true;
     return false;
 }
@@ -287,6 +291,7 @@ void Button::setCaption(string caption){
                             .setTextShadowStateColor(m_textShadowColor)
                             .setShadow(m_enableTextShadow)
                             .build();
+        m_caption->setTransparent(true);
         addControl(m_caption);
     }
 }
@@ -356,13 +361,13 @@ void Button::setTextShadowStateColor(StateColor stateColor){
 
 ```cpp
 // 按钮相关常量
-static const float BUTTON_CAPTION_SIZE;          // 标题默认字体大小
-static const SDL_Color BUTTON_NORMAL_COLOR;       // 普通状态背景色
-static const SDL_Color BUTTON_HOVER_COLOR;       // 悬停状态背景色
-static const SDL_Color BUTTON_DOWN_COLOR;        // 按下状态背景色
-static const SDL_Color BUTTON_NORMAL_TEXT_COLOR;  // 普通状态文字色
-static const SDL_Color BUTTON_HOVER_TEXT_COLOR;  // 悬停状态文字色
-static const SDL_Color BUTTON_DOWN_TEXT_COLOR;    // 按下状态文字色
+static const float BUTTON_CAPTION_SIZE;            // 标题默认字体大小
+static const SColor BUTTON_NORMAL_COLOR;           // 普通状态背景色
+static const SColor BUTTON_HOVER_COLOR;            // 悬停状态背景色
+static const SColor BUTTON_DOWN_COLOR;             // 按下状态背景色
+static const SColor BUTTON_NORMAL_TEXT_COLOR;      // 普通状态文字色
+static const SColor BUTTON_HOVER_TEXT_COLOR;       // 悬停状态文字色
+static const SColor BUTTON_DOWN_TEXT_COLOR;        // 按下状态文字色
 ```
 
 ## 7. 与其他控件的关系
@@ -395,9 +400,6 @@ BENCH->addControl(button1);
 auto button2 = ButtonBuilder(nullptr, SRect(50, 100, 120, 40))
     .setCaption("Custom Button")
     .setBackgroundStateColor(StateColor::Type::Background)
-    .setNormalStateColor({100, 100, 100, 255})
-    .setHoverStateColor({150, 150, 150, 255})
-    .setPressedStateColor({80, 80, 80, 255})
     .build();
 BENCH->addControl(button2);
 
@@ -420,8 +422,8 @@ UICornerstone/
 └── CMakeLists.txt
 
 test/
-└── (暂无独立测试文件)
+└── test_button.cpp     # Button 测试
 
 doc/
-└── Button_Design.md   # 本文档
+└── Button_Design.md    # 本文档
 ```

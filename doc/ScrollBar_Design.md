@@ -60,7 +60,7 @@ private:
     float positionToValue(float position) const;
     bool isPointInThumb(float x, float y);
     bool isPointInTrack(float x, float y);
-    void notifyPositionChanged();
+    void notifyPositionChanged(float oldValue = 0);
     
 public:
     ScrollBar(Control *parent, SRect rect, ScrollBarOrientation orientation = ScrollBarOrientation::Vertical,
@@ -163,34 +163,83 @@ void ScrollBar::calculateThumbRect() {
 
 ### 4.3 拖拽交互
 
-支持鼠标拖拽滑块滚动：
+使用新的 union-based Event API 处理鼠标交互：
 
 ```cpp
 bool ScrollBar::handleEvent(shared_ptr<Event> event) {
-    if (EventQueue::isPositionEvent(event->m_eventName)) {
-        auto pos = std::any_cast<shared_ptr<SPoint>>(event->m_eventParam);
+    if (!m_enable || !m_visible) return false;
+    
+    SRect drawRect = getDrawRect();
+    float scale = getScaleXX();
+    
+    // MOUSE_DOWN: 启动拖拽或点击轨道翻页
+    if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+        if (isPointInThumb(event->mouseButton.x, event->mouseButton.y)) {
+            m_dragging = true;
+            m_thumbPressed = true;
+            float localX = (event->mouseButton.x - drawRect.left) / scale;
+            float localY = (event->mouseButton.y - drawRect.top) / scale;
+            if (m_orientation == ScrollBarOrientation::Vertical) {
+                m_dragOffset = localY - m_thumbRect.top;
+            } else {
+                m_dragOffset = localX - m_thumbRect.left;
+            }
+            return true;
+        }
         
-        switch (event->m_eventName) {
-            case EventName::MOUSE_LBUTTON_DOWN:
-                if (isPointInThumb(pos->x, pos->y)) {
-                    m_dragging = true;
-                    m_dragOffset = getMousePos() - thumbStartPos;
-                }
-                break;
-            case EventName::MOUSE_LBUTTON_UP:
-                m_dragging = false;
-                break;
-            case EventName::MOUSE_MOVING:
-                if (m_dragging) {
-                    float newPos = mousePos - m_dragOffset;
-                    float newValue = positionToValue(newPos);
-                    setValue(newValue);
-                }
-                break;
+        if (isPointInTrack(event->mouseButton.x, event->mouseButton.y)) {
+            // 点击轨道：翻一页
+            float localX = (event->mouseButton.x - drawRect.left) / scale;
+            float localY = (event->mouseButton.y - drawRect.top) / scale;
+            float clickPos = (m_orientation == ScrollBarOrientation::Vertical) ? localY : localX;
+            float thumbPos = (m_orientation == ScrollBarOrientation::Vertical)
+                ? m_thumbRect.top : m_thumbRect.left;
+            float newValue = (clickPos < thumbPos)
+                ? m_value - m_pageSize
+                : m_value + m_pageSize;
+            setValue(newValue);
+            return true;
         }
     }
+    
+    // MOUSE_UP: 结束拖拽
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        m_dragging = false;
+        m_thumbPressed = false;
+    }
+    
+    // MOUSE_MOVE: 拖拽中更新滑块位置
+    if (event->m_type == EventType::MouseMove) {
+        if (!m_dragging) return false;
+        float localX = (event->mousePos.x - drawRect.left) / scale;
+        float localY = (event->mousePos.y - drawRect.top) / scale;
+        
+        float trackLength = (m_orientation == ScrollBarOrientation::Vertical)
+            ? m_trackRect.height : m_trackRect.width;
+        float thumbLength = (m_orientation == ScrollBarOrientation::Vertical)
+            ? m_thumbRect.height : m_thumbRect.width;
+        float thumbTravel = trackLength - thumbLength;
+        
+        float newPos = (m_orientation == ScrollBarOrientation::Vertical)
+            ? localY - m_dragOffset
+            : localX - m_dragOffset;
+        newPos = std::max(0.0f, std::min(newPos, thumbTravel));
+        
+        float newValue = positionToValue(newPos);
+        setValue(newValue);
+        return true;
+    }
+    
+    return false;
 }
 ```
+
+关键变更说明：
+- 使用 `event->m_type == EventType::MouseDown/Up/Move` 替代旧的 `EventQueue::isPositionEvent(event->m_eventName)` 判断
+- `event->mouseButton.x/y` 和 `event->mouseButton.button` 获取鼠标位置和按键（MouseDown/Up）
+- `event->mousePos.x/y` 获取鼠标位置（MouseMove）
+- 不再使用 `std::any_cast<shared_ptr<SPoint>>` 和 `try/catch` 异常处理
+- 不再使用 `EventName::MOUSE_LBUTTON_DOWN/MOUSE_MOVING/MOUSE_LBUTTON_UP` 枚举
 
 ### 4.4 显示条件
 
@@ -198,7 +247,25 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
 
 ```cpp
 bool ScrollBar::shouldShow() const {
-    return (m_maxValue - m_minValue) > m_pageSize;
+    float trackLength = (m_orientation == ScrollBarOrientation::Vertical)
+        ? m_trackRect.height : m_trackRect.width;
+    float range = m_maxValue - m_minValue;
+    if (range <= 0) return false;
+    float ratio = m_pageSize / (range + m_pageSize);
+    float thumbLength = trackLength * ratio;
+    return thumbLength >= m_minThumbLength;
+}
+```
+
+### 4.5 悬停/离开事件
+
+```cpp
+void ScrollBar::onMouseEnter(float x, float y) {
+    m_thumbHovered = isPointInThumb(x, y);
+}
+
+void ScrollBar::onMouseLeave(float x, float y) {
+    m_thumbHovered = false;
 }
 ```
 

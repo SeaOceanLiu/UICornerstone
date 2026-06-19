@@ -55,9 +55,6 @@ public:
     virtual float getScaleXX(void) = 0;
     virtual float getScaleYY(void) = 0;
 
-    virtual void setRenderer(SDL_Renderer *renderer) = 0;
-    virtual SDL_Renderer* getRenderer(void) = 0;
-
     virtual void setState(ControlState state) = 0;
     virtual ControlState getState(void) = 0;
 
@@ -69,6 +66,14 @@ public:
 
     virtual void onMouseEnter(float x, float y) = 0;
     virtual void onMouseLeave(float x, float y) = 0;
+
+    //=== 后端抽象接口（Phase 2/5/8/11）===
+    virtual RenderDevice* getRenderDevice(void) = 0;
+    virtual void setRenderDevice(RenderDevice *device) = 0;
+    virtual TextRenderer* getTextRenderer(void) = 0;
+    virtual void setTextRenderer(TextRenderer *renderer) = 0;
+    virtual ResourceProvider* getResourceProvider(void) = 0;
+    virtual void setResourceProvider(ResourceProvider *provider) = 0;
 };
 ```
 
@@ -87,7 +92,9 @@ protected:
     float m_xxScale;   // 实际缩放比例（父控件缩放 × 自身缩放）
     float m_yyScale;
 
-    SDL_Renderer *m_renderer;
+    RenderDevice *m_renderDevice;
+    TextRenderer *m_textRenderer;
+    ResourceProvider *m_resourceProvider;
 
     SRect m_rect;
     Margin m_margin;
@@ -125,8 +132,13 @@ public:
     float getScaleXX(void) override;
     float getScaleYY(void) override;
 
-    void setRenderer(SDL_Renderer *renderer) override;
-    SDL_Renderer* getRenderer(void) override;
+    //=== RenderDevice 抽象接口 ===
+    RenderDevice* getRenderDevice(void) override;
+    void setRenderDevice(RenderDevice *device) override;
+    TextRenderer* getTextRenderer(void) override;
+    void setTextRenderer(TextRenderer *renderer) override;
+    ResourceProvider* getResourceProvider(void) override;
+    void setResourceProvider(ResourceProvider *provider) override;
 
     void setRect(SRect rect) override;
     SRect getRect(void) override;
@@ -279,6 +291,13 @@ void ControlImpl::setParent(Control *parent){
 }
 ```
 
+`inheritRenderer()` 从父控件传播三个后端抽象实例（Phase 2/5/8/11）：
+- `m_renderDevice` ← `parent->getRenderDevice()`
+- `m_textRenderer` ← `parent->getTextRenderer()`
+- `m_resourceProvider` ← `parent->getResourceProvider()`
+
+三者通过 `setRenderDevice()`/`setTextRenderer()`/`setResourceProvider()` 设置，并递归传播到所有子控件。`setParent()` 中调用 `inheritRenderer()` 一并完成传播。
+
 #### 坐标转换
 
 ```cpp
@@ -341,8 +360,7 @@ SRect ControlImpl::getMarginedRect(void) {
 ```cpp
 void ControlImpl::addControl(shared_ptr<Control> child){
     child->setParent(this);
-    child->setRenderer(getRenderer());
-    // 不再手动设置子控件缩放，而是通过 setParent 触发
+    // RenderDevice/TextRenderer/ResourceProvider 通过 setParent → inheritRenderer() 传播
 }
 
 void ControlImpl::removeControl(shared_ptr<Control> child){

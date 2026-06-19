@@ -17,25 +17,19 @@ EditBox（编辑框）是一种用于接收用户文本输入的 UI 控件，支
 
 ### 2.2 事件定义
 
-```cpp
-struct TextInputEventData {
-    std::string text;
-    int32_t start;
-    int32_t length;
-};
+事件数据结构定义在 `EventTypes.h` 中：
 
+```cpp
+// EventTypes.h — 键盘事件
 struct KeyEventData {
     int32_t keycode;
     int32_t scancode;
     uint16_t mod;
     bool repeat;
 };
-
-struct FocusEventData {
-    void* controlPtr;
-    bool focused;
-};
 ```
+
+EditBox 通过 `EventType::Custom` + `customInt`/`customPtr` 实现自定义 `ON_FOCUS` 事件（`EventName::ON_FOCUS`）的焦点切换。
 
 ## 3. 接口设计
 
@@ -47,7 +41,7 @@ class EditBox: public ControlImpl {
 public:
     using OnTextChangedHandler = std::function<void (shared_ptr<Control>, std::string)>;
     using OnEnterHandler = std::function<void (shared_ptr<Control>)>;
-    
+
 protected:
     std::string m_text;
     std::string m_placeholderText;
@@ -63,73 +57,81 @@ protected:
     bool m_ctrlPressed;
     bool m_isDragging;
     int m_dragStartPosition;
-    
+
     float m_textOffsetX;
     float m_textOffsetY;
+
     Margin m_margin;
-    
-    TTF_Font *m_font;
-    TTF_TextEngine *m_textEngine;
-    TTF_Text *m_textObj;
-    TTF_Text *m_placeholderTextObj;
+
+    SharedFont m_font;
+    shared_ptr<vector<char>> m_fontData;
     int m_fontSize;
     FontName m_fontName;
-    
-    AlignmentMode m_AlignmentMode;
-    
+
     OnTextChangedHandler m_onTextChanged;
     OnEnterHandler m_onEnter;
-    
+    bool m_focusWatcherRegistered;
+    AlignmentMode m_AlignmentMode;
+
+protected:
+    void loadFontInternal();
+    std::string getDisplayText() const;
+    float getTextWidth(const std::string& text);
+    int getCursorFromPosition(float x);
+    float getCursorX(int cursorPos);
+    std::string getUtf8Substr(const std::string& str, int start, int length) const;
+    void updateTextOffset();
+    virtual void insertText(const std::string& text);
+    static int getUtf8CharLength(unsigned char c);
+
 public:
     EditBox(Control *parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
+    ~EditBox();
     void update(void) override;
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
-    void setRenderer(SDL_Renderer *renderer) override;
-    
+
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;
-    
+
     void setText(const std::string& text);
     std::string getText() const;
     int getCursorPosition() const { return m_cursorPosition; }
     void setPlaceholder(const std::string& placeholder);
     std::string getPlaceholder() const;
-    
+
     void setPasswordMode(bool enable);
     bool isPasswordMode() const { return m_passwordMode; }
     void setPasswordChar(char c);
-    
+
     void selectAll();
     void setSelection(int start, int end);
     void clearSelection();
     std::string getSelectedText() const;
     bool hasSelection() const { return m_selectionStart != m_selectionEnd; }
-    
-    virtual void copy() const;
-    virtual void cut();
-    virtual void paste();
-    virtual void deleteSelectedText();
-    
+
+    void copy();
+    void cut();
+    void paste();
+    void deleteSelectedText();
+
     void setFont(FontName fontName);
     void setFontSize(int size);
-    TTF_Font* getFont() const { return m_font; }
-    
+    Font* getFont() const { return m_font.get(); }
+
     void setAlignmentMode(AlignmentMode mode);
     AlignmentMode getAlignmentMode() const { return m_AlignmentMode; }
-    
+
     void setOnTextChanged(OnTextChangedHandler handler);
     void setOnEnter(OnEnterHandler handler);
-    
+
     void setFocused(bool focused);
     bool isFocused() const { return m_focused; }
-    
+
     void setMargin(const Margin& margin);
     Margin getMargin() const { return m_margin; }
-    
-    void recreateTextObjects();
 };
 ```
 
@@ -141,11 +143,11 @@ private:
     shared_ptr<EditBox> m_editBox;
 public:
     EditBoxBuilder(Control *parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
-    
+
     EditBoxBuilder& setBackgroundStateColor(StateColor stateColor);
     EditBoxBuilder& setBorderStateColor(StateColor stateColor);
     EditBoxBuilder& setTextStateColor(StateColor stateColor);
-    
+
     EditBoxBuilder& setText(const std::string& text);
     EditBoxBuilder& setPlaceholder(const std::string& placeholder);
     EditBoxBuilder& setPasswordMode(bool enable);
@@ -157,7 +159,7 @@ public:
     EditBoxBuilder& setOnEnter(EditBox::OnEnterHandler handler);
     EditBoxBuilder& setId(int id);
     EditBoxBuilder& setTransparent(bool isTransparent);
-    
+
     shared_ptr<EditBox> build(void);
 };
 ```
@@ -166,12 +168,17 @@ public:
 
 ### 4.1 光标闪烁
 
-使用 `m_cursorBlinkTime` 记录上次光标显示时间，通过时间间隔控制光标闪烁：
+使用 `m_cursorBlinkTime` 记录上次光标显示时间，在 `update()` 中每帧递增固定步长（16ms），达到 500ms 间隔后切换光标可见性：
 
 ```cpp
-if (SDL_GetTicks() - m_cursorBlinkTime > ConstDef::EDITBOX_CURSOR_BLINK_INTERVAL) {
-    m_cursorVisible = !m_cursorVisible;
-    m_cursorBlinkTime = SDL_GetTicks();
+void EditBox::update(void) {
+    if (m_focused) {
+        m_cursorBlinkTime += 16;
+        if (m_cursorBlinkTime >= ConstDef::EDITBOX_CURSOR_BLINK_INTERVAL) {
+            m_cursorVisible = !m_cursorVisible;
+            m_cursorBlinkTime = 0;
+        }
+    }
 }
 ```
 
@@ -181,7 +188,7 @@ if (SDL_GetTicks() - m_cursorBlinkTime > ConstDef::EDITBOX_CURSOR_BLINK_INTERVAL
 
 ```cpp
 std::string EditBox::getDisplayText() const {
-    if (m_passwordMode) {
+    if (m_passwordMode && !m_text.empty()) {
         return std::string(m_text.length(), m_passwordChar);
     }
     return m_text;
@@ -202,13 +209,67 @@ int EditBox::getUtf8CharLength(unsigned char c) {
 }
 ```
 
-### 4.4 文本选择和拖拽
+### 4.4 事件处理（handleEvent）
+
+使用基于 `EventType` 枚举 + union 字段的 Event API（Phase 12），通过 `event->m_type` 和 `event->mouseButton`/`event->mousePos`/`event->keyEvent`/`event->textInput` 等 union 成员访问事件数据，无需 `std::any_cast`：
+
+```cpp
+// MouseDown: 焦点获取、光标定位、选区拖拽起始
+if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+    setFocused(true);
+    // 通过 getCursorFromPosition() 将像素坐标转为文本偏移
+    int newCursor = getCursorFromPosition(event->mouseButton.x - getDrawRect().left);
+    ...
+}
+
+// MouseMove: 拖拽选区扩展
+if (event->m_type == EventType::MouseMove) {
+    if (m_focused && m_isDragging) {
+        int newCursor = getCursorFromPosition(event->mousePos.x - getDrawRect().left);
+        ...
+    }
+}
+
+// TextInput: 过滤控制字符后调用 insertText()
+if (event->m_type == EventType::TextInput) {
+    std::string data(event->textInput.text);
+    ...
+    insertText(filtered);
+}
+
+// KeyDown: 方向键导航、编辑操作、快捷键
+if (event->m_type == EventType::KeyDown) {
+    const auto& key = event->keyEvent;
+    // Ctrl+A/C/V/X, Backspace, Del, Left/Right, Home/End, Enter
+    ...
+}
+```
+
+### 4.5 文本选择和拖拽
 
 - Shift + 方向键：扩展选区
 - Ctrl + A：全选
 - Ctrl + C：复制
 - Ctrl + X：剪切
 - Ctrl + V：粘贴
+- MouseDown 后拖拽：通过 `m_isDragging` + `m_dragStartPosition` 实现连续选区
+
+### 4.6 字体加载（loadFontInternal）
+
+通过 `TextRenderer` 加载字体，避免直接使用 TTF API。使用 `ResourceProvider` 读取字体文件，`m_fontData` 持有 `shared_ptr<vector<char>>` 确保字体数据在 `TTF_OpenFontIO` 懒加载期间不被释放（Phase 8 修复）：
+
+```cpp
+void EditBox::loadFontInternal() {
+    ResourceProvider* provider = getResourceProvider();
+    m_fontData = provider->readFile(ConstDef::fontFiles.at(m_fontName));
+
+    int scaledFontSize = (int)(m_fontSize * getScaleXX());
+    m_font = getTextRenderer()->loadFontFromMemoryWithText(
+        m_fontData->data(), m_fontData->size(), scaledFontSize, m_text);
+}
+```
+
+在 `insertText()` 中，插入新文本后重新调用 `loadFontInternal()`，确保如 CJK 等新增码点被正确加载（适用于 raylib 后端的懒加载码点策略）。
 
 ## 5. 常量定义
 
@@ -220,7 +281,7 @@ static const float EDITBOX_BORDER_WIDTH;
 static const float EDITBOX_PADDING;
 static const float EDITBOX_CURSOR_WIDTH;
 static const int32_t EDITBOX_CURSOR_BLINK_INTERVAL;
-static const SDL_Color EDITBOX_SELECTION_COLOR;
+static const SColor EDITBOX_SELECTION_COLOR;
 static const char EDITBOX_DEFAULT_PASSWORD_CHAR;
 ```
 
@@ -249,3 +310,16 @@ auto editBox = EditBoxBuilder(nullptr, SRect(100, 100, 200, 30))
     .build();
 BENCH->addControl(editBox);
 ```
+
+## 附录：历史重构记录
+
+| Phase | 变更 | 说明 |
+|-------|------|------|
+| Phase 5 | `TTF_Font*` → `SharedFont` / `TextRenderer` | 移除直接 TTF API 依赖，通过 TextRenderer 抽象接口加载和渲染文字 |
+| Phase 5 | 移除 `TTF_TextEngine*` / `TTF_Text*` | `createTextEngine()`/`createTextObjects()`/`recreateTextObjects()` 全部删除 |
+| Phase 5 | 移除 `setRenderer(SDL_Renderer*)` | Renderer 职责全部移交 RenderDevice |
+| Phase 8 | 新增 `m_fontData` | 使用 `shared_ptr<vector<char>>` 持有字体数据，解决 TTF_OpenFontIO 懒加载导致的内存释放崩溃 |
+| Phase 8 | 新增 `loadFontInternal()` | 统一字体加载入口，ResourceProvider + TextRenderer 组合 |
+| Phase 11 | 移除 EditBox.h 中 `#include <SDL3/SDL_keyboard.h>` | 头部无 SDL 类型依赖；`.cpp` 通过 MainWindow.h 间接获取 |
+| Phase 12 | handleEvent 迁移至 union-based Event API | 移除全部 `std::any_cast`，使用 `EventType` + union 成员访问 |
+| Phase 13 | cursor blink 使用帧计数替代 `SDL_GetTicks()` | `m_cursorBlinkTime += 16` 每帧固定步进，避免直接 SDL 时序依赖 |
