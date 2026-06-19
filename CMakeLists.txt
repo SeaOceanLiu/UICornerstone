@@ -184,6 +184,7 @@ if(UICORNERSTONE_BUILD_DLL)
 
     set_target_properties(UICornerstone_dll PROPERTIES
         OUTPUT_NAME "UICornerstone"
+        ARCHIVE_OUTPUT_NAME "UICornerstone_dll"
     )
 
     target_include_directories(UICornerstone_dll PUBLIC

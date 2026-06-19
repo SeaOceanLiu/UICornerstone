@@ -140,8 +140,9 @@ private:
     Image m_image;
 };
 
+#ifdef UICORNERSTONE_BUILD_SHARED
 // ============================================================
-// Surface factory implementations
+// Surface factory direct implementations (fromsource/plugin path)
 // ============================================================
 SharedSurface Surface::create(int width, int height) {
     if (width <= 0 || height <= 0) return nullptr;
@@ -229,6 +230,7 @@ SharedSurface Surface::loadFromMemory(const void* data, size_t len) {
     }
     return std::make_shared<RaylibSurface>(img);
 }
+#endif // UICORNERSTONE_BUILD_SHARED
 
 // ============================================================
 // Surface factory registration for fromsource/DLL callback path
@@ -532,6 +534,16 @@ public:
         Texture2D nativeTex = rlTex->native();
         if (nativeTex.id == 0) return;
 
+        // Apply the texture's stored blend mode
+        bool blendSet = false;
+        switch (rlTex->getBlendMode()) {
+            case BlendMode::Blend: BeginBlendMode(BLEND_ALPHA); blendSet = true; break;
+            case BlendMode::Add:   BeginBlendMode(BLEND_ADDITIVE); blendSet = true; break;
+            case BlendMode::Mod:
+            case BlendMode::Mul:   BeginBlendMode(BLEND_MULTIPLIED); blendSet = true; break;
+            default: break;
+        }
+
         Rectangle src, dst;
         dst = {dstRect->left, dstRect->top, dstRect->width, dstRect->height};
         if (srcRect) {
@@ -541,18 +553,13 @@ public:
                          static_cast<float>(nativeTex.height)};
         }
 
-        // Draw via rlPushMatrix/rlScalef + DrawTextureEx for non-uniform scaling.
-        // DrawTexturePro and raw rlBegin/rlEnd do not render in fromsource/bridge
-        // mode; root cause unknown.  DrawTextureEx at scale=1 (native size) works,
-        // so we scale the matrix before it to achieve any dest rect.
-        float sx = dst.width / src.width;
-        float sy = dst.height / src.height;
-        rlPushMatrix();
-        rlTranslatef(dst.x, dst.y, 0);
-        rlScalef(sx, sy, 1.0f);
-        rlTranslatef(-src.x, -src.y, 0);
-        { Vector2 zero = {0, 0}; DrawTextureEx(nativeTex, zero, 0, 1.0f, WHITE); }
-        rlPopMatrix();
+        // Draw via DrawTexturePro (works in all modes including fromsource/bridge).
+        // rlPushMatrix/rlScalef/DrawTextureEx alternative removed because it was
+        // broken in fromsource mode (OpenGL matrix state issues across DLL boundary).
+        { Vector2 org = {0, 0};
+          DrawTexturePro(nativeTex, src, dst, org, 0, WHITE); }
+
+        if (blendSet) EndBlendMode();
     }
 
     void drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float angle) override {

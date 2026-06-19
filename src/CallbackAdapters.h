@@ -95,6 +95,7 @@ class CallbackInputBackend : public InputBackend {
 public:
     CallbackInputBackend(const UIBackendCallbacks* cbs, UIInputBackendHandle handle);
     ~CallbackInputBackend() override;
+    void newFrame() override;
     void startTextInput() override;
     void stopTextInput() override;
     bool isTextInputActive() const override { return m_textInputActive; }

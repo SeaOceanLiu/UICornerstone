@@ -24,5 +24,6 @@ public:
 };
 
 Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flags);
+Window* CreateSDL3WindowFromExisting(void* nativeWindow, void* nativeRenderer);
 
 #endif

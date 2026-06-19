@@ -115,6 +115,10 @@ typedef struct {
     void                 (*setClipboardText)(UIInputBackendHandle, const char* text);
     int                  (*getClipboardText)(UIInputBackendHandle, char* buf, int maxLen);
 
+    // --- per-frame tick (可选，可为 NULL) ---
+    // 在每个 ProcessEvents 开头被调用。raylib 后端用它调用 PollInputEvents()。
+    void                 (*newFrame)(UIInputBackendHandle);
+
     // --- TextRenderer (必须) ---
     UITextRendererHandle (*createTextRenderer)(UIRenderDeviceHandle);
     void                 (*destroyTextRenderer)(UITextRendererHandle);
@@ -150,6 +154,10 @@ UICORNERSTONE_API void UICornerstone_GetViewport(float* x, float* y, float* w, f
 UICORNERSTONE_API void UICornerstone_ProcessEvents(void);
 UICORNERSTONE_API void UICornerstone_Update(double deltaTime);
 
+// 注入外部事件（例如从 SDL_AppEvent 回调传入的 SDL 事件）。
+// 事件会在下一次 UICornerstone_ProcessEvents 中被处理。
+UICORNERSTONE_API void UICornerstone_PushUIEvent(const UIEvent* ue);
+
 // 只渲染视口区域。不清除帧缓冲区、不 present。
 // 调用者必须在外层自行 clear + render + present。
 UICORNERSTONE_API void UICornerstone_Render(void);
@@ -181,6 +189,10 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateProgressBar(
     float x, float y, float w, float h);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreatePanel(
     float x, float y, float w, float h);
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateTextArea(
+    float x, float y, float w, float h);
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateWinFrame(
+    const char* title, float x, float y, float w, float h);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateMenu(void);
 
 /* ============ 控件通用操作 ============ */
@@ -191,6 +203,25 @@ UICORNERSTONE_API void UICornerstone_SetEnabled(UIControlHandle ctl, int enabled
 UICORNERSTONE_API void UICornerstone_SetText(UIControlHandle ctl, const char* text);
 UICORNERSTONE_API void UICornerstone_AddChild(UIControlHandle parent, UIControlHandle child);
 UICORNERSTONE_API void UICornerstone_SetOnClick(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetBGColor(UIControlHandle ctl, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+UICORNERSTONE_API void UICornerstone_SetProgress(UIControlHandle ctl, float value);
+UICORNERSTONE_API void UICornerstone_SetChecked(UIControlHandle ctl, int checked);
+UICORNERSTONE_API void UICornerstone_DestroyControl(UIControlHandle ctl);
+UICORNERSTONE_API const char* UICornerstone_GetText(UIControlHandle ctl);
+UICORNERSTONE_API int UICornerstone_GetChecked(UIControlHandle ctl);
+UICORNERSTONE_API float UICornerstone_GetProgress(UIControlHandle ctl);
+UICORNERSTONE_API void UICornerstone_WinFrameSetClientText(UIControlHandle wf, const char* text);
+
+/* ============ 图片/动画按钮 ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(
+    const char* normalImage,
+    const char* hoverImage,
+    const char* pressedImage,
+    float x, float y, float w, float h);
+
+UICORNERSTONE_API void UICornerstone_SetButtonAnimation(
+    UIControlHandle btn,
+    const char* jsoncPath);
 
 #ifdef __cplusplus
 }

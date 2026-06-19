@@ -8,6 +8,7 @@ Window* CreateRaylibWindow(const char* title, int w, int h, uint32_t flags);
 RenderDevice* CreateRaylibRenderDevice();
 TextRenderer* CreateRaylibTextRenderer(RenderDevice* device);
 InputBackend* CreateRaylibInputBackend(Window* window);
+void RegisterRaylibSurfaceFactories(void);
 
 // ============================================================
 // Raylib Backend Registration
@@ -92,6 +93,9 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
 
     cb.version = 1;
 
+    // Register surface factories so the DLL's Surface::* work
+    RegisterRaylibSurfaceFactories();
+
     // Window
     cb.createWindow         = plugin_createWindow;
     cb.destroyWindow        = bridge_destroyWindow;
@@ -129,6 +133,7 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     cb.createInputBackend   = plugin_createInputBackend;
     cb.destroyInputBackend  = bridge_destroyInputBackend;
     cb.pollEvent            = bridge_pollEvent;
+    cb.newFrame             = bridge_newFrame;
     cb.startTextInput       = bridge_startTextInput;
     cb.stopTextInput        = bridge_stopTextInput;
     cb.getModState          = bridge_getModState;

@@ -90,3 +90,8 @@ Window* CreateSDL3Window(const char* title, int width, int height, uint32_t flag
     SDL_SetRenderVSync(renderer, 0);
     return new SDL3Window(window, renderer);
 }
+
+Window* CreateSDL3WindowFromExisting(void* nativeWindow, void* nativeRenderer) {
+    return new SDL3Window(static_cast<SDL_Window*>(nativeWindow),
+                          static_cast<SDL_Renderer*>(nativeRenderer));
+}

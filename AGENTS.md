@@ -663,6 +663,90 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-19: Raylib fromsource 纹理不可见根因排查 + 修复
+
+**根因（双重）**：
+
+1. **`BackendBridge.h:bridge_drawTexture` `nullptr` src 被转义为零 SRect**：当调用者（如`Actor::draw`）传递 `nullptr` src（表示"使用完整纹理"）时，`bridge_drawTexture` 创建默认 `SRect()`（全零），然后将**非空指针**传给 `RaylibRenderDevice::drawTexture`。导致 `src=(0,0,0,0)` → `DrawTexturePro` 绘制空输出。
+
+2. **`RaylibRenderDevice::drawTexture` 使用 `rlPushMatrix + rlScalef + DrawTextureEx`**：该写法在 fromsource/DLL 桥接模式下因 OpenGL 矩阵状态跨 DLL 边界损坏而无效，纹理始终不可见；用 `DrawTexturePro` 替代后正常工作。
+
+**诊断过程**：
+- 确认非纹理控件（CheckBox、EditBox、Panel背景、Label文字）全部可见 → 问题在纹理路径
+- `DrawTexturePro` 在诊断新鲜创建的纹理上工作 → 问题不是 `DrawTexturePro` 本身
+- `LoadImageFromTexture` 读回原生纹理 GPU 数据成功且有有效不透明像素 → 数据未损坏
+- 在 (300,10) 绘制原生纹理可见 → 纹理和 `DrawTexturePro` 都正常
+- 比较原始调用 `src=(0,0,0,0)` 与诊断调用 `nSrc=(0,0,w,h)` → 定位到 `src` 为零
+
+**修复（2 个文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `src/backend/BackendBridge.h` | `bridge_drawTexture` 中 `nullptr` src 传入 `nullptr` 而非 `&zeroRect` |
+| `src/backend/raylib/RenderDevice.cpp` | `drawTexture` 从 `rlPushMatrix+rScalef+DrawTextureEx` 改为 `DrawTexturePro` |
+
+**验证**：raylib fromsource ImageButton PNG、LuotiAni 动画、WinFrame 关闭按钮 X 全部可见。SDL3 全部 10 测试无回归。
+
+### 2026-06-19: SFML fromsource 纹理不可见修复（Actor::setParent + sf::Sprite）
+
+**问题**：`test_fromsource_sfml.exe` 中 ImageButton 和 Animation Button 的 PNG 纹理不可见。OpenGL handle 有效、位置正确、`sf::Sprite` 被调用，但画面空白。
+
+**根因（双重）**：
+
+1. **`Actor::setParent` 覆盖纹理**（`src/Actor.cpp:125-140`）：`setParent` 在 `m_texture` 已存在时仍调用 `m_surface->createTexture()` 覆盖 `m_texture`。初始纹理在 `loadFromFile()` 中创建，`Button::setNormalStateActor()` 调用 `setParent()` 时创建第二个纹理覆盖第一个（第一个被销毁，OpenGL handle 回收）。
+
+2. **`sf::VertexArray` + `RenderStates` 纹理绑定问题**：`sf::VertexArray(TriangleStrip)` + `states.texture = nativeTex` 在特定 OpenGL 状态组合下不可见。改 `sf::Sprite(*nativeTex)` 后正确。
+
+**修复（2 个文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `src/Actor.cpp` | `setParent` 添加 `&& !m_texture` 避免覆盖已有纹理 |
+| `src/backend/sfml/RenderDevice.cpp` | `drawTexture` 加入 `setActive(true)` + `sf::Sprite` 替代 `VertexArray` |
+
+**验证**：`test_fromsource_sfml.exe` 纹理和动画全部可见。SDL3 全部 10 测试无回归。
+
+### 2026-06-19: SFML 事件响应慢修复（Label::recreate 字体磁盘 I/O 瓶颈）
+
+**问题**：`test_fromsource_sfml.exe` 点击响应延迟大（数秒），SFML 后端事件处理完全不可用。
+
+**根因**：`Label::recreate()` 每帧调用 `releaseFont()` 重置 `m_font`/`m_fontData`，迫使后续 `create()` → `loadFromResource()` 从磁盘读取 ~5-10MB HarmonyOS 字体文件并通过桥接链 `DLL→EXE→DLL` 反复传递，产生 15-44ms 的停顿。
+
+**瓶颈链**：
+```
+uiSetText(g_prgStatus, "Progress: XX.X%")
+  → UICornerstone_SetText (DLL)
+    → Label::setCaption()
+      → recreate()
+        → releaseFont()     ← 释放 m_font / m_fontData
+        → create()
+          → loadFromResource()
+            → provider->readFile()  ← 磁盘 I/O! ~5-10MB
+            → loadFontFromMemoryBridge  ← DLL→EXE→DLL 桥接
+      → computeLineOffsets()
+        → measureText * 3   ← 每次桥接
+```
+
+**性能数据**：
+
+| 指标 | 修复前 | 修复后 |
+|------|--------|--------|
+| Update (BENCH->update) | 15-44ms | 0.2-1ms |
+| Labels (setCaption) | 15-32ms | 0.4-6ms |
+| 总帧时间 | 33-75ms | 1.5-6ms |
+| FPS | 13-31 | 170-670 |
+
+**修复（3 个文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `src/Label.cpp:recreate()` | 移除 `releaseFont()`，字体在文本/对齐/边距变化时无需重载 |
+| `src/Label.cpp:setFont()` / `setFontSize()` | 添加 `releaseFont()`，只有字体名称或大小变化时才释放字体 |
+| `src/Label.cpp:loadFromResource()` | 添加 `if (m_font) return;` 缓存命中提前返回，避免重复 Provider 读取和桥接 |
+
+**验证**：`test_fromsource_sfml.exe` 运行流畅，FPS 稳定 300-500。SDL3 全部 10 测试无回归。
+`setFramerateLimit(120)` 已移除（非正确修复方向）。
+
 ### 2026-06-18: Raylib `DrawTexturePro` DLL 桥接不可见修复
 
 **问题**：raylib fromsource 测试（`test_fromsource_raylib`）在桥接模式下所有纹理不可见。`DrawTexturePro` 经桥接从 `UICornerstone.dll` 调用到 exe 中的 `RaylibRenderDevice::drawTexture`，日志输出正确的纹理 ID 和 dst rect，但画面上无任何纹理。

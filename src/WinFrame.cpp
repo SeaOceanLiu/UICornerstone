@@ -37,6 +37,7 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
 
     float titleH = ConstDef::WINDOW_TITLE_HEIGHT;
 
+    // Create close button with original PNG images (proven working in test_winframe)
     addControl(m_closeButton = ButtonBuilder(this,
         SRect(m_rect.width - titleH, 0, titleH, titleH))
         .setNormalStateActor(    make_shared<Actor>(this, fs::path("assets/images/cross_up.png"), true))
@@ -81,6 +82,7 @@ WinFrame::~WinFrame() {
     delete m_cursorSizeNWSE;
     delete m_cursorSizeNESW;
 }
+
 
 void WinFrame::bringToFront() {
     Control* p = getParent();

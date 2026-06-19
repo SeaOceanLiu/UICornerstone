@@ -74,6 +74,9 @@ public:
     }
 };
 
+// Forward declaration for context activation in SFMLSurface::createTexture
+extern sf::RenderWindow* g_sfmlActiveWindow;
+
 class SFMLSurface : public Surface {
     sf::Image* m_image;
 public:
@@ -131,8 +134,15 @@ public:
 
     SharedTexture createTexture(RenderDevice* device) override {
         if (!m_image || !device) return nullptr;
+        bool ctxOk = true;
+        if (g_sfmlActiveWindow)
+            ctxOk = g_sfmlActiveWindow->setActive(true);
         auto* tex = new sf::Texture();
-        (void)tex->loadFromImage(*m_image);
+        bool loaded = tex->loadFromImage(*m_image);
+        printf("SFML: createTexture(Image) ctxOk=%d loaded=%d handle=%u size=%dx%d\n",
+               ctxOk, loaded, tex->getNativeHandle(),
+               tex->getSize().x, tex->getSize().y);
+        fflush(stdout);
         return std::make_shared<SFMLTexture>(tex, width(), height());
     }
 
@@ -156,6 +166,10 @@ public:
     sf::Image* native() const { return m_image; }
 };
 
+#ifdef UICORNERSTONE_BUILD_SHARED
+// ============================================================
+// Surface factory direct implementations (fromsource/plugin path)
+// ============================================================
 SharedSurface Surface::create(int width, int height) {
     if (width <= 0 || height <= 0) return nullptr;
     auto* img = new sf::Image(sf::Vector2u(static_cast<unsigned>(width), static_cast<unsigned>(height)), sf::Color::Transparent);
@@ -247,6 +261,10 @@ SharedSurface Surface::loadFromMemory(const void* data, size_t len) {
         return nullptr;
     }
 }
+#endif // UICORNERSTONE_BUILD_SHARED
+
+// Global SFML window for context activation (used by SFMLSurface::createTexture)
+static sf::RenderWindow* g_sfmlActiveWindow = nullptr;
 
 class SFMLRenderDevice : public RenderDevice {
     sf::RenderWindow* m_window;
@@ -430,8 +448,16 @@ public:
     }
 
     SharedTexture createTextureFromFile(const std::string& path) override {
+        bool ctxOk = true;
+        if (g_sfmlActiveWindow) {
+            ctxOk = g_sfmlActiveWindow->setActive(true);
+        }
         auto* tex = new sf::Texture();
-        if (!tex->loadFromFile(path)) {
+        bool loaded = tex->loadFromFile(path);
+        printf("SFML: createTextureFromFile('%s') ctxOk=%d loaded=%d handle=%u size=%dx%d\n",
+               path.c_str(), ctxOk, loaded, tex->getNativeHandle(),
+               tex->getSize().x, tex->getSize().y);
+        if (!loaded) {
             delete tex;
             return nullptr;
         }
@@ -459,19 +485,26 @@ public:
         if (!m_target || !texture || !dstRect) return;
         SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
         sf::Texture* nativeTex = sfmlTex->native();
-        if (!nativeTex) return;
+        if (!nativeTex) {
+            printf("SFML: drawTexture - nativeTex is null!\n"); fflush(stdout);
+            return;
+        }
+        float texW = static_cast<float>(nativeTex->getSize().x);
+        float texH = static_cast<float>(nativeTex->getSize().y);
+        float dstL = dstRect->left, dstT = dstRect->top;
         sf::Sprite sprite(*nativeTex);
-        sprite.setPosition(sf::Vector2f(dstRect->left, dstRect->top));
-        float scaleX = dstRect->width / static_cast<float>(nativeTex->getSize().x);
-        float scaleY = dstRect->height / static_cast<float>(nativeTex->getSize().y);
-        if (srcRect) {
+        if (srcRect && srcRect->width > 0 && srcRect->height > 0) {
             sprite.setTextureRect(sf::IntRect(
                 sf::Vector2i(static_cast<int>(srcRect->left), static_cast<int>(srcRect->top)),
                 sf::Vector2i(static_cast<int>(srcRect->width), static_cast<int>(srcRect->height))));
-            scaleX = dstRect->width / srcRect->width;
-            scaleY = dstRect->height / srcRect->height;
         }
-        sprite.setScale(sf::Vector2f(scaleX, scaleY));
+        sprite.setPosition(sf::Vector2f(dstL, dstT));
+        sf::FloatRect bounds = sprite.getLocalBounds();
+        if (bounds.size.x > 0 && bounds.size.y > 0) {
+            sprite.setScale(sf::Vector2f(
+                dstRect->width / bounds.size.x,
+                dstRect->height / bounds.size.y));
+        }
         sprite.setColor(sf::Color(255, 255, 255, sfmlTex->getAlphaMod()));
         m_target->draw(sprite);
     }
@@ -482,23 +515,42 @@ public:
         SFMLTexture* sfmlTex = static_cast<SFMLTexture*>(texture);
         sf::Texture* nativeTex = sfmlTex->native();
         if (!nativeTex) return;
-        sf::Sprite sprite(*nativeTex);
-        sprite.setPosition(sf::Vector2f(dstRect->left + dstRect->width / 2, dstRect->top + dstRect->height / 2));
-        sprite.setOrigin(sf::Vector2f(static_cast<float>(nativeTex->getSize().x) / 2,
-                                     static_cast<float>(nativeTex->getSize().y) / 2));
-        sprite.setRotation(sf::degrees(angle));
-        float scaleX = dstRect->width / static_cast<float>(nativeTex->getSize().x);
-        float scaleY = dstRect->height / static_cast<float>(nativeTex->getSize().y);
-        if (srcRect) {
-            sprite.setTextureRect(sf::IntRect(
-                sf::Vector2i(static_cast<int>(srcRect->left), static_cast<int>(srcRect->top)),
-                sf::Vector2i(static_cast<int>(srcRect->width), static_cast<int>(srcRect->height))));
-            scaleX = dstRect->width / srcRect->width;
-            scaleY = dstRect->height / srcRect->height;
+        float texW = static_cast<float>(nativeTex->getSize().x);
+        float texH = static_cast<float>(nativeTex->getSize().y);
+        if (texW <= 0 || texH <= 0) return;
+        float cx = dstRect->left + dstRect->width / 2;
+        float cy = dstRect->top + dstRect->height / 2;
+        float halfW = dstRect->width / 2, halfH = dstRect->height / 2;
+        float cosA = cosf(angle * 3.14159265f / 180.0f);
+        float sinA = sinf(angle * 3.14159265f / 180.0f);
+        auto rot = [&](float dx, float dy) -> sf::Vector2f {
+            return sf::Vector2f(cx + dx * cosA - dy * sinA, cy + dx * sinA + dy * cosA);
+        };
+        float u0, v0, u1, v1;
+        if (srcRect && srcRect->width > 0 && srcRect->height > 0) {
+            u0 = srcRect->left / texW; v0 = srcRect->top / texH;
+            u1 = (srcRect->left + srcRect->width) / texW;
+            v1 = (srcRect->top + srcRect->height) / texH;
+        } else {
+            u0 = 0; v0 = 0; u1 = 1; v1 = 1;
         }
-        sprite.setScale(sf::Vector2f(scaleX, scaleY));
-        sprite.setColor(sf::Color(255, 255, 255, sfmlTex->getAlphaMod()));
-        m_target->draw(sprite);
+        sf::Color color(255, 255, 255, sfmlTex->getAlphaMod());
+        sf::VertexArray quad(sf::PrimitiveType::TriangleStrip, 4);
+        quad[0].position = rot(-halfW, -halfH);
+        quad[0].color = color;
+        quad[0].texCoords = sf::Vector2f(u0, v0);
+        quad[1].position = rot( halfW, -halfH);
+        quad[1].color = color;
+        quad[1].texCoords = sf::Vector2f(u1, v0);
+        quad[2].position = rot(-halfW,  halfH);
+        quad[2].color = color;
+        quad[2].texCoords = sf::Vector2f(u0, v1);
+        quad[3].position = rot( halfW,  halfH);
+        quad[3].color = color;
+        quad[3].texCoords = sf::Vector2f(u1, v1);
+        sf::RenderStates states;
+        states.texture = nativeTex;
+        m_target->draw(quad, states);
     }
 
     void setRenderTarget(Texture* texture) override {
@@ -560,5 +612,61 @@ public:
 };
 
 RenderDevice* CreateSFMLRenderDevice(sf::RenderWindow* window) {
+    g_sfmlActiveWindow = window;
     return new SFMLRenderDevice(window);
+}
+
+// ============================================================
+// Surface factory registration
+// ============================================================
+void RegisterSFMLSurfaceFactories() {
+    Surface::registerFactories(
+        [](int w, int h) -> SharedSurface {
+            auto* img = new sf::Image(sf::Vector2u(w, h), sf::Color::Transparent);
+            return std::make_shared<SFMLSurface>(img);
+        },
+        [](const std::string& path) -> SharedSurface {
+            try {
+                auto* img = new sf::Image(std::filesystem::path(path));
+                return std::make_shared<SFMLSurface>(img);
+            } catch (...) { return nullptr; }
+        },
+        [](const void* data, size_t len) -> SharedSurface {
+            if (!data || len == 0) return nullptr;
+            const char* str = static_cast<const char*>(data);
+            bool isSvg = (len > 4 && (strncmp(str, "<?xm", 4) == 0 ||
+                                       strncmp(str, "<svg", 4) == 0 ||
+                                       strncmp(str, "<!DO", 4) == 0));
+            if (isSvg) {
+                char* svgData = static_cast<char*>(malloc(len + 1));
+                if (!svgData) return nullptr;
+                memcpy(svgData, data, len); svgData[len] = '\0';
+                NSVGimage* svgImage = nsvgParse(svgData, "px", 96.0f);
+                free(svgData);
+                if (!svgImage) return nullptr;
+                int w = static_cast<int>(ceilf(svgImage->width));
+                int h = static_cast<int>(ceilf(svgImage->height));
+                if (w <= 0 || h <= 0) { nsvgDelete(svgImage); return nullptr; }
+                unsigned char* pixels = static_cast<unsigned char*>(malloc(static_cast<size_t>(w) * h * 4));
+                if (!pixels) { nsvgDelete(svgImage); return nullptr; }
+                NSVGrasterizer* rast = nsvgCreateRasterizer();
+                if (!rast) { free(pixels); nsvgDelete(svgImage); return nullptr; }
+                nsvgRasterize(rast, svgImage, 0.0f, 0.0f, 1.0f, pixels, w, h, w * 4);
+                nsvgDeleteRasterizer(rast); nsvgDelete(svgImage);
+                auto* img = new sf::Image(sf::Vector2u(w, h), sf::Color::Transparent);
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++) {
+                        const unsigned char* src = pixels + (y * w + x) * 4;
+                        img->setPixel(sf::Vector2u(x, y), sf::Color(src[0], src[1], src[2], src[3]));
+                    }
+                free(pixels);
+                return std::make_shared<SFMLSurface>(img);
+            }
+            try {
+                auto* img = new sf::Image(data, len);
+                if (img->getSize().x == 0 || img->getSize().y == 0) { delete img; return nullptr; }
+                return std::make_shared<SFMLSurface>(img);
+            } catch (...) { return nullptr; }
+        }
+    );
 }

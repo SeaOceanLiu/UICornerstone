@@ -92,5 +92,7 @@ Window* CreateSFMLWindow(const char* title, int width, int height, uint32_t flag
         winState,
         ctxSettings
     );
+    window->setVerticalSyncEnabled(false);
+    window->setActive(true);  // Keep OpenGL context active for this thread
     return new SFMLWindow(window);
 }

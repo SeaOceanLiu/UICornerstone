@@ -219,7 +219,7 @@ void EditBox::deleteSelectedText() {
 void EditBox::update(void) {
     if (m_focused) {
         m_cursorBlinkTime += 16;
-        if (m_cursorBlinkTime >= 2000) {
+        if (m_cursorBlinkTime >= 500) {
             m_cursorVisible = !m_cursorVisible;
             m_cursorBlinkTime = 0;
         }

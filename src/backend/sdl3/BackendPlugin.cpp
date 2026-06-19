@@ -7,8 +7,33 @@
 // SDL3 Backend Registration
 // ============================================================
 
+// 窗口复用模式：若用户通过 SDL3Backend_SetReuseWindow 传入了已有的
+// SDL 窗口/渲染器句柄，则复用它们（不创建新窗口，sdl3Init/sdl3Destroy 为空操作）
+static SDL_Window*   g_reuseWindow   = nullptr;
+static SDL_Renderer* g_reuseRenderer = nullptr;
+
+void SDL3Backend_SetReuseWindow(SDL_Window* w, SDL_Renderer* r) {
+    g_reuseWindow = w;
+    g_reuseRenderer = r;
+}
+
 static Window* sdl3CreateWindow(const char* title, int w, int h, uint32_t flags) {
+    if (g_reuseWindow && g_reuseRenderer)
+        return CreateSDL3WindowFromExisting(g_reuseWindow, g_reuseRenderer);
     return CreateSDL3Window(title, w, h, flags);
+}
+static bool sdl3Init() {
+    if (g_reuseWindow && g_reuseRenderer) return true;
+    SDL_SetAppMetadata("UICornerstone", "1.0.0", "com.uicornerstone.app");
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        printf("SDL_Init failed: %s\n", SDL_GetError());
+        return false;
+    }
+    return true;
+}
+static void sdl3Destroy() {
+    if (g_reuseWindow && g_reuseRenderer) return;
+    SDL_Quit();
 }
 
 static RenderDevice* sdl3CreateRenderDevice(Window* window) {
@@ -21,19 +46,6 @@ static TextRenderer* sdl3CreateTextRenderer(RenderDevice* device) {
 
 static InputBackend* sdl3CreateInputBackend(Window* window) {
     return CreateSDL3InputBackend(window);
-}
-
-static bool sdl3Init() {
-    SDL_SetAppMetadata("UICornerstone", "1.0.0", "com.uicornerstone.app");
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        return false;
-    }
-    return true;
-}
-
-static void sdl3Destroy() {
-    SDL_Quit();
 }
 
 BackendAPI g_sdl3Backend = {
@@ -145,6 +157,7 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     cb.createInputBackend   = plugin_createInputBackend;
     cb.destroyInputBackend  = bridge_destroyInputBackend;
     cb.pollEvent            = bridge_pollEvent;
+    cb.newFrame             = bridge_newFrame;
     cb.startTextInput       = bridge_startTextInput;
     cb.stopTextInput        = bridge_stopTextInput;
     cb.getModState          = bridge_getModState;

@@ -49,7 +49,7 @@ Label::~Label(void){
 
 void Label::releaseFont(void) {
     m_font.reset();
-    m_fontData.reset();
+    // 保留 m_fontData 以便 loadFromResource 复用，避免重复磁盘 I/O
 }
 
 void Label::releaseTexts(void) {
@@ -67,8 +67,6 @@ void Label::recreate() {
 
     releaseTexts();
     m_lines.clear();
-
-    releaseFont();
 
     if(typeid(*this) == typeid(Label)) {
         m_isCreated = false;
@@ -300,16 +298,21 @@ float Label::getStringWidth(const string& text) {
 }
 
 void Label::loadFromResource(string resourceId){
-    ResourceProvider* provider = getResourceProvider();
-    if (provider == nullptr) {
-        Platform::Log("Label::loadFromResource: No resource provider available");
-        return;
-    }
+    if (m_font) return;
 
-    m_fontData = provider->readFile(resourceId);
-    if (m_fontData == nullptr || m_fontData->empty()) {
-        Platform::Log("Label::loadFromResource: Error: '%s' not found\n", resourceId.c_str());
-        return;
+    // 若字体数据已加载（setFontSize 后 releaseFont 释放了 m_font 但保留了数据），直接复用
+    if (!m_fontData) {
+        ResourceProvider* provider = getResourceProvider();
+        if (provider == nullptr) {
+            Platform::Log("Label::loadFromResource: No resource provider available");
+            return;
+        }
+
+        m_fontData = provider->readFile(resourceId);
+        if (m_fontData == nullptr || m_fontData->empty()) {
+            Platform::Log("Label::loadFromResource: Error: '%s' not found\n", resourceId.c_str());
+            return;
+        }
     }
 
     TextRenderer* renderer = getTextRenderer();
@@ -318,9 +321,9 @@ void Label::loadFromResource(string resourceId){
         return;
     }
 
+    int scaledSize = static_cast<int>(m_fontSize * getScaleXX());
     m_font = renderer->loadFontFromMemoryWithText(m_fontData->data(), m_fontData->size(),
-                                           static_cast<int>(m_fontSize * getScaleXX()),
-                                           m_caption);
+                                           scaledSize, m_caption);
     if (m_font == nullptr) {
         Platform::Log("Label::loadFromResource: Failed to load font");
     }
@@ -502,6 +505,8 @@ void Label::setFont(FontName fontName){
     m_fontName = fontName;
     m_fontFile = fs::path(ConstDef::fontFiles.at(fontName));
 
+    releaseFont();
+    m_fontData.reset();
     recreate();
 }
 void Label::setAlignmentMode(AlignmentMode Alignment){
@@ -521,6 +526,7 @@ void Label::setFontSize(int fontSize){
     if (fontSize == m_fontSize) return;
     m_fontSize = fontSize;
 
+    releaseFont();
     recreate();
 }
 

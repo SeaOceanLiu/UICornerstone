@@ -149,12 +149,23 @@ void CallbackRenderDevice::destroyTexture(Texture* texture) {
         m_cbs->destroyTexture(m_handle, ct->handle());
 }
 void CallbackRenderDevice::drawTexture(Texture* texture, const SRect* srcRect, const SRect* dstRect) {
-    if (!m_cbs->drawTexture) return;
+    if (!m_cbs->drawTexture || !texture || !dstRect) {
+        return;
+    }
     auto* ct = dynamic_cast<CallbackTexture*>(texture);
-    if (!ct || !ct->handle()) return;
+
     UIRect src = srcRect ? UIRect{srcRect->left, srcRect->top, srcRect->width, srcRect->height} : UIRect{0,0,0,0};
-    UIRect dst = dstRect ? UIRect{dstRect->left, dstRect->top, dstRect->width, dstRect->height} : UIRect{0,0,0,0};
-    m_cbs->drawTexture(m_handle, ct->handle(), srcRect ? &src : nullptr, dstRect ? &dst : nullptr);
+    UIRect dst = UIRect{dstRect->left, dstRect->top, dstRect->width, dstRect->height};
+
+    if (ct && ct->handle()) {
+        m_cbs->drawTexture(m_handle, ct->handle(), srcRect ? &src : nullptr, &dst);
+    } else {
+        // Non-CallbackTexture (e.g. SDL3Texture from inline backend):
+        // wrap in a temporary non-owning shared_ptr so the bridge can use it
+        std::shared_ptr<Texture> tempHolder(texture, [](Texture*){});
+        UITextureHandle h = reinterpret_cast<UITextureHandle>(&tempHolder);
+        m_cbs->drawTexture(m_handle, h, srcRect ? &src : nullptr, &dst);
+    }
 }
 void CallbackRenderDevice::drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float) {
     drawTexture(texture, srcRect, dstRect);
@@ -182,6 +193,9 @@ CallbackInputBackend::CallbackInputBackend(const UIBackendCallbacks* cbs, UIInpu
     : m_handle(handle), m_cbs(cbs) {}
 CallbackInputBackend::~CallbackInputBackend() {
     if (m_cbs->destroyInputBackend) m_cbs->destroyInputBackend(m_handle);
+}
+void CallbackInputBackend::newFrame() {
+    if (m_cbs->newFrame) m_cbs->newFrame(m_handle);
 }
 void CallbackInputBackend::startTextInput() {
     m_textInputActive = true;

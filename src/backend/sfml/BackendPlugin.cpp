@@ -8,6 +8,7 @@ Window* CreateSFMLWindow(const char* title, int w, int h, uint32_t flags);
 RenderDevice* CreateSFMLRenderDevice(sf::RenderWindow* window);
 TextRenderer* CreateSFMLTextRenderer(RenderDevice* device);
 InputBackend* CreateSFMLInputBackend(Window* window);
+void RegisterSFMLSurfaceFactories(void);
 
 // ============================================================
 // SFML Backend Registration
@@ -92,6 +93,9 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
 
     cb.version = 1;
 
+    // Register surface factories so the DLL's Surface::loadFromFile/Surface::create/Surface::loadFromMemory work
+    RegisterSFMLSurfaceFactories();
+
     // Window
     cb.createWindow         = plugin_createWindow;
     cb.destroyWindow        = bridge_destroyWindow;
@@ -129,6 +133,7 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     cb.createInputBackend   = plugin_createInputBackend;
     cb.destroyInputBackend  = bridge_destroyInputBackend;
     cb.pollEvent            = bridge_pollEvent;
+    cb.newFrame             = bridge_newFrame;
     cb.startTextInput       = bridge_startTextInput;
     cb.stopTextInput        = bridge_stopTextInput;
     cb.getModState          = bridge_getModState;

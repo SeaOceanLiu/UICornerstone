@@ -13,6 +13,7 @@ if(NOT UICORNERSTONE_BACKEND)
 endif()
 
 string(TOUPPER "${UICORNERSTONE_BACKEND}" _BACKEND_UPPER)
+string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
 
 # ============================================================
 # Backend-specific test configuration
@@ -162,6 +163,102 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
         endif()
     else()
         target_link_libraries(test_api PRIVATE ${TEST_LIBS})
+    endif()
+endif()
+
+# ============================================================
+# From-source build tests (DLL bridge + backend source compiled in)
+# ============================================================
+# Collect backend source files for the current backend
+set(FROMSOURCE_BACKEND_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/Window.cpp"
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/RenderDevice.cpp"
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/TextRenderer.cpp"
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/InputBackend.cpp"
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/Cursor.cpp"
+    "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/BackendPlugin.cpp"
+)
+
+# Backend-specific libraries for fromsource targets
+# (TEST_LIBS includes UICornerstone itself; we need only the 3rd-party deps)
+set(FROMSOURCE_BACKEND_LIBS)
+if(_BACKEND_UPPER STREQUAL "SDL3")
+    get_filename_component(SDL3_LIB_DIR "${CMAKE_SOURCE_DIR}/subModules/libs" ABSOLUTE)
+    set(FROMSOURCE_BACKEND_LIBS
+        ${SDL3_LIB_DIR}/SDL3.lib
+        ${SDL3_LIB_DIR}/SDL3_ttf.lib
+        ${SDL3_LIB_DIR}/SDL3_image.lib
+    )
+elseif(_BACKEND_UPPER STREQUAL "SFML")
+    get_filename_component(SFML_LIB_DIR "${CMAKE_SOURCE_DIR}/subModules/SFML/lib" ABSOLUTE)
+    set(FROMSOURCE_BACKEND_LIBS
+        debug ${SFML_LIB_DIR}/sfml-graphics-d.lib
+        optimized ${SFML_LIB_DIR}/sfml-graphics.lib
+        debug ${SFML_LIB_DIR}/sfml-window-d.lib
+        optimized ${SFML_LIB_DIR}/sfml-window.lib
+        debug ${SFML_LIB_DIR}/sfml-system-d.lib
+        optimized ${SFML_LIB_DIR}/sfml-system.lib
+        opengl32.lib
+    )
+elseif(_BACKEND_UPPER STREQUAL "RAYLIB")
+    get_filename_component(RAYLIB_LIB_DIR "${CMAKE_SOURCE_DIR}/subModules/raylib/lib" ABSOLUTE)
+    set(FROMSOURCE_BACKEND_LIBS ${RAYLIB_LIB_DIR}/raylib.lib winmm.lib)
+endif()
+
+macro(add_fromsource_target target_name source_file)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
+        add_executable(${target_name} ${source_file} ${FROMSOURCE_BACKEND_SOURCES})
+
+        target_include_directories(${target_name} PRIVATE
+            ${TEST_INCLUDES}
+            "${CMAKE_SOURCE_DIR}/src/backend"
+        )
+
+        target_compile_definitions(${target_name} PRIVATE UICORNERSTONE_BUILD_SHARED=1)
+        target_compile_definitions(${target_name} PUBLIC UICORNERSTONE_BACKEND_PLUGIN=0)
+
+        target_link_libraries(${target_name} PRIVATE
+            UICornerstone_dll
+            ${FROMSOURCE_BACKEND_LIBS}
+        )
+
+        if(WIN32)
+            add_custom_command(TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
+                    "$<TARGET_FILE_DIR:${target_name}>")
+
+            foreach(dll ${TEST_DLLS})
+                add_custom_command(TARGET ${target_name} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${dll}"
+                        "$<TARGET_FILE_DIR:${target_name}>")
+            endforeach()
+
+            add_custom_command(TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${ASSETS_DIR}"
+                    "$<TARGET_FILE_DIR:${target_name}>/assets")
+        endif()
+    endif()
+endmacro()
+
+if(UICORNERSTONE_BUILD_DLL)
+    if(_BACKEND_UPPER STREQUAL "SDL3")
+        add_fromsource_target(test_fromsource test_fromsource.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "SFML")
+        add_fromsource_target(test_minimal_sfml test_minimal_sfml.cpp)
+        add_fromsource_target(test_sfml_v2 test_sfml_v2.cpp)
+        add_fromsource_target(test_sfml_min2 test_sfml_min2.cpp)
+        add_fromsource_target(test_sfml_full test_sfml_full.cpp)
+        add_fromsource_target(test_sfml_full2 test_sfml_full2.cpp)
+        add_fromsource_target(test_fromsource_sfml test_fromsource_sfml.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "RAYLIB")
+        add_fromsource_target(test_fromsource_raylib test_fromsource_raylib.cpp)
     endif()
 endif()
 

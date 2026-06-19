@@ -55,12 +55,31 @@ void Actor::loadFromFile(fs::path filePath) {
         filePath = fs::path(Platform::GetBasePath()) / filePath;
     }
     m_surface = Surface::loadFromFile(filePath.string());
-    if (!m_surface) {
-        Platform::Log("LoadFromFile Error\n");
+    if (m_surface) {
+        loadTextureFromSurface(m_surface.get());
         return;
     }
 
-    loadTextureFromSurface(m_surface.get());
+    // Fallback: try RenderDevice::createTextureFromFile directly
+    // (used in fromsource / bridge paths where Surface factories may not be registered)
+    auto* device = getRenderDevice();
+    if (device) {
+        m_texture = device->createTextureFromFile(filePath.string());
+        if (m_texture) {
+            m_rect.left = 0;
+            m_rect.top = 0;
+            if (!m_matchParentRect) {
+                m_rect.width = (float)m_texture->width();
+                m_rect.height = (float)m_texture->height();
+            } else {
+                m_rect.width = getParent()->getRect().width;
+                m_rect.height = getParent()->getRect().height;
+            }
+            return;
+        }
+    }
+
+    Platform::Log("Actor::loadFromFile failed for '%s'\n", filePath.string().c_str());
 }
 
 void Actor::loadFromResource(string resourceId) {
@@ -110,7 +129,7 @@ void Actor::setParent(Control *parent){
         m_rect.width = getParent()->getRect().width;
         m_rect.height = getParent()->getRect().height;
 
-        if (m_surface) {
+        if (m_surface && !m_texture) {
             m_texture = m_surface->createTexture(getRenderDevice());
             if (!m_texture) {
                 Platform::Log("Surface::createTexture failed\n");

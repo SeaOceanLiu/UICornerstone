@@ -43,6 +43,8 @@ bool BackendManager::initialize(const std::string& backendName,
 #if defined(UICORNERSTONE_BACKEND_SFML)
     if (backendName == "sfml") {
         extern BackendAPI g_sfmlBackend;
+        extern void RegisterSFMLSurfaceFactories(void);
+        RegisterSFMLSurfaceFactories();
         api = g_sfmlBackend;
         found = true;
     }
@@ -50,6 +52,8 @@ bool BackendManager::initialize(const std::string& backendName,
 #if defined(UICORNERSTONE_BACKEND_RAYLIB)
     if (backendName == "raylib") {
         extern BackendAPI g_raylibBackend;
+        extern void RegisterRaylibSurfaceFactories(void);
+        RegisterRaylibSurfaceFactories();
         api = g_raylibBackend;
         found = true;
     }

@@ -1,31 +1,24 @@
-﻿#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#include <cstdio>
+﻿#include <cstdio>
 #include <cstdint>
+#include <cstring>
+#include <cstdlib>
 #include <windows.h>
 
-// UICornerstoneAPI.h 提供 UIEvent 结构体和 UI_EVENT_* 宏定义
-#include "../../include/UICornerstoneAPI.h"
-#include "../../include/EventTypes.h"
+// ============================================================
+// GetUIBackendCallbacks — compiled from BackendPlugin.cpp
+// ============================================================
+extern "C" struct UIBackendCallbacks* GetUIBackendCallbacks(void);
 
 // ============================================================
-// 全局变量：由 SDL_AppInit 创建，被后端代码复用
+// 全局变量
 // ============================================================
-static SDL_Window*   g_window     = nullptr;
-static SDL_Renderer* g_renderer   = nullptr;
-static HMODULE       g_uiDll      = nullptr;
+static HMODULE g_uiDll = nullptr;
 static bool g_uiInitialized = false;
+static int  g_frameCount = 0;
 
 // ============================================================
-// 后端函数声明 — 编译为独立翻译单元，链接时解析
+// 测试纹理 DIAG
 // ============================================================
-extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
-void SDL3Backend_SetReuseWindow(SDL_Window* w, SDL_Renderer* r);
-
-// sdl3/InputBackend.cpp (signatures match InputBackend.h)
-KeyCode SDLKeycodeToKeyCode(int sdlKey);
-KeyMod SDLKeymodToKeyMod(uint16_t sdlMod);
 
 // ============================================================
 // C ABI 函数指针
@@ -55,7 +48,6 @@ typedef void  (*UIAddChildFn)(void*,void*);
 typedef const char* (*UIGetTextFn)(void*);
 typedef int   (*UIGetCheckedFn)(void*);
 typedef float (*UIGetProgressFn)(void*);
-typedef void  (*UIPushUIEventFn)(const void*);
 typedef void  (*UISetOnClickFn)(void*, void (*)(void*,void*), void*);
 typedef void  (*UISetVisibleFn)(void*, int);
 typedef void  (*UIDestroyControlFn)(void*);
@@ -88,86 +80,25 @@ static UIAddChildFn         uiAddChild         = nullptr;
 static UIGetTextFn          uiGetText          = nullptr;
 static UIGetCheckedFn       uiGetChecked       = nullptr;
 static UIGetProgressFn      uiGetProgress      = nullptr;
-static UIPushUIEventFn      uiPushUIEvent      = nullptr;
 static UISetOnClickFn       uiSetOnClick       = nullptr;
 static UISetVisibleFn       uiSetVisible       = nullptr;
 static UIDestroyControlFn   uiDestroyControl   = nullptr;
 static UIWinFrameSetClientTextFn uiSetWinFrameClientText = nullptr;
-static UICreateImageButtonFn    uiCreateImageButton  = nullptr;
-static UISetButtonAnimationFn   uiSetButtonAnimation = nullptr;
+static UICreateImageButtonFn uiCreateImageButton  = nullptr;
+static UISetButtonAnimationFn uiSetButtonAnimation = nullptr;
 
-static void* g_btnHandle     = nullptr;
-static void* g_checkHandle   = nullptr;
-static void* g_editHandle    = nullptr;
+static void* g_btnHandle      = nullptr;
+static void* g_checkHandle    = nullptr;
+static void* g_editHandle     = nullptr;
 static void* g_progressHandle = nullptr;
-static void* g_panelHandle   = nullptr;
+static void* g_panelHandle    = nullptr;
 static void* g_textAreaHandle = nullptr;
 static void* g_chkStatus      = nullptr;
 static void* g_prgStatus      = nullptr;
 static void* g_edtStatus      = nullptr;
 static void* g_winFrameHandle = nullptr;
-static void* g_imgBtnHandle   = nullptr;
-static void* g_aniBtnHandle   = nullptr;
-static int   g_frameCount     = 0;
-
-// SDL_Event → UIEvent 转换
-static void sdlEventToUIEvent(const SDL_Event* sdl, UIEvent* ue) {
-    memset(ue, 0, sizeof(*ue));
-    switch (sdl->type) {
-    case SDL_EVENT_MOUSE_MOTION:
-        ue->type = UI_EVENT_MOUSE_MOVE;
-        memcpy(ue->data, &sdl->motion.x, sizeof(float));
-        memcpy(ue->data + 4, &sdl->motion.y, sizeof(float));
-        break;
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        ue->type = UI_EVENT_MOUSE_DOWN;
-        { float fx = (float)sdl->button.x, fy = (float)sdl->button.y;
-          memcpy(ue->data, &fx, sizeof(float));
-          memcpy(ue->data + 4, &fy, sizeof(float)); }
-        { int btn = (int)sdl->button.button; memcpy(ue->data + 8, &btn, sizeof(int)); }
-        break;
-    case SDL_EVENT_MOUSE_BUTTON_UP:
-        ue->type = UI_EVENT_MOUSE_UP;
-        { float fx = (float)sdl->button.x, fy = (float)sdl->button.y;
-          memcpy(ue->data, &fx, sizeof(float));
-          memcpy(ue->data + 4, &fy, sizeof(float)); }
-        { int btn = (int)sdl->button.button; memcpy(ue->data + 8, &btn, sizeof(int)); }
-        break;
-    case SDL_EVENT_MOUSE_WHEEL:
-        ue->type = UI_EVENT_MOUSE_WHEEL;
-        { float sy = sdl->wheel.y * -120; memcpy(ue->data, &sy, sizeof(float)); }
-        break;
-    case SDL_EVENT_KEY_DOWN:
-        ue->type = UI_EVENT_KEY_DOWN;
-        { int kc = (int)SDLKeycodeToKeyCode((int)sdl->key.key);
-          memcpy(ue->data, &kc, sizeof(int)); }
-        { uint16_t mod = (uint16_t)SDLKeymodToKeyMod((uint16_t)sdl->key.mod);
-          memcpy(ue->data + 4, &mod, sizeof(uint16_t)); }
-        break;
-    case SDL_EVENT_KEY_UP:
-        ue->type = UI_EVENT_KEY_UP;
-        { int kc = (int)SDLKeycodeToKeyCode((int)sdl->key.key);
-          memcpy(ue->data, &kc, sizeof(int)); }
-        { uint16_t mod = (uint16_t)SDLKeymodToKeyMod((uint16_t)sdl->key.mod);
-          memcpy(ue->data + 4, &mod, sizeof(uint16_t)); }
-        break;
-    case SDL_EVENT_TEXT_INPUT:
-        ue->type = UI_EVENT_TEXT_INPUT;
-        strncpy((char*)ue->data, sdl->text.text, 31);
-        break;
-    case SDL_EVENT_WINDOW_RESIZED:
-        ue->type = UI_EVENT_WINDOW_RESIZE;
-        memcpy(ue->data, &sdl->window.data1, sizeof(int));
-        memcpy(ue->data + 4, &sdl->window.data2, sizeof(int));
-        break;
-    case SDL_EVENT_QUIT:
-    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        ue->type = UI_EVENT_WINDOW_CLOSE;
-        break;
-    default:
-        break;
-    }
-}
+static void* g_imgBtnHandle   = nullptr;  // 图片测试按钮
+static void* g_aniBtnHandle   = nullptr;  // LuotiAni 测试按钮
 
 static void onButtonClick(void* ctl, void* userData) {
     (void)ctl; (void)userData;
@@ -195,79 +126,77 @@ static void onButtonClick(void* ctl, void* userData) {
     }
 }
 
-// ============================================================
-// SDL App Callbacks
-// ============================================================
-SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
-    (void)appstate; (void)argc; (void)argv;
-    printf("SDL_AppInit\n"); fflush(stdout);
-
-    if (!SDL_CreateWindowAndRenderer("test_fromsource", 800, 600, 0,
-                                      &g_window, &g_renderer)) {
-        printf("FAIL: SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    SDL3Backend_SetReuseWindow(g_window, g_renderer);
+int main() {
+    printf("=== test_fromsource_raylib: UICornerstone.dll + raylib backend ===\n");
 
     g_uiDll = LoadLibraryA("UICornerstone.dll");
     if (!g_uiDll) {
         printf("FAIL: LoadLibrary(UICornerstone.dll)\n");
-        return SDL_APP_FAILURE;
+        return 1;
     }
     printf("OK: loaded UICornerstone.dll\n"); fflush(stdout);
 
-    uiInit          = (UIInitFn)GetProcAddress(g_uiDll, "UICornerstone_Init");
-    uiSetViewport   = (UISetViewportFn)GetProcAddress(g_uiDll, "UICornerstone_SetViewport");
-    uiProcessEvents = (UIProcessEventsFn)GetProcAddress(g_uiDll, "UICornerstone_ProcessEvents");
-    uiUpdate        = (UIUpdateFn)GetProcAddress(g_uiDll, "UICornerstone_Update");
-    uiClear         = (UIClearFn)GetProcAddress(g_uiDll, "UICornerstone_Clear");
-    uiRender        = (UIRenderFn)GetProcAddress(g_uiDll, "UICornerstone_Render");
-    uiPresent       = (UIPresentFn)GetProcAddress(g_uiDll, "UICornerstone_Present");
-    uiIsQuit        = (UIIsQuitFn)GetProcAddress(g_uiDll, "UICornerstone_IsQuitRequested");
-    uiShutdown      = (UIShutdownFn)GetProcAddress(g_uiDll, "UICornerstone_Shutdown");
-    uiCreateButton     = (UICreateButtonFn)GetProcAddress(g_uiDll, "UICornerstone_CreateButton");
-    uiCreateLabel      = (UICreateLabelFn)GetProcAddress(g_uiDll, "UICornerstone_CreateLabel");
-    uiCreateCheckBox   = (UICreateCheckBoxFn)GetProcAddress(g_uiDll, "UICornerstone_CreateCheckBox");
-    uiCreateEditBox    = (UICreateEditBoxFn)GetProcAddress(g_uiDll, "UICornerstone_CreateEditBox");
-    uiCreateProgressBar = (UICreateProgressBarFn)GetProcAddress(g_uiDll, "UICornerstone_CreateProgressBar");
-    uiCreatePanel      = (UICreatePanelFn)GetProcAddress(g_uiDll, "UICornerstone_CreatePanel");
-    uiCreateTextArea   = (UICreateTextAreaFn)GetProcAddress(g_uiDll, "UICornerstone_CreateTextArea");
-    uiCreateWinFrame   = (UICreateWinFrameFn)GetProcAddress(g_uiDll, "UICornerstone_CreateWinFrame");
-    uiSetBGColor       = (UISetBGColorFn)GetProcAddress(g_uiDll, "UICornerstone_SetBGColor");
-    uiSetText          = (UISetTextFn)GetProcAddress(g_uiDll, "UICornerstone_SetText");
-    uiSetProgress      = (UISetProgressFn)GetProcAddress(g_uiDll, "UICornerstone_SetProgress");
-    uiSetChecked       = (UISetCheckedFn)GetProcAddress(g_uiDll, "UICornerstone_SetChecked");
-    uiAddChild         = (UIAddChildFn)GetProcAddress(g_uiDll, "UICornerstone_AddChild");
-    uiGetText          = (UIGetTextFn)GetProcAddress(g_uiDll, "UICornerstone_GetText");
-    uiGetChecked       = (UIGetCheckedFn)GetProcAddress(g_uiDll, "UICornerstone_GetChecked");
-    uiGetProgress      = (UIGetProgressFn)GetProcAddress(g_uiDll, "UICornerstone_GetProgress");
-    uiPushUIEvent      = (UIPushUIEventFn)GetProcAddress(g_uiDll, "UICornerstone_PushUIEvent");
-    uiSetOnClick       = (UISetOnClickFn)GetProcAddress(g_uiDll, "UICornerstone_SetOnClick");
-    uiSetVisible       = (UISetVisibleFn)GetProcAddress(g_uiDll, "UICornerstone_SetVisible");
-    uiDestroyControl   = (UIDestroyControlFn)GetProcAddress(g_uiDll, "UICornerstone_DestroyControl");
-    uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GetProcAddress(g_uiDll, "UICornerstone_WinFrameSetClientText");
-    uiCreateImageButton  = (UICreateImageButtonFn)GetProcAddress(g_uiDll, "UICornerstone_CreateImageButton");
-    uiSetButtonAnimation = (UISetButtonAnimationFn)GetProcAddress(g_uiDll, "UICornerstone_SetButtonAnimation");
+    #define GET_PROC(name) (void*)GetProcAddress(g_uiDll, "UICornerstone_" name)
+    uiInit             = (UIInitFn)GET_PROC("Init");
+    uiSetViewport      = (UISetViewportFn)GET_PROC("SetViewport");
+    uiProcessEvents    = (UIProcessEventsFn)GET_PROC("ProcessEvents");
+    uiUpdate           = (UIUpdateFn)GET_PROC("Update");
+    uiClear            = (UIClearFn)GET_PROC("Clear");
+    uiRender           = (UIRenderFn)GET_PROC("Render");
+    uiPresent          = (UIPresentFn)GET_PROC("Present");
+    uiIsQuit           = (UIIsQuitFn)GET_PROC("IsQuitRequested");
+    uiShutdown         = (UIShutdownFn)GET_PROC("Shutdown");
+    uiCreateButton     = (UICreateButtonFn)GET_PROC("CreateButton");
+    uiCreateLabel      = (UICreateLabelFn)GET_PROC("CreateLabel");
+    uiCreateCheckBox   = (UICreateCheckBoxFn)GET_PROC("CreateCheckBox");
+    uiCreateEditBox    = (UICreateEditBoxFn)GET_PROC("CreateEditBox");
+    uiCreateProgressBar = (UICreateProgressBarFn)GET_PROC("CreateProgressBar");
+    uiCreatePanel      = (UICreatePanelFn)GET_PROC("CreatePanel");
+    uiCreateTextArea   = (UICreateTextAreaFn)GET_PROC("CreateTextArea");
+    uiCreateWinFrame   = (UICreateWinFrameFn)GET_PROC("CreateWinFrame");
+    uiSetBGColor       = (UISetBGColorFn)GET_PROC("SetBGColor");
+    uiSetText          = (UISetTextFn)GET_PROC("SetText");
+    uiSetProgress      = (UISetProgressFn)GET_PROC("SetProgress");
+    uiSetChecked       = (UISetCheckedFn)GET_PROC("SetChecked");
+    uiAddChild         = (UIAddChildFn)GET_PROC("AddChild");
+    uiGetText          = (UIGetTextFn)GET_PROC("GetText");
+    uiGetChecked       = (UIGetCheckedFn)GET_PROC("GetChecked");
+    uiGetProgress      = (UIGetProgressFn)GET_PROC("GetProgress");
+    uiSetOnClick       = (UISetOnClickFn)GET_PROC("SetOnClick");
+    uiSetVisible       = (UISetVisibleFn)GET_PROC("SetVisible");
+    uiDestroyControl   = (UIDestroyControlFn)GET_PROC("DestroyControl");
+    uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GET_PROC("WinFrameSetClientText");
+    uiCreateImageButton  = (UICreateImageButtonFn)GET_PROC("CreateImageButton");
+    uiSetButtonAnimation = (UISetButtonAnimationFn)GET_PROC("SetButtonAnimation");
+    #undef GET_PROC
 
     if (!uiInit) {
         printf("FAIL: GetProcAddress(UICornerstone_Init)\n");
-        return SDL_APP_FAILURE;
+        FreeLibrary(g_uiDll);
+        return 1;
     }
 
+    // 后端自动创建 raylib 窗口
     void* cbs = GetUIBackendCallbacks();
     if (!cbs) {
         printf("FAIL: GetUIBackendCallbacks\n");
-        return SDL_APP_FAILURE;
+        FreeLibrary(g_uiDll);
+        return 1;
     }
     if (!uiInit(cbs)) {
         printf("FAIL: UICornerstone_Init\n");
-        return SDL_APP_FAILURE;
+        FreeLibrary(g_uiDll);
+        return 1;
     }
+
+    // 后端已创建窗口后再设视口
     uiSetViewport(0, 0, 800, 480);
     g_uiInitialized = true;
-    printf("OK: UICornerstone initialized\n"); fflush(stdout);
+    printf("OK: UICornerstone initialized (raylib backend)\n"); fflush(stdout);
 
-    // 创建测试控件 — 按关联分组布局
+    // ============================================================
+    // 创建测试控件（与 SDL3 版本相同布局）
+    // ============================================================
     // 分组 1: CheckBox + 状态标签（靠左）
     if (uiCreateCheckBox) {
         g_checkHandle = uiCreateCheckBox("Check me", 20, 15, 180, 30);
@@ -277,7 +206,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         }
     }
     if (uiCreateLabel) {
-        g_chkStatus = uiCreateLabel("CheckBox: Checked", 12.0f, 20, 50, 180, 16);
+        g_chkStatus = uiCreateLabel(u8"CheckBox: Checked", 12.0f, 20, 50, 180, 16);
         if (g_chkStatus) printf("OK: created chkStatus\n");
     }
     // 分组 2: EditBox + 状态标签（紧接 CheckBox，宽度延伸到窗体边缘）
@@ -302,7 +231,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         }
     }
     if (uiCreateLabel) {
-        g_prgStatus = uiCreateLabel("Progress: 0.0%", 12.0f, 20, 105, 230, 16);
+        g_prgStatus = uiCreateLabel(u8"Progress: 0.0%", 12.0f, 20, 105, 230, 16);
         if (g_prgStatus) printf("OK: created prgStatus\n");
     }
     // 分组 4: Panel + TextArea + Button（按钮放在面板内）
@@ -312,7 +241,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
             printf("OK: created Panel\n");
             if (uiSetBGColor) uiSetBGColor(g_panelHandle, 50, 55, 60, 255);
         }
-        // TextArea 占据面板大部分区域
         g_textAreaHandle = uiCreateTextArea(5, 5, 750, 260);
         if (g_textAreaHandle) {
             printf("OK: created TextArea\n");
@@ -329,6 +257,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
                 5, 270, 200, 30);
             if (g_imgBtnHandle) {
                 printf("OK: created ImageButton\n");
+                if (uiSetBGColor)
+                    uiSetBGColor(g_imgBtnHandle, 40, 40, 40, 255);   // 深灰色背景
                 if (uiSetOnClick)
                     uiSetOnClick(g_imgBtnHandle, onButtonClick, nullptr);
                 uiAddChild(g_panelHandle, g_imgBtnHandle);
@@ -339,13 +269,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
             g_aniBtnHandle = uiCreateButton("Ani Test", 210, 270, 200, 30);
             if (g_aniBtnHandle) {
                 printf("OK: created Animation Button\n");
+                if (uiSetBGColor)
+                    uiSetBGColor(g_aniBtnHandle, 40, 40, 40, 255);   // 深灰色背景
                 uiSetButtonAnimation(g_aniBtnHandle, "assets/animations/rotateBtn/rotateBtn.jsonc");
                 if (uiSetOnClick)
                     uiSetOnClick(g_aniBtnHandle, onButtonClick, nullptr);
                 uiAddChild(g_panelHandle, g_aniBtnHandle);
             }
         }
-        // Button 放在 TextArea 下方右侧
         if (uiCreateButton) {
             g_btnHandle = uiCreateButton(u8"读取TextArea文本内容", 555, 270, 200, 30);
             if (g_btnHandle) {
@@ -361,26 +292,12 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     }
     fflush(stdout);
 
-    return SDL_APP_CONTINUE;
-}
+    // ============================================================
+    // 帧循环（由 InputBackend 自动轮询 raylib 事件）
+    // ============================================================
+    printf("Starting frame loop...\n"); fflush(stdout);
 
-SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-    (void)appstate;
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;
-    }
-    if (g_uiInitialized && uiPushUIEvent) {
-        UIEvent ue;
-        sdlEventToUIEvent(event, &ue);
-        uiPushUIEvent(&ue);
-    }
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppIterate(void* appstate) {
-    (void)appstate;
-
-    if (g_uiInitialized) {
+    while (!uiIsQuit()) {
         g_frameCount++;
 
         // 进度条动画
@@ -391,7 +308,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
         uiProcessEvents();
         uiClear();
-        uiUpdate(1.0/60.0);
+        uiUpdate(1.0 / 60.0);
 
         // 轮询状态并更新标签
         char buf[256];
@@ -405,7 +322,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         }
         if (g_progressHandle && uiGetProgress && g_prgStatus && uiSetText) {
             float v = uiGetProgress(g_progressHandle);
-            snprintf(buf, sizeof(buf), "Progress: %.1f%%", v);
+            snprintf(buf, sizeof(buf), u8"Progress: %.1f%%", v);
             uiSetText(g_prgStatus, buf);
         }
         if (g_editHandle && uiGetText && g_edtStatus && uiSetText) {
@@ -422,33 +339,23 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         }
 
         uiRender();
+        uiPresent();
     }
 
-    SDL_RenderPresent(g_renderer);
+    printf("Done, %d frames\n", g_frameCount); fflush(stdout);
 
-    if (g_uiInitialized && uiIsQuit()) {
-        printf("UICornerstone requested quit\n");
-        return SDL_APP_SUCCESS;
-    }
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-    (void)appstate; (void)result;
-    printf("SDL_AppQuit\n"); fflush(stdout);
-
-    // UICornerstone_Shutdown 会通过 ~SDL3Window 销毁 g_window/g_renderer
+    // ============================================================
+    // 清理
+    // ============================================================
     if (g_uiInitialized && uiShutdown) {
         uiShutdown();
         g_uiInitialized = false;
     }
-
     if (g_uiDll) {
         FreeLibrary(g_uiDll);
         g_uiDll = nullptr;
     }
 
-    // 窗口/渲染器已被 ~SDL3Window 销毁，不再重复销毁
-    g_window = nullptr;
-    g_renderer = nullptr;
+    printf("test_fromsource_raylib: done\n");
+    return 0;
 }

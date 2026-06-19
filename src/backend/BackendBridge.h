@@ -107,9 +107,11 @@ inline void bridge_destroyTexture(UIRenderDeviceHandle h, UITextureHandle tex) {
 }
 inline void bridge_drawTexture(UIRenderDeviceHandle h, UITextureHandle tex, const UIRect* src, const UIRect* dst) {
     auto* sp = static_cast<std::shared_ptr<Texture>*>(tex);
-    SRect s = src ? SRect(src->x, src->y, src->w, src->h) : SRect();
-    SRect d = dst ? SRect(dst->x, dst->y, dst->w, dst->h) : SRect();
-    static_cast<RenderDevice*>(h)->drawTexture(sp->get(), &s, &d);
+    Texture* t = sp->get();
+    SRect s, d;
+    const SRect* srcPtr = src ? (&(s = SRect(src->x, src->y, src->w, src->h))) : nullptr;
+    const SRect* dstPtr = dst ? (&(d = SRect(dst->x, dst->y, dst->w, dst->h))) : nullptr;
+    static_cast<RenderDevice*>(h)->drawTexture(t, srcPtr, dstPtr);
 }
 inline void bridge_getTextureSize(UITextureHandle tex, int* w, int* h) {
     auto* sp = static_cast<std::shared_ptr<Texture>*>(tex);
@@ -140,6 +142,10 @@ inline int bridge_getClipboardText(UIInputBackendHandle h, char* buf, int maxLen
     memcpy(buf, s.data(), len);
     buf[len] = '\0';
     return len;
+}
+
+inline void bridge_newFrame(UIInputBackendHandle h) {
+    static_cast<InputBackend*>(h)->newFrame();
 }
 
 // Event conversion: C++ Event → UIEvent

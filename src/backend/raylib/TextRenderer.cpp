@@ -27,6 +27,13 @@ public:
         UnloadFont(m_font);
     }
 
+    // Reload the font glyphs in-place without changing the object identity.
+    // The old rlFont is unloaded and replaced with newFont.
+    void reload(rlFont newFont) {
+        UnloadFont(m_font);
+        m_font = newFont;
+    }
+
     int getSize() const override { return m_size; }
     rlFont get() const { return m_font; }
 
@@ -147,7 +154,8 @@ public:
                 return it->second.font;
             }
 
-            // Reload with merged codepoint set
+            // Reload with merged codepoint set — update in-place so existing
+            // shared_ptr<Font> handles (e.g. from bridge_loadFontFromMemory) stay valid.
             std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
             rlFont f;
             if (it->second.fromFile) {
@@ -160,7 +168,7 @@ public:
             }
             if (f.texture.id == 0) return it->second.font; // fallback on failure
             SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-            it->second.font = std::make_shared<RaylibFont>(f, it->second.scaledSize);
+            static_cast<RaylibFont*>(it->second.font.get())->reload(f);
             return it->second.font;
         }
 
@@ -209,7 +217,8 @@ public:
                 }
                 if (!needReload) return;
 
-                // Reload with merged set
+                // Reload with merged set — reload in-place so existing
+                // shared_ptr<Font> handles (e.g. from bridge_loadFontFromMemory) stay valid.
                 std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
                 rlFont f;
                 if (it->second.fromFile) {
@@ -223,8 +232,8 @@ public:
                 }
                 if (f.texture.id == 0) return;
                 SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
-                fontRef = std::make_shared<RaylibFont>(f, it->second.scaledSize);
-                it->second.font = fontRef;
+                static_cast<RaylibFont*>(it->second.font.get())->reload(f);
+                fontRef = it->second.font;
                 return;
             }
         }
