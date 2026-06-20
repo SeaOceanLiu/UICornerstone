@@ -55,24 +55,28 @@ build_scripts\build_test.bat test_label sfml        # SFML
 build_scripts\build_test.bat test_label raylib      # Raylib
 ```
 
-## 可用测试
+## 可用测试 & 示例
 
-| 测试 | 说明 |
-|------|------|
-| `test_label` | Label 控件 |
-| `test_button` | Button 控件 |
-| `test_checkbox` | CheckBox 控件 |
-| `test_editbox` | EditBox 控件 |
-| `test_progressbar` | ProgressBar 控件 |
-| `test_menu` | Menu 控件 |
-| `test_winframe` | WinFrame 控件 |
-| `test_graphtool` | GraphTool 绘制 |
-| `test_layout` | Layout 布局 |
-| `test_layout_advanced` | 高级布局 |
-| `test_api` | C ABI API 测试 |
-| `test_fromsource_sdl3` | SDL3 fromsource 测试 |
-| `test_fromsource_sfml` | SFML fromsource 测试 |
-| `test_fromsource_raylib` | Raylib fromsource 测试 |
+| 目标 | 类型 | 说明 |
+|------|------|------|
+| `test_label` | 测试 | Label 控件 |
+| `test_button` | 测试 | Button 控件 |
+| `test_checkbox` | 测试 | CheckBox 控件 |
+| `test_editbox` | 测试 | EditBox 控件 |
+| `test_progressbar` | 测试 | ProgressBar 控件 |
+| `test_menu` | 测试 | Menu 控件 |
+| `test_winframe` | 测试 | WinFrame 控件 |
+| `test_graphtool` | 测试 | GraphTool 绘制 |
+| `test_layout` | 测试 | Layout 布局 |
+| `test_layout_advanced` | 测试 | 高级布局 |
+| `test_api` | 测试 | C ABI API 测试 |
+| `test_fromsource_sdl3` | 测试 | SDL3 fromsource 测试 |
+| `test_fromsource_sfml` | 测试 | SFML fromsource 测试 |
+| `test_fromsource_raylib` | 测试 | Raylib fromsource 测试 |
+| `hello_uicornerstone` | 示例 | 纯 C 示例（JSON 布局），Button + Label 交互 |
+| `sample_programmatic` | 示例 | 纯 C 示例（编程式创建），Button + Label 交互 |
+| `sample_fromsource` | 示例 | 纯 C 示例（混合集成），Button + Label 交互，需 DLL 模式 |
+| `sample_loadlibrary` | 示例 | 纯 C++ 示例（LoadLibrary + #include），Button + Label 交互，需 DLL 模式 |
 
 ## 输出目录
 
@@ -88,7 +92,28 @@ build\sdl3\test\Debug\
 └── SDL3_image.dll
 ```
 
-DLL 模式额外包含 `UICornerstone.dll` 和 `UIBackend_*.dll`。
+示例独立输出到 `build/sample/` 目录，按示例名+后端命名：
+
+```
+build\sample\hello_uicornerstone\sdl3\Debug\
+├── hello_uicornerstone.exe
+├── assets/               # 字体等资源
+├── SDL3.dll
+├── SDL3_ttf.dll
+└── SDL3_image.dll
+```
+
+```
+build\sample\sample_fromsource\sdl3\Debug\
+├── sample_fromsource.exe
+├── UICornerstone.dll     # 核心 DLL（由 ILT 隐式加载）
+├── assets/
+├── SDL3.dll
+├── SDL3_ttf.dll
+└── SDL3_image.dll
+```
+
+DLL 模式额外包含 `UICornerstone.dll`（and `UIBackend_*.dll` for fromsource tests, but NOT for sample_fromsource which compiles backend into exe）。
 
 ## 运行测试
 
@@ -108,9 +133,38 @@ cmake --build build\sfml_dll --config Debug
 cmake --build build\raylib_dll --config Debug
 ```
 
-## fromsource 测试
+## Sample 构建
 
-fromsource 测试将后端源码（Window/RenderDevice/TextRenderer/InputBackend/Cursor/BackendPlugin）作为独立翻译单元编译进 exe，通过 `LoadLibrary("UICornerstone.dll")` 和 C ABI 调用控件。仅 DLL 模式可用。
+```batch
+# 静态示例（任意模式）
+cmake --build build\sdl3 --config Debug --target hello_uicornerstone
+cmake --build build\sdl3 --config Debug --target sample_programmatic
+
+# 混合集成示例（仅 DLL 模式）
+cmake --build build\sdl3_dll --config Debug --target sample_fromsource
+cmake --build build\sdl3_dll --config Debug --target sample_loadlibrary
+```
+
+运行：
+
+```batch
+build\sample\hello_uicornerstone\sdl3\Debug\hello_uicornerstone.exe
+build\sample\sample_programmatic\sdl3\Debug\sample_programmatic.exe
+build\sample\sample_fromsource\sdl3\Debug\sample_fromsource.exe
+build\sample\sample_loadlibrary\sdl3\Debug\sample_loadlibrary.exe
+```
+
+静态示例零自家 DLL 依赖；fromsource 示例需 `UICornerstone.dll` 同目录。
+
+## fromsource 测试与示例
+
+fromsource 将后端源码（Window/RenderDevice/TextRenderer/InputBackend/Cursor/BackendPlugin）作为独立翻译单元编译进 exe，通过 ILT 或 `LoadLibrary` 加载 `UICornerstone.dll`。仅 DLL 模式可用。
+
+| 目标 | 说明 |
+|------|------|
+| `test_fromsource_sdl3` | 纯测试，`LoadLibrary` + SDL App 模式 |
+| `sample_fromsource` | 纯 C 示例，`ILT` 隐式加载 + `main()` 帧循环 |
+| `sample_loadlibrary` | 纯 C++ 示例，`LoadLibrary` 显式加载 + `#include` 后端源码 |
 
 ## 故障排除
 

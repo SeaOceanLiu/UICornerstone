@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.16)
+project(UICornerstoneSamples)
+
+add_subdirectory(hello_uicornerstone)
+add_subdirectory(sample_programmatic)
+add_subdirectory(sample_fromsource)
+add_subdirectory(sample_loadlibrary)

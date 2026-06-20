@@ -265,3 +265,4 @@ if(WIN32 AND BACKEND_DLLS)
 endif()
 
 add_subdirectory(test)
+add_subdirectory(samples)

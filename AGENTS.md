@@ -663,6 +663,46 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-20: sample_loadlibrary 零导入库重构 + 4 samples 全部完成
+
+**问题**：sample_loadlibrary 在 `UICORNERSTONE_BUILD_SHARED` 定义下链接 `UICornerstone_dll.lib`，导致符号解析走 `dllimport` —— `Surface::registerFactories` 等 `CORE_API` 函数的函数体在 DLL 而非 exe 中。当 exe 提供自己的 `registerFactories` 时出现 LNK2001（多重定义）。
+
+**Fix**：
+- sample_loadlibrary 不再链接 `UICornerstone_dll.lib`
+- 不定义 `UICORNERSTONE_BUILD_SHARED`，`CORE_API` 为空宏 → 无 `dllimport`
+- 内联 3 个 Core 符号：`Surface::registerFactories`（no-op）、`Cursor::registerFactories`（no-op）、`ResourceProvider::createFilesystem`（FilesystemResourceProvider 完整实现）
+- Cursor 工厂 stub 产生 cosmetic 警告但功能正确（Label 空指针优雅处理）
+
+**所有 4 个 Sample 最终验证**：
+
+| Sample | 模式 | 后端编译 | 核心加载 | 零导入库 | 验证 |
+|--------|------|----------|----------|----------|------|
+| hello_uicornerstone | JSON 布局 | `UICornerstone.lib` 静态 | 无 DLL | ✅ | build/run ✔ |
+| sample_programmatic | C ABI 工厂 | `UICornerstone.lib` 静态 | 无 DLL | ✅ | build/run ✔ |
+| sample_fromsource | ILT 隐式 | CMake 独立 TU | `UICornerstone.dll` | ❌ (需导入库) | build/run ✔ |
+| sample_loadlibrary | LoadLibrary | `#include` 同一 TU | `UICornerstone.dll` | ✅ | build/run ✔ |
+
+**设计文档更新**：
+- `doc/Sample_Design.md`: §3 新增 loadlibrary 架构图；§7 关键差异说明改为零导入库方式（3 个 Core 符号内联）
+- AGENTS.md: 本次 session 记录
+- `doc/Build_Guide.md` 已在前序 session 更新
+
+### 2026-06-20: hello_uicornerstone sample 实现
+
+**变更**：
+- `samples/hello_uicornerstone/hello_uicornerstone.c`: 纯 C 示例（~50 行），Button 点击 → Label 计数，内联 JSON 布局，完全静态链接
+- `samples/hello_uicornerstone/CMakeLists.txt`: 单目标 CMake，POST_BUILD 复制 DLL + assets
+- `samples/CMakeLists.txt`: 新目录 CMake，转发到子目录
+- `CMakeLists.txt`: 添加 `add_subdirectory(samples)`
+- `doc/Sample_Design.md`: §2 新增后端选择说明（SDK3/SFML/Raylib 对比表），§7 更新实现状态
+- `doc/Sample_Design.md`: §7 sample_programmatic 标记为"✅ 已实现"
+- `doc/Build_Guide.md`: 添加 sample_programmatic 到测试表
+- `samples/sample_programmatic/sample_programmatic.c`: 纯 C 示例（~45 行），编程式控件创建代替 JSON 布局
+- `samples/sample_programmatic/CMakeLists.txt`: 单目标 CMake，输出到 `build/sample/sample_programmatic/<backend>/Debug/`
+- `doc/Build_Guide.md`: 添加 hello_uicornerstone 到测试表、输出目录、独立构建说明
+
+**验证**：`hello_uicornerstone.exe` 编译通过，启动后 2 秒存活正常，输出显示静态 InitFromPlugin 回退路径正常工作。
+
 ### 2026-06-20: SFML/Raylib 静态+DLL 双构建目录 + test_fromsource 改名
 
 **变更**：
@@ -683,6 +723,38 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 | `build/raylib_dll` | DLL | `test_fromsource_raylib` |
 
 **验证**：6 个构建目录的所有测试 exe + DLL 时间戳均为 2026-06-20。
+
+### 2026-06-20: sample_fromsource — 混合集成（核心 DLL + 后端源码）
+
+**变更**：
+- `samples/sample_fromsource/sample_fromsource.c`: 纯 C 示例（~55 行），Button 点击 → Label 计数，`GetUIBackendCallbacks()` + `UICornerstone_Init(callbacks)` 模式
+- `samples/sample_fromsource/CMakeLists.txt`: 仅 `UICORNERSTONE_BUILD_DLL=ON` 下构建；将 6 个后端源文件编译进 exe（Window/RenderDevice/TextRenderer/InputBackend/Cursor/BackendPlugin）；链接 `UICornerstone_dll`（导入库，ILT 隐式加载 UICornerstone.dll）
+- `samples/CMakeLists.txt`: 添加 `add_subdirectory(sample_fromsource)`
+- `doc/Sample_Design.md`: §3 新增 fromsource 架构说明；新增 §6 sample_fromsource 代码解读；§7 CMake 章节更新 fromsource CMake；§8 文件清单更新；§9 后续扩展标记为 ✅
+- `doc/Build_Guide.md`: 添加 sample_fromsource 到测试表、输出目录、独立构建说明、fromsource 节
+
+**关键架构**：exe 272KB（仅有后端源码），UICornerstone.dll 3.2MB（核心控件）。通过 ILT（Import Library Thunk）在启动时自动加载 `UICornerstone.dll`，无需 `LoadLibrary` + `GetProcAddress`。
+
+**验证**：`sample_fromsource.exe` 编译通过，启动后 2 秒存活正常，输出显示 `GetUIBackendCallbacks ready` + `initialized from callback table`。
+
+### 2026-06-20: sample_loadlibrary — 显式 LoadLibrary + #include 后端源码
+
+**变更**：
+- `samples/sample_loadlibrary/sample_loadlibrary.cpp`: 纯 C++ 示例（~80 行），Button 点击 → Label 计数，`LoadLibraryA("UICornerstone.dll")` + `GetProcAddress` 解析全部 C ABI 函数；`#include` 6 个后端 .cpp 文件编译入同一 TU；`main()` 帧循环
+- `samples/sample_loadlibrary/CMakeLists.txt`: 仅 `UICORNERSTONE_BUILD_DLL=ON` 下构建；后端通过 `#include` 而非独立 TU 编译；链接 `UICornerstone_dll` 导入库（仅用于注册符号，C ABI 全部走函数指针）
+- `samples/CMakeLists.txt`: 添加 `add_subdirectory(sample_loadlibrary)`
+- `src/UICornerstoneAPI.cpp`: 修复预存在拼写错误 `initifalize` → `initialize`
+- `doc/Sample_Design.md`: §3 新增 loadlibrary 架构说明；新增 §7 sample_loadlibrary 代码解读（含与 fromsource 对比表）；§8-10 重编号；文件清单和后续扩展表更新
+- `doc/Build_Guide.md`: 添加 sample_loadlibrary 到测试表、输出目录、独立构建说明、fromsource 节
+
+**与 sample_fromsource 的架构差异**：
+| 维度 | sample_fromsource | sample_loadlibrary |
+|------|-------------------|-------------------|
+| DLL 加载 | ILT 隐式 | `LoadLibrary` 显式 |
+| C ABI 调用 | 直接符号链接 | `GetProcAddress` 函数指针 |
+| 后端编译 | CMake 独立 TU | `#include .cpp` 同一 TU |
+
+**验证**：`sample_loadlibrary.exe` 272KB 编译通过，启动后 2 秒存活正常，输出显示 `loaded UICornerstone.dll` + `GetUIBackendCallbacks ready` + `initialized from callback table`。
 
 ### 2026-06-19: 14 份设计文档批量更新 (Complete)
 
