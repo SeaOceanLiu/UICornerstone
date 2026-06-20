@@ -1,14 +1,18 @@
 # UICornerstone
 
-基于 SDL3 的 C++17 UI 控件库，使用 Direct3D 11 渲染，适用于游戏和图形应用。
+基于 C++17 的多后端跨平台 UI 控件库，适用于游戏和图形应用。
+
+支持 **SDL3 / SFML / Raylib** 三种渲染后端，提供 C ABI 接口可被纯 C / C++ / 动态加载等多种集成方式调用。
 
 ## 功能特性
 
-- **14+ UI 控件**：Label、Button（支持 Actor/LuotiAni）、CheckBox（三态）、EditBox、TextArea（多行+滚动）、ProgressBar、ScrollBar、Menu、Dialog、Bench（底部面板）等
+- **12+ UI 控件**：Label、Button（支持 Actor/LuotiAni）、CheckBox（三态）、EditBox、TextArea（多行+滚动）、ProgressBar、ScrollBar、Menu、WinFrame 等
 - **JSON 布局系统**：通过 `LayoutParser` 将 JSON 文件解析为控件树，支持嵌套布局和事件绑定
-- **Direct3D 11 渲染**：所有控件通过 D3D11 绘制，支持纹理、字体、粒子动画
+- **三后端切换**：SDL3（主开发后端）、SFML、Raylib，只需改 CMake 变量即可切换
 - **LuotiAni 粒子动画引擎**：为 Button 控件提供粒子动画支持
 - **Actor 图片系统**：控件可绑定多状态图片（normal/hover/pressed/disabled）
+- **四层抽象架构**：`RenderDevice` → `Texture/Surface` → `TextRenderer` → `InputBackend`，完全不直接依赖后端 API
+- **C ABI 公开接口**：纯 C 兼容的 `UICornerstone_*` 函数，支持静态链接、DLL 隐式加载、显式 `LoadLibrary`
 - **缩放感知**：内置 `dpiScale` 机制，布局和渲染自动适配高 DPI 显示
 
 ## 环境要求
@@ -26,21 +30,50 @@ git clone --recursive https://github.com/SeaOceanLiu/UICornerstone.git
 cd UICornerstone
 ```
 
-### 编译全部
+### 编译全部（SDL3 后端，默认）
 
 ```cmd
-build_scripts\build.bat Debug
+build_scripts\build.bat sdl3
 ```
 
 ### 编译并运行某个测试
 
 ```cmd
 build_scripts\build_test.bat test_label
-cd build\test\Debug
+cd build\sdl3\test\Debug
 test_label.exe
 ```
 
-### 可用测试
+### SFML / Raylib 后端
+
+```cmd
+build_scripts\build.bat sfml
+build_scripts\build.bat raylib
+```
+
+输出目录：`build\{sdl3|sfml|raylib}\test\Debug\`
+
+## 首个应用：5 分钟快速上手
+
+UICornerstone 提供 4 种集成模式的完整示例，详见 [用户开发教程](doc/Tutorial.md)：
+
+| 模式 | 示例 | 一句话说明 |
+|------|------|-----------|
+| **声明式 UI（JSON 布局）** | `hello_uicornerstone` | 写 JSON 字符串描述 UI，`LoadLayout` 自动解析 |
+| **命令式 UI（C ABI 工厂函数）** | `sample_programmatic` | `CreateButton/CreateLabel` 代码创建控件 |
+| **混合集成（核心 DLL + 后端源码）** | `sample_fromsource` | 核心控件在 DLL，后端源码编译进 exe |
+| **显式 LoadLibrary** | `sample_loadlibrary` | `LoadLibrary + GetProcAddress` 完全运行时加载 |
+
+构建示例：
+
+```cmd
+cmake --build build\sdl3 --config Debug --target hello_uicornerstone
+build\sdl3_dll --config Debug --target sample_fromsource
+```
+
+所有示例输出到 `build/sample/<name>/<backend>/Debug/`。
+
+## 可用测试
 
 | 测试名 | 说明 |
 |--------|------|
@@ -50,35 +83,35 @@ test_label.exe
 | test_checkbox | 复选框测试 |
 | test_progressbar | 进度条测试 |
 | test_layout | JSON 布局解析演示（推荐） |
-
-### 手动编译
-
-```cmd
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022"
-cmake --build . --config Debug
-```
-
-编译后在 `build\test\Debug\` 下生成测试可执行文件，DLL 和资源文件由 CMake POST_BUILD 自动复制。
+| test_layout_advanced | 高级布局演示 |
+| test_winframe | 窗口框架测试 |
+| test_graphtool | 图形工具绘制测试 |
+| test_button | 按钮动画（LuotiAni）测试 |
 
 ## 项目结构
 
 ```
 UICornerstone/
-├── src/              # 源代码（LayoutParser、各控件实现、Bench、ResourceLoader）
-├── include/          # 头文件
-├── test/             # 测试用例（test_*.cpp）
-├── layouts/          # JSON 布局文件
-├── doc/              # 设计文档（*.md, *.drawio, *.svg）
-├── build_scripts/    # 编译脚本（build.bat, build_test.bat）
-├── subModules/       # 子模块依赖
-│   ├── libs/         # 预编译 SDL3/SDL3_ttf/SDL3_image/DebugInfo 库
-│   ├── SDL3/         # SDL3 头文件
-│   ├── SDL3_ttf/     # SDL3_ttf 头文件
-│   ├── SDL3_image/   # SDL3_image 头文件
-
-│   ├── json/         # nlohmann/json
-│   └── assets/       # 字体、图片等资源文件
+├── src/                     # 核心源码
+│   ├── *.cpp                #   控件实现 + 基础设施
+│   └── backend/             #   后端实现（sdl3/ sfml/ raylib/）
+├── include/                 # 头文件（含公有 C ABI 头 UICornerstoneAPI.h）
+├── test/                    # 测试用例（test_*.cpp）
+├── samples/                 # 4 种集成模式示例
+│   ├── hello_uicornerstone/ #   声明式 UI（JSON 布局）
+│   ├── sample_programmatic/ #   命令式 UI（C ABI 工厂函数）
+│   ├── sample_fromsource/   #   混合集成（核心 DLL + 后端源码）
+│   └── sample_loadlibrary/  #   显式 LoadLibrary
+├── layouts/                 # JSON 布局文件
+├── doc/                     # 设计文档 + 用户教程
+├── build_scripts/           # 编译脚本（build.bat, build_test.bat）
+├── subModules/              # 子模块依赖
+│   ├── libs/                #   预编译 SDK 库
+│   ├── SDL3/ SDL3_ttf/ SDL3_image/
+│   ├── SFML/
+│   ├── raylib/
+│   ├── json/                #   nlohmann/json
+│   └── assets/              #   字体、图片等资源
 └── CMakeLists.txt
 ```
 
@@ -86,23 +119,27 @@ UICornerstone/
 
 | 依赖 | 许可证 | 说明 |
 |------|--------|------|
-| SDL3 | zlib | 底层窗口/输入/渲染 |
-| SDL3_ttf | zlib | 字体渲染 |
-| SDL3_image | zlib | 图片加载 |
+| SDL3（可选） | zlib | SDL3 后端的窗口/输入/渲染 |
+| SDL3_ttf（可选） | zlib | SDL3 后端的字体渲染 |
+| SDL3_image（可选） | zlib | SDL3 后端的图片加载 |
+| SFML（可选） | zlib | SFML 后端的图形/窗口/系统 |
+| raylib（可选） | zlib | Raylib 后端的渲染/窗口/输入 |
 | json (nlohmann) | MIT | JSON 解析 |
 | 字体资源 | SIL OFL | HarmonyOS Sans / MapleMono 等 |
 
 ## 文档
 
-详细设计文档位于 `doc/` 目录：
-
 | 文档 | 说明 |
 |------|------|
-| LayoutSystem_Design.md | JSON 布局系统设计（推荐首先阅读） |
-| ControlBase_Design.md | 控件基类架构与绘制机制 |
-| Button_Design.md / Label_Design.md / ... | 各控件设计 |
-| Build_Guide.md | 编译指南 |
-| GraphTool_Design.md | 内部图形工具设计 |
+| [Tutorial.md](doc/Tutorial.md) | **用户开发教程（推荐首先阅读）** — 从零开始构建 UICornerstone 应用 |
+| [Build_Guide.md](doc/Build_Guide.md) | 编译指南 |
+| [Sample_Design.md](doc/Sample_Design.md) | 4 种集成模式的架构设计 |
+| [UICornerstone_DLL_Design.md](doc/UICornerstone_DLL_Design.md) | C ABI 与 DLL 架构 |
+| [BackendAbstraction_Design.md](doc/BackendAbstraction_Design.md) | 多后端抽象架构设计 |
+| [LayoutSystem_Design.md](doc/LayoutSystem_Design.md) | JSON 布局系统设计 |
+| [ControlBase_Design.md](doc/ControlBase_Design.md) | 控件基类架构与绘制机制 |
+| [GraphTool_Design.md](doc/GraphTool_Design.md) | 内部图形工具设计 |
+| Button_Design.md / Label_Design.md / ... | 各控件详细设计 |
 
 ## 许可证
 
@@ -110,6 +147,8 @@ UICornerstone/
 
 第三方组件许可证：
 - SDL3 / SDL3_ttf / SDL3_image：zlib License
+- SFML：zlib License
+- raylib：zlib License
 - json (nlohmann)：MIT License
 - 字体资源：SIL Open Font License v1.1
 
