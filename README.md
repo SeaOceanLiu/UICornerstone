@@ -75,18 +75,39 @@ build\sdl3_dll --config Debug --target sample_fromsource
 
 ## 可用测试
 
+### 核心功能测试（所有后端均可编译）
+
+| 测试名（文件名排序） | 说明 |
+|----------------------|------|
+| test_button | 按钮动画（LuotiAni 粒子动画）测试 |
+| test_checkbox | 复选框（三态）测试 |
+| test_editbox | 输入框测试（含中文输入） |
+| test_graphtool | 图形工具绘制测试（几何图元、线型、填充） |
+| test_label | 标签及标题栏按钮动画演示 |
+| test_layout | JSON 布局解析基础演示 |
+| test_layout_advanced | 高级布局：百分比、嵌套、对齐 |
+| test_menu | 菜单控件测试（MenuItem / MenuPanel / MenuBar） |
+| test_progressbar | 进度条动画测试 |
+| test_winframe | 窗口框架测试（拖动、缩放、关闭按钮） |
+
+### C ABI 测试
+
 | 测试名 | 说明 |
 |--------|------|
-| test_menu | 菜单控件测试 |
-| test_label | 标签/按钮动画演示 |
-| test_editbox | 输入框测试 |
-| test_checkbox | 复选框测试 |
-| test_progressbar | 进度条测试 |
-| test_layout | JSON 布局解析演示（推荐） |
-| test_layout_advanced | 高级布局演示 |
-| test_winframe | 窗口框架测试 |
-| test_graphtool | 图形工具绘制测试 |
-| test_button | 按钮动画（LuotiAni）测试 |
+| test_api | 纯 C 编写的 C ABI 全功能验证（6 种控件 + JSON 布局 + 事件绑定） |
+
+### From-source / DLL 桥接测试（仅 `UICORNERSTONE_BUILD_DLL=ON` 模式）
+
+| 测试名 | 后端 | 说明 |
+|--------|------|------|
+| test_fromsource_sdl3 | SDL3 | DLL 桥接 + SDL3 后端源码编译进 exe |
+| test_fromsource_sfml | SFML | DLL 桥接 + SFML 后端源码编译进 exe |
+| test_fromsource_raylib | Raylib | DLL 桥接 + Raylib 后端源码编译进 exe |
+| test_minimal_sfml | SFML | SFML 后端最小集成测试 |
+| test_sfml_v2 | SFML | SFML 事件/渲染逐步调试 |
+| test_sfml_min2 | SFML | SFML 精简帧循环验证 |
+| test_sfml_full | SFML | SFML 完整控件树加载 |
+| test_sfml_full2 | SFML | SFML 完整控件树加载（变体） |
 
 ## 项目结构
 
