@@ -663,6 +663,27 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-20: SFML/Raylib 静态+DLL 双构建目录 + test_fromsource 改名
+
+**变更**：
+- SFML/Raylib 改为与 SDL3 一致：`build/sfml`=静态、`build/sfml_dll`=DLL、`build/raylib`=静态、`build/raylib_dll`=DLL
+- `test/test_fromsource.cpp` → `test/test_fromsource_sdl3.cpp`，CMake target 同步改名
+- 从静态构建目录中清理出旧 DLL 模式残留文件（`UICornerstone.dll`/`UIBackend_*.dll` 等）
+- AGENTS.md 和 `doc/UICornerstone_DLL_Design.md` 中引用同步更新
+
+**构建目录结构**：
+
+| 目录 | 模式 | fromsource 测试 |
+|------|------|:----:|
+| `build/sdl3` | 静态 | — |
+| `build/sdl3_dll` | DLL | `test_fromsource_sdl3` |
+| `build/sfml` | 静态 | — |
+| `build/sfml_dll` | DLL | `test_fromsource_sfml` |
+| `build/raylib` | 静态 | — |
+| `build/raylib_dll` | DLL | `test_fromsource_raylib` |
+
+**验证**：6 个构建目录的所有测试 exe + DLL 时间戳均为 2026-06-20。
+
 ### 2026-06-19: 14 份设计文档批量更新 (Complete)
 
 **更新列表**：
@@ -889,7 +910,7 @@ rlPopMatrix();
 - `FROMSOURCE_BACKEND_LIBS` 收集各后端第三方 lib（SDL3: SDL3.lib+SDL3_ttf.lib+SDL3_image.lib / SFML: sfml-*.lib+opengl32.lib / raylib: raylib.lib+winmm.lib）
 
 **Three fromsource files**:
-- `test/test_fromsource.cpp` — SDL3 backend (SDL callback mode, 复用 SDL3 窗口)
+- `test/test_fromsource_sdl3.cpp` — SDL3 backend (SDL callback mode, 复用 SDL3 窗口)
 - `test/test_fromsource_sfml.cpp` — SFML backend (main() + LoadLibrary + GetUIBackendCallbacks)
 - `test/test_fromsource_raylib.cpp` — Raylib backend (同上)
 
@@ -904,7 +925,7 @@ rlPopMatrix();
 - fromsource 路径下 Cursor 工厂未通过 `registerFactories` 注册，Label 创建时输出 `Cursor::createSystem: no backend factory registered`
 - 功能不受影响（仅缺光标反馈）
 
-**验证**：SDL3/SFML/Raylib 三后端均编译 + 链接 + 运行成功。test_fromsource / test_fromsource_sfml / test_fromsource_raylib 全部通过。
+**验证**：SDL3/SFML/Raylib 三后端均编译 + 链接 + 运行成功。test_fromsource_sdl3 / test_fromsource_sfml / test_fromsource_raylib 全部通过。
 
 ### 2026-06-15: fromsource 四 bug 修复（Surface 工厂 + newFrame + vsync）
 

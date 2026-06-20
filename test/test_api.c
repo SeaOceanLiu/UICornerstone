@@ -51,8 +51,8 @@ static const char* LAYOUT_JSON =
 int main(void) {
     printf("=== UICornerstone C ABI Controls Demo ===\n"); fflush(stdout);
 
-    if (!UICornerstone_InitFromPlugin("sdl3")) {
-        printf("FAIL: InitFromPlugin\n"); return 1;
+    if (!UICornerstone_InitFromPlugin(UICORNERSTONE_BACKEND_NAME)) {
+        printf("FAIL: InitFromPlugin (%s)\n", UICORNERSTONE_BACKEND_NAME); return 1;
     }
     UICornerstone_SetViewport(0, 0, 800, 480);
     UICornerstone_RegisterAction("onBtnClick", onBtnClick, NULL);

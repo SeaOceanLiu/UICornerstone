@@ -118,6 +118,10 @@ void UICornerstone_Shutdown(void) {
     printf("UICornerstone shutdown\n");
 }
 
+#if !UICORNERSTONE_BUILD_SHARED
+extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
+#endif
+
 int UICornerstone_InitFromPlugin(const char* pluginName) {
     if (!pluginName || !pluginName[0]) return 0;
 
@@ -125,6 +129,14 @@ int UICornerstone_InitFromPlugin(const char* pluginName) {
     snprintf(dllName, sizeof(dllName), "UIBackend_%s.dll", pluginName);
     HMODULE dll = LoadLibraryA(dllName);
     if (!dll) {
+#if !UICORNERSTONE_BUILD_SHARED
+        printf("UICornerstone: InitFromPlugin(%s) — LoadLibrary failed, trying static...\n", pluginName);
+        UIBackendCallbacks* callbacks = GetUIBackendCallbacks();
+        if (callbacks) {
+            printf("UICornerstone: static GetUIBackendCallbacks ready\n");
+            return UICornerstone_Init(callbacks);
+        }
+#endif
         printf("UICornerstone: InitFromPlugin(%s) — LoadLibrary failed\n", pluginName);
         return 0;
     }

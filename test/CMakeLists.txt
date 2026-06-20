@@ -142,6 +142,8 @@ endforeach()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
     add_executable(test_api test_api.c)
     target_include_directories(test_api PRIVATE ${TEST_INCLUDES})
+    string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
+    target_compile_definitions(test_api PRIVATE UICORNERSTONE_BACKEND_NAME="${_BACKEND_LOWER}")
 
     if(UICORNERSTONE_BUILD_DLL)
         target_link_libraries(test_api PRIVATE UICornerstone_dll)
@@ -155,7 +157,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
                     "$<TARGET_FILE_DIR:test_api>")
 
             # Copy the backend plugin DLL (e.g. UIBackend_sdl3.dll)
-            string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
             add_custom_command(TARGET test_api POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "$<TARGET_FILE_DIR:UIBackend_${_BACKEND_LOWER}>/UIBackend_${_BACKEND_LOWER}.dll"
@@ -245,7 +246,7 @@ endmacro()
 
 if(UICORNERSTONE_BUILD_DLL)
     if(_BACKEND_UPPER STREQUAL "SDL3")
-        add_fromsource_target(test_fromsource test_fromsource.cpp)
+        add_fromsource_target(test_fromsource_sdl3 test_fromsource_sdl3.cpp)
     endif()
 
     if(_BACKEND_UPPER STREQUAL "SFML")

@@ -202,7 +202,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     (void)appstate; (void)argc; (void)argv;
     printf("SDL_AppInit\n"); fflush(stdout);
 
-    if (!SDL_CreateWindowAndRenderer("test_fromsource", 800, 600, 0,
+    if (!SDL_CreateWindowAndRenderer("test_fromsource_sdl3", 800, 600, 0,
                                       &g_window, &g_renderer)) {
         printf("FAIL: SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
         return SDL_APP_FAILURE;

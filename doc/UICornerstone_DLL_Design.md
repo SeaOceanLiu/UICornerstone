@@ -269,7 +269,7 @@ C ABI 的 `UICornerstone_LoadLayout` 包装这个流程，对外隐藏所有 C++
 - 文件名（`Button.h`、`Label.cpp` 等）
 - 文件级包含守卫（`#ifndef BUTTON_H` 等）
 - 后端子目录名（`src/backend/sdl3/` 等）
-- 构建输出目录结构（`build/sdl3/test/Debug/` 等）
+- 后端子目录名（`src/backend/sdl3/` 等）
 
 ### 5.3 具体变更清单
 
@@ -556,7 +556,7 @@ UICornerstone_Render()
 
 ### 7.5 插件 DLL 加载
 
-`UICornerstone_InitFromPlugin("sdl3")` 内部（R10b 起，纯 `LoadLibrary`，无静态回退）：
+`UICornerstone_InitFromPlugin("sdl3")` 内部（R10b 起纯 `LoadLibrary`；1.12 起恢复静态回退）：
 
 ```c
 int UICornerstone_InitFromPlugin(const char* pluginName) {
@@ -565,7 +565,15 @@ int UICornerstone_InitFromPlugin(const char* pluginName) {
     char dllName[128];
     snprintf(dllName, sizeof(dllName), "UIBackend_%s.dll", pluginName);
     HMODULE dll = LoadLibraryA(dllName);
-    if (!dll) return 0;
+    if (!dll) {
+#if !UICORNERSTONE_BUILD_SHARED
+        // 静态链接回退：UIBackend_*.dll 不存在时直连 GetUIBackendCallbacks
+        extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
+        UIBackendCallbacks* callbacks = GetUIBackendCallbacks();
+        if (callbacks) return UICornerstone_Init(callbacks);
+#endif
+        return 0;
+    }
 
     auto getter = (UIBackendCallbacks*(*)())GetProcAddress(dll, "GetUIBackendCallbacks");
     if (!getter) return 0;
@@ -577,7 +585,7 @@ int UICornerstone_InitFromPlugin(const char* pluginName) {
 }
 ```
 
-> **说明**：R10b 之后 `UICornerstone.dll` 不再包含任何后端源码，`GetUIBackendCallbacks` 只存在于 `UIBackend_*.dll` 中，因此移除了静态回退路径。`UIBackend_*.dll` 链接 `UICornerstone.dll` 的导入库，通过 `CORE_API` 导出的符号调用 `Surface::registerFactories` / `Cursor::registerFactories` 注册工厂函数。
+> **说明**：R10b 之后 `UICornerstone.dll` 不再包含任何后端源码，移除了静态回退。1.12 起通过 `#if !UICORNERSTONE_BUILD_SHARED` 守卫，在静态模式下恢复静态回退路径：`LoadLibrary` 失败时直接调用 `GetUIBackendCallbacks()`（该函数在静态模式下编译入 `UICornerstone.lib`）。DLL 模式下该代码被预处理器排除，`InitFromPlugin` 仍纯 `LoadLibrary` 路径。
 
 ---
 
@@ -814,7 +822,8 @@ endif()
    - `UIBackend_xxx` 目标链接 `UICornerstone_dll` 导入库，定义 `UICORNERSTONE_BUILD_SHARED=1`。
 
 3. **`InitFromPlugin` 静态回退**：R7 设计的静态回退路径在 DLL 拆分后无法链接。
-   - **解决**：完全移除静态回退，`InitFromPlugin` 纯 `LoadLibrary` 路径。
+   - **R10b 解决**：完全移除静态回退，`InitFromPlugin` 纯 `LoadLibrary` 路径。
+   - **1.12 恢复**：SFML/Raylib 静态构建模式下 `UIBackend_*.dll` 不存在，通过 `#if !UICORNERSTONE_BUILD_SHARED` 守卫恢复静态回退。`InitFromPlugin` 在 `LoadLibrary` 失败后直接调用 `GetUIBackendCallbacks()`（静态模式下该函数编译入 `UICornerstone.lib`）。
 
 4. **`BackendManager::initialize(string)` 外部符号**：`g_sdl3Backend` 等符号在 DLL 模式下不存在。
    - **解决**：用 `#if !defined(UICORNERSTONE_BUILD_SHARED)` 守卫，DLL 模式下该路径编译为空。
@@ -824,7 +833,8 @@ endif()
 | 模式 | SDL3 | SFML | Raylib |
 |------|------|------|--------|
 | 静态 (UICornerstone.lib) | 10/10 测试 | 10/10 测试 | 10/10 测试 |
-| DLL (UICornerstone.dll + UIBackend_sdl3.dll) | test_api ALL PASS | — | — |
+| DLL (UICornerstone.dll + UIBackend_*.dll) | test_fromsource_sdl3 ALL PASS | test_fromsource_sfml ALL PASS | test_fromsource_raylib ALL PASS |
+| API 测试 | test_api 6/6 全过 | test_api 6/6 全过 | test_api 6/6 全过 |
 
 test_api 输出：
 ```
@@ -849,7 +859,7 @@ FindControl: 18/18 found
 #### 9.4.2 架构
 
 ```
-test_fromsource.exe
+test_fromsource_sdl3.exe
   ├── 动态加载: LoadLibrary("UICornerstone.dll")
   │     → GetProcAddress 解析所有 C ABI 函数指针
   │     → UICornerstone_Init(callbacks) 传入回调查表
@@ -865,7 +875,7 @@ test_fromsource.exe
 
 | 文件 | 后端 | 入口 |
 |------|------|------|
-| `test/test_fromsource.cpp` | SDL3 | `SDL_AppEvent` 回调（SDL 管主循环） |
+| `test/test_fromsource_sdl3.cpp` | SDL3 | `SDL_AppEvent` 回调（SDL 管主循环） |
 | `test/test_fromsource_sfml.cpp` | SFML | `main()` + `LoadLibrary` |
 | `test/test_fromsource_raylib.cpp` | Raylib | `main()` + `LoadLibrary` |
 
@@ -1108,4 +1118,5 @@ int main() {
 | 1.8 | 2026-06-15 | 三后端 fromsource 架构切换（Separate TU 编译），避免 SFML `<windows.h>` 宏污染 |
 | 1.9 | 2026-06-16 | WinFrame 向量 X 叠加层（`draw()` override）；Actor `loadFromFile` 回退 `createTextureFromFile`；Raylib 字体 `reload()` 原地重载；回调查表新增 `fillTriangle/fillQuad/setClipboardText/getClipboardText` |
 | 1.10 | 2026-06-18 | Raylib `DrawTexturePro` DLL 桥接不可见修复：改用 `rlPushMatrix + rlScalef + DrawTextureEx` |
-| 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化）
+| 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化） |
+| 1.12 | 2026-06-20 | SFML/Raylib 静态+DLL 双构建目录（`build/{sfml,raylib}` + `build/{sfml,raylib}_dll`）；`test_fromsource.cpp` → `test_fromsource_sdl3.cpp`；`InitFromPlugin` 恢复静态回退（`#if !UICORNERSTONE_BUILD_SHARED`）；`test_api.c` 改用 `UICORNERSTONE_BACKEND_NAME` 编译定义替代硬编码 `"sdl3"` |
