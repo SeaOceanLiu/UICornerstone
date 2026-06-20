@@ -7,7 +7,7 @@
 ## 功能特性
 
 - **12+ UI 控件**：Label、Button（支持 Actor/LuotiAni）、CheckBox（三态）、EditBox、TextArea（多行+滚动）、ProgressBar、ScrollBar、Menu、WinFrame 等
-- **JSON 布局系统**：通过 `LayoutParser` 将 JSON 文件解析为控件树，支持嵌套布局和事件绑定
+- **声明式 UI（JSON 布局）**：通过 JSON 描述控件树和事件绑定，`LayoutParser` 自动解析，无需手写创建代码
 - **三后端切换**：SDL3（主开发后端）、SFML、Raylib，只需改 CMake 变量即可切换
 - **LuotiAni 粒子动画引擎**：为 Button 控件提供粒子动画支持
 - **Actor 图片系统**：控件可绑定多状态图片（normal/hover/pressed/disabled）
