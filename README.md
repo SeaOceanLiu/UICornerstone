@@ -170,4 +170,4 @@ UICornerstone/
 
 ## 作者
 
-SeaOceanLiu
+Architecture by SeaOceanLiu, program by SeaOceanLiu and AIs (DeepSeek V4 Flash, GLM 5.1, MiniMax-M2.5)
