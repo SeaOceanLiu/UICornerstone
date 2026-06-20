@@ -250,11 +250,6 @@ if(UICORNERSTONE_BUILD_DLL)
     endif()
 
     if(_BACKEND_UPPER STREQUAL "SFML")
-        add_fromsource_target(test_minimal_sfml test_minimal_sfml.cpp)
-        add_fromsource_target(test_sfml_v2 test_sfml_v2.cpp)
-        add_fromsource_target(test_sfml_min2 test_sfml_min2.cpp)
-        add_fromsource_target(test_sfml_full test_sfml_full.cpp)
-        add_fromsource_target(test_sfml_full2 test_sfml_full2.cpp)
         add_fromsource_target(test_fromsource_sfml test_fromsource_sfml.cpp)
     endif()
 

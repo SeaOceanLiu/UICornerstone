@@ -103,11 +103,6 @@ build\sdl3_dll --config Debug --target sample_fromsource
 | test_fromsource_sdl3 | SDL3 | DLL 桥接 + SDL3 后端源码编译进 exe |
 | test_fromsource_sfml | SFML | DLL 桥接 + SFML 后端源码编译进 exe |
 | test_fromsource_raylib | Raylib | DLL 桥接 + Raylib 后端源码编译进 exe |
-| test_minimal_sfml | SFML | SFML 后端最小集成测试 |
-| test_sfml_v2 | SFML | SFML 事件/渲染逐步调试 |
-| test_sfml_min2 | SFML | SFML 精简帧循环验证 |
-| test_sfml_full | SFML | SFML 完整控件树加载 |
-| test_sfml_full2 | SFML | SFML 完整控件树加载（变体） |
 
 ## 项目结构
 
