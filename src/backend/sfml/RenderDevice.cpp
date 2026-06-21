@@ -347,7 +347,7 @@ public:
         // sf::RectangleShape with outline guarantees correct border at all 4 corners.
         // Negative thickness draws inside the rect, matching SDL3/Raylib behavior.
         sf::RectangleShape shape(sf::Vector2f(rect.width, rect.height));
-        shape.setPosition(rect.left, rect.top);
+        shape.setPosition(sf::Vector2f(rect.left, rect.top));
         shape.setFillColor(sf::Color::Transparent);
         shape.setOutlineColor(m_currentColor);
         shape.setOutlineThickness(-1.0f);
