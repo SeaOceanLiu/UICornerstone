@@ -486,3 +486,65 @@ void HandleControl::drawMoveHandle(const SRect& targetScreen)
     ctx.drawLine(cx,     cy - s, cx,     cy + s);
     ctx.drawLine(cx - s, cy,     cx + s, cy);
 }
+
+// ── HandleControlBuilder ──
+
+HandleControlBuilder::HandleControlBuilder()
+    : m_handle(make_shared<HandleControl>())
+{
+    m_handle->create();
+}
+
+HandleControlBuilder& HandleControlBuilder::setTarget(shared_ptr<Control> target) {
+    m_handle->setTarget(target);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setHandleSize(float size) {
+    m_handle->setHandleSize(size);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setMinSize(float w, float h) {
+    m_handle->setMinSize(w, h);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setHandleColor(SColor fill, SColor border) {
+    m_handle->setHandleColor(fill, border);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setActiveColor(SColor color) {
+    m_handle->setActiveColor(color);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setSelectionColor(SColor color) {
+    m_handle->setSelectionColor(color);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setCornerHandlesVisible(bool show) {
+    m_handle->setCornerHandlesVisible(show);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setEdgeHandlesVisible(bool show) {
+    m_handle->setEdgeHandlesVisible(show);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setMoveHandleVisible(bool show) {
+    m_handle->setMoveHandleVisible(show);
+    return *this;
+}
+
+HandleControlBuilder& HandleControlBuilder::setSelectionBoxVisible(bool show) {
+    m_handle->setSelectionBoxVisible(show);
+    return *this;
+}
+
+shared_ptr<HandleControl> HandleControlBuilder::build() {
+    return m_handle;
+}

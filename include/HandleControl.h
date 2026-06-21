@@ -6,6 +6,7 @@
 #include "Cursor.h"
 
 class HandleControl : public ControlImpl {
+    friend class HandleControlBuilder;
 public:
     HandleControl();
     ~HandleControl() override;
@@ -118,6 +119,24 @@ private:
     void drawHandle(const SRect& rect, HandleType type, bool active);
     void drawSelectionBox(const SRect& targetScreen);
     void drawMoveHandle(const SRect& targetScreen);
+};
+
+class HandleControlBuilder {
+private:
+    shared_ptr<HandleControl> m_handle;
+public:
+    HandleControlBuilder();
+    HandleControlBuilder& setTarget(shared_ptr<Control> target);
+    HandleControlBuilder& setHandleSize(float size);
+    HandleControlBuilder& setMinSize(float w, float h);
+    HandleControlBuilder& setHandleColor(SColor fill, SColor border);
+    HandleControlBuilder& setActiveColor(SColor color);
+    HandleControlBuilder& setSelectionColor(SColor color);
+    HandleControlBuilder& setCornerHandlesVisible(bool show);
+    HandleControlBuilder& setEdgeHandlesVisible(bool show);
+    HandleControlBuilder& setMoveHandleVisible(bool show);
+    HandleControlBuilder& setSelectionBoxVisible(bool show);
+    shared_ptr<HandleControl> build();
 };
 
 #endif // HandleControlH

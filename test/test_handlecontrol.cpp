@@ -73,9 +73,9 @@ void testBenchInitialize() {
     BENCH->addControl(g_lblStatus);
 
     // 创建并附加手柄控件到目标按钮
-    g_handle = make_shared<HandleControl>();
-    g_handle->create();
-    g_handle->setTarget(g_btnTarget);
+    g_handle = HandleControlBuilder()
+        .setTarget(g_btnTarget)
+        .build();
 
     TestUtil::log("test_handlecontrol: ready — click buttons to verify event pass-through");
 }
