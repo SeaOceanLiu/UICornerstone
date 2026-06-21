@@ -663,6 +663,23 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
+### 2026-06-21: Phase 15c — SFML/Raylib Cursor 工厂注册一致性 (Complete)
+
+**问题**：test_fromsource_sfml 和 test_fromsource_raylib 日志中出现 `Cursor::createSystem: no backend factory registered`，光标功能完全失效。
+
+**根因**：SFML 和 Raylib 后端使用**直接方法覆盖**模式（在各自 `Cursor.cpp` 中定义 `Cursor::createSystem()`/`getDefault()`/`setCurrent()` 成员函数），而非 SDL3 所用的**工厂注册**模式（`RegisterSDL3CursorFactories()` → `Cursor::registerFactories()`）。在 fromsource/DLL 模式下，`UICornerstone.dll` 中的 `src/Cursor.cpp`（工厂指针模式）无法获取后端实现。
+
+**修复**（5 文件）：
+- `src/backend/sfml/Cursor.cpp`：`Cursor::createSystem/getDefault/setCurrent` 改为静态工厂函数 `sfmlCreateSystemCursor/sfmlGetDefaultCursor/sfmlSetCurrentCursor`；新增 `RegisterSFMLCursorFactories()`
+- `src/backend/raylib/Cursor.cpp`：同上（`raylib*` 前缀）；新增 `RegisterRaylibCursorFactories()`
+- `src/backend/sfml/BackendPlugin.cpp`：`GetUIBackendCallbacks()` 中添加 `RegisterSFMLCursorFactories()` 调用
+- `src/backend/raylib/BackendPlugin.cpp`：同上
+- `src/BackendManager.cpp`：SFML/Raylib 静态链接路径添加光标工厂注册
+
+**SFML 默认光标 Bug**：`sfmlGetDefaultCursor()` 返回空构造的 `SFMLCursor`（`m_hasCursor=false`），`sfmlSetCurrentCursor()` 中 `get()==nullptr` 跳过 `setMouseCursor`，导致光标设成手指后无法恢复箭头。修复为初始化为真实 Arrow 光标。
+
+**验证**：三后端（SDL3/SFML/Raylib）静态 + DLL 模式均编译通过。fromsource 测试时间戳更新为 2026-06-21。
+
 ### 2026-06-20: sample_loadlibrary 零导入库重构 + 4 samples 全部完成
 
 **问题**：sample_loadlibrary 在 `UICORNERSTONE_BUILD_SHARED` 定义下链接 `UICornerstone_dll.lib`，导致符号解析走 `dllimport` —— `Surface::registerFactories` 等 `CORE_API` 函数的函数体在 DLL 而非 exe 中。当 exe 提供自己的 `registerFactories` 时出现 LNK2001（多重定义）。

@@ -44,16 +44,20 @@ private:
 
 static RaylibCursor s_defaultCursor(SystemCursorType::Default);
 
-Cursor* Cursor::createSystem(SystemCursorType type) {
+static Cursor* raylibCreateSystemCursor(SystemCursorType type) {
     return new RaylibCursor(type);
 }
 
-Cursor* Cursor::getDefault() {
+static Cursor* raylibGetDefaultCursor() {
     return &s_defaultCursor;
 }
 
-void Cursor::setCurrent(Cursor* cursor) {
+static void raylibSetCurrentCursor(Cursor* cursor) {
     if (!cursor) return;
     RaylibCursor* rlCursor = static_cast<RaylibCursor*>(cursor);
     SetMouseCursor(rlCursor->raylibType());
+}
+
+void RegisterRaylibCursorFactories() {
+    Cursor::registerFactories(raylibCreateSystemCursor, raylibGetDefaultCursor, raylibSetCurrentCursor);
 }

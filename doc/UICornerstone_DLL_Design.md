@@ -885,8 +885,8 @@ test_fromsource_sdl3.exe
 
 | 工厂 | 注册函数 | 调用时机 |
 |------|---------|---------|
-| `Surface::create` / `loadFromFile` / `loadFromMemory` | `RegisterSDL3SurfaceFactories()` | `BackendPlugin.cpp` 的 `GetUIBackendCallbacks` |
-| `Cursor::createSystem` / `getDefault` / `setCurrent` | `RegisterSDL3CursorFactories()` | 同上 |
+| `Surface::create` / `loadFromFile` / `loadFromMemory` | `RegisterSDL3SurfaceFactories()` / `RegisterSFMLSurfaceFactories()` / `RegisterRaylibSurfaceFactories()` | `BackendPlugin.cpp` 的 `GetUIBackendCallbacks` |
+| `Cursor::createSystem` / `getDefault` / `setCurrent` | `RegisterSDL3CursorFactories()` / `RegisterSFMLCursorFactories()` / `RegisterRaylibCursorFactories()` | 同上 |
 
 静态模式下（`UICORNERSTONE_BUILD_SHARED=0`），`BackendManager::initialize(string)` 也在 `BackendPlugin.cpp` 路径下调用相同注册函数。
 

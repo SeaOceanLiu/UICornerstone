@@ -1140,6 +1140,21 @@ public:
 | `src/Label.cpp` | `SDL_CreateSystemCursor`/`SDL_GetCursor`/`SDL_SetCursor`/`SDL_DestroyCursor` | `Cursor::createSystem`/`getDefault`/`setCurrent`/`delete` |
 | `src/WinFrame.cpp` | 5 处光标创建/设置/销毁 | `Cursor` API |
 
+### 13.4 后端一致性更新（2026-06-21）
+
+SDL3 使用工厂注册模式（`RegisterSDL3CursorFactories`），但 SFML 和 Raylib 最初使用**直接方法覆盖**模式（在各自的 `Cursor.cpp` 中定义 `Cursor::createSystem()`/`getDefault()`/`setCurrent()` 成员函数）。这在 fromsource/DLL 模式下导致：
+
+- `UICornerstone.dll` 中的 `src/Cursor.cpp`（工厂指针模式）无法获取后端实现 → `g_createSystemFn == nullptr` → `"no backend factory registered"` 警告
+- 光标创建和设置完全失效
+
+**修复**：将 SFML 和 Raylib 统一为工厂注册模式：
+- `src/backend/sfml/Cursor.cpp`：`Cursor::createSystem/getDefault/setCurrent` → 静态工厂函数 + `RegisterSFMLCursorFactories()`
+- `src/backend/raylib/Cursor.cpp`：同上 → `RegisterRaylibCursorFactories()`
+- `BackendPlugin.cpp`（SFML/Raylib）：`GetUIBackendCallbacks()` 中调用注册函数
+- `BackendManager.cpp`：静态链接路径中补全光标工厂注册
+
+**SFML 默认光标 Bug**：`sfmlGetDefaultCursor()` 原来返回空构造的 `SFMLCursor`（`m_hasCursor=false`），`sfmlSetCurrentCursor()` 中 `get()==nullptr` 跳过 `setMouseCursor`，导致光标设为手指后无法恢复箭头。修复为初始化为真实 Arrow 光标。
+
 ## 14. Phase 11——移除 ControlBase SDL_Renderer
 
 ### 14.1 问题
@@ -1226,9 +1241,9 @@ Phase 6 在 `Event` 类中引入了新的 union 字段（`EventType m_type` + `m
 | `TextRenderer` | 使用 `sf::Text` + 全局缓存（keyed by 文本+字号） | ~250 行 |
 | `Window` | 包装 `sf::RenderWindow` + sf::View 视口适配 | ~96 行 |
 | `InputBackend` | SFML 事件轮询 + 剪贴板/文本输入 | ~310 行 |
-| `Cursor` | SFML 系统光标包装 | ~67 行 |
-| `BackendPlugin` | 后端工厂函数表 | ~46 行 |
-| **总计** | **9 文件** | **~1283 行** |
+| `Cursor` | SFML 系统光标包装（工厂注册模式） | ~73 行 |
+| `BackendPlugin` | 后端工厂函数表（含 Surface/Cursor 工厂注册） | ~48 行 |
+| **总计** | **9 文件** | **~1289 行** |
 
 ### 15.2 关键差异与解决方案
 
@@ -1574,12 +1589,15 @@ while (!WindowShouldClose()) {
 
 `RaylibCursor::createSystem(type)` 调用 `SetMouseCursor(raylibType)` 立即生效（raylib 是全局的）。返回一个简单的包装对象。
 
+工厂注册：`RegisterRaylibCursorFactories()` 在 `GetUIBackendCallbacks()` 中调用，注册 `raylibCreateSystemCursor` / `raylibGetDefaultCursor` / `raylibSetCurrentCursor` 到 `Cursor::registerFactories()`。
+
 ##### BackendPlugin
 
 按照已有模式（SDL3/SFML 的 `BackendPlugin.cpp`），注册：
 - `CreateRaylibWindow(title, w, h, flags)`
 - `CreateRaylibInputBackend(window)`
 - raylib 不需要显式的 `Renderer*` 或 `TextRenderer*` 创建（因为它们是全局的或从 Window 获取）
+- 同时注册 Surface 工厂（`RegisterRaylibSurfaceFactories`）和 Cursor 工厂（`RegisterRaylibCursorFactories`）
 
 ### 16.3 系统就绪状态检查表
 
@@ -1857,7 +1875,8 @@ rlPopMatrix();
 | 15 | CheckBox/Label 性能优化 | 5 | ~120 | 1 | ✅ 已完成 | ★★ |
 | 15a | WinFrame 修复 + 绘制架构 + 帧率同步 | 16 | ~60 | 1 | ✅ 已完成 | ★★ |
 | 15b | SFML 批处理 z-order 修复（DebugTrace 清理） | 11 | ~80 | 0.5 | ✅ 已完成 | ★ |
-| **合计** | | **~170** | **~7030** | **43-55** | | |
+| 15c | SFML/Raylib Cursor 工厂注册一致性 | 5 | ~30 | 0.5 | ✅ 已完成 | ★ |
+| **合计** | | **~175** | **~7060** | **43.5-55.5** | | |
 
 ## 18. 执行建议
 
@@ -1903,6 +1922,8 @@ Phase 15b (SFML 批处理 z-order 修复 + DebugTrace 清理) ← ✅ 已完成
 Phase 16 (RGBA8888 像素格式排查 + DLL 桥接验证) ← ✅ 已完成
     ↓
 Phase 16b (Raylib DrawTexturePro DLL 桥接修复) ← ✅ 已完成
+    ↓
+Phase 15c (SFML/Raylib Cursor 工厂注册一致性) ← ✅ 已完成 — SFML/Raylib 从直接方法覆盖切换为工厂注册模式，修复 fromsource 模式下光标失效 + SFML 默认光标空指针问题
 ```
 
 > **注**：Phase 4（SDL 头文件解耦）在 Phase 3 后自然衍生——Texture/Surface 抽象完成后，大量头文件不再需要 SDL 类型，可直接移除或替换为具体子头文件。Phases 7-12 为执行过程中识别出的额外去耦机会，均在 Phase 5 后顺次完成。

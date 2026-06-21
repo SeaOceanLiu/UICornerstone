@@ -9,6 +9,7 @@ RenderDevice* CreateRaylibRenderDevice();
 TextRenderer* CreateRaylibTextRenderer(RenderDevice* device);
 InputBackend* CreateRaylibInputBackend(Window* window);
 void RegisterRaylibSurfaceFactories(void);
+void RegisterRaylibCursorFactories(void);
 
 // ============================================================
 // Raylib Backend Registration
@@ -95,6 +96,8 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
 
     // Register surface factories so the DLL's Surface::* work
     RegisterRaylibSurfaceFactories();
+    // Register cursor factories so the DLL's Cursor::createSystem()/getDefault()/setCurrent() work
+    RegisterRaylibCursorFactories();
 
     // Window
     cb.createWindow         = plugin_createWindow;

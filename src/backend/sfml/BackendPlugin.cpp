@@ -9,6 +9,7 @@ RenderDevice* CreateSFMLRenderDevice(sf::RenderWindow* window);
 TextRenderer* CreateSFMLTextRenderer(RenderDevice* device);
 InputBackend* CreateSFMLInputBackend(Window* window);
 void RegisterSFMLSurfaceFactories(void);
+void RegisterSFMLCursorFactories(void);
 
 // ============================================================
 // SFML Backend Registration
@@ -95,6 +96,8 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
 
     // Register surface factories so the DLL's Surface::loadFromFile/Surface::create/Surface::loadFromMemory work
     RegisterSFMLSurfaceFactories();
+    // Register cursor factories so the DLL's Cursor::createSystem()/getDefault()/setCurrent() work
+    RegisterSFMLCursorFactories();
 
     // Window
     cb.createWindow         = plugin_createWindow;

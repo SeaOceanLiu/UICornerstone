@@ -44,7 +44,9 @@ bool BackendManager::initialize(const std::string& backendName,
     if (backendName == "sfml") {
         extern BackendAPI g_sfmlBackend;
         extern void RegisterSFMLSurfaceFactories(void);
+        extern void RegisterSFMLCursorFactories(void);
         RegisterSFMLSurfaceFactories();
+        RegisterSFMLCursorFactories();
         api = g_sfmlBackend;
         found = true;
     }
@@ -53,7 +55,9 @@ bool BackendManager::initialize(const std::string& backendName,
     if (backendName == "raylib") {
         extern BackendAPI g_raylibBackend;
         extern void RegisterRaylibSurfaceFactories(void);
+        extern void RegisterRaylibCursorFactories(void);
         RegisterRaylibSurfaceFactories();
+        RegisterRaylibCursorFactories();
         api = g_raylibBackend;
         found = true;
     }
