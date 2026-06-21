@@ -425,5 +425,10 @@ label_log.txt
 test_stdout.txt
 test_stderr.txt
 
+# Archive files (not source code)
+*.rar
+*.7z
+*.zip
+
 # SDL wiki HTML scraped pages (auto-generated, not source code)
 subModules/sdlwiki/
