@@ -23,7 +23,6 @@ private:
             case SystemCursorType::NESW_Resize: return MOUSE_CURSOR_RESIZE_NESW;
             case SystemCursorType::Move:       return MOUSE_CURSOR_RESIZE_ALL;
             case SystemCursorType::NotAllowed: return MOUSE_CURSOR_NOT_ALLOWED;
-            // Fallback: use closest available or default
             case SystemCursorType::Wait:       return MOUSE_CURSOR_DEFAULT;
             case SystemCursorType::Progress:   return MOUSE_CURSOR_DEFAULT;
             case SystemCursorType::NW_Resize:  return MOUSE_CURSOR_RESIZE_NWSE;

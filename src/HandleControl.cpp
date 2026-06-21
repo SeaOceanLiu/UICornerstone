@@ -285,10 +285,24 @@ void HandleControl::endDrag()
 void HandleControl::setResizeCursor(HandleType type)
 {
     ensureCursors();
+    Cursor* c = nullptr;
+    switch (type) {
+    case HandleType::Move: c = m_cursorMove; break;
+    case HandleType::NW:
+    case HandleType::SE:   c = m_cursorNWSE; break;
+    case HandleType::NE:
+    case HandleType::SW:   c = m_cursorNESW; break;
+    case HandleType::N:
+    case HandleType::S:    c = m_cursorNS; break;
+    case HandleType::E:
+    case HandleType::W:    c = m_cursorWE; break;
+    default:               c = m_cursorDefault; break;
+    }
 #ifdef _WIN32
-    // SDL_SetCursor (via Cursor::setCurrent) doesn't persist against
-    // WM_SETCURSOR on this SDL3 fork.  Use Win32 SetCursor directly,
-    // matching the approach in WinFrame::setResizeCursor.
+    // Update backend internal state (SFML/GLFW need this for WM_SETCURSOR)
+    if (c) Cursor::setCurrent(c);
+    // Direct Win32 SetCursor — SDL3's WM_SETCURSOR uses DefWindowProc which
+    // relies on the last SetCursor call, so SDL_SetCursor alone is insufficient.
     static HCURSOR hcursors[10] = {NULL};
     static bool hcInit = false;
     if (!hcInit) {
@@ -307,19 +321,6 @@ void HandleControl::setResizeCursor(HandleType type)
     HCURSOR hc = hcursors[(int)type];
     if (hc) SetCursor(hc);
 #else
-    Cursor* c = nullptr;
-    switch (type) {
-    case HandleType::Move: c = m_cursorMove; break;
-    case HandleType::NW:
-    case HandleType::SE:   c = m_cursorNWSE; break;
-    case HandleType::NE:
-    case HandleType::SW:   c = m_cursorNESW; break;
-    case HandleType::N:
-    case HandleType::S:    c = m_cursorNS; break;
-    case HandleType::E:
-    case HandleType::W:    c = m_cursorWE; break;
-    default:               c = m_cursorDefault; break;
-    }
     if (c) Cursor::setCurrent(c);
 #endif
 }

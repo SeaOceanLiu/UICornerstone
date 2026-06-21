@@ -343,15 +343,15 @@ public:
             m_fillBatch.clear();
         }
         m_batchDirty = true;
-        float l = rect.left, t = rect.top, r = rect.left + rect.width, b = rect.top + rect.height;
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(r, t), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, b - 1), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(r, b - 1), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, t), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(l, b), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(r - 1, t), m_currentColor});
-        m_lineBatch.append(sf::Vertex{sf::Vector2f(r - 1, b), m_currentColor});
+
+        // sf::RectangleShape with outline guarantees correct border at all 4 corners.
+        // Negative thickness draws inside the rect, matching SDL3/Raylib behavior.
+        sf::RectangleShape shape(sf::Vector2f(rect.width, rect.height));
+        shape.setPosition(rect.left, rect.top);
+        shape.setFillColor(sf::Color::Transparent);
+        shape.setOutlineColor(m_currentColor);
+        shape.setOutlineThickness(-1.0f);
+        m_target->draw(shape);
     }
 
     void drawLine(float x1, float y1, float x2, float y2) override {
