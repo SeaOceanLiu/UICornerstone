@@ -43,6 +43,7 @@ set(CORE_SOURCES
     src/EditBox.cpp
     src/EventQueue.cpp
     src/GraphTool.cpp
+    src/HandleControl.cpp
     src/HotReloader.cpp
     src/Label.cpp
     src/MainWindow.cpp

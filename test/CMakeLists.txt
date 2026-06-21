@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+﻿cmake_minimum_required(VERSION 3.16)
 project(UICornerstoneTests)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -98,6 +98,7 @@ set(UI_TEST_EXECUTABLES
     test_progressbar
     test_button
     test_graphtool
+    test_handlecontrol
     test_layout
     test_layout_advanced
     test_winframe

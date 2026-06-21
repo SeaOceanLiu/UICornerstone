@@ -273,7 +273,7 @@ bool ControlImpl::handleEvent(shared_ptr<Event> event){
             if (hasPos) {
                 bool covered = false;
                 for (auto coverIt = childrenCopy.rbegin(); coverIt != it; ++coverIt) {
-                    if ((*coverIt)->getVisible() && (*coverIt)->getDrawRect().contains(mx, my)) {
+                    if ((*coverIt)->getVisible() && (*coverIt)->isContainsPoint(mx, my)) {
                         covered = true;
                         break;
                     }
@@ -308,6 +308,24 @@ void ControlImpl::addControl(shared_ptr<Control> child){
 
     child->setParent(this);
     child->setRenderDevice(getRenderDevice());
+
+    stabilizeTopmostChildren();
+}
+
+void ControlImpl::stabilizeTopmostChildren() {
+    // 收集所有 alwaysOnTop 子控件，移至末尾以保持 Z-order 顶层
+    vector<shared_ptr<Control>> topmost;
+    for (auto it = m_children.begin(); it != m_children.end(); ) {
+        auto* impl = dynamic_cast<ControlImpl*>(it->get());
+        if (impl && impl->m_alwaysOnTop) {
+            topmost.push_back(std::move(*it));
+            it = m_children.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (auto& child : topmost)
+        m_children.push_back(std::move(child));
 }
 
 void ControlImpl::removeControl(shared_ptr<Control> child){

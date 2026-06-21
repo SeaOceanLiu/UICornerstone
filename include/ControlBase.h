@@ -253,6 +253,7 @@ protected:
 
     bool m_isTransparent;
     bool m_isBorderVisible;
+    bool m_alwaysOnTop = false;
     ControlState m_state;
     // 鼠标进入/退出状态跟踪
     bool m_mouseInside;
@@ -261,6 +262,8 @@ protected:
     bool m_frameDrawRectValid = false;
 
     void recreate(void) override; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
+    // 保持 alwaysOnTop 子控件在 children 末尾
+    void stabilizeTopmostChildren();
     // 直接更新子控件的复合缩放值，避免通过 setParent(this) 传播缩放（setParent 会触发
     // inheritRenderer 等不必要开销，且与 Label::setParent 的脏-父检查冲突）
     void updateChildScale(Control* child) const {
@@ -343,6 +346,10 @@ public:
     void setTransparent(bool isTransparent) override;
     bool getTransparent(void) override { return m_isTransparent; }
     void setState(ControlState state) override;
+
+    // 始终置顶标志——拥有此标志的子控件将自动保持在 children 末尾（最后绘制、最先接收事件）
+    void setAlwaysOnTop(bool on) { m_alwaysOnTop = on; }
+    bool isAlwaysOnTop() const { return m_alwaysOnTop; }
     ControlState getState(void) override { return m_state; }
 
     // 状态相关设置接口

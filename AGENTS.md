@@ -663,7 +663,45 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
 
-### 2026-06-21: Phase 15c — SFML/Raylib Cursor 工厂注册一致性 (Complete)
+### 2026-06-21: HandleControl 光标 + 视觉优化 (Complete)
+
+**问题**：SDL3 后端 `SDL_SetCursor` 不持久，Windows `WM_SETCURSOR` 消息在每帧
+复位光标。WinFrame 使用 Win32 `SetCursor` 绕过该问题，但 HandleControl 的
+`setResizeCursor` 通过 `Cursor::setCurrent` 调用 `SDL_SetCursor`，导致光标
+反馈始终不可见。
+
+**Bug 1 — 光标不出现**：
+- Root cause: `SDL_SetCursor` 在此 SDL3 fork 中不能持久化，Windows 的
+  `WM_SETCURSOR` 消息在每帧鼠标移动时复位光标为默认
+- Fix: `HandleControl::setResizeCursor()` 在 `#ifdef _WIN32` 路径下直接调用
+  Win32 `SetCursor(LoadCursor(...))`，匹配 WinFrame 做法
+- 添加中心十字星背景，以及十字星拖拽/缩放和释放时光标保持和恢复
+
+**Bug 2 — Move 手柄区域太小难以命中**：
+- `updateHandleAreas` 中 Move 手柄只有中心 8×8 像素区域
+- 用户反馈后恢复原始设计（只在小方块和十字星上触发光标变化）
+
+**Bug 3 — 拖拽中光标恢复为默认**：
+- 按下鼠标启动拖拽/缩放后，后续 MouseMove 事件被拖拽逻辑消费，
+  `setResizeCursor` 未被调用
+- Fix: 在 `m_resizing`/`m_dragging` 分支的 MouseMove 中也调用 `setResizeCursor`
+
+**Bug 4 — 按下鼠标瞬间光标恢复为默认**：
+- MouseDown 中 `startDrag/startResize` 之后没有立即设置光标
+- Fix: MouseDown 分支末尾加 `setResizeCursor(ht)`
+
+**视觉优化**：
+- 8 个角/边手柄保持白底蓝边方块
+- 中心十字改为蓝边白底十字（5px 蓝线 + 3px 白线 + 两端各延 1px）
+- 修复十字星下方重叠绘制方块的问题（循环中跳过 HandleType::Move）
+
+**变更文件**：
+| 文件 | 变更 |
+|------|------|
+| `src/HandleControl.cpp` | Win32 SetCursor 路径；拖拽中光标保持；按下瞬间光标；十字星蓝边白底；移除方块循环中 Move 绘制 |
+| `doc/HandleControl_Design.md` | 更新 drawMoveHandle、事件流程、光标 Win32 说明、移除 beforeDraw、m_handleAreas 固定数组 |
+
+**验证**：test_handlecontrol 三后端（SDL3/SFML/Raylib）构建通过。
 
 **问题**：test_fromsource_sfml 和 test_fromsource_raylib 日志中出现 `Cursor::createSystem: no backend factory registered`，光标功能完全失效。
 
