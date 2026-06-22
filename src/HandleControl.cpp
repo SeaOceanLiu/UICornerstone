@@ -285,24 +285,14 @@ void HandleControl::endDrag()
 void HandleControl::setResizeCursor(HandleType type)
 {
     ensureCursors();
-    Cursor* c = nullptr;
-    switch (type) {
-    case HandleType::Move: c = m_cursorMove; break;
-    case HandleType::NW:
-    case HandleType::SE:   c = m_cursorNWSE; break;
-    case HandleType::NE:
-    case HandleType::SW:   c = m_cursorNESW; break;
-    case HandleType::N:
-    case HandleType::S:    c = m_cursorNS; break;
-    case HandleType::E:
-    case HandleType::W:    c = m_cursorWE; break;
-    default:               c = m_cursorDefault; break;
-    }
 #ifdef _WIN32
-    // Update backend internal state (SFML/GLFW need this for WM_SETCURSOR)
-    if (c) Cursor::setCurrent(c);
-    // Direct Win32 SetCursor — SDL3's WM_SETCURSOR uses DefWindowProc which
-    // relies on the last SetCursor call, so SDL_SetCursor alone is insufficient.
+    // Win32 SetCursor works for all backends on Windows because:
+    //   - SDL3: DefWindowProc respects the last SetCursor call
+    //   - SFML: sf::Window::setMouseCursor calls SetCursor internally
+    //   - Raylib/GLFW: glfwSetCursor calls SetCursor internally
+    // Calling Cursor::setCurrent() in addition to SetCursor() caused
+    // cursor disappearance on all three backends (SDL3 interleaves
+    // cursor state tracking with SetCursor, breaking persistence).
     static HCURSOR hcursors[10] = {NULL};
     static bool hcInit = false;
     if (!hcInit) {
@@ -321,6 +311,19 @@ void HandleControl::setResizeCursor(HandleType type)
     HCURSOR hc = hcursors[(int)type];
     if (hc) SetCursor(hc);
 #else
+    Cursor* c = nullptr;
+    switch (type) {
+    case HandleType::Move: c = m_cursorMove; break;
+    case HandleType::NW:
+    case HandleType::SE:   c = m_cursorNWSE; break;
+    case HandleType::NE:
+    case HandleType::SW:   c = m_cursorNESW; break;
+    case HandleType::N:
+    case HandleType::S:    c = m_cursorNS; break;
+    case HandleType::E:
+    case HandleType::W:    c = m_cursorWE; break;
+    default:               c = m_cursorDefault; break;
+    }
     if (c) Cursor::setCurrent(c);
 #endif
 }
