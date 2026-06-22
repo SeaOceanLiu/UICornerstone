@@ -285,32 +285,6 @@ void HandleControl::endDrag()
 void HandleControl::setResizeCursor(HandleType type)
 {
     ensureCursors();
-#ifdef _WIN32
-    // Win32 SetCursor works for all backends on Windows because:
-    //   - SDL3: DefWindowProc respects the last SetCursor call
-    //   - SFML: sf::Window::setMouseCursor calls SetCursor internally
-    //   - Raylib/GLFW: glfwSetCursor calls SetCursor internally
-    // Calling Cursor::setCurrent() in addition to SetCursor() caused
-    // cursor disappearance on all three backends (SDL3 interleaves
-    // cursor state tracking with SetCursor, breaking persistence).
-    static HCURSOR hcursors[10] = {NULL};
-    static bool hcInit = false;
-    if (!hcInit) {
-        hcInit = true;
-        hcursors[(int)HandleType::None] = LoadCursorA(NULL, IDC_ARROW);
-        hcursors[(int)HandleType::Move] = LoadCursorA(NULL, IDC_SIZEALL);
-        hcursors[(int)HandleType::NW]   = LoadCursorA(NULL, IDC_SIZENWSE);
-        hcursors[(int)HandleType::N]    = LoadCursorA(NULL, IDC_SIZENS);
-        hcursors[(int)HandleType::NE]   = LoadCursorA(NULL, IDC_SIZENESW);
-        hcursors[(int)HandleType::E]    = LoadCursorA(NULL, IDC_SIZEWE);
-        hcursors[(int)HandleType::SE]   = LoadCursorA(NULL, IDC_SIZENWSE);
-        hcursors[(int)HandleType::S]    = LoadCursorA(NULL, IDC_SIZENS);
-        hcursors[(int)HandleType::SW]   = LoadCursorA(NULL, IDC_SIZENESW);
-        hcursors[(int)HandleType::W]    = LoadCursorA(NULL, IDC_SIZEWE);
-    }
-    HCURSOR hc = hcursors[(int)type];
-    if (hc) SetCursor(hc);
-#else
     Cursor* c = nullptr;
     switch (type) {
     case HandleType::Move: c = m_cursorMove; break;
@@ -324,8 +298,11 @@ void HandleControl::setResizeCursor(HandleType type)
     case HandleType::W:    c = m_cursorWE; break;
     default:               c = m_cursorDefault; break;
     }
+    // Delegate to backend — each backend's setCurrent is responsible for
+    // both the immediate cursor switch and WM_SETCURSOR persistence
+    // (SDL3 adds a Win32 SetCursor for DefWindowProc; SFML/GLFW update
+    // their internal state so the wndproc restores the right cursor).
     if (c) Cursor::setCurrent(c);
-#endif
 }
 
 // ── 事件处理 ──
@@ -389,6 +366,9 @@ bool HandleControl::handleEvent(shared_ptr<Event> event)
         updateHandleAreas(targetScreen);
         HandleType ht = hitTestHandle(event->mousePos.x, event->mousePos.y);
         setResizeCursor(ht);
+        // 命中手柄时 return true 阻止事件继续传播，
+        // 避免后续兄弟控件（EditBox 等）的 MouseMove 覆盖光标
+        if (ht != HandleType::None) return true;
     }
 
     return false;
