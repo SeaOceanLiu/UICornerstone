@@ -1,10 +1,6 @@
 ﻿#include "HandleControl.h"
 #include "Cursor.h"
 #include <algorithm>
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 HandleControl::HandleControl()
     : ControlImpl(nullptr)
@@ -50,11 +46,7 @@ void HandleControl::detach()
     m_dragging = false;
     m_activeHandle = HandleType::None;
     setAlwaysOnTop(false);
-#ifdef _WIN32
-    SetCursor(LoadCursorA(NULL, IDC_ARROW));
-#else
     Cursor::setCurrent(m_cursorDefault ? m_cursorDefault : Cursor::getDefault());
-#endif
 
     Control* parent = getParent();
     if (parent) {
@@ -298,10 +290,9 @@ void HandleControl::setResizeCursor(HandleType type)
     case HandleType::W:    c = m_cursorWE; break;
     default:               c = m_cursorDefault; break;
     }
-    // Delegate to backend — each backend's setCurrent is responsible for
-    // both the immediate cursor switch and WM_SETCURSOR persistence
-    // (SDL3 adds a Win32 SetCursor for DefWindowProc; SFML/GLFW update
-    // their internal state so the wndproc restores the right cursor).
+    // Delegate to backend — each backend's setCurrent updates its internal
+    // cursor state, ensuring the wndproc (SDL3 DefWindowProc / SFML wndproc
+    // / GLFW wndproc) restores the correct cursor on WM_SETCURSOR.
     if (c) Cursor::setCurrent(c);
 }
 

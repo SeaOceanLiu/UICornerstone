@@ -1,9 +1,5 @@
 ﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "WinFrame.h"
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
     Panel(parent, rect, xScale, yScale),
@@ -122,39 +118,10 @@ void WinFrame::setResizeCursor(uint8_t flags) {
         case kRight|kTop:     case kLeft|kBottom:   cursor = m_cursorSizeNESW; break;
         case kLeft|kRight|kTop|kBottom:             cursor = m_cursorSizeWE;  break;
     }
-    if (cursor) {
-#ifdef _WIN32
-        // SDL_SetCursor doesn't persist against WM_SETCURSOR on this SDL3 fork.
-        // WM_SETCURSOR fires before the corresponding mouse-move event is
-        // processed from our async event queue, so SDL's handler restores the
-        // default cursor before we have a chance to set the resize cursor.
-        //
-        // See: https://github.com/libsdl-org/SDL/issues/12163
-        //      https://github.com/libsdl-org/SDL/issues/12564
-        //
-        // Use Win32 SetCursor for reliable cursor display.
-        (void)cursor; // mark as unused
-        static HCURSOR hcursors[16] = {NULL};
-        int idx = flags & 0x0F;
-        if (!hcursors[idx]) {
-            switch (idx) {
-                case 0:                                     hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
-                case kLeft|kRight:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-                case kTop|kBottom:                          hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-                case kLeft:  case kRight:                   hcursors[idx] = LoadCursorA(NULL, IDC_SIZEWE); break;
-                case kTop:   case kBottom:                  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENS); break;
-                case kLeft|kTop:      case kRight|kBottom:  hcursors[idx] = LoadCursorA(NULL, IDC_SIZENWSE); break;
-                case kRight|kTop:     case kLeft|kBottom:   hcursors[idx] = LoadCursorA(NULL, IDC_SIZENESW); break;
-                default:                                    hcursors[idx] = LoadCursorA(NULL, IDC_ARROW); break;
-            }
-        }
-        if (hcursors[idx]) {
-            SetCursor(hcursors[idx]);
-        }
-#else
-        Cursor::setCurrent(cursor);
-#endif
-    }
+    // Delegate to backend — consistent with HandleControl approach.
+    // Each backend's setCurrent is responsible for both the immediate cursor
+    // switch and WM_SETCURSOR persistence.
+    if (cursor) Cursor::setCurrent(cursor);
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {
