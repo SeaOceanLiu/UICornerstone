@@ -268,7 +268,9 @@ HandleControl::handleEvent(event)
 ├── 命中手柄 → 消费事件 + setResizeCursor 保持光标
 │   ├── MouseDown → startResize / startDrag + setResizeCursor
 │   ├── MouseMove → setResizeCursor (命中测试)
-│   └── MouseUp   → endResize / endDrag + setResizeCursor(None)
+│   └── MouseUp   → endResize / endDrag
+│                    + updateHandleAreas + hitTest
+│                    + setResizeCursor(ht)  ← 释放后保持手柄光标
 └── 未命中手柄 → 返回 false（穿透到目标控件）
 ```
 

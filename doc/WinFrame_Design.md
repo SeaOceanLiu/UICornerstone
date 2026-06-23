@@ -245,6 +245,7 @@ WinFrame::handleEvent(event)
   │
   ├─ 1. 拖拽/缩放进行中的拦截
   │      └─ MouseMove / MouseUp + LeftButton → 优先处理
+  │      └─ MouseUp 结束缩放 → 若鼠标仍在边缘则保持缩放光标
   │
   ├─ 2. 边缘检测
   │      └─ MouseDown + LeftButton + 在边缘上 → 开始缩放
@@ -253,6 +254,10 @@ WinFrame::handleEvent(event)
   ├─ 3. 子控件处理（ControlImpl::handleEvent）
   │      └─ 关闭按钮：点击 → hide()
   │      └─ 客户区域：传递给子控件
+  │
+  ├─ 3b. 重新应用边缘光标（子控件可能覆盖）
+  │
+  ├─ 3c. 鼠标离开 WinFrame 边界 → 恢复默认光标
   │
   └─ 4. 标题栏拖拽（子控件未处理时）
          └─ MouseDown + LeftButton + 在标题栏上 → 开始拖拽
@@ -523,6 +528,8 @@ void WinFrame::setResizeCursor(uint8_t flags) {
 - 当鼠标离开边缘区时，恢复为默认箭头光标
 - 子控件处理后，在第 3b 步重新应用边缘光标（子控件可能已覆盖光标，如 Label 设置手形光标）
 - `m_lastEdgeFlags` 缓存上次边缘检测结果，避免子控件处理后丢失光标状态
+- **Step 3c**：鼠标离开 WinFrame 边界时（`!bMouseInsideWinFrame`），立即恢复默认光标并清零 `m_lastEdgeFlags`，防止 cursor 停留在缩放箭头
+- **MouseUp 结束 resize**：松开鼠标时，检查鼠标当前是否仍在边缘——若在边缘则保持缩放光标而非恢复默认，避免光标闪烁
 
 ### 4.5 Panel::handleEvent 在缩放时的行为
 
@@ -572,12 +579,20 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     // Step 3: Children
     bool consumed = ControlImpl::handleEvent(event);
 
-    // Step 3b: Re-apply edge cursor
+    // Step 3b: Re-apply edge cursor (children may have overwritten it)
     if (hasPos && ... && event->m_type == EventType::MouseMove) {
         if (m_lastEdgeFlags && m_resizable)
             setResizeCursor(m_lastEdgeFlags);
         else
             setResizeCursor(0);
+    }
+
+    // Step 3c: Mouse left WinFrame — restore default cursor
+    if (!bMouseInsideWinFrame && event->m_type == EventType::MouseMove) {
+        if (m_lastEdgeFlags != 0) {
+            setResizeCursor(0);
+            m_lastEdgeFlags = 0;
+        }
     }
 
     // Step 4: Title bar drag

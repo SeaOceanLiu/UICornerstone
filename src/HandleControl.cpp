@@ -318,6 +318,11 @@ bool HandleControl::handleEvent(shared_ptr<Event> event)
         }
         if (event->m_type == EventType::MouseUp) {
             endResize();
+            // Mouse may still be on a handle after release — keep handle cursor
+            SRect targetScreen = m_target->getDrawRect();
+            updateHandleAreas(targetScreen);
+            HandleType ht = hitTestHandle(event->mouseButton.x, event->mouseButton.y);
+            setResizeCursor(ht);
             return true;
         }
         return false;
@@ -331,6 +336,11 @@ bool HandleControl::handleEvent(shared_ptr<Event> event)
         }
         if (event->m_type == EventType::MouseUp) {
             endDrag();
+            // Mouse may still be on a handle after release — keep handle cursor
+            SRect targetScreen = m_target->getDrawRect();
+            updateHandleAreas(targetScreen);
+            HandleType ht = hitTestHandle(event->mouseButton.x, event->mouseButton.y);
+            setResizeCursor(ht);
             return true;
         }
         return false;

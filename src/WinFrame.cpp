@@ -200,7 +200,20 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         }
         if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
             m_resizing = false;
-            setResizeCursor(0);
+            // Mouse may still be at the edge after release — keep edge cursor
+            if (hasPos && getDrawRect().contains(mousePos.x, mousePos.y) && m_resizable) {
+                SPoint localMouse = screenToLocal(mousePos.x, mousePos.y);
+                uint8_t edgeFlags = 0;
+                if (localMouse.x - 0 < m_edgeMargin) edgeFlags |= kLeft;
+                if (m_rect.width - localMouse.x < m_edgeMargin) edgeFlags |= kRight;
+                if (localMouse.y - 0 < m_edgeMargin) edgeFlags |= kTop;
+                if (m_rect.height - localMouse.y < m_edgeMargin) edgeFlags |= kBottom;
+                setResizeCursor(edgeFlags);
+                m_lastEdgeFlags = edgeFlags;
+            } else {
+                setResizeCursor(0);
+                m_lastEdgeFlags = 0;
+            }
             return true;
         }
     }
@@ -249,6 +262,14 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
             setResizeCursor(m_lastEdgeFlags);
         else
             setResizeCursor(0);
+    }
+
+    // Step 3c: Mouse left WinFrame — restore default cursor
+    if (!bMouseInsideWinFrame && event->m_type == EventType::MouseMove) {
+        if (m_lastEdgeFlags != 0) {
+            setResizeCursor(0);
+            m_lastEdgeFlags = 0;
+        }
     }
 
     // Step 4: Title bar drag (if no child consumed MOUSE_LBUTTON_DOWN)
