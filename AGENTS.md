@@ -18,6 +18,7 @@
 ## Build Commands
 
 **Build library + all tests:**
+
 ```batch
 build_scripts\build.bat sdl3    # SDL3 backend (default)
 build_scripts\build.bat sfml    # SFML backend
@@ -25,6 +26,7 @@ build_scripts\build.bat raylib  # Raylib backend
 ```
 
 **Build single test:**
+
 ```batch
 build_scripts\build_test.bat test_label             # SDL3 (default)
 build_scripts\build_test.bat test_label sfml        # SFML
@@ -61,9 +63,10 @@ test_label.exe
 
 `Surface::create(w, h)` creates an RGBA8888 surface. On **little-endian x86** (the only relevant target), RGBA8888 memory layout is:
 
+
 | Byte offset | 0 (LSB) | 1 | 2 | 3 (MSB) |
-|------------|---------|---|---|---------|
-| Channel | A | B | G | R |
+| ----------- | ------- | - | - | ------- |
+| Channel     | A       | B | G | R       |
 
 When writing pixels as `uint32_t`, the value MUST be formatted as:
 
@@ -73,6 +76,7 @@ uint32_t pixel = (R<<24) | (G<<16) | (B<<8) | A;
 ```
 
 Common mistakes:
+
 - `0xFF000000` = R=255, G=0, B=0, A=0 = **transparent red** (NOT opaque black!)
 - `0x000000FF` = R=0, G=0, B=0, A=255 = **opaque black** (correct for black)
 - `0xFFFFFFFF` = R=255, G=255, B=255, A=255 = opaque white (correct)
@@ -82,21 +86,23 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 
 ## Dependencies (Submodules)
 
-| Submodule | Path | Source |
-|----------|------|--------|
-| SDL3 | subModules/SDL3 | SeaOceanLiu/UICornerstone-sdl3 |
-| SDL3_ttf | subModules/SDL3_ttf | SeaOceanLiu/UICornerstone-sdl3_ttf |
+
+| Submodule  | Path                  | Source                                    |
+| ---------- | --------------------- | ----------------------------------------- |
+| SDL3       | subModules/SDL3       | SeaOceanLiu/UICornerstone-sdl3            |
+| SDL3_ttf   | subModules/SDL3_ttf   | SeaOceanLiu/UICornerstone-sdl3_ttf        |
 | SDL3_image | subModules/SDL3_image | libsdl-org/SDL_image (tag: release-3.2.4) |
-| json | subModules/json | nlohmann/json (tag: v3.12.0) |
-| assets | subModules/assets | SeaOceanLiu/UICornerstone-assets |
-| libs | subModules/libs | SeaOceanLiu/UICornerstone-libs |
-| SFML | subModules/SFML | SFML (v3, Debug DLLs) |
+| json       | subModules/json       | nlohmann/json (tag: v3.12.0)              |
+| assets     | subModules/assets     | SeaOceanLiu/UICornerstone-assets          |
+| libs       | subModules/libs       | SeaOceanLiu/UICornerstone-libs            |
+| SFML       | subModules/SFML       | SFML (v3, Debug DLLs)                     |
 
 ## Session History
 
 ### 2026-06-01: Phase 1 — SColor Unification
 
 **Changes**:
+
 - `include/SColor.h`: Created standalone SColor class with `constexpr` constructors (float/int/rgba), color operations (brighter/darker/blend), `toSDLColor()`/`toSDLFColor()` bridge methods
 - `include/GraphTool.h`: Removed inline SColor class, added `#include "SColor.h"` and `using SColor = ::SColor;` in GraphTool namespace
 - `include/ControlBase.h`: StateColor members → SColor, all virtual setters/getters → SColor
@@ -112,6 +118,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 ### 2026-06-01: Phase 2 — RenderDevice Abstraction (Infrastructure + GraphTool + Control Migration)
 
 **Core Infrastructure**:
+
 - `include/RenderDevice.h`: Abstract interface with ~25 pure virtual methods covering state, primitives, textures, render targets, and frame ops. Includes convenience `drawTriangle()`/`drawQuad()` methods for common patterns. Forward-declares `SDL_Renderer` only in factory function.
 - `src/RenderDevice.cpp`: `SDL3RenderDevice` concrete implementation. Converts all abstract types (`SColor`, `SRect`, `Vertex`) to SDL3 equivalents internally. Factory `CreateSDL3RenderDevice()` returns heap-allocated instance.
 - `include/MainWindow.h`: Added `RenderDevice* m_renderDevice` member, `getRenderDevice()` accessor, `GET_RENDERDEVICE` macro. `MainWindow` constructor calls `CreateSDL3RenderDevice(m_renderer)`. Added destructor for cleanup.
@@ -120,13 +127,16 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `CMakeLists.txt`: Added `src/RenderDevice.cpp` to library sources.
 
 **GraphTool Migration**:
+
 - `include/GraphTool.h`: Constructor changed from `SDL_Renderer*` to `RenderDevice*`. `SDL_Texture*` → `void*` in `drawImage()`. Removed `#include "SDL3/SDL.h"`, now includes `RenderDevice.h`. Removed `SDL_Renderer*` from transform stack.
 - `src/GraphTool.cpp`: Complete rewrite of all 1452 lines. All 17 `SDL_SetRenderDrawColor` → `setDrawColor(SColor)`. All `SDL_RenderFillRect`/`SDL_RenderRect`/`SDL_RenderLine`/`SDL_RenderPoint` → `fillRect`/`drawRect`/`drawLine`/`drawPoint`. All 16 `SDL_RenderGeometry`+`SDL_Vertex` arrays → `drawTriangle()`/`drawQuad()` calls. All `SDL_RenderTexture` → `drawTexture()`. All clip rect → `setClipRect()`/`clearClipRect()`. No SDL3 headers included.
 
 **Test Migration**:
+
 - All 10 test files updated: `SDL_SetRenderDrawColor`/`SDL_RenderClear`/`SDL_RenderPresent` → `RenderDevice` equivalents. `DrawingContext(renderer)` → `DrawingContext(getRenderDevice())`.
 
 **Full Control Migration (54 SDL calls → RenderDevice)**:
+
 - `ControlBase.cpp`: `drawBackground()`/`drawBorder()` — 4 SDL calls → `getRenderDevice()->setDrawColor()`/`fillRect()`/`drawRect()`
 - `Bench.cpp`: Loading progress bar — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`fillRect()`/`drawRect()`
 - `Label.cpp`: Debug drawing — 4 SDL calls → `GET_RENDERDEVICE->setDrawColor()`/`drawRect()`
@@ -147,12 +157,14 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 ### 2026-06-01: Phase 3 — Texture/Surface Abstraction (Complete)
 
 **Core Types**:
+
 - `include/Texture.h`: New abstract `Texture` class — `width()`, `height()`, `setBlendMode()`, `setAlphaMod()`, `getBlendMode()`, `getAlphaMod()`
 - `include/Surface.h`: New abstract `Surface` class — pixel ops (`getPixel`/`setPixel`), `blit()` (scaled + unscaled), `createTexture(RenderDevice*)`, `rotate()`, factory statics (`create`/`loadFromFile`/`loadFromMemory`)
 - `include/RenderDevice.h`: Replaced `void*` texture API with `Texture*`/`SharedTexture`; added `createTextureFromSurface(Surface*)`, `SharedTexture`/`SharedSurface` type aliases
 - `src/RenderDevice.cpp`: Added `SDL3Texture` (wraps `SDL_Texture*`), `SDL3Surface` (wraps `SDL_Surface*`, implements pixel/format/blit/rotate ops), all `Surface` factory statics; `SDL3RenderDevice` updated to use `Texture*`/`SharedTexture`
 
 **`m_texture` Migration (SDL_Texture* → SharedTexture)**:
+
 - `include/ControlBase.h`: `SDL_Texture* m_texture` → `SharedTexture m_texture`
 - `include/Actor.h`: `getTexture()` returns `Texture*`, `setTexture()` takes `SharedTexture`
 - `src/Material.cpp`: Removed `SDL_DestroyTexture`; `SDL_SetTextureBlendMode`/`SDL_SetTextureAlphaMod` → `m_texture->setBlendMode()`/`m_texture->setAlphaMod()`
@@ -160,12 +172,14 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `include/GraphTool.h`: `drawImage()` takes `Texture*` instead of `void*`
 
 **`m_surface` Migration (SDL_Surface* → SharedSurface)**:
+
 - `include/ControlBase.h`: `SDL_Surface* m_surface` → `SharedSurface m_surface`
 - `src/Actor.cpp`: `loadFromFile()`/`loadFromResource()` use `Surface::loadFromFile()`/`loadFromMemory()`; `setParent()` uses `m_surface->createTexture()`
 - `ControlBase.cpp`: Copy/assign semantics unchanged (shared_ptr handles refcounting)
 - Added `Surface::rotate()` for GPU-accelerated rotation (render-to-texture + readback, inside `SDL3Surface`)
 
 **`LuotiAni.h` Full Migration (~180 SDL calls)**:
+
 - Total rewrite: 1341-line header-only animation engine
 - `SDL_Surface*` → `SharedSurface` in `OpData`, `m_frameSurfaces`, all helpers
 - `SDL_BlendMode` → `BlendMode` enum; `SDL_GetTicks()` → `std::chrono::steady_clock`
@@ -178,23 +192,27 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - Pixel helpers simplified for RGBA8888 format
 
 **Bridge Removal**:
+
 - Removed `createTextureFromSDLSurface` and `getNativeRenderer` from `RenderDevice` (no longer used)
 - Removed `loadTextureFromSurface(SDL_Surface*)` from `Actor` (no longer used)
 - Removed `struct SDL_Renderer`/`struct SDL_Surface` forward declarations from `RenderDevice.h`
 
 **Animation Fixes**:
+
 - Frame actors in `LuotiAni::prepare()` now get non-zero rect via `frame->setRect()`
 - `LuotiAni::setRect()` propagates unconditionally to frame actors (removed `m_isPrepared` guard)
 - `Button::setLuotiAni()` syncs button rect to LuotiAni
 - `Button::setRect()` propagates to `m_luotiAni`
 
 **Testing**:
+
 - Added 2x scaled LuotiAni Button test (`g_button6` in `test_button.cpp`)
 - All 10 tests build successfully
 
 ### 2026-06-02: Phase 4 — Remove Umbrella `#include <SDL3/SDL.h>` from Non-Backend Headers
 
 **Umbrella include completely removed from 8 headers**:
+
 - `Menu.h`: No SDL types used — removed entirely
 - `StateMachine.h`: `SDL_Log()` → `printf()` — removed entirely
 - `Material.h`: `Uint8`/`SDL_ALPHA_OPAQUE` → `uint8_t`/`255` — replaced with `<cstdint>`
@@ -205,10 +223,12 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `EditBox.h`: Removed umbrella, kept `SDL3/SDL_keyboard.h` and `SDL3/SDL_clipboard.h`
 
 **Backend headers with umbrella preserved** (inherently SDL-dependent):
+
 - `MainWindow.h`: Header-only window/renderer manager — keeps `#include <SDL3/SDL.h>`
 - `ResourceLoader.h`: Narrowed to `SDL3/SDL_thread.h` + `SDL3/SDL_iostream.h`; `.cpp` gets umbrella
 
 **Other improvements**:
+
 - `RenderDevice.h`: `struct SDL_Renderer;` forward declaration instead of any SDL include
 - `ResourceLoader.cpp`: Added explicit `#include <SDL3/SDL.h>` (was getting it transitively)
 
@@ -217,6 +237,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 ### 2026-06-02: Phase 5 — Font/TextRenderer Abstraction (Complete)
 
 **Core Infrastructure**:
+
 - `include/Font.h` — abstract `Font` class with `getSize()`, `SharedFont` alias
 - `include/TextRenderer.h` — abstract `TextRenderer` interface with `loadFont`, `loadFontFromMemory`, `measureText`, `getFontHeight`, `drawText` (plain + wrapWidth), factory `CreateSDL3TextRenderer(RenderDevice*)`
 - `src/TextRenderer.cpp` — `SDL3Font` wraps `TTF_Font*`, `SDL3TextRenderer` wraps `TTF_TextEngine*`; factory calls `TTF_Init()` and `TTF_Quit()`
@@ -226,12 +247,14 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `CMakeLists.txt` — added `src/TextRenderer.cpp`
 
 **Full Control Migration (Label + EditBox + TextArea)**:
+
 - `Label.h/cpp`: Removed `#include <SDL3_ttf/SDL_ttf.h>`, replaced `TTF_Font*`/`TTF_TextEngine*`/`vector<TTF_Text*>` with `SharedFont` + `TextRenderer`; `TTF_FontStyleFlags` → `int`; added `computeLineOffsets()`; `SDL_Cursor` forward-declared
 - `EditBox.h/cpp`: Removed `#include <SDL3_ttf/SDL_ttf.h>`, replaced `TTF_Font*`/`TTF_TextEngine*`/`TTF_Text*` with `SharedFont` + `TextRenderer`; removed `createTextEngine()`/`createTextObjects()`/`destroyTextObjects()`/`recreateTextObjects()`; added `loadFontInternal()`
 - `TextArea.h/cpp`: Removed `TTF_TextEngine* m_textEngine` member; replaced all `TTF_CreateText`/`TTF_GetTextSize`/`TTF_DrawRendererText`/`TTF_DestroyText` with `getTextRenderer()->measureText()`/`drawText()`
 - `LayoutParser.h/cpp`: `parseFontStyle()` return type `TTF_FontStyleFlags` → `int`; removed `TTF_STYLE_*` literal dependencies (use plain int values)
 
 **Test Cleanup**:
+
 - Removed `TTF_Init()`/`TTF_Quit()` calls from all 10 test files (TextRenderer internally manages TTF lifecycle)
 
 **Status**: All 10 tests build successfully. No non-backend header includes `SDL3_ttf/SDL_ttf.h` or umbrella `SDL3/SDL.h`.
@@ -241,6 +264,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: `TTF_CreateText()` was called on every `measureText()` / `drawText()` invocation, creating and destroying `TTF_Text*` objects each frame. This is both wasteful and fragile — if `TTF_Text*` creation fails or gets corrupted, all subsequent TTF operations hang/crash.
 
 **Changes**:
+
 - `include/TextRenderer.h`: Added cache-friendly methods — `createText(Font*, const string&)` → `void*`, `destroyText(void*)`, `measureText(void*)`, `drawText(void*, ...)`. Original `measureText(Font*, const string&)` / `drawText(Font*, ...)` kept for backward compatibility (used by EditBox/TextArea for one‑off temp text objects).
 - `src/TextRenderer.cpp`: Implemented new methods. `createText` calls `TTF_CreateText()`, `destroyText` calls `TTF_DestroyText()`, `measureText(void*)` calls `TTF_GetTextSize()` on the cached object, `drawText(void*, ...)` calls `TTF_SetTextColor()` + `TTF_DrawRendererText()` on the cached object.
 - `include/Label.h`: Added `std::vector<void*> m_cachedTexts` member, `releaseTexts()` method.
@@ -259,6 +283,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: Code directly depended on `ResourceLoader` singleton for file I/O, mixing resource bundle loading with filesystem access. Adding filesystem-only resources (e.g., animation JSON) required awkward workarounds.
 
 **Core Infrastructure**:
+
 - `include/ResourceProvider.h`: Abstract `ResourceProvider` interface — `readFile()` → `shared_ptr<vector<char>>`, `openFileStream()` → `SDL_IOStream*`, `exists()` → `bool`. Factory `createFilesystem(basePath)`.
 - `src/ResourceProvider.cpp`: `FilesystemResourceProvider` implementation using `fopen`/`fread`.
 - `include/ControlBase.h`: Added `ResourceProvider* m_resourceProvider` member, `getResourceProvider()`/`setResourceProvider()` interface and implementation.
@@ -266,6 +291,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `include/MainWindow.h`: Added `ResourceProvider* m_resourceProvider` member, creation/destruction, `getResourceProvider()`, `GET_RESOURCEPROVIDER` macro.
 
 **Font Data Lifetime Fix**:
+
 - Root cause: `TTF_OpenFontIO(stream, true)` may reference font data lazily; when `shared_ptr<vector<char>>` went out of scope after `loadFromResource`/`loadFontInternal`, the font referenced freed memory → crash in `TTF_GetTextSize`.
 - `include/Label.h`: Added `shared_ptr<vector<char>> m_fontData` member.
 - `src/Label.cpp`: `loadFromResource()` stores font data in `m_fontData` instead of a local variable; `releaseFont()` also resets `m_fontData`.
@@ -277,6 +303,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 ### 2026-06-04: Phase 9 — Remove ResourceLoader (Complete)
 
 **Changes**:
+
 - **`ConstDef.h/cpp`**: Moved `FontName` enum and `fontFiles` map from `ResourceLoader.h`
 - **`include/Label.h`**, **`include/Bench.h`**, **`src/EditBox.cpp`**: Removed `#include "ResourceLoader.h"`
 - **`src/WinFrame.cpp`**: Inlined RID string constants (cross_up/cross_over/cross_down PNGs)
@@ -293,6 +320,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: `Label.h` and `WinFrame.h` directly used `SDL_Cursor*` and called `SDL_CreateSystemCursor`/`SDL_SetCursor`/etc. directly.
 
 **Changes**:
+
 - **`include/Cursor.h`**: New abstract `Cursor` class with `SystemCursorType` enum (20 cursor types), static factories `createSystem()`, `getDefault()`, and `setCurrent()`.
 - **`src/Cursor.cpp`**: `SDLCursor` implementation wrapping `SDL_Cursor*` with owned/unowned semantics. Maps `SystemCursorType` → `SDL_SystemCursor` for `SDL_CreateSystemCursor`. `getDefault()` returns a static singleton.
 - **`include/Label.h`**: Replaced `SDL_Cursor* m_hoverCursor/m_defaultCursor` with `Cursor*`, removed `struct SDL_Cursor;` forward declaration.
@@ -310,6 +338,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: After Phase 2 introduced `RenderDevice` abstraction, `getRenderer()`/`setRenderer(SDL_Renderer*)` in `ControlBase.h` was dead code — no drawing code used it anymore — but it kept `#include <SDL3/SDL_render.h>` as a hard dependency in the primary control base header.
 
 **Changes**:
+
 - **`include/ControlBase.h`**: Removed `#include <SDL3/SDL_render.h>`, removed `SDL_Renderer *getRenderer/setRenderer` from `Control` interface and `ControlImpl` member/overrides; removed `SDL_Renderer *m_renderer` member
 - **`src/ControlBase.cpp`**: Removed `getRenderer()`/`setRenderer()` implementations (8 lines, 25 lines respectively); removed `m_renderer` propagation from `addControl()` and `inheritRenderer()`; removed `m_renderer` from constructors/copy/assign
 - **`include/MainWindow.h`**: Removed `#define GET_RENDERER` macro (unused everywhere)
@@ -323,6 +352,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 ### 2026-06-04: Design Documents Update
 
 **BackendAbstraction_Design.md** updates:
+
 - Progress table (§1.4): Added Phases 7-11 (TTF_Text caching, ResourceProvider, Remove ResourceLoader, SDL Cursor, Remove SDL_Renderer)
 - New sections (§10-§14): Detailed design records for Phases 7-11
 - §7.3 (current status): Updated to reflect Phase 11 completion; added ResourceProvider/Cursor to ready interfaces
@@ -331,6 +361,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - Note added about numbering divergence between plan and execution
 
 **ResourceLoader_Design.md** updates:
+
 - Marked as deprecated (⚠️), noting replacement by ResourceProvider
 - Kept original content for historical reference
 
@@ -339,6 +370,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Note**: Phase 6 in the design doc covers Window abstraction, InputBackend, BackendPlugin, Event system, and AppCallbacks. BackendPlugin was previously completed; this session focused on the remaining Window/InputBackend cleanup and all-test migration.
 
 **Infrastructure Changes**:
+
 - **`src/InputBackend.cpp`** (new): Extracted `SDL3InputBackend` from `src/Window.cpp` into its own file; factory uses `window->nativeHandle()` instead of SDL-specific cast
 - **`src/Window.cpp`**: Removed `SDL3InputBackend` class and `CreateSDL3InputBackend` factory (moved to InputBackend.cpp)
 - **`include/MainWindow.h`**: Removed `#include <SDL3/SDL.h>`, `SDL_Renderer* m_renderer`, `SDL_DisplayID m_displayId`, `getWindow()` (SDL_Window*), `getRenderer()` (SDL_Renderer*); replaced direct SDL calls with `Window` abstract methods; replaced `handleWindowEvent(SDL_WindowEvent&)` with `onWindowResized(int,int)` / `onWindowMoved(int,int)`; renamed `getWindowObject()` → `getWindow()`; now SDL-free
@@ -353,6 +385,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - **`CMakeLists.txt`**: Added `src/InputBackend.cpp`, `src/MainWindow.cpp`; added `_HAS_STD_BYTE=0` for Windows SDK compatibility
 
 **AppCallbacks & Event Infrastructure**:
+
 - **`include/AppCallbacks.h`** (new): Abstract interface — `onInit()`, `onEvent(const Event&)` (optional, default empty), `onUpdate()`, `onRender()`, `onQuit()`
 - **`include/EventTypes.h`**: Added `WindowMoved` event type + `EventWindowMoved` struct; enum now has MouseMove/MouseDown/MouseUp/MouseWheel/KeyDown/KeyUp/TextInput/WindowResize/WindowMoved/WindowClose/FocusGained/FocusLost
 - **`include/InputBackend.h`**: Added `pollEvent(Event&)` abstract method — polls SDL events, populates both new (EventType+union) and old (EventName+std::any) fields for dual-run backward compatibility
@@ -360,6 +393,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - **`include/StateMachine.h`**: Added default `Event` constructor, `EventWindowMoved` in union, `copyUnion()` handles WindowMoved, `<memory>` include
 
 **All 10 Test Files Migrated (SDL callbacks → AppCallbacks)**:
+
 - **`test/test_button.cpp`**: Uses **Mode 1** (owned loop) — `MAINWIN->run(&app)`. Migrated in previous session.
 - **The other 9 test files** use **Mode 2** (tick-based API) with SDL callbacks preserved. SDL provides the main loop; the SDL callbacks delegate to MainWindow's Mode 2 lifecycle methods:
   ```
@@ -392,6 +426,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - **WinFrame.cpp**: 1 handler — comprehensive hasPos + event type checks migrated
 
 **Key changes per control**:
+
 - Removed all `std::any_cast<shared_ptr<SPoint>>` / `std::any` dependencies
 - Removed all `try { ... } catch (...) { }` blocks from event handlers
 - Mouse events use `event->mousePos` (for MouseMove) or `event->mouseButton` (for MouseDown/Up)
@@ -409,6 +444,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Root cause**: `StateMachine.h` 中 `Event` 类仅有 `EventName` 前向声明，无法在构造函数体内访问枚举值做映射。
 
 **Fix**:
+
 - `StateMachine.h`: `Event(EventName, any)` 构造声明移至类外（无函数体）
 - `EventQueue.h`: 提供内联构造体，完整实现 `EventName → EventType` 映射 + union 字段填充（MouseMove/MouseDown/MouseUp/MouseWheel/TextInput/KeyDown/KeyUp）
 - `EventTypes.h`: 移入旧数据结构（`KeyEventData/TextInputEventData/FocusEventData/MouseWheelEventData`）+ `<string>`
@@ -421,11 +457,13 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: Core source files (`src/*.cpp`) still used SDL API calls directly (`SDL_Log`, `SDL_GetTicks`, `SDL_GetBasePath`, `SDL_GetMouseState`, etc.), preventing SFML backend compilation.
 
 **Platform Abstractions**:
+
 - `include/PlatformUtils.h` (new): `Platform::Log()` (printf-based), `Platform::GetTicks()` (std::chrono), `Platform::GetBasePath()` (Win32 GetModuleFileNameA)
 - `include/Window.h`: Added `getMousePosition(float& x, float& y)` — returns mouse coords relative to window
 - `include/InputBackend.h`: Added `getModState()` — returns keyboard modifier state as int
 
 **Core File SDL Removal (17 files)**:
+
 - `src/ConstDef.cpp`: `SDL_GetBasePath()` → `Platform::GetBasePath()`, `SDL_Log()` → `Platform::Log()`
 - `src/ControlBase.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`
 - `src/Bench.cpp`: `SDL_GetTicks()` → `Platform::GetTicks()`
@@ -446,22 +484,26 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 - `include/InputBackend.h`: Restored SDL3 factory declarations under backend namespace guards
 
 **SFML Backend Implementation**:
+
 - `src/backend/sfml/Window.cpp`: `getMousePosition()` returns `sf::Mouse::getPosition(*m_window)`
 - `src/backend/sfml/InputBackend.cpp`: `getModState()` returns `sf::Keyboard::isKeyPressed()` for Ctrl/Alt/Shift
 - `src/backend/sfml/RenderDevice.cpp`: Full SFML render device (415 lines) — draws primitives via sf::RenderWindow/OpenGL; Surface via sf::Image; Texture via sf::Texture
 
 **SVG Rasterization (nanosvg)**:
+
 - **Problem**: LuotiAni animation engine uses SVG as native image format. SFML's `sf::Image` doesn't support SVG, so `Surface::loadFromMemory` called with SVG data printed `Failed to load image from memory` to `sf::err()` and returned a SharedSurface wrapping a 0x0 image, silently corrupting animation data.
 - **Fix**: Added bundled nanosvg (from SDL3_image's source tree) to SFML backend (`src/backend/sfml/nanosvg.h`, `nanosvgrast.h`). `Surface::loadFromMemory` now detects SVG data by magic bytes (`<?xml`, `<svg`, `<!DOCTYPE`) and rasterizes it via `nsvgParse`/`nsvgRasterize` to RGBA pixels, creating a valid `sf::Image`. Non-SVG paths use the original `sf::Image` constructor with try-catch + 0x0 dimension check.
 - `src/backend/sfml/RenderDevice.cpp`: Added `#include <cstdlib>`, `<cmath>`, `<string.h>`, `<stdlib.h>`, `<math.h>` for nanosvg; replaced `Surface::loadFromMemory` with SVG-aware implementation
 
 **Build Results**:
+
 - SDL3 backend: All 10 test executables compile and run (`test_button` verified)
 - SFML backend: `UICornerstone.lib` compiles; all 10 test executables compile and link; `test_button` runs without errors (no more `Failed to load image from memory`), animation buttons render via nanosvg SVG rasterization
 
 ### 2026-06-06: Phase 13 Fixes — 4 SFML Visual/Performance Issues (Complete)
 
 **Problem**: User reported 4 SFML-specific issues after test restoration:
+
 1. test_editbox: lag after typing
 2. test_graphtool: missing middle black in test group 3
 3. test_layout_advanced: resize mispositions controls
@@ -490,6 +532,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Remaining Issues**: SFML `setVerticalSyncEnabled` was removed to match SDL3 frame rate. If animations still appear slower on SFML, the issue is likely `sf::sleep(sf::milliseconds(1))` in Window.cpp event polling — SDL3 does not sleep between poll cycles.
 
 **Known Issues**:
+
 - NOMINMAX required in source files because SDL3 headers in `subModules/` pull in `windows.h` transitively via public include dir
 
 ### 2026-06-07: Raylib InputBackend — Infinite MouseDown Loop Fix (Complete)
@@ -499,6 +542,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Root cause**: `GetTime()` in `pollEvent()` advanced by microseconds between consecutive calls within `processEvents()`'s `while (pollEvent(event))` loop, restarting the phase machine and clearing consumed state each time.
 
 **Fix (4 files)**:
+
 - `include/InputBackend.h`: Added `virtual void newFrame() {}` — signals start of a new frame's event processing. Default empty so SDL3/SFML backends need no changes.
 - `src/backend/raylib/InputBackend.cpp`:
   - `newFrame()` override: Resets `m_phase` to `Keyboard`, `m_consumedMouseButtons` to `0`, `m_keyConsumed`/`m_charConsumed` to `false`.
@@ -515,11 +559,13 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: test_graphtool only showed the red thin line (width=1, uses `DrawLineEx`). All thick lines (width > 1, via `drawQuad` → `DrawTriangle`) and triangle-based fills (filled rounded rects/ellipses/arcs/polygons via `drawTriangle`) were invisible.
 
 **Root cause**: raylib's `DrawTriangle(v1, v2, v3, color)` requires CCW (counter-clockwise) winding and does NOT flip CW triangles internally. The initial `drawTriangle` and `drawQuad` implementations in `src/backend/raylib/RenderDevice.cpp` had the winding logic inverted:
+
 - In y-down coordinates: `signed_area > 0` → CW, `signed_area < 0` → CCW
 - Bug: when `area < 0` (CCW), the code **swapped** the last two vertices making the triangle CW; when `area >= 0` (CW), it passed the triangle as-is (still CW)
 - Result: **every triangle** was passed as CW to `DrawTriangle` and culled by OpenGL backface culling
 
 **Fix** (`RaylibRenderDevice::drawTriangle` and `drawQuad`):
+
 - CCW input (`area < 0`): pass vertices **as-is** → `DrawTriangle(v0, v1, v2)`
 - CW input (`area >= 0`): **swap** last two vertices → `DrawTriangle(v0, v2, v1)`
 
@@ -532,6 +578,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem (resize freeze)**: Dragging the window border to resize and releasing the mouse caused the raylib backend to freeze. Root cause traced through multiple iterations:
 
 **Root cause chain**:
+
 1. `EndDrawing()` (called inside `present()`) calls `PollInputEvents()` internally.
 2. `InputBackend::newFrame()` also called `PollInputEvents()` → double‑polling consumed the `IsMouseButtonPressed/Released` one‑shot state, breaking mouse clicks.
 3. Removing `EndDrawing()` from `present()` fixed double‑polling but the resize freeze returned.
@@ -540,15 +587,17 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 
 **Fixes (6 files)**:
 
-| File | Change |
-|------|--------|
-| `src/backend/raylib/TextRenderer.cpp` | Font cache (`unordered_map<FontCacheKey, weak_ptr<RaylibFont>>`). Load font at `size * 96/72` to match SDL3_ttf point→pixel conversion. `getFontHeight` uses `MeasureTextEx("Ay")`. `wrapWidth` scaled by 96/72. |
-| `src/backend/raylib/InputBackend.cpp` | `newFrame()` calls `PollInputEvents()` once per frame. Phase order changed to `Keyboard → CharInput → **WindowEvents** → MouseButton → MouseMove → MouseWheel → Done`. `m_resizeDetected` flag suppresses `MOUSE_UP` when a `WindowResize` arrives in the same batch. |
-| `src/backend/raylib/RenderDevice.cpp` | `present()` no longer calls `EndDrawing()` (avoids internal `PollInputEvents`). Manually flushes batch + `SwapScreenBuffer()`. 60 Hz `WaitTime` frame limiter. |
-| `src/backend/raylib/Window.cpp` | Removed `SetTargetFPS(60)` (moved to RenderDevice). Added `SetTraceLogLevel(LOG_WARNING)`. Fixed flag‑bit mapping (`0x00000020` → `FLAG_WINDOW_RESIZABLE`). |
-| `include/MainWindow.h` + `src/MainWindow.cpp` | WindowResize dedup by `(w, h)` — skips events with same dimensions as last processed. 500‑event safety guard in `processEvents`. |
+
+| File                                          | Change                                                                                                                                                                                                                                                                      |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/backend/raylib/TextRenderer.cpp`         | Font cache (`unordered_map<FontCacheKey, weak_ptr<RaylibFont>>`). Load font at `size * 96/72` to match SDL3_ttf point→pixel conversion. `getFontHeight` uses `MeasureTextEx("Ay")`. `wrapWidth` scaled by 96/72.                                                           |
+| `src/backend/raylib/InputBackend.cpp`         | `newFrame()` calls `PollInputEvents()` once per frame. Phase order changed to `Keyboard → CharInput → **WindowEvents** → MouseButton → MouseMove → MouseWheel → Done`. `m_resizeDetected` flag suppresses `MOUSE_UP` when a `WindowResize` arrives in the same batch. |
+| `src/backend/raylib/RenderDevice.cpp`         | `present()` no longer calls `EndDrawing()` (avoids internal `PollInputEvents`). Manually flushes batch + `SwapScreenBuffer()`. 60 Hz `WaitTime` frame limiter.                                                                                                             |
+| `src/backend/raylib/Window.cpp`               | Removed`SetTargetFPS(60)` (moved to RenderDevice). Added `SetTraceLogLevel(LOG_WARNING)`. Fixed flag‑bit mapping (`0x00000020` → `FLAG_WINDOW_RESIZABLE`).                                                                                                                |
+| `include/MainWindow.h` + `src/MainWindow.cpp` | WindowResize dedup by`(w, h)` — skips events with same dimensions as last processed. 500‑event safety guard in `processEvents`.                                                                                                                                           |
 
 **Key insights**:
+
 - `IsWindowResized()` in the bundled raylib returns TRUE repeatedly for the same dimensions (the flag is set by a GLFW callback but not cleared by the first `IsWindowResized()` call in this raylib build).
 - `EndDrawing()` must not be called in `present()` because its internal `PollInputEvents()` collides with the one in `newFrame()`.
 - Resize drag produces `MOUSE_UP` that confuses controls when arriving without a visible `MOUSE_DOWN` (the press was on the window border / NC area).
@@ -567,6 +616,7 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 **Problem**: `test_checkbox` took ~48s to initialize 16 checkboxes. Root cause was an O(n²) recreate cascade amplified by missing font cache in SDL3 backend.
 
 **Root cause chain**:
+
 1. `Bench::addControl()` → `resolveChildPercentages()` iterated ALL children, calling `setRect` on every existing child.
 2. `CheckBox::setRect()` called `recreate()` unconditionally (no dirty-rect check).
 3. Each CheckBox recreate destroyed and re-created its Label caption, including font reloading.
@@ -575,15 +625,17 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 
 **Changes (5 files)**:
 
-| File | Change |
-|------|--------|
-| `src/backend/sdl3/TextRenderer.cpp` | Added font cache (`m_fontCache` keyed by `(contentHash, size)`, `m_pathCache` by `(path, size)`). Eliminated redundant `TTF_OpenFontIO` calls. |
-| `include/CheckBox.h` | Added `bool m_layoutDone = false` member. |
-| `src/CheckBox.cpp` | `setRect` dirty-rect check. `recreate()` resets `m_layoutDone` to `false`. `create()` sets `m_layoutDone = true` after layout. `createCaption()` callback checks `m_layoutDone` before calling `adjustSpaceAssignment()`. |
-| `src/Label.cpp` | `setRect` dirty-rect early return. `setParent` dirty-parent early return. |
-| `src/backend/raylib/TextRenderer.cpp` | Removed debug `printf` and `Platform::GetTicks()` timing (leftover from earlier session — only removed unused variables, font cache was already present). |
+
+| File                                  | Change                                                                                                                                                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/backend/sdl3/TextRenderer.cpp`   | Added font cache (`m_fontCache` keyed by `(contentHash, size)`, `m_pathCache` by `(path, size)`). Eliminated redundant `TTF_OpenFontIO` calls.                                                                            |
+| `include/CheckBox.h`                  | Added`bool m_layoutDone = false` member.                                                                                                                                                                                  |
+| `src/CheckBox.cpp`                    | `setRect` dirty-rect check. `recreate()` resets `m_layoutDone` to `false`. `create()` sets `m_layoutDone = true` after layout. `createCaption()` callback checks `m_layoutDone` before calling `adjustSpaceAssignment()`. |
+| `src/Label.cpp`                       | `setRect` dirty-rect early return. `setParent` dirty-parent early return.                                                                                                                                                 |
+| `src/backend/raylib/TextRenderer.cpp` | Removed debug`printf` and `Platform::GetTicks()` timing (leftover from earlier session — only removed unused variables, font cache was already present).                                                                 |
 
 **Debug instrumentation removed from production sources**:
+
 - `Label.cpp`: `g_recreateDepth` thread_local + `[LABEL_RECREATE]` printf
 - `CheckBox.cpp`: `[CHECKBOX_RECREATE]` timing printf
 - `SDL3 TextRenderer.cpp`: `[FONT_LOAD]` + `[FONT_HIT]` timing printf
@@ -592,11 +644,12 @@ TL;DR: **Alpha goes in the lowest byte (bits 0-7), Red in the highest byte (bits
 
 **Results**:
 
+
 | Backend | Before | After |
-|---------|--------|-------|
+| ------- | ------ | ----- |
 | SDL3    | ~48s   | ~7.2s |
-| SFML    | —      | ~6.9s |
-| Raylib  | —      | ~4.6s |
+| SFML    | —     | ~6.9s |
+| Raylib  | —     | ~4.6s |
 
 All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
@@ -605,25 +658,31 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 ### 2026-06-12: Phase 15 Bugfix Round 1 — 6 Fixes Across All Backends
 
 **Fix 1 — EditBox ON_FOCUS event union corruption (all backends)**:
+
 - Root cause: `Event` class in `include/StateMachine.h` had `customInt` and `customPtr` in the same union. When `EditBox::setFocused()` set both fields, the second assignment (`customPtr = this`) overwrote the first (`customInt = ON_FOCUS`), so `beforeEventHandlingWatcher` could never match `EventName::ON_FOCUS` and never called `setFocused(false)` on the previously-focused EditBox.
 - Fix: Moved `customInt` and `customPtr` out of the union as regular members. Updated all constructors, copy/move operators, and `copyUnion()` (removed `case EventType::Custom`).
 
 **Fix 2 — WinFrame title bar drag area (all backends)**:
+
 - Problem: Title bar drag (Step 4) covered the full title bar height at any X. Left edge dragging was possible on non-resizable WinFrames.
 - Fix: Added `localMouse.x >= m_edgeMargin` and `localMouse.y >= m_edgeMargin` checks to restrict drag to the interior of the title bar, excluding resize edge zones and the close button area.
 
 **Fix 3 — Raylib Chinese TextInput shows "?"**:
+
 - Problem: `RaylibTextRenderer::loadFontFromMemory()` only loaded ASCII codepoints (0x20–0x7E) on initial font load. `EditBox::insertText()` modified `m_text` but never called `loadFontInternal()`, so the TextRenderer's lazy expansion (via `loadFontFromMemoryWithText`) was never triggered with the new CJK codepoints.
 - Fix: Added `loadFontInternal()` call in `EditBox::insertText()` to reload the font with the updated text's codepoints via `loadFontFromMemoryWithText()`. Also added `ensureFontCodepoints()` lazy expansion in the raylib TextRenderer's `drawText()`/`measureText()` for the cached `void*` text path used by Label.
 
 **Fix 4 — Raylib EditBox direction key repeat**:
+
 - Problem: `m_repeatKey` was reset to 0 in `newFrame()`, losing the key repeat state between frames. Holding Left/Right arrow keys did not generate repeated `KeyDown` events.
 - Fix: Removed `m_repeatKey = 0;` from `newFrame()` so the repeat state persists across frames. The `IsKeyDown(m_repeatKey)` check ensures stale keys are ignored. Key repeat timing: 350ms initial delay / 50ms repeat interval.
 
 **Fix 5 — Remove DebugTrace**:
+
 - Removed `#include "DebugTrace.h"` from `include/MainWindow.h`. Removed two `DEBUG_STREAM` calls in `onWindowResized()` and `onWindowMoved()`.
 
 **Fix 6 — Add test name to window title**:
+
 - Added `MainWindow::setTitle()` delegating to `Window::setTitle()`.
 - Added `MAINWIN->setTitle("test_xxx");` as first line in each of the 10 test files' `onInit()` method.
 
@@ -632,11 +691,13 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 ### 2026-06-12: R2-R4 — UICornerstone C ABI Implementation (Compile Complete)
 
 **New files**:
+
 - `include/UICornerstoneAPI.h`: 公有 C ABI 头文件 — `UIBackendCallbacks` 回调查表（7 类回调约 40 个函数指针）、`UIControlHandle`/`UIRenderDeviceHandle` 等 10+ 个不透明句柄、所有 `UICornerstone_*` 函数声明
 - `src/CallbackAdapters.h` + `.cpp`: 5 个 Adapter 类（CallbackWindow/RenderDevice/InputBackend/TextRenderer/ResourceProvider）将回调查表委托为现有的 C++ 抽象接口
 - `src/UICornerstoneAPI.cpp`: C ABI 实现 — `Init` / `Shutdown` / `SetViewport` / `ProcessEvents` / `Update` / `Render` / `IsQuitRequested` + 6 个控件工厂（Button/Label/CheckBox/EditBox/ProgressBar/Panel）+ 通用控件操作 + `LoadLayout`/`FindControl`/`RegisterAction` 骨架
 
 **编译修复**:
+
 - SRect 成员名：所有 `.x`/`.y`/`.w`/`.h` → `.left`/`.top`/`.width`/`.height`
 - CheckBox 文本：通过 `getCaption()->setCaption(text)` 设置
 - `Button::setOnClick` lambda：参数包装为 `shared_ptr<Button>`
@@ -645,12 +706,14 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - 所有 4 个新文件保存为 UTF-8 with BOM 解决 MSVC C4819
 
 **验证**：
+
 - `UICornerstone.lib` 编译 0 错误
 - 全部 10 个 SDL3 测试编译通过（无回归）
 
 ### 2026-06-12: R5 — JSON 布局 C ABI 包装 (Complete)
 
 **`UICornerstone_LoadLayout` 实现**：
+
 - 注册所有 `g_actions` 中的回调到 LayoutParser（通过 `registerHandler` 适配 `UIActionCallback` → `function<void(shared_ptr<Control>)>`）
 - 调用 `parser.parseLayout()` 解析 JSON
 - 成功后添加根控件到 `BENCH`（`BENCH->addControl(root)`）
@@ -658,10 +721,35 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - 遍历 `parser.getAllControlIds()`，将每个控件注册到 `g_controlsById`（使 `UICornerstone_FindControl` 可用）
 
 **`UICornerstone_Render` 修正**：
+
 - 移除 `clear()` 和 `present()` — 调用者负责管理全帧生命周期
 - 仅做 `setClipRect(g_viewport)` → `BENCH->draw()` → `clearClipRect()`
 
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
+
+### 2026-06-24: Slider 刻度线 + 刻度标签（Complete）
+
+**问题**：水平滑块的刻度线应该只在轨道下方绘制（非居中），且应带有刻度数值标签。
+
+**变更**（6 文件）：
+
+
+| 文件 | 变更 |
+|------|------|
+| `include/ConstDef.h` | 添加 `SLIDER_TICK_INTERVAL/LENGTH/COLOR` 常量 |
+| `src/ConstDef.cpp` | 默认值：interval=0，length=8，color=灰(100,100,100) |
+| `include/Slider.h` | 添加 `m_tickInterval/length/color` 成员 + `m_tickFont/m_tickFontData/m_tickLabelFontSize` + `setTickInterval/Length/Color` + Builder 方法 |
+| `src/Slider.cpp` | `draw()` 中：水平滑块在轨道下方绘制竖线 + 数值标签；垂直滑块在轨道左侧绘制横线 + 数值标签；懒加载 `m_tickFont`（通过 ResourceProvider + 预加载字体数据） |
+| `src/LayoutParser.cpp` | 添加 `"tick": {interval, length, color}` JSON 解析 |
+| `test/test_slider.cpp` | 添加 Slider9：范围 0-100，tickInterval=10，tickLength=8，浅灰刻度 |
+
+**刻度绘制逻辑**：
+- 水平：刻度线从轨道底部向下延伸 `tickLength`，标签在刻度线下方 2px 居中
+- 垂直：刻度线从轨道左侧向左延伸 `tickLength`，标签在刻度线左侧 2px 居中
+- tickInterval=0（默认）时不绘制刻度
+- 刻度标签使用 `m_labelFont` 字体 + `m_tickLabelFontSize`（默认 10px），懒加载缓存
+
+**构建验证**：三后端（SDL3/SFML/Raylib）全部编译通过。test_slider 运行正常，9 个滑块（含刻度滑块）初始化 + 3 秒运行无崩溃。
 
 ### 2026-06-21: HandleControl 光标 + 视觉优化 (Complete)
 
@@ -671,6 +759,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 反馈始终不可见。
 
 **Bug 1 — 光标不出现**：
+
 - Root cause: `SDL_SetCursor` 在此 SDL3 fork 中不能持久化，Windows 的
   `WM_SETCURSOR` 消息在每帧鼠标移动时复位光标为默认
 - Fix: `HandleControl::setResizeCursor()` 在 `#ifdef _WIN32` 路径下直接调用
@@ -678,28 +767,34 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - 添加中心十字星背景，以及十字星拖拽/缩放和释放时光标保持和恢复
 
 **Bug 2 — Move 手柄区域太小难以命中**：
+
 - `updateHandleAreas` 中 Move 手柄只有中心 8×8 像素区域
 - 用户反馈后恢复原始设计（只在小方块和十字星上触发光标变化）
 
 **Bug 3 — 拖拽中光标恢复为默认**：
+
 - 按下鼠标启动拖拽/缩放后，后续 MouseMove 事件被拖拽逻辑消费，
   `setResizeCursor` 未被调用
 - Fix: 在 `m_resizing`/`m_dragging` 分支的 MouseMove 中也调用 `setResizeCursor`
 
 **Bug 4 — 按下鼠标瞬间光标恢复为默认**：
+
 - MouseDown 中 `startDrag/startResize` 之后没有立即设置光标
 - Fix: MouseDown 分支末尾加 `setResizeCursor(ht)`
 
 **视觉优化**：
+
 - 8 个角/边手柄保持白底蓝边方块
 - 中心十字改为蓝边白底十字（5px 蓝线 + 3px 白线 + 两端各延 1px）
 - 修复十字星下方重叠绘制方块的问题（循环中跳过 HandleType::Move）
 
 **变更文件**：
-| 文件 | 变更 |
-|------|------|
-| `src/HandleControl.cpp` | Win32 SetCursor 路径；拖拽中光标保持；按下瞬间光标；十字星蓝边白底；移除方块循环中 Move 绘制 |
-| `doc/HandleControl_Design.md` | 更新 drawMoveHandle、事件流程、光标 Win32 说明、移除 beforeDraw、m_handleAreas 固定数组 |
+
+
+| 文件                          | 变更                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/HandleControl.cpp`       | Win32 SetCursor 路径；拖拽中光标保持；按下瞬间光标；十字星蓝边白底；移除方块循环中 Move 绘制 |
+| `doc/HandleControl_Design.md` | 更新 drawMoveHandle、事件流程、光标 Win32 说明、移除 beforeDraw、m_handleAreas 固定数组      |
 
 **验证**：test_handlecontrol 三后端（SDL3/SFML/Raylib）构建通过。
 
@@ -708,6 +803,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **根因**：SFML 和 Raylib 后端使用**直接方法覆盖**模式（在各自 `Cursor.cpp` 中定义 `Cursor::createSystem()`/`getDefault()`/`setCurrent()` 成员函数），而非 SDL3 所用的**工厂注册**模式（`RegisterSDL3CursorFactories()` → `Cursor::registerFactories()`）。在 fromsource/DLL 模式下，`UICornerstone.dll` 中的 `src/Cursor.cpp`（工厂指针模式）无法获取后端实现。
 
 **修复**（5 文件）：
+
 - `src/backend/sfml/Cursor.cpp`：`Cursor::createSystem/getDefault/setCurrent` 改为静态工厂函数 `sfmlCreateSystemCursor/sfmlGetDefaultCursor/sfmlSetCurrentCursor`；新增 `RegisterSFMLCursorFactories()`
 - `src/backend/raylib/Cursor.cpp`：同上（`raylib*` 前缀）；新增 `RegisterRaylibCursorFactories()`
 - `src/backend/sfml/BackendPlugin.cpp`：`GetUIBackendCallbacks()` 中添加 `RegisterSFMLCursorFactories()` 调用
@@ -723,6 +819,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **问题**：sample_loadlibrary 在 `UICORNERSTONE_BUILD_SHARED` 定义下链接 `UICornerstone_dll.lib`，导致符号解析走 `dllimport` —— `Surface::registerFactories` 等 `CORE_API` 函数的函数体在 DLL 而非 exe 中。当 exe 提供自己的 `registerFactories` 时出现 LNK2001（多重定义）。
 
 **Fix**：
+
 - sample_loadlibrary 不再链接 `UICornerstone_dll.lib`
 - 不定义 `UICORNERSTONE_BUILD_SHARED`，`CORE_API` 为空宏 → 无 `dllimport`
 - 内联 3 个 Core 符号：`Surface::registerFactories`（no-op）、`Cursor::registerFactories`（no-op）、`ResourceProvider::createFilesystem`（FilesystemResourceProvider 完整实现）
@@ -730,14 +827,16 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **所有 4 个 Sample 最终验证**：
 
-| Sample | 模式 | 后端编译 | 核心加载 | 零导入库 | 验证 |
-|--------|------|----------|----------|----------|------|
-| hello_uicornerstone | JSON 布局 | `UICornerstone.lib` 静态 | 无 DLL | ✅ | build/run ✔ |
-| sample_programmatic | C ABI 工厂 | `UICornerstone.lib` 静态 | 无 DLL | ✅ | build/run ✔ |
-| sample_fromsource | ILT 隐式 | CMake 独立 TU | `UICornerstone.dll` | ❌ (需导入库) | build/run ✔ |
-| sample_loadlibrary | LoadLibrary | `#include` 同一 TU | `UICornerstone.dll` | ✅ | build/run ✔ |
+
+| Sample              | 模式        | 后端编译                 | 核心加载            | 零导入库      | 验证         |
+| ------------------- | ----------- | ------------------------ | ------------------- | ------------- | ------------ |
+| hello_uicornerstone | JSON 布局   | `UICornerstone.lib` 静态 | 无 DLL              | ✅            | build/run ✔ |
+| sample_programmatic | C ABI 工厂  | `UICornerstone.lib` 静态 | 无 DLL              | ✅            | build/run ✔ |
+| sample_fromsource   | ILT 隐式    | CMake 独立 TU            | `UICornerstone.dll` | ❌ (需导入库) | build/run ✔ |
+| sample_loadlibrary  | LoadLibrary | `#include` 同一 TU       | `UICornerstone.dll` | ✅            | build/run ✔ |
 
 **设计文档更新**：
+
 - `doc/Sample_Design.md`: §3 新增 loadlibrary 架构图；§7 关键差异说明改为零导入库方式（3 个 Core 符号内联）
 - AGENTS.md: 本次 session 记录
 - `doc/Build_Guide.md` 已在前序 session 更新
@@ -745,6 +844,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 ### 2026-06-20: hello_uicornerstone sample 实现
 
 **变更**：
+
 - `samples/hello_uicornerstone/hello_uicornerstone.c`: 纯 C 示例（~50 行），Button 点击 → Label 计数，内联 JSON 布局，完全静态链接
 - `samples/hello_uicornerstone/CMakeLists.txt`: 单目标 CMake，POST_BUILD 复制 DLL + assets
 - `samples/CMakeLists.txt`: 新目录 CMake，转发到子目录
@@ -761,6 +861,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 ### 2026-06-20: SFML/Raylib 静态+DLL 双构建目录 + test_fromsource 改名
 
 **变更**：
+
 - SFML/Raylib 改为与 SDL3 一致：`build/sfml`=静态、`build/sfml_dll`=DLL、`build/raylib`=静态、`build/raylib_dll`=DLL
 - `test/test_fromsource.cpp` → `test/test_fromsource_sdl3.cpp`，CMake target 同步改名
 - 从静态构建目录中清理出旧 DLL 模式残留文件（`UICornerstone.dll`/`UIBackend_*.dll` 等）
@@ -768,20 +869,22 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **构建目录结构**：
 
-| 目录 | 模式 | fromsource 测试 |
-|------|------|:----:|
-| `build/sdl3` | 静态 | — |
-| `build/sdl3_dll` | DLL | `test_fromsource_sdl3` |
-| `build/sfml` | 静态 | — |
-| `build/sfml_dll` | DLL | `test_fromsource_sfml` |
-| `build/raylib` | 静态 | — |
-| `build/raylib_dll` | DLL | `test_fromsource_raylib` |
+
+| 目录               | 模式 |     fromsource 测试     |
+| ------------------ | ---- | :----------------------: |
+| `build/sdl3`       | 静态 |            —            |
+| `build/sdl3_dll`   | DLL  |  `test_fromsource_sdl3`  |
+| `build/sfml`       | 静态 |            —            |
+| `build/sfml_dll`   | DLL  |  `test_fromsource_sfml`  |
+| `build/raylib`     | 静态 |            —            |
+| `build/raylib_dll` | DLL  | `test_fromsource_raylib` |
 
 **验证**：6 个构建目录的所有测试 exe + DLL 时间戳均为 2026-06-20。
 
 ### 2026-06-20: sample_fromsource — 混合集成（核心 DLL + 后端源码）
 
 **变更**：
+
 - `samples/sample_fromsource/sample_fromsource.c`: 纯 C 示例（~55 行），Button 点击 → Label 计数，`GetUIBackendCallbacks()` + `UICornerstone_Init(callbacks)` 模式
 - `samples/sample_fromsource/CMakeLists.txt`: 仅 `UICORNERSTONE_BUILD_DLL=ON` 下构建；将 6 个后端源文件编译进 exe（Window/RenderDevice/TextRenderer/InputBackend/Cursor/BackendPlugin）；链接 `UICornerstone_dll`（导入库，ILT 隐式加载 UICornerstone.dll）
 - `samples/CMakeLists.txt`: 添加 `add_subdirectory(sample_fromsource)`
@@ -795,6 +898,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 ### 2026-06-20: sample_loadlibrary — 显式 LoadLibrary + #include 后端源码
 
 **变更**：
+
 - `samples/sample_loadlibrary/sample_loadlibrary.cpp`: 纯 C++ 示例（~80 行），Button 点击 → Label 计数，`LoadLibraryA("UICornerstone.dll")` + `GetProcAddress` 解析全部 C ABI 函数；`#include` 6 个后端 .cpp 文件编译入同一 TU；`main()` 帧循环
 - `samples/sample_loadlibrary/CMakeLists.txt`: 仅 `UICORNERSTONE_BUILD_DLL=ON` 下构建；后端通过 `#include` 而非独立 TU 编译；链接 `UICornerstone_dll` 导入库（仅用于注册符号，C ABI 全部走函数指针）
 - `samples/CMakeLists.txt`: 添加 `add_subdirectory(sample_loadlibrary)`
@@ -803,11 +907,13 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 - `doc/Build_Guide.md`: 添加 sample_loadlibrary 到测试表、输出目录、独立构建说明、fromsource 节
 
 **与 sample_fromsource 的架构差异**：
-| 维度 | sample_fromsource | sample_loadlibrary |
-|------|-------------------|-------------------|
-| DLL 加载 | ILT 隐式 | `LoadLibrary` 显式 |
-| C ABI 调用 | 直接符号链接 | `GetProcAddress` 函数指针 |
-| 后端编译 | CMake 独立 TU | `#include .cpp` 同一 TU |
+
+
+| 维度       | sample_fromsource | sample_loadlibrary        |
+| ---------- | ----------------- | ------------------------- |
+| DLL 加载   | ILT 隐式          | `LoadLibrary` 显式        |
+| C ABI 调用 | 直接符号链接      | `GetProcAddress` 函数指针 |
+| 后端编译   | CMake 独立 TU     | `#include .cpp` 同一 TU   |
 
 **验证**：`sample_loadlibrary.exe` 272KB 编译通过，启动后 2 秒存活正常，输出显示 `loaded UICornerstone.dll` + `GetUIBackendCallbacks ready` + `initialized from callback table`。
 
@@ -815,21 +921,22 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **更新列表**：
 
-| 文档 | 主要变更 |
-|------|----------|
-| ControlBase_Design.md | 移除 `SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
-| Button_Design.md | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer` |
-| CheckBox_Design.md | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15） |
-| EditBox_Design.md | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal` |
-| TextArea_Design.md | 移除 `TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码 |
-| ProgressBar_Design.md | `SDL_Color` → `SColor`；移除 `setRenderer` |
-| ScrollBar_Design.md | handleEvent union API（移除 `std::any_cast`/`try-catch`）；移除 `setRenderer` |
-| WinFrame_Design.md | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API |
-| Menu_Design.md | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor` |
-| GraphTool_Design.md | 全面去 SDL3：架构图/代码 `SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry` |
-| LayoutSystem_Design.md | 移除 `#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h |
-| ComponentSystem_Design.md | 最小变更：`SDL_Log` → `Platform::Log` |
-| UICornerstone_DLL_Design.md | 状态从"实施中"→"已完成"；新增 §9.4 Fromsource 集成模式（架构/工厂注册/修复表/回调查表扩展）；版本历史扩充至 1.11 |
+
+| 文档                        | 主要变更                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ControlBase_Design.md       | 移除`SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
+| Button_Design.md            | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer`                                                                               |
+| CheckBox_Design.md          | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15）                                                                                    |
+| EditBox_Design.md           | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal`                                  |
+| TextArea_Design.md          | 移除`TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码                                                         |
+| ProgressBar_Design.md       | `SDL_Color` → `SColor`；移除 `setRenderer`                                                                                                                              |
+| ScrollBar_Design.md         | handleEvent union API（移除`std::any_cast`/`try-catch`）；移除 `setRenderer`                                                                                             |
+| WinFrame_Design.md          | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API                                             |
+| Menu_Design.md              | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor`                                                                       |
+| GraphTool_Design.md         | 全面去 SDL3：架构图/代码`SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry`                                           |
+| LayoutSystem_Design.md      | 移除`#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h                                                         |
+| ComponentSystem_Design.md   | 最小变更：`SDL_Log` → `Platform::Log`                                                                                                                                   |
+| UICornerstone_DLL_Design.md | 状态从"实施中"→"已完成"；新增 §9.4 Fromsource 集成模式（架构/工厂注册/修复表/回调查表扩展）；版本历史扩充至 1.11                                                       |
 
 **验证**：所有 15 份设计文档（`*_Design.md`）均反映当前代码库状态。Label_Design.md 已在 2026-06-05 session 中更新，ResourceLoader_Design.md 已标为废弃，无需重复修改。
 
@@ -837,20 +944,21 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **更新列表**：
 
-| 文档 | 主要变更 |
-|------|----------|
-| ControlBase_Design.md | 移除 `SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
-| Button_Design.md | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer` |
-| CheckBox_Design.md | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15） |
-| EditBox_Design.md | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal` |
-| TextArea_Design.md | 移除 `TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码 |
-| ProgressBar_Design.md | `SDL_Color` → `SColor`；移除 `setRenderer` |
-| ScrollBar_Design.md | handleEvent union API（移除 `std::any_cast`/`try-catch`）；移除 `setRenderer` |
-| WinFrame_Design.md | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API |
-| Menu_Design.md | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor` |
-| GraphTool_Design.md | 全面去 SDL3：架构图/代码 `SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry` |
-| LayoutSystem_Design.md | 移除 `#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h |
-| ComponentSystem_Design.md | 最小变更：`SDL_Log` → `Platform::Log` |
+
+| 文档                      | 主要变更                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ControlBase_Design.md     | 移除`SDL_Renderer*`/`setRenderer`/`getRenderer`；添加 `RenderDevice*`/`TextRenderer*`/`ResourceProvider*` 抽象成员；`addControl`/`setParent` 改用 `inheritRenderer` 传播 |
+| Button_Design.md          | handleEvent 重写为 union API（Phase 12）；`SDL_Color` → `SColor` 常量；移除 `setRenderer`                                                                               |
+| CheckBox_Design.md        | handleEvent union API；`SDL_Color` → `SColor`；添加 `setRect` 脏矩形优化（Phase 15）                                                                                    |
+| EditBox_Design.md         | `TTF_Font*`/`TTF_Text*` → `SharedFont`/`TextRenderer*`；移除 `recreateTextObjects`/`setRenderer`；添加 `m_fontData`/`loadFontInternal`                                  |
+| TextArea_Design.md        | 移除`TTF_TextEngine*`；移除 `setRenderer`；handleEvent union API；`rebuildLines`/`updateVScrollBar` 匹配实际源码                                                         |
+| ProgressBar_Design.md     | `SDL_Color` → `SColor`；移除 `setRenderer`                                                                                                                              |
+| ScrollBar_Design.md       | handleEvent union API（移除`std::any_cast`/`try-catch`）；移除 `setRenderer`                                                                                             |
+| WinFrame_Design.md        | `SDL_Cursor*` → `Cursor*`；`ResourceLoader::RID_*` → 内联路径；添加向量 X 叠加层 `WinFrame::draw()`；handleEvent union API                                             |
+| Menu_Design.md            | `SDL_Log` → `Platform::Log`；`SDL_Event`/`SDL_PushEvent` → 通用退出机制；`SDL_Color` → `SColor`                                                                       |
+| GraphTool_Design.md       | 全面去 SDL3：架构图/代码`SDL_Renderer` → `RenderDevice`；`SColor` 独立类；`drawTriangle`/`drawQuad` 替代 `SDL_RenderGeometry`                                           |
+| LayoutSystem_Design.md    | 移除`#include <SDL3/SDL.h>`；`SDL_Log` → `Platform::Log`；`parseFontStyle` 返回 `int`；FontName 迁至 ConstDef.h                                                         |
+| ComponentSystem_Design.md | 最小变更：`SDL_Log` → `Platform::Log`                                                                                                                                   |
 
 **验证**：所有 14 份设计文档（`*_Design.md`）+ `ResourceLoader_Design.md`（已废弃）+ `BackendAbstraction_Design.md`（已在前序 session 更新）均反映当前代码库状态。Label_Design.md 已在 2026-06-05 session 中更新，无需重复修改。
 
@@ -859,10 +967,10 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **根因（双重）**：
 
 1. **`BackendBridge.h:bridge_drawTexture` `nullptr` src 被转义为零 SRect**：当调用者（如`Actor::draw`）传递 `nullptr` src（表示"使用完整纹理"）时，`bridge_drawTexture` 创建默认 `SRect()`（全零），然后将**非空指针**传给 `RaylibRenderDevice::drawTexture`。导致 `src=(0,0,0,0)` → `DrawTexturePro` 绘制空输出。
-
 2. **`RaylibRenderDevice::drawTexture` 使用 `rlPushMatrix + rlScalef + DrawTextureEx`**：该写法在 fromsource/DLL 桥接模式下因 OpenGL 矩阵状态跨 DLL 边界损坏而无效，纹理始终不可见；用 `DrawTexturePro` 替代后正常工作。
 
 **诊断过程**：
+
 - 确认非纹理控件（CheckBox、EditBox、Panel背景、Label文字）全部可见 → 问题在纹理路径
 - `DrawTexturePro` 在诊断新鲜创建的纹理上工作 → 问题不是 `DrawTexturePro` 本身
 - `LoadImageFromTexture` 读回原生纹理 GPU 数据成功且有有效不透明像素 → 数据未损坏
@@ -871,9 +979,10 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 
 **修复（2 个文件）**：
 
-| 文件 | 变更 |
-|------|------|
-| `src/backend/BackendBridge.h` | `bridge_drawTexture` 中 `nullptr` src 传入 `nullptr` 而非 `&zeroRect` |
+
+| 文件                                  | 变更                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| `src/backend/BackendBridge.h`         | `bridge_drawTexture` 中 `nullptr` src 传入 `nullptr` 而非 `&zeroRect`       |
 | `src/backend/raylib/RenderDevice.cpp` | `drawTexture` 从 `rlPushMatrix+rScalef+DrawTextureEx` 改为 `DrawTexturePro` |
 
 **验证**：raylib fromsource ImageButton PNG、LuotiAni 动画、WinFrame 关闭按钮 X 全部可见。SDL3 全部 10 测试无回归。
@@ -885,14 +994,14 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **根因（双重）**：
 
 1. **`Actor::setParent` 覆盖纹理**（`src/Actor.cpp:125-140`）：`setParent` 在 `m_texture` 已存在时仍调用 `m_surface->createTexture()` 覆盖 `m_texture`。初始纹理在 `loadFromFile()` 中创建，`Button::setNormalStateActor()` 调用 `setParent()` 时创建第二个纹理覆盖第一个（第一个被销毁，OpenGL handle 回收）。
-
 2. **`sf::VertexArray` + `RenderStates` 纹理绑定问题**：`sf::VertexArray(TriangleStrip)` + `states.texture = nativeTex` 在特定 OpenGL 状态组合下不可见。改 `sf::Sprite(*nativeTex)` 后正确。
 
 **修复（2 个文件）**：
 
-| 文件 | 变更 |
-|------|------|
-| `src/Actor.cpp` | `setParent` 添加 `&& !m_texture` 避免覆盖已有纹理 |
+
+| 文件                                | 变更                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `src/Actor.cpp`                     | `setParent` 添加 `&& !m_texture` 避免覆盖已有纹理                      |
 | `src/backend/sfml/RenderDevice.cpp` | `drawTexture` 加入 `setActive(true)` + `sf::Sprite` 替代 `VertexArray` |
 
 **验证**：`test_fromsource_sfml.exe` 纹理和动画全部可见。SDL3 全部 10 测试无回归。
@@ -904,6 +1013,7 @@ All 10 tests build and run on all 3 backends. ~6.5× speedup on SDL3.
 **根因**：`Label::recreate()` 每帧调用 `releaseFont()` 重置 `m_font`/`m_fontData`，迫使后续 `create()` → `loadFromResource()` 从磁盘读取 ~5-10MB HarmonyOS 字体文件并通过桥接链 `DLL→EXE→DLL` 反复传递，产生 15-44ms 的停顿。
 
 **瓶颈链**：
+
 ```
 uiSetText(g_prgStatus, "Progress: XX.X%")
   → UICornerstone_SetText (DLL)
@@ -920,20 +1030,22 @@ uiSetText(g_prgStatus, "Progress: XX.X%")
 
 **性能数据**：
 
-| 指标 | 修复前 | 修复后 |
-|------|--------|--------|
+
+| 指标                   | 修复前  | 修复后  |
+| ---------------------- | ------- | ------- |
 | Update (BENCH->update) | 15-44ms | 0.2-1ms |
-| Labels (setCaption) | 15-32ms | 0.4-6ms |
-| 总帧时间 | 33-75ms | 1.5-6ms |
-| FPS | 13-31 | 170-670 |
+| Labels (setCaption)    | 15-32ms | 0.4-6ms |
+| 总帧时间               | 33-75ms | 1.5-6ms |
+| FPS                    | 13-31   | 170-670 |
 
 **修复（3 个文件）**：
 
-| 文件 | 变更 |
-|------|------|
-| `src/Label.cpp:recreate()` | 移除 `releaseFont()`，字体在文本/对齐/边距变化时无需重载 |
-| `src/Label.cpp:setFont()` / `setFontSize()` | 添加 `releaseFont()`，只有字体名称或大小变化时才释放字体 |
-| `src/Label.cpp:loadFromResource()` | 添加 `if (m_font) return;` 缓存命中提前返回，避免重复 Provider 读取和桥接 |
+
+| 文件                                        | 变更                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/Label.cpp:recreate()`                  | 移除`releaseFont()`，字体在文本/对齐/边距变化时无需重载                  |
+| `src/Label.cpp:setFont()` / `setFontSize()` | 添加`releaseFont()`，只有字体名称或大小变化时才释放字体                  |
+| `src/Label.cpp:loadFromResource()`          | 添加`if (m_font) return;` 缓存命中提前返回，避免重复 Provider 读取和桥接 |
 
 **验证**：`test_fromsource_sfml.exe` 运行流畅，FPS 稳定 300-500。SDL3 全部 10 测试无回归。
 `setFramerateLimit(120)` 已移除（非正确修复方向）。
@@ -945,6 +1057,7 @@ uiSetText(g_prgStatus, "Progress: XX.X%")
 **根因**：未知。`DrawTexturePro` 和 `rlBegin/rlEnd`（`RL_TRIANGLES`）在 fromsource/bridge 模式下始终不可见。`DrawTextureV` 在 `raylib.h` 中定义为 `static inline`（编译到 exe TU），`DrawTexturePro` 来自预编译 `raylib.lib`——函数跨库调用路径可能是关键差异。透明热身（alpha=0）也无效。
 
 **修复**：完全绕过 `DrawTexturePro` 和 `rlBegin/rlEnd`，改用 `rlPushMatrix + rlScalef + DrawTextureEx` 组合：
+
 ```
 rlPushMatrix();
 rlTranslatef(dst.x, dst.y, 0);
@@ -953,9 +1066,11 @@ rlTranslatef(-src.x, -src.y, 0);
 DrawTextureEx(nativeTex, {0,0}, 0, 1.0f, WHITE);
 rlPopMatrix();
 ```
+
 `DrawTextureEx`（scale=1，原生大小）在桥接路径下正常工作；通过矩阵变换实现定位 + 非均匀拉伸，等价于 `DrawTexturePro` 的行为。
 
 **关键发现**：
+
 - `static inline DrawTextureV` → `DrawTextureEx`（raylib.lib）→ `DrawTexturePro`（raylib.lib）链路上，inline 函数编译到 exe，库函数在 raylib.lib——跨库调用路径可能触发了 raylib 内部渲染批处理状态 bug。
 - `DrawTexturePro` 单独调用（含 `rlDrawRenderBatchActive` + `rlSetTexture` + `printf`/`fflush` 等各种变体）皆不可见
 - `rlBegin(RL_TRIANGLES)` + `rlTexCoord2f` + `rlVertex2f` 低级 API → 同样不可见
@@ -963,39 +1078,49 @@ rlPopMatrix();
 - `drawTextureRotated` 补了缺失的 `EndBlendMode()` guard
 
 **文件变更**：
-| 文件 | 变更 |
-|------|------|
+
+
+| 文件                                  | 变更                                                                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/backend/raylib/RenderDevice.cpp` | `drawTexture()` 和 `drawTextureRotated()` 改用 `rlPushMatrix + rlScalef + DrawTextureEx`；`drawTextureRotated` 补 `EndBlendMode()` guard |
 
 ### 2026-06-16: Fix 4 fromsource 测试 Bug（Actor fallback + Raylib 字体 in-place reload）
 
 **修复 1 — SFML/Raylib WinFrame 关闭按钮 X 不显示**：
+
 - Root cause: `Actor::loadFromFile()` 只调用 `Surface::loadFromFile()` 加载 PNG。在 fromsource（callback bridge）路径下，Surface 工厂函数（`RegisterSFMLSurfaceFactories`/`RegisterRaylibSurfaceFactories`）注册到 DLL，但 Actor 在 DLL 内通过桥接调用 `Surface::loadFromFile()` 时工厂返回 nullptr，导致图片加载失败。
 - Fix: `Actor::loadFromFile()` 在 `Surface::loadFromFile()` 返回 nullptr 后，回退调用 `getRenderDevice()->createTextureFromFile(path)`。该虚方法在 backends 和 CallbackBridge 中均已实现，可绕过 Surface 工厂直接由后端加载纹理。
 - 同时所有三个后端的 BackendPlugin.cpp 已连接 `createTextureFromFile` 回调到 `bridge_createTextureFromFile`。
 
 **修复 2 — Raylib 中文显示"?"**：
+
 - Root cause: `RaylibTextRenderer::ensureFontCodepoints()` 懒加载扩展 CJK 码点时创建新的 `shared_ptr<RaylibFont>` 替换字体缓存。但 bridge 中的 `UIFontHandle`（`shared_ptr<Font>*` 堆分配句柄）仍指向旧对象，导致后续 `drawText` 通过 bridge 调用时使用只有 ASCII 码点的旧字体。
 - Fix: `RaylibFont` 新增 `reload(rlFont)` 方法，原地卸载旧 `rlFont` 并替换为新字体的 `rlFont`，不改变对象身份。`loadOrCreate()` 和 `ensureFontCodepoints()` 中的字体重载路径改为调用 `reload()` 而非创建新 `shared_ptr`。
 
 **修复 3 — SFML 事件响应慢**（部分处理）：
+
 - `Window.cpp` 中已添加 `setVerticalSyncEnabled(false)`（前次 session 完成）
 - 当前 session 未发现其他导致响应慢的原因（`pollEvent` 使用非阻塞 API，帧循环无休眠等待）
 
 **修复 4 — Raylib EditBox/TextArea 中文输入**（同 Root cause 为修复 2）：
+
 - 中文输入通过 `TextInput` 事件输入 UTF-8 文本，EditBox 内部调用 `loadFontInternal()` 时使用 `loadFontFromMemory()`（仅 ASCII）。在 `insertText()` 中 EditBox 重新加载字体（未使用 ensureFontCodepoints）。修复 2 已修复字体句柄一致性问题。
 
 **文件变更**：
-| 文件 | 变更 |
-|------|------|
-| `src/Actor.cpp` | `loadFromFile()` 添加 `createTextureFromFile` 回退 |
+
+
+| 文件                                  | 变更                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| `src/Actor.cpp`                       | `loadFromFile()` 添加 `createTextureFromFile` 回退                               |
 | `src/backend/raylib/TextRenderer.cpp` | `RaylibFont::reload()` 方法 + `loadOrCreate`/`ensureFontCodepoints` 改为原地重载 |
 
 **已知问题**：
+
 - SFML 和 Raylib 标准测试（静态链接 `UICornerstone.lib`）存在 `Surface::create/loadFromFile/loadFromMemory` 重复定义错误（`Surface.cpp` 和 `RenderDevice.cpp` 均定义）。这是预存在问题（自 Phase R10b 核心/后端 DLL 拆分后），不影响 DLL 模式或 SDL3 静态模式。
 - SFML fromsource 在部分环境下事件响应仍可能偏慢（vsync 关闭后未完全解决）。
 
 **验证**：
+
 - SDL3 全部 10 个标准测试编译成功 ✅
 - SDL3 fromsource 测试编译成功 ✅
 - SFML fromsource 测试编译成功 ✅
@@ -1006,20 +1131,24 @@ rlPopMatrix();
 **问题**：test_fromsource_raylib WinFrame 关闭按钮 X 不显示，只看到灰色/红色方块。原因是 PNG 纹理在 raylib 后端的渲染有问题。
 
 **根本原因**：
+
 1. **RaylibTexture::setBlendMode** 只存储混合模式到 `m_blendMode` 成员，但从未实际调用 `BeginBlendMode()` 应用到 OpenGL 状态。SDL3 的 `SDL_SetTextureBlendMode` 直接作用于纹理对象，透明通道正确处理；而 raylib 的纹理的 alpha 从未正确生效。
 
 **修复（2 个文件）**：
 
-| 文件 | 变更 |
-|------|------|
-| `src/backend/raylib/RenderDevice.cpp` | `drawTexture()` 和 `drawTextureRotated()` 在调用 `DrawTexturePro` 前读取纹理的 `getBlendMode()` 并调用 `BeginBlendMode()` |
-| `src/WinFrame.cpp` + `include/WinFrame.h` | 新增 `WinFrame::draw()` override，在 `Panel::draw()` 后使用 `RenderDevice::drawLine()` 绘制向量 X 叠加层，作为跨后端回退方案确保 X 永远可见 |
+
+| 文件                                      | 变更                                                                                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/backend/raylib/RenderDevice.cpp`     | `drawTexture()` 和 `drawTextureRotated()` 在调用 `DrawTexturePro` 前读取纹理的 `getBlendMode()` 并调用 `BeginBlendMode()`                  |
+| `src/WinFrame.cpp` + `include/WinFrame.h` | 新增`WinFrame::draw()` override，在 `Panel::draw()` 后使用 `RenderDevice::drawLine()` 绘制向量 X 叠加层，作为跨后端回退方案确保 X 永远可见 |
 
 **具体改动**：
+
 - `drawTexture/drawTextureRotated`: 根据纹理的 blend mode 调用 `BeginBlendMode(BLEND_ALPHA)`/`BeginBlendMode(BLEND_ADDITIVE)`/`BeginBlendMode(BLEND_MULTIPLIED)`。之前 `setBlendMode` 只是存储值，实际绘制时从未应用。
 - `WinFrame::draw()`: 调用 `Panel::draw()` 后，获取关闭按钮的 `getDrawRect()` 计算中心位置，用 3 条平行 `drawLine` 绘制两条对角线（共 6 条线），颜色根据 closeButton 的 state 变化：Normal=浅灰(200,200,200)、Hover=白(255,255,255)、Pressed=黄(255,255,100)
 
 **验证**：
+
 - SDL3: 全部 13 个目标（10 标准测试 + DLL + lib + fromsource + test_api）编译通过 ✅
 - SFML: `test_fromsource_sfml.exe` 编译通过 ✅（标准测试有预存在的 Surface 重复符号问题）
 - Raylib: `test_fromsource_raylib.exe` 编译通过 ✅（标准测试有预存在的 Surface 重复符号问题）
@@ -1029,6 +1158,7 @@ rlPopMatrix();
 **问题**：SFML 的 `<SFML/Graphics.hpp>` 引入 `<windows.h>`，在 `#include` 模式（backend .cpp 被 test `.cpp` include）下宏污染导致编译失败。
 
 **架构变更**：
+
 - 所有 `test_fromsource*.cpp` 不再 `#include` backend .cpp 文件，改为 CMake 的 `add_executable` 添加为独立翻译单元：
   ```cmake
   add_executable(${target} ${source_file} ${FROMSOURCE_BACKEND_SOURCES})
@@ -1037,11 +1167,13 @@ rlPopMatrix();
 - `FROMSOURCE_BACKEND_LIBS` 收集各后端第三方 lib（SDL3: SDL3.lib+SDL3_ttf.lib+SDL3_image.lib / SFML: sfml-*.lib+opengl32.lib / raylib: raylib.lib+winmm.lib）
 
 **Three fromsource files**:
+
 - `test/test_fromsource_sdl3.cpp` — SDL3 backend (SDL callback mode, 复用 SDL3 窗口)
 - `test/test_fromsource_sfml.cpp` — SFML backend (main() + LoadLibrary + GetUIBackendCallbacks)
 - `test/test_fromsource_raylib.cpp` — Raylib backend (同上)
 
 **关键修复**：
+
 - SFML 中文 `u8"读取TextArea文本内容"` 导致 MSVC C2059 → 改为英文 `"Read TextArea Content"`
 - SDL3 的 `SDLKeycodeToKeyCode`/`SDLKeymodToKeyMod` 返回类型改为 `KeyCode`/`KeyMod`（匹配 InputBackend.h 声明）
 - SDL3 需 `#include "UICornerstoneAPI.h"` + `#include "EventTypes.h"` 获取 UIEvent/KeyCode 定义
@@ -1049,6 +1181,7 @@ rlPopMatrix();
 - `struct UIBackendCallbacks*` → `UIBackendCallbacks*`（避免与 typedef 冲突）
 
 **Cursor 工厂未注册**（cosmetic 警告）：
+
 - fromsource 路径下 Cursor 工厂未通过 `registerFactories` 注册，Label 创建时输出 `Cursor::createSystem: no backend factory registered`
 - 功能不受影响（仅缺光标反馈）
 
@@ -1057,37 +1190,43 @@ rlPopMatrix();
 ### 2026-06-15: fromsource 四 bug 修复（Surface 工厂 + newFrame + vsync）
 
 **Bug 1 — SFML WinFrame 关闭按钮 X / Hover / Press 图片不显示**：
+
 - Root cause: `Actor::loadFromFile()` 调用 `Surface::loadFromFile()`（在 UICornerstone.dll 内），走工厂函数指针 `g_loadFileFn`。在 callback init 路径下工厂未注册 → `g_loadFileFn == nullptr` → 返回 nullptr
 - Fix: 在 `GetUIBackendCallbacks()` 中调用 `RegisterSFMLSurfaceFactories()` / `RegisterRaylibSurfaceFactories()`，将后端的 Surface 工厂函数通过 `Surface::registerFactories()` 注册到 UICornerstone.dll
 - Added `RegisterSFMLSurfaceFactories()` to `src/backend/sfml/RenderDevice.cpp`
 - Added `RegisterRaylibSurfaceFactories()` to `src/backend/raylib/RenderDevice.cpp`
 
 **Bug 2 — SFML 事件响应慢**：
+
 - 怀疑是 SFML 默认 vsync 开启导致 `display()` 阻塞到下一次垂直同步
 - Fix: 在 `Window.cpp` 创建 `sf::RenderWindow` 后显式调用 `setVerticalSyncEnabled(false)`
 
 **Bug 3 — Raylib 窗体无法响应事件（标题栏"未响应"）**：
+
 - Root cause: `PollInputEvents()` 从未被调用。在 callback init 路径下 `g_inputBackend` 是 `CallbackInputBackend`，其 `newFrame()` 使用基类默认空实现
 - Fix: 在 `UIBackendCallbacks` 结构体中新增 `void (*newFrame)(UIInputBackendHandle)` 成员；`CallbackInputBackend::newFrame()` 通过该回调委托；raylib BackendPlugin 设置 `cb.newFrame = bridge_newFrame`（桥接到 `RaylibInputBackend::newFrame()` → `PollInputEvents()`）
 - 不影响 SDL3/SFML（`newFrame` 为 NULL 时跳过，基类空实现已满足需求）
 
 **Bug 4 — Raylib 中文显示"?"**：
+
 - raylib TextRenderer 已有 `ensureFontCodepoints()` 懒加载机制：初始只加载 ASCII 码点（0x20-0x7E），绘制/测量含中文文本时检测缺失码点并自动重载字体
 - 该机制通过 bridge 路径（`drawText(Font*, string, ...)` → `ensureFontCodepoints`）也应正常工作
 
 **文件变更**：
-| 文件 | 变更 |
-|------|------|
-| `include/UICornerstoneAPI.h` | 在 `UIBackendCallbacks` 中新增 `newFrame` 回调函数指针 |
-| `src/backend/BackendBridge.h` | 新增 `bridge_newFrame()` 桥接函数 |
-| `src/CallbackAdapters.h` | `CallbackInputBackend` 新增 `newFrame()` 覆盖 |
-| `src/CallbackAdapters.cpp` | 实现 `CallbackInputBackend::newFrame()` → 委托到回调表 |
-| `src/backend/sfml/RenderDevice.cpp` | 新增 `RegisterSFMLSurfaceFactories()` |
-| `src/backend/raylib/RenderDevice.cpp` | 新增 `RegisterRaylibSurfaceFactories()` |
-| `src/backend/sfml/BackendPlugin.cpp` | 注册表面工厂 + `cb.newFrame = bridge_newFrame` |
-| `src/backend/raylib/BackendPlugin.cpp` | 注册表面工厂 + `cb.newFrame = bridge_newFrame` |
-| `src/backend/sdl3/BackendPlugin.cpp` | 设置 `cb.newFrame = bridge_newFrame`（一致但不必要） |
-| `src/backend/sfml/Window.cpp` | 创建窗口后调用 `setVerticalSyncEnabled(false)` |
+
+
+| 文件                                   | 变更                                                   |
+| -------------------------------------- | ------------------------------------------------------ |
+| `include/UICornerstoneAPI.h`           | 在`UIBackendCallbacks` 中新增 `newFrame` 回调函数指针  |
+| `src/backend/BackendBridge.h`          | 新增`bridge_newFrame()` 桥接函数                       |
+| `src/CallbackAdapters.h`               | `CallbackInputBackend` 新增 `newFrame()` 覆盖          |
+| `src/CallbackAdapters.cpp`             | 实现`CallbackInputBackend::newFrame()` → 委托到回调表 |
+| `src/backend/sfml/RenderDevice.cpp`    | 新增`RegisterSFMLSurfaceFactories()`                   |
+| `src/backend/raylib/RenderDevice.cpp`  | 新增`RegisterRaylibSurfaceFactories()`                 |
+| `src/backend/sfml/BackendPlugin.cpp`   | 注册表面工厂 +`cb.newFrame = bridge_newFrame`          |
+| `src/backend/raylib/BackendPlugin.cpp` | 注册表面工厂 +`cb.newFrame = bridge_newFrame`          |
+| `src/backend/sdl3/BackendPlugin.cpp`   | 设置`cb.newFrame = bridge_newFrame`（一致但不必要）    |
+| `src/backend/sfml/Window.cpp`          | 创建窗口后调用`setVerticalSyncEnabled(false)`          |
 
 **验证**：SDL3/SFML/Raylib 三后端 fromsource 全部编译通过 + 运行通过。
 
@@ -1098,17 +1237,20 @@ rlPopMatrix();
 **问题**：test_fromsource 中 WinFrame 关闭按钮的黑色 X 不可见（仅深灰色背景），怀疑 DLL 桥接存在问题。
 
 **Root cause**：
+
 - `Surface::create(32, 32)` 创建 RGBA8888 surface。在 little-endian x86 上，字节顺序为 A(LSB), B, G, R(MSB)
 - 代码中 `0xFF000000` 实际上是 **R=255, G=0, B=0, A=0** → 透明红色，而非期望的不透明黑色
 - 修复后用 `0x000000FF` (R=0,G=0,B=0,A=255) = 不透明黑；`0x505050FF` (R=80,G=80,B=80,A=255) = 不透明深灰
 
 **DLL 桥接验证**：
+
 - 通过 `GetUIBackendCallbacks` 桥接的 `drawTexture` 正确工作（SDL_RenderTexture 经桥接到 SDL3RenderDevice）
 - PNG 文件加载和程序化表面两种纹理来源均通过桥接正常工作
 - Bench 的 `getRenderDevice()` 通过 `GET_RENDERDEVICE`（`BackendManager::instance()->renderDevice()`）正确获取，无空指针问题
 - Hover/Press 状态图片也可见（证明三个状态 Actor 的纹理绘制全部正常）
 
 **关键教训**：
+
 - 初次看到"没有黑 X"是因为黑 X (0,0,0) 在深灰背景 (80,80,80) 上确实容易被忽略，而非 DLL 桥接问题
 - 所有后续"sdl3/dll/backend bridge"方向的排查都是误判
 
@@ -1117,10 +1259,12 @@ rlPopMatrix();
 ### 2026-06-14: test_fromsource — 单文件编译 + 窗口复用 + 控件可见性 + 事件注入
 
 **单文件编译**（CMakeLists.txt）：
+
 - 去掉 `BACKEND_SRC` glob，`test_fromsource.cpp` 通过 `#include` 引入后端 `.cpp` 文件（Window.cpp / RenderDevice.cpp / TextRenderer.cpp / InputBackend.cpp / Cursor.cpp / **BackendPlugin.cpp**）
 - 添加 `src/backend/` 到 include 路径供 `BackendBridge.h` 查找
 
 **BackendPlugin.cpp 复用**（取代内联拷贝）：
+
 - `BackendPlugin.cpp` 新增 `#ifdef UICORNERSTONE_REUSE_SDL_WINDOW` 条件编译路径
 - 复用路径：`sdl3CreateWindow` 用 `new SDL3Window(g_reuseWindow, g_reuseRenderer)`（不创建新窗口）；`sdl3Init`/`sdl3Destroy` 为空操作
 - 默认路径保持原装不动（`CreateSDL3Window` + `SDL_Init`/`SDL_Quit`），不影响现有 10 个测试 + test_api
@@ -1128,9 +1272,11 @@ rlPopMatrix();
 - `test_fromsource.cpp` 中的 136 行内联拷贝替换为 `#define UICORNERSTONE_REUSE_SDL_WINDOW` + `#include "../../src/backend/sdl3/BackendPlugin.cpp"`
 
 **窗口复用**：
+
 - `SDL_AppQuit` 调用 `UICornerstone_Shutdown` 清理（`~SDL3Window` 销毁 SDL 句柄）
 
 **控件可见性修复**（UICornerstoneAPI.cpp）：
+
 - 所有 6 个工厂函数新增 `ctl->create()` 调用（Builder/LayoutParser 模式需要显式 create，控制器才真正初始化）
 - 所有工厂新增 `ctl->setVisible(true)`
 - 原来 Label 的 `m_isCreated` 初始为 `false` → `recreate()` 中的 `if(!m_isCreated) return;` 跳过所有初始化
@@ -1138,16 +1284,19 @@ rlPopMatrix();
 - 新增 `UICornerstone_SetBGColor` API，同时设置 Normal/Hover/Pressed 三态背景色（hover = brighter(0.3), pressed = darker(0.3)）
 
 **事件注入机制**（UICornerstoneAPI.h/.cpp）：
+
 - 新增 `UICornerstone_PushUIEvent(const UIEvent*)` API + 内部 `std::queue<UIEvent>` 队列
 - `UICornerstone_ProcessEvents` 改为先处理队列事件，再后备轮询 InputBackend
 - 解决 SDL_MAIN_USE_CALLBACKS 模式下 `SDL_PollEvent` 不返回事件的问题
 
 **test_fromsource 事件桥接**：
+
 - `sdlEventToUIEvent()` 函数将 SDL_Event 转为 UIEvent（data buffer 格式）
 - `SDL_AppEvent` 中调用 `uiPushUIEvent(&ue)` 注入
 - 添加 `UICornerstone_SetOnClick` 回调指针，点击按钮输出 `"Button clicked!"`
 
 **测试验证**：
+
 - SDL3 静态/DLL 全部 11 个目标（10 测试 + test_fromsource）编译通过
 - test_fromsource 运行：Button/Label 可见，Hover 变色正常，点击输出 Button clicked!
 
@@ -1156,12 +1305,14 @@ rlPopMatrix();
 **问题**：之前的 `test_fromsource` 使用 `test_api` 模式（`UICornerstone_InitFromPlugin` + `UIBackend_sdl3.dll` + JSON 布局），未满足"只使用 UICornerstone.dll，后端/控件从源码编译，无声明式 UI"的需求。
 
 **设计原则**：
+
 - `UICornerstone.dll` 是唯一的 DLL 依赖（含控件 + C ABI 实现）
 - 后端（SDL3 RenderDevice/Window/InputBackend/TextRenderer/Cursor）从源码编译进 exe
 - 控件通过 C ABI 工厂函数编程式创建（`UICornerstone_CreateButton/Label/CheckBox/EditBox/ProgressBar`）
 - 无 JSON 布局，无 `UIBackend_sdl3.dll` 依赖
 
 **架构图**：
+
 ```
 test_fromsource.exe
   ├── 动态加载: LoadLibrary("UICornerstone.dll")
@@ -1176,6 +1327,7 @@ test_fromsource.exe
 ```
 
 **编译策略**：
+
 - 链接 `UICornerstone_dll`（import lib）供后端源码解析 `Surface::registerFactories` 等 `CORE_API dllimport` 符号
 - `UICORNERSTONE_BUILD_SHARED=1` 作用于整个 target，后端源码正确从 DLL 导入符号
 - test_fromsource.cpp 尽管 sees dllimport 声明，但只通过 GetProcAddress 函数指针调用，无直接函数引用 → 无 LNK2001
@@ -1183,6 +1335,7 @@ test_fromsource.exe
 - 180 帧后自动退出（非手动关闭窗口）
 
 **验证**：
+
 ```
 === test_fromsource: UICornerstone.dll + backend from source ===
 OK: loaded UICornerstone.dll           # LoadLibrary 成功
@@ -1196,11 +1349,13 @@ Done, 180 frames                        # 帧循环正常完成
 ### 2026-06-13: R10b — UICornerstone.dll 拆分：核心 DLL + 后端插件 DLL
 
 **DLL 拆分方案**：
+
 - `UICornerstone.dll`（原名 `UICornerstone_dll.dll`，3.2MB）：只含 CORE_SOURCES（控件、布局、C ABI），不再包含后端实现
 - `UIBackend_sdl3.dll`（268KB）：独立的后端插件 DLL，包含 BACKEND_SOURCES（RenderDevice/TextRenderer/Window/InputBackend/Cursor + BackendPlugin），通过 `LoadLibrary` 动态加载
 - 静态 `UICornerstone.lib` 保持不变（CORE_SOURCES + BACKEND_SOURCES），10 个现有测试无回归
 
 **关键技术变更**：
+
 - `CMakeLists.txt`：`UICornerstone_dll` target 移除 BACKEND_SOURCES，`OUTPUT_NAME` 设为 `UICornerstone`；新增 `UIBackend_sdl3` SHARED target（连接 UICornerstone_dll 导入库）
 - `Surface.h/cpp`、`Cursor.h/cpp`：静态工厂方法（`create`/`loadFromFile`/`loadFromMemory` / `createSystem`/`getDefault`/`setCurrent`）从后端文件迁移到核心，使用 `registerFactories` 委托机制；`CORE_API` 宏控制跨 DLL 导出
 - `BackendPlugin.cpp`（三后端）：`GetUIBackendCallbacks` 用 `BACKEND_PLUGIN_EXPORT` 导出；内部调用 `RegisterSDL3SurfaceFactories()` / `RegisterSDL3CursorFactories()` 注册工厂
@@ -1213,15 +1368,18 @@ Done, 180 frames                        # 帧循环正常完成
 ### 2026-06-13: R9 Bugfix Round — C ABI 事件循环 + 稠密图元修复
 
 **Bug 1 — UI_EVENT_BUTTON 宏偏移错误 (所有点击交互失效)**：
+
 - Root cause: `#define UI_EVENT_BUTTON(ev) (*(int*)(ev)->data)` 从 `data[0]` 读取，但 `bridge_pollEvent` 把鼠标按键值写到 `data[8]`
 - 结果：`event.mouseButton.button` 始终是垃圾值，`== MouseButton::Left` 永假 → Button/CheckBox/EditBox 全部无视点击
 - 修复：`UI_EVENT_BUTTON(ev)` → `(*(int*)((ev)->data + 8))`
 
 **Bug 2 — 键盘修饰键丢失 (Ctrl-C/V/X/Shift-Arrow 无效)**：
+
 - Root cause: `bridge_pollEvent` 只存 keycode 到 UIEvent，跳过 `key.mod`；`CallbackInputBackend::pollEvent` 硬编码 `KeyMod::None`
 - 修复：`bridge_pollEvent` 在 `data[4..5]` 写入 `uint16_t` modifier；新增 `UI_EVENT_KEY_MOD(ev)` 宏；`CallbackInputBackend` 读取并传给 `EventKey`
 
 **Bug 3 — CallbackRenderDevice::drawTriangle/drawQuad 画轮廓而非实心**：
+
 - Root cause: 两个方法都用 `drawLine` 画 3/4 条轮廓线
 - 结果：CheckBox 框框和钩钩变成空心线，EditBox/TextArea 选择不可见，所有粗线渲染异常
 - 修复链：
@@ -1231,12 +1389,14 @@ Done, 180 frames                        # 帧循环正常完成
   - `CallbackRenderDevice` 优先调 `fillTriangle`/`fillQuad`，退化为 2 个三角形拼 Quad
 
 **Bug 4 — 剪贴板 stub (Ctrl-C/V 无反应)**：
+
 - Root cause: `CallbackInputBackend::setClipboardText/getClipboardText` 是空实现
 - 修复：`UIBackendCallbacks` 新增 `setClipboardText`/`getClipboardText`；`BackendBridge.h` 新增 bridge；3 个 BackendPlugin 接通；Adapter 委托到原生 `InputBackend`
 
 **其他 stub 检查**：`Texture::setBlendMode/setAlphaMod`、`createTextureFromSurface/createRenderTexture`、`setRenderTarget/resetRenderTarget/readPixels` 均为 C ABI 未使用功能，无害暂不改。
 
 **test_api.c 增强**：
+
 - 布局改为 3 行：Button/Label/CheckBox(行0) → EditBox/ProgressBar/Panel(行1) → TextArea(行2)
 - 提示标签高度 12→16px；控件间隙 4→8px
 - 新增 `hint_textarea`、`ta_demo` ID，共 18 个 ID 全数验证
@@ -1248,6 +1408,7 @@ Done, 180 frames                        # 帧循环正常完成
 ### 2026-06-13: R7 — GetUIBackendCallbacks 三后端实现 (Complete)
 
 **Files**:
+
 - `src/backend/BackendBridge.h` (new, 250 行): 桥接函数头文件，将 `UIBackendCallbacks` 回调查表委托为 C++ 抽象接口（RenderDevice/InputBackend/TextRenderer/Window/ResourceProvider 五个模块全部虚方法已实现）
 - `src/backend/sdl3/BackendPlugin.cpp`: 添加 `GetUIBackendCallbacks()` — 用 BackendBridge 初始化 `UIBackendCallbacks` 结构体
 - `src/backend/sfml/BackendPlugin.cpp`: 同上
@@ -1264,6 +1425,7 @@ Done, 180 frames                        # 帧循环正常完成
 ### 2026-06-13: R8 — CMake DLL 模式 (Complete)
 
 **`UICORNERSTONE_BUILD_DLL` 选项** (默认 OFF):
+
 - `UICornerstone` 目标保持 STATIC（向后兼容）
 - `UICornerstone_dll` 独立 SHARED 目标
 - `UICORNERSTONE_API` 导出宏 (`__declspec(dllexport/dllimport)`)
@@ -1277,10 +1439,11 @@ Done, 180 frames                        # 帧循环正常完成
 
 **6 配置验证结果**：
 
-| 后端 | 静态 (UICornerstone.lib) | DLL (UICornerstone_dll.dll) |
-|------|------------------------|---------------------------|
-| SDL3 | 10/10 测试通过 | 3.3MB DLL + 10/10 测试通过 |
-| SFML | 10/10 测试通过 | 3.5MB DLL + 测试通过 |
+
+| 后端   | 静态 (UICornerstone.lib)      | DLL (UICornerstone_dll.dll)  |
+| ------ | ----------------------------- | ---------------------------- |
+| SDL3   | 10/10 测试通过                | 3.3MB DLL + 10/10 测试通过   |
+| SFML   | 10/10 测试通过                | 3.5MB DLL + 测试通过         |
 | Raylib | 10/10 测试通过 (LNK4098 已知) | 4.7MB DLL + test_button 通过 |
 
 ### 2026-06-13: R9 — 纯 C ABI 测试 (Complete)
@@ -1288,6 +1451,7 @@ Done, 180 frames                        # 帧循环正常完成
 **test_api.c**：`test/test_api.c`，只包含 `UICornerstoneAPI.h`，编译为 C（`.c` 扩展名）。
 
 显示所有 6 种静态控件（Button/Label/CheckBox/EditBox/ProgressBar/Panel）的视觉测试：
+
 1. `InitFromPlugin("sdl3")` 创建原生窗口
 2. `SetViewport` 设置 800×480 视口
 3. `RegisterAction` + `LoadLayout` 从 JSON 布局加载 3×2 网格
@@ -1297,6 +1461,7 @@ Done, 180 frames                        # 帧循环正常完成
 7. `Shutdown`
 
 **Virtual Inheritance 指针调整 Bug**：
+
 - Root cause: `ControlImpl` 使用 `virtual public Control`（`include/ControlBase.h:226`），虚拟继承导致 `Control*` 子对象地址与派生类对象地址不同
 - 工厂函数原先 `reinterpret_cast<UIControlHandle>(buttonPtr)` 存储的是派生类地址
 - 通用操作 `static_cast<Control*>(voidPtr)` 不做指针调整（`static_cast` 从 `void*` 到 `T*` 相当于 `reinterpret_cast`）
@@ -1308,14 +1473,37 @@ Done, 180 frames                        # 帧循环正常完成
 ### 2026-06-12: R6 — BackendManager 回调表初始化 (Complete)
 
 **BackendManager 改造**：
+
 - 新增 `BackendManager::initialize(const UIBackendCallbacks* callbacks)` 方法
 - 从回调查表创建 CallbackAdapter 实例（Window/RenderDevice/TextRenderer/InputBackend）
 - 适配器通过标准访问器对外暴露，与内置后端路径共存
 - `BackendPlugin.h` 包含 `UICornerstoneAPI.h` 以使用 `UIBackendCallbacks` 类型
 
 **UICornerstone_Init/Shutdown 重构**：
-- `Init` 委托 BackendManager 创建适配器，不再直接管理
-- `Shutdown` 委托 BackendManager::shutdown()，配合 `delete g_resourceProvider`
-- 修复 `shutdown()` 中 `m_renderDevice` 未 delete 的泄漏
 
+- `Init` 委托 BackendManager 创建适配器，不再直接管理
 **验证**：编译通过，全部 10 个 SDL3 测试无回归。
+
+### 2026-06-30: Slider 控件优化（脏矩形/键盘重复/Value Label 跟随/字体懒加载）
+
+**变更（2 文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `include/Slider.h` | 新增 `m_lastRect`（脏矩形追踪）、`m_repeatKey/m_repeatStartTime/m_repeatNextTime`（键盘重复）、`m_tickFontAttempted`（字体加载状态）；新增 `ensureTickFont()`/`repositionValueLabel()`/`handleKeyRepeat()` 私有方法 |
+| `src/Slider.cpp` | 见下方优化项 |
+
+**5 项优化**：
+
+1. **setRect 脏矩形检查**：`setRect()` 添加 `if (rect == m_lastRect) return;`，避免重复重定位 value label，减少 Label::setRect 调用链
+2. **键盘按键重复**：`handleKeyRepeat()` 在 `update()` 中每帧检测，350ms 初始延迟 + 50ms 重复间隔；`handleEvent()` KeyDown 启动追踪，KeyUp/FocusLost 停止
+3. **Value label 跟随 thumb**：`repositionValueLabel()` 将水平滑块标签居中于 thumb 上方（clamp 到滑块宽度），垂直滑块标签居中于 thumb 右侧（clamp 到滑块高度）；`updateValueLabel()` 末尾自动调用
+4. **Tick 字体懒加载**：`ensureTickFont()` 单次加载 + `m_tickFontAttempted` 防止重复尝试；`draw()` 中移除了重复的字体加载代码
+5. **draw() 去重**：水平/垂直分支中 Tick 字体加载代码抽离为 `ensureTickFont()`，消除 20 行重复
+
+**细节改进**：
+- `setShowValueLabel()` 在动态创建 label 后调用 `updateValueLabel()` 确保标题正确
+- `m_lastRect` 在构造列表中初始化为空 SRect
+- 键盘重复支持 Left/Right/Up/Down/PageUp/PageDown（Home/End 不重复，单次跳转）
+
+**验证**：SDL3/SFML/Raylib 三后端全部编译通过。test_slider 运行正常，15 个滑块初始化 + 帧循环稳定。

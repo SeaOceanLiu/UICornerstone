@@ -215,6 +215,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseCheckBox(j, parent);
     } else if (type == "ProgressBar") {
         result = parseProgressBar(j, parent);
+    } else if (type == "Slider") {
+        result = parseSlider(j, parent);
     } else if (type == "ScrollBar") {
         result = parseScrollBar(j, parent);
     } else if (type == "Panel") {
@@ -1213,6 +1215,89 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
 
     progressBar->create();
     return progressBar;
+}
+
+// ==================== Slider ====================
+
+static SliderStyle parseSliderStyle(const string& s) {
+    if (s == "Vertical") return SliderStyle::Vertical;
+    return SliderStyle::Horizontal;
+}
+
+shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    auto slider = make_shared<Slider>(parent, rect);
+
+    if (j.contains("range") && j["range"].is_object()) {
+        float minVal = j["range"].value("min", 0.0f);
+        float maxVal = j["range"].value("max", 100.0f);
+        slider->setRange(minVal, maxVal);
+    }
+
+    if (j.contains("value") && j["value"].is_number())
+        slider->setValue(j["value"].get<float>());
+
+    if (j.contains("step") && j["step"].is_number())
+        slider->setStep(j["step"].get<float>());
+
+    if (j.contains("style") && j["style"].is_string())
+        slider->setStyle(parseSliderStyle(j["style"].get<string>()));
+
+    if (j.contains("reverse") && j["reverse"].is_boolean())
+        slider->setReverse(j["reverse"].get<bool>());
+
+    if (j.contains("track") && j["track"].is_object()) {
+        const json& track = j["track"];
+        if (track.contains("thickness") && track["thickness"].is_number())
+            slider->setTrackThickness(track["thickness"].get<float>());
+        if (track.contains("color") && track["color"].is_object())
+            slider->setTrackColor(parseStateColor(track["color"], StateColor::Type::Background).getNormal());
+        if (track.contains("fillColor") && track["fillColor"].is_object())
+            slider->setTrackFillColor(parseStateColor(track["fillColor"], StateColor::Type::Background).getNormal());
+    }
+
+    if (j.contains("thumb") && j["thumb"].is_object()) {
+        const json& thumb = j["thumb"];
+        if (thumb.contains("size") && thumb["size"].is_number())
+            slider->setThumbSize(thumb["size"].get<float>());
+        if (thumb.contains("color") && thumb["color"].is_object())
+            slider->setThumbColor(parseStateColor(thumb["color"], StateColor::Type::Background).getNormal());
+        if (thumb.contains("borderColor") && thumb["borderColor"].is_object())
+            slider->setThumbBorderColor(parseStateColor(thumb["borderColor"], StateColor::Type::Background).getNormal());
+        if (thumb.contains("hoverColor") && thumb["hoverColor"].is_object())
+            slider->setThumbHoverColor(parseStateColor(thumb["hoverColor"], StateColor::Type::Background).getNormal());
+    }
+
+    if (j.contains("showValueLabel") && j["showValueLabel"].is_boolean())
+        slider->setShowValueLabel(j["showValueLabel"].get<bool>());
+
+    if (j.contains("labelFormat") && j["labelFormat"].is_string())
+        slider->setLabelFormat(j["labelFormat"].get<string>());
+
+    if (j.contains("labelGap") && j["labelGap"].is_number())
+        slider->setLabelGap(j["labelGap"].get<float>());
+
+    if (j.contains("tick") && j["tick"].is_object()) {
+        const json& tick = j["tick"];
+        if (tick.contains("interval") && tick["interval"].is_number())
+            slider->setTickInterval(tick["interval"].get<float>());
+        if (tick.contains("length") && tick["length"].is_number())
+            slider->setTickLength(tick["length"].get<float>());
+        if (tick.contains("color") && tick["color"].is_object())
+            slider->setTickColor(parseStateColor(tick["color"], StateColor::Type::Background).getNormal());
+    }
+
+    parseCommonProperties(std::static_pointer_cast<ControlImpl>(slider), j);
+    parseEvents(std::static_pointer_cast<ControlImpl>(slider), j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = slider;
+
+    slider->create();
+    return slider;
 }
 
 // ==================== ScrollBar ====================

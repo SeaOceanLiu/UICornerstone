@@ -99,6 +99,7 @@ public:
     void setParent(Control *parent) override;
     SRect getHotRect(void);
 
+    SharedFont getFont() const { return m_font; }
     void setCaption(string caption);
     string getCaption(void) const;
     void setFont(FontName fontName);
