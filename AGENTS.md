@@ -1507,3 +1507,17 @@ Done, 180 frames                        # 帧循环正常完成
 - 键盘重复支持 Left/Right/Up/Down/PageUp/PageDown（Home/End 不重复，单次跳转）
 
 **验证**：SDL3/SFML/Raylib 三后端全部编译通过。test_slider 运行正常，15 个滑块初始化 + 帧循环稳定。
+
+### 2026-07-01: test_slider 布局间距 + raylib InputBackend KeyUp 修复
+
+**变更（3 文件）**：
+
+| 文件 | 变更 |
+|------|------|
+| `test/test_slider.cpp` | 左列 11 水平滑块 Y 重算（40~695），右列 4 垂直滑块 X 均匀分布（580~910），value label / tick label 全部留足间隙 |
+| `src/backend/raylib/InputBackend.cpp` | 新增 `fillKeyUpEvent()` 和 Keyboard phase 中 `IsKeyUp()` 检测，按键释放时发送 `KeyUp` 事件 |
+| `doc/Slider_Design.md` | §8 优化历史 + §10 关键实现注意事项更新 |
+
+**Raylib KeyUp 根因**：raylib 使用 `GetKeyPressed()` / `IsKeyDown()` 但无释放 API，`Keyboard` phase 从未生成 `KeyUp` 事件 → Slider 的 `m_repeatKey` 永不归零 → `handleKeyRepeat()` 无限重复无法停止。
+
+**验证**：SDL3/SFML/Raylib 三后端全部编译通过。test_slider 运行正常。

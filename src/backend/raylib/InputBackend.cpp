@@ -114,6 +114,13 @@ public:
                             return true;
                         }
                     }
+                    // Key release: generate KeyUp when the tracked key is released
+                    if (m_repeatKey != 0 && IsKeyUp(m_repeatKey)) {
+                        fillKeyUpEvent(event, m_repeatKey);
+                        m_repeatKey = 0;
+                        m_phase = Phase::Done;
+                        return true;
+                    }
                     m_phase = Phase::CharInput;
                     break;
                 }
@@ -329,6 +336,14 @@ private:
         event.keyEvent.mod = getModState();
         event.keyEvent.scancode = rlKey;
         event.keyEvent.repeat = repeat;
+    }
+
+    void fillKeyUpEvent(Event& event, int rlKey) {
+        event.m_type = EventType::KeyUp;
+        event.keyEvent.keycode = mapKeycode(rlKey);
+        event.keyEvent.mod = getModState();
+        event.keyEvent.scancode = rlKey;
+        event.keyEvent.repeat = false;
     }
 
     void fillTextInput(Event& event, int codepoint) {

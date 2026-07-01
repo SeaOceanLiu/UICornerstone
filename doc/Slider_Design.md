@@ -507,27 +507,45 @@ static const SColor SLIDER_TICK_COLOR(100, 100, 100, 255);
 - **去掉 lx/ly clamp**：标签可超出 slider 边界，文本中心始终保持与手柄中心对齐，两端体验一致
 - **`m_labelGap` 参数**：控制标签与滑块间距（默认 4px），可通过 `setLabelGap()` / Builder / JSON 配置
 
+### 2026-07-01: test_slider 布局间距 + raylib KeyUp 修复
+
+**test_slider.cpp 布局重算**：
+- 左列 11 个水平滑块 + 1 状态标签，Y 从 40 到 800
+- 为 value label（上方 ~22px）、刻度标签（下方 1x: ~22px, 2x: ~44px）留足间隙
+- 右列 4 个垂直滑块 Y=10, h=250，X 间隔 110px，与左列无水平重叠
+- 间距公式：`prev_track_bottom + [prev_tick_labels] + 8px + 22px(valLabel) + 4px(labelGap)`
+
+**raylib InputBackend KeyUp 修复**：
+- 根因：raylib 使用 `GetKeyPressed()` / `IsKeyDown()`，无对应的释放 API → 从不发送 `KeyUp` 事件
+- 在 `Keyboard` phase 的 repeat 检测后添加 `IsKeyUp(m_repeatKey)` 检测
+- 新增 `fillKeyUpEvent()` 方法生成 `EventType::KeyUp`
+- 修复后 Slider 的 `handleEvent(KeyUp)` 能正常清空 `m_repeatKey`，`handleKeyRepeat()` 停止重复
+- 三后端（SDL3/SFML/Raylib）全部编译通过
+
 ## 9. 测试计划
 
 ### 9.1 标准 C++ 测试（test/test_slider.cpp）
 
-15 个滑块：
+15 个滑块，布局 1920×1080：
 
-| # | 测试用例 | 验证内容 |
-|---|----------|----------|
-| 1 | 默认 0-100 范围 + 数值标签 + 回调 | 基础渲染 |
-| 2 | Step=10, labelFormat 含额外文字 | 步长+格式 |
-| 3 | 垂直方向 + 数值标签 | 垂直渲染 |
-| 4 | 绿色主题 (trackFillColor, thumbBorderColor) | 颜色定制 |
-| 5 | 负值范围 (-50~50), step=5 | 负值处理 |
-| 6 | 窄范围 (0~3), step=1 | Snap-on-Release |
-| 7 | 粗轨道 (12px) + 大手柄 (28px) | 尺寸定制 |
-| 8 | 0~1 范围, step=0.1 | 浮点步长 |
-| 9 | 刻度线 1x (interval=10) + 数值标签 | 刻度绘制 |
-| H_Tick1x/H_Tick2x | 1x/2x 缩放刻度对比 | 缩放支持 |
-| V_Tick1x/V_Tick2x | 1x/2x 垂直刻度对比 | 垂直缩放 |
-| H_Reverse/V_Reverse | 水平/垂直反向模式 | Reverse 逻辑 |
-| Status Label | 描述文本 | 控件共存 |
+- **左列**（X=50, w=250）：11 水平滑块，Y=40~695 逐行递推，间距 = 前轨道底 + 前刻度标签 + 8px间隙 + 22px(val标签) + 4px(labelGap)
+- **右列**（4 垂直滑块，Y=10, h=250）：X=580/690/800/910，vTick2x(2x) visual h=500，底部 Y=510，与左列无水平重叠
+
+| # | Y | h | 测试用例 | 验证内容 |
+|---|----|----|----------|----------|
+| 1 | 40 | 20 | 默认 0-100 范围 + 数值标签 + 回调 | 基础渲染 |
+| 2 | 90 | 20 | Step=10, labelFormat 含额外文字 | 步长+格式 |
+| 3 | 580(垂直) | 250 | 垂直方向 + 数值标签 | 垂直渲染 |
+| 4 | 140 | 20 | 绿色主题 (trackFillColor, thumbBorderColor) | 颜色定制 |
+| 5 | 180 | 20 | 负值范围 (-50~50), step=5 | 负值处理 |
+| 6 | 230 | 20 | 窄范围 (0~3), step=1 | Snap-on-Release |
+| 7 | 285 | 30 | 粗轨道 (12px) + 大手柄 (28px) | 尺寸定制 |
+| 8 | 345 | 20 | 0~1 范围, step=0.1 | 浮点步长 |
+| 9 | 415 | 20 | 刻度线 1x (interval=10) + 数值标签 | 刻度绘制 |
+| H_Tick1x/H_Tick2x | 490/580 | 20 | 1x/2x 缩放刻度对比 | 缩放支持 |
+| V_Tick1x/V_Tick2x | 690/800(垂直) | 250 | 1x/2x 垂直刻度对比 | 垂直缩放 |
+| H_Reverse/V_Reverse | 695/910(垂直) | 20/250 | 水平/垂直反向模式 | Reverse 逻辑 |
+| Status Label | 770 | 30 | 描述文本 | 控件共存 |
 
 ### 9.2 C ABI 集成测试
 
@@ -547,4 +565,5 @@ Slider 的 C ABI 用例分别添加到三后端的 fromsource 测试文件。
 3. **Value label 不 clamp**：超出 slider 边界时，依赖父级（Bench/Panel）的 viewport clipping 裁剪。
 
 4. **键盘重复生命周期**：由 `handleEvent(KeyDown)` 启动，`handleKeyRepeat(update)` 持续，`handleEvent(KeyUp/FocusLost)` 停止。
+   - **raylib 后端依赖**：`InputBackend` 必须在 `Keyboard` phase 中检测 `IsKeyUp()` 并生成 `KeyUp` 事件，否则 Slider 的 `m_repeatKey` 永不清零，`handleKeyRepeat()` 无限重复。
 
