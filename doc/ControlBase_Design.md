@@ -107,11 +107,24 @@ protected:
     ControlState m_state;
     bool m_mouseInside;
 
+    // ── 焦点系统（Phase 15+）──
+    bool m_focused;                     // 是否聚焦
+    bool m_focusable;                   // 能否聚焦
+    int  m_tabIndex;                    // Tab 顺序，-1 = 不参与
+    bool m_focusByKeyboard;             // 通过 Tab 而非鼠标聚焦
+    bool m_showFocusRing;               // 是否绘制焦点环
+    bool m_focusRingAlwaysVisible;      // 始终显示环（默认 true）
+    SColor m_focusRingColor;            // 环颜色
+    FocusRingStyle m_focusRingStyle;    // Solid / Dashed
+    bool m_isFocusBoundary;             // 焦点作用域边界
+    SRect m_frameDrawRect;              // 当前帧绘制矩形
+    bool m_frameDrawRectValid;          // m_frameDrawRect 是否有效
+
     void recreate(void) override;
 public:
     ControlImpl(Control *parent, float xScale=1.0f, float yScale=1.0f);
     ControlImpl(const ControlImpl& other);
-    ~ControlImpl() = default;
+    ~ControlImpl();   // 非默认析构，负责从 FocusManager 注销
 
     void create(void) override;
     void setId(int id) override { m_id = id; }
@@ -173,6 +186,25 @@ public:
 
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;
+
+    // ── 焦点 API ──
+    void setFocused(bool focused, bool byKeyboard = false) override;
+    bool getFocused() const override;
+    bool isFocusable() const override;
+    int getTabIndex() const override;
+    void setTabIndex(int index) override;
+    void setFocusable(bool focusable) override;
+    bool isFocusBoundary() const override;
+    void setShowFocusRing(bool show) override;
+    void setFocusRingAlwaysVisible(bool always) override;
+    void setFocusRingColor(SColor color) override;
+    SColor getFocusRingColor() const;
+    void setFocusRingStyle(FocusRingStyle style) override;
+    FocusRingStyle getFocusRingStyle() const;
+    virtual void onFocusGained(bool byKeyboard);
+    virtual void onFocusLost();
+    void drawFocusRing();
+    void afterDraw();
 
     void inheritRenderer(void);
     void setDrawRectDirty(void);
@@ -367,6 +399,32 @@ void ControlImpl::removeControl(shared_ptr<Control> child){
     // 从子控件列表中移除
 }
 ```
+
+### 4.5 焦点 API
+
+焦点系统由 `ControlImpl` 基类统一管理，详见 [FocusSystem_Design.md](FocusSystem_Design.md)。
+
+**核心成员**：
+
+| 成员 | 类型 | 默认值 | 说明 |
+|------|------|:------:|------|
+| `m_focused` | `bool` | `false` | 当前是否聚焦 |
+| `m_focusable` | `bool` | `false` | 是否可聚焦 |
+| `m_tabIndex` | `int` | `-1` | Tab 顺序（-1 = 不参与） |
+| `m_showFocusRing` | `bool` | `true` | 是否绘制焦点环 |
+| `m_focusRingAlwaysVisible` | `bool` | `true` | 始终显示焦点环 |
+| `m_focusRingColor` | `SColor` | (66,133,244) | 环颜色 |
+| `m_focusRingStyle` | `FocusRingStyle` | Solid | 实线/虚线 |
+| `m_isFocusBoundary` | `bool` | `false` | 焦点作用域边界 |
+
+**焦点环绘制**（`drawFocusRing()`，在 `afterDraw()` 中被调用）：
+- 3 层环：黑(inset 0, alpha 150) + 白(inset 1, alpha 150) + 用户颜色(inset 2) — 保证在任何背景色下可见
+- Solid 模式：3 层 `drawRect()` 叠加
+- Dashed 模式：3 次循环绘制虚线
+
+**构造函数调用 `setFocusable(true)`**：Button、CheckBox、EditBox、Slider 在构造函数中调用 `setFocusable(true)` 而非直接赋值 `m_focusable = true`，确保 `FocusManager::registerControl()` 执行，控件可参与 Tab 导航。
+
+**析构注销**：`~ControlImpl()` 非默认析构，自动调用 `FocusManager::unregisterControl(this)`。
 
 ## 5. 事件处理
 

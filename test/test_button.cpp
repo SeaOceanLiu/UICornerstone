@@ -62,17 +62,17 @@ void testBenchInitialize(void) {
     BENCH->addControl(g_button2);
 
     shared_ptr<Actor> normalActor = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\icon.png")
+        .loadFromFile("assets/images/icon.png")
         .setMatchParentRect(true)
         .build();
 
     shared_ptr<Actor> hoverActor = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\cross_over.png")
+        .loadFromFile("assets/images/cross_over.png")
         .setMatchParentRect(true)
         .build();
 
     shared_ptr<Actor> pressedActor = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\cross_down.png")
+        .loadFromFile("assets/images/cross_down.png")
         .setMatchParentRect(true)
         .build();
 
@@ -106,17 +106,17 @@ void testBenchInitialize(void) {
     }
 
     shared_ptr<Actor> normalActor2x = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\icon.png")
+        .loadFromFile("assets/images/icon.png")
         .setMatchParentRect(true)
         .build();
 
     shared_ptr<Actor> hoverActor2x = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\cross_over.png")
+        .loadFromFile("assets/images/cross_over.png")
         .setMatchParentRect(true)
         .build();
 
     shared_ptr<Actor> pressedActor2x = ActorBuilder(nullptr)
-        .loadFromFile("D:\\GitSpace\\UIControls\\build\\test\\Debug\\assets\\images\\cross_down.png")
+        .loadFromFile("assets/images/cross_down.png")
         .setMatchParentRect(true)
         .build();
 

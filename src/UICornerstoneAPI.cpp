@@ -10,6 +10,7 @@
 #include "ProgressBar.h"
 #include "Panel.h"
 #include "TextArea.h"
+#include "Slider.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
 #include "PlatformUtils.h"
@@ -429,6 +430,18 @@ UIControlHandle UICornerstone_CreateProgressBar(
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
 }
 
+UIControlHandle UICornerstone_CreateSlider(
+    float x, float y, float w, float h, float min, float max, float value)
+{
+    auto ctl = std::make_shared<Slider>(BENCH, SRect(x, y, w, h));
+    ctl->setRange(min, max);
+    ctl->setValue(value);
+    BENCH->addControl(ctl);
+    ctl->create();
+    ctl->setVisible(true);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
 UIControlHandle UICornerstone_CreatePanel(
     float x, float y, float w, float h)
 {
@@ -621,6 +634,28 @@ float UICornerstone_GetProgress(UIControlHandle ctl) {
     if (!ctl) return 0.0f;
     auto* pb = dynamic_cast<ProgressBar*>(static_cast<Control*>(ctl));
     return pb ? pb->getValue() : 0.0f;
+}
+
+float UICornerstone_GetSliderValue(UIControlHandle ctl) {
+    if (!ctl) return 0.0f;
+    auto* sl = dynamic_cast<Slider*>(static_cast<Control*>(ctl));
+    return sl ? sl->getValue() : 0.0f;
+}
+
+void UICornerstone_SetSliderValue(UIControlHandle ctl, float value) {
+    if (!ctl) return;
+    auto* sl = dynamic_cast<Slider*>(static_cast<Control*>(ctl));
+    if (sl) sl->setValue(value);
+}
+
+void UICornerstone_SetOnSliderChanged(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* sl = dynamic_cast<Slider*>(static_cast<Control*>(ctl));
+    if (sl) {
+        sl->setOnValueChanged([cb, userData](std::shared_ptr<Slider>, float) {
+            if (cb) cb(nullptr, userData);
+        });
+    }
 }
 
 void UICornerstone_DestroyControl(UIControlHandle ctl) {

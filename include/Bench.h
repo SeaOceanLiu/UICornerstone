@@ -41,6 +41,7 @@ public:
     void repeatTrigger(void);
     void draw(void) override;
     void update(void) override;
+    bool handleEvent(shared_ptr<Event> event) override;
     int isExiting(void);
 
     void setOnInitial(OnInitialHandler handler);

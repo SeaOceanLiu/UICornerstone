@@ -355,6 +355,40 @@ void Button::setTextShadowStateColor(StateColor stateColor){
 }
 ```
 
+### 5.7 焦点与键盘激活
+
+Button 继承 `ControlImpl` 的焦点系统，支持键盘激活：
+
+```cpp
+// 构造函数调用 setFocusable(true) 注册到 FocusManager
+Button::Button(...) : ControlImpl(...) {
+    setFocusable(true);   // FocusManager::registerControl(this)
+}
+
+// handleEvent 键盘处理（在鼠标事件之后）
+if (event->m_type == EventType::KeyDown && m_focused) {
+    if (event->keyEvent.keycode == KeyCode::Return ||
+        event->keyEvent.keycode == KeyCode::Space) {
+        setState(ControlState::Pressed);  // 视觉反馈
+        if (m_onClick) {
+            m_onClick(dynamic_pointer_cast<Button>(getThis()));
+        }
+        return true;
+    }
+}
+if (event->m_type == EventType::KeyUp && m_focused) {
+    if (event->keyEvent.keycode == KeyCode::Return ||
+        event->keyEvent.keycode == KeyCode::Space) {
+        setState(ControlState::Normal);
+        return true;
+    }
+}
+```
+
+- Tab 导航到 Button：显示焦点环（3 层：黑+白+颜色）
+- Enter/Space：触发 onClick 并显示 Pressed 状态
+- 焦点环颜色可通过 `setFocusRingColor()` 自定义
+
 ## 6. 常量定义
 
 在 `ConstDef.h` 中定义：

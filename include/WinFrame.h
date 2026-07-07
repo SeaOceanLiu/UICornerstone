@@ -59,6 +59,7 @@ public:
     bool handleEvent(shared_ptr<Event> event) override;
 
     void show(void) override;
+    void hide(void) override;
     void setRect(SRect rect) override;
 
     shared_ptr<Panel>  getTitleBar()    const { return m_titleBar; }

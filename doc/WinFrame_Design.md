@@ -76,6 +76,10 @@ private:
     Cursor *m_cursorSizeNS;              // 垂直双箭头光标
     Cursor *m_cursorSizeNWSE;            // 左上-右下双箭头光标
     Cursor *m_cursorSizeNESW;            // 右上-左下双箭头光标
+
+// ===== 焦点作用域 =====
+    // m_isFocusBoundary = true 继承自基类 ControlImpl
+    // 构造函数中调用 GET_FOCUSMANAGER->registerBoundary(this)
 ```
 
 **光标设计说明**：
@@ -232,6 +236,42 @@ if (hasPos && event->m_type == EventType::MouseDown && event->mouseButton.button
 ```
 
 **原理**：`ControlImpl::handleEvent` 逆向遍历 `m_children`，最后添加的子控件最优先处理事件，视觉上也最后绘制（位于顶层）。通过将自身移到 children 列表末尾实现"置顶"效果。
+
+### 3.5 焦点作用域边界
+
+WinFrame 是焦点作用域边界（`m_isFocusBoundary = true`），限制 Tab 导航在其内部：
+
+**构造函数**：
+```cpp
+WinFrame::WinFrame(...) : Panel(...) {
+    m_isFocusBoundary = true;  // 注册为焦点作用域边界
+    GET_FOCUSMANAGER->registerBoundary(this);
+}
+```
+
+**置顶时聚焦**（在 `handleEvent` 的 `bringToFront()` 之后）：
+```cpp
+// 点击 WinFrame 时使其作用域内的第一个控件获得焦点
+GET_FOCUSMANAGER->focusFirstInScope(this);
+```
+
+**隐藏时释放焦点**（`hide()` 中）：
+```cpp
+void WinFrame::hide() {
+    ControlImpl::hide();
+    // 如果当前聚焦控件在 WinFrame 内部，释放焦点
+    Control* fc = GET_FOCUSMANAGER->getCurrentFocused();
+    if (fc && isDescendantOf(this, fc)) {
+        fc->setFocused(false, false);
+    }
+    GET_FOCUSMANAGER->unregisterBoundary(this);
+}
+```
+
+**Tab 行为**：
+- 聚焦在 WinFrame 内部控件时按 Tab：只在 WinFrame 内部控件之间循环
+- 聚焦在 WinFrame 外部时按 Tab：不进入任何 WinFrame
+- Ctrl+Tab / Ctrl+Shift+Tab：在 Bench 和所有可见 WinFrame 之间切换作用域
 
 ## 4. 事件处理
 

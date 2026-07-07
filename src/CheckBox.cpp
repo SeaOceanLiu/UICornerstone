@@ -32,7 +32,7 @@ CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     m_rect = rect;
     setTransparent(true);
     setBorderVisible(false);
-
+    setFocusable(true);
 
     createCaption();
 }
@@ -243,6 +243,32 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
             if (getState() == ControlState::Hover) {
                 setState(ControlState::Normal);
             }
+        }
+    }
+
+    // Keyboard activation: Space → toggle state
+    if (event->m_type == EventType::KeyDown && getFocused()) {
+        if (event->keyEvent.keycode == KeyCode::Space) {
+            CheckState oldState = m_checkState;
+            if (m_triStateEnabled) {
+                switch (m_checkState) {
+                    case CheckState::Unchecked:
+                        setCheckState(CheckState::Checked);
+                        break;
+                    case CheckState::Checked:
+                        setCheckState(CheckState::Indeterminate);
+                        break;
+                    case CheckState::Indeterminate:
+                        setCheckState(CheckState::Unchecked);
+                        break;
+                }
+            } else {
+                setCheckState(m_checkState == CheckState::Checked ? CheckState::Unchecked : CheckState::Checked);
+            }
+            if (m_onCheckChanged) {
+                m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()), oldState, m_checkState);
+            }
+            return true;
         }
     }
 

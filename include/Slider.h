@@ -36,8 +36,7 @@ private:
     bool   m_thumbHovered;
     SPoint m_dragStartMouse;
 
-    // Focus / Keyboard
-    bool m_focused;
+    // Focus watcher (for MouseDown-outside detection)
     bool m_focusWatcherRegistered;
 
     // Visual config
@@ -87,7 +86,8 @@ private:
     float getContentLength();
     void updateValueLabel();
     void commitValue();
-    void setFocused(bool focused);
+    void setFocused(bool focused, bool byKeyboard = false) override;
+    void onFocusLost() override;
     void rebuildTickTexts();
     void destroyCachedTickTexts();
     void ensureTickFont();
@@ -123,7 +123,7 @@ public:
     bool getReverse() const { return m_reverse; }
 
     // Focus
-    bool isFocused() const { return m_focused; }
+    bool isFocused() const { return getFocused(); }
 
     // Visual config
     void setTrackThickness(float thickness);

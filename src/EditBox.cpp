@@ -14,7 +14,6 @@ EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     , m_selectionEnd(0)
     , m_passwordMode(false)
     , m_passwordChar('*')
-    , m_focused(false)
     , m_cursorBlinkTime(0)
     , m_cursorVisible(true)
     , m_shiftPressed(false)
@@ -39,6 +38,8 @@ EditBox::EditBox(Control *parent, SRect rect, float xScale, float yScale)
     setRect(rect);
 
     m_margin = Margin(8.0f, 4.0f, 8.0f, 4.0f);
+
+    setFocusable(true);
 
     loadFontInternal();
     updateTextOffset();
@@ -621,7 +622,7 @@ void EditBox::setOnEnter(OnEnterHandler handler) {
     m_onEnter = handler;
 }
 
-void EditBox::setFocused(bool focused) {
+void EditBox::setFocused(bool focused, bool byKeyboard) {
     if (m_focused == focused) return;
 
     if (focused) {
@@ -634,16 +635,20 @@ void EditBox::setFocused(bool focused) {
         event->customInt = static_cast<int>(EventName::ON_FOCUS);
         event->customPtr = this;
         EventQueue::getInstance()->pushEventIntoQueue(event);
-
-        m_focused = true;
-        m_cursorVisible = true;
-        m_cursorBlinkTime = 0;
-    } else {
-        m_focused = false;
-        m_cursorVisible = false;
-        clearSelection();
     }
 
+    ControlImpl::setFocused(focused, byKeyboard);
+}
+
+void EditBox::onFocusGained(bool byKeyboard) {
+    m_cursorVisible = true;
+    m_cursorBlinkTime = 0;
+    updateTextOffset();
+}
+
+void EditBox::onFocusLost() {
+    m_cursorVisible = false;
+    clearSelection();
     updateTextOffset();
 }
 

@@ -5,6 +5,7 @@
 #include "Bench.h"
 #include "Label.h"
 #include "Button.h"
+#include "EditBox.h"
 #include "AppCallbacks.h"
 #include "TestUtils.h"
 
@@ -17,6 +18,11 @@ shared_ptr<Button> g_btn2;
 
 void testBenchInitialize(void) {
     TestUtil::log("testWinFrameInitialize");
+
+    StateColor defaultBtnBG(StateColor::Type::Background);
+    defaultBtnBG.setNormal({80, 80, 80, 255})
+                 .setHover({110, 110, 110, 255})
+                 .setPressed({60, 60, 60, 255});
 
     g_winFrame1 = WinFrameBuilder(nullptr, SRect(100, 100, 400, 300))
         .setTitle("Resizable WinFrame")
@@ -31,6 +37,18 @@ void testBenchInitialize(void) {
             g_btn1->setCaption("Show WinFrame 1");
             TestUtil::log("WinFrame 1 closed");
         })
+        .addToClient(ButtonBuilder(nullptr, SRect(20, 20, 160, 36))
+            .setCaption("Button A")
+            .setBackgroundStateColor(defaultBtnBG)
+            .setOnClick([](shared_ptr<Button>) { TestUtil::log("WinFrame1: Button A clicked"); })
+            .build())
+        .addToClient(ButtonBuilder(nullptr, SRect(20, 70, 160, 36))
+            .setCaption("Button B")
+            .setBackgroundStateColor(defaultBtnBG)
+            .setOnClick([](shared_ptr<Button>) { TestUtil::log("WinFrame1: Button B clicked"); })
+            .build())
+        .addToClient(EditBoxBuilder(nullptr, SRect(20, 120, 200, 36))
+            .build())
         .build();
 
     g_winFrame2 = WinFrameBuilder(nullptr, SRect(350, 250, 400, 300))
@@ -47,6 +65,13 @@ void testBenchInitialize(void) {
             g_btn2->setCaption("Show WinFrame 2");
             TestUtil::log("WinFrame 2 closed");
         })
+        .addToClient(ButtonBuilder(nullptr, SRect(20, 20, 160, 36))
+            .setCaption("Button C")
+            .setBackgroundStateColor(defaultBtnBG)
+            .setOnClick([](shared_ptr<Button>) { TestUtil::log("WinFrame2: Button C clicked"); })
+            .build())
+        .addToClient(EditBoxBuilder(nullptr, SRect(20, 70, 200, 36))
+            .build())
         .build();
 
     TestUtil::log("Adding WinFrames to BENCH...");
@@ -55,11 +80,7 @@ void testBenchInitialize(void) {
 
     BENCH->addControl(g_btn1 = ButtonBuilder(BENCH, SRect(20, 20, 180, 40))
         .setCaption("Show WinFrame 1")
-        .setBackgroundStateColor(
-            StateColor(StateColor::Type::Background)
-                .setNormal({100,100,100,255})
-                .setHover({130,130,130,255})
-                .setPressed({80,80,80,255}))
+        .setBackgroundStateColor(defaultBtnBG)
         .setOnClick([](shared_ptr<Button>) {
             if (g_winFrame1->getVisible()) {
                 g_winFrame1->hide();
@@ -73,11 +94,7 @@ void testBenchInitialize(void) {
 
     BENCH->addControl(g_btn2 = ButtonBuilder(BENCH, SRect(220, 20, 190, 40))
         .setCaption("Show WinFrame 2")
-        .setBackgroundStateColor(
-            StateColor(StateColor::Type::Background)
-                .setNormal({100,100,100,255})
-                .setHover({130,130,130,255})
-                .setPressed({80,80,80,255}))
+        .setBackgroundStateColor(defaultBtnBG)
         .setOnClick([](shared_ptr<Button>) {
             if (g_winFrame2->getVisible()) {
                 g_winFrame2->hide();

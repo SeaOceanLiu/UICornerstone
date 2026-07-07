@@ -18,7 +18,6 @@ Slider::Slider(Control* parent, SRect rect, float xScale, float yScale):
     m_reverse(false),
     m_dragging(false),
     m_thumbHovered(false),
-    m_focused(false),
     m_focusWatcherRegistered(false),
     m_trackThickness(ConstDef::SLIDER_TRACK_THICKNESS),
     m_thumbSize(ConstDef::SLIDER_THUMB_SIZE),
@@ -50,6 +49,7 @@ Slider::Slider(Control* parent, SRect rect, float xScale, float yScale):
     m_rect = rect;
     setTransparent(true);
     setBorderVisible(false);
+    setFocusable(true);
 }
 
 Slider::~Slider() {
@@ -172,18 +172,21 @@ void Slider::commitValue()
     }
 }
 
-void Slider::setFocused(bool focused)
+void Slider::setFocused(bool focused, bool byKeyboard)
 {
     if (m_focused == focused) return;
-    m_focused = focused;
     if (focused) {
         if (!m_focusWatcherRegistered) {
             EventQueue::getInstance()->addBeforeEventHandlingWatcher(EventType::MouseDown, getThis());
             m_focusWatcherRegistered = true;
         }
     }
-    // NOTE: never remove the watcher — removing from within beforeEventHandlingWatcher
-    // would deadlock on EventQueue's mutex (same as EditBox pattern).
+    ControlImpl::setFocused(focused, byKeyboard);
+}
+
+void Slider::onFocusLost()
+{
+    m_repeatKey = 0;
 }
 
 bool Slider::beforeEventHandlingWatcher(shared_ptr<Event> event)
@@ -554,6 +557,8 @@ void Slider::draw(void)
 
     // Draw children (value label)
     ControlImpl::draw();
+
+    ControlImpl::afterDraw();
 }
 
 bool Slider::handleEvent(shared_ptr<Event> event)

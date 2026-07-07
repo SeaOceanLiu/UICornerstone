@@ -82,7 +82,7 @@ private:
     SPoint m_dragStartMouse;
 
     // ── 焦点 / 键盘 ──
-    bool m_focused;
+    // m_focused 已迁移到基类 ControlImpl
     bool m_focusWatcherRegistered;
 
     // ── 视觉配置 ──
@@ -147,13 +147,14 @@ private:
     // ── 焦点 ──
     void setFocused(bool focused);
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
+    void onFocusLost() override;            // 停止键盘重复
 
 public:
     Slider(Control* parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
     ~Slider();
     void create(void) override;
     void update(void) override;             // 含 handleKeyRepeat()
-    void draw(void) override;               // 含刻度绘制
+    void draw(void) override;               // 含刻度绘制 + afterDraw()
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;      // 含脏矩形检查
 
@@ -174,7 +175,7 @@ public:
     bool getReverse() const;
 
     // ── 焦点 ──
-    bool isFocused() const;
+    bool isFocused() const override;        // 基类 ControlImpl::getFocused()
 
     // ── 视觉配置 ──
     void setTrackThickness(float thickness);
@@ -360,10 +361,14 @@ Slider::handleEvent(event)
 
 ### 4.7 焦点管理
 
-- 鼠标按下（拖拽或点击轨道）时 `setFocused(true)`
-- 在 `EventQueue` 注册 `beforeEventHandlingWatcher` 监听全局 MouseDown
-- 任意 MouseDown 在 Slider 外部 → `setFocused(false)`
-- 焦点丢失时停止键盘重复，清除 `m_repeatKey`
+Slider 的焦点已从自有 `m_focused` 迁移到基类 `ControlImpl`：
+
+- 构造函数调用 `setFocusable(true)` 注册到 FocusManager
+- 鼠标按下（拖拽或点击轨道）时通过基类 `setFocused(true, bool)` 设置焦点
+- 保留 `beforeEventHandlingWatcher` 监听全局 MouseDown，检测外部点击释放焦点
+- 覆盖 `onFocusLost()` 停止键盘重复并清除 `m_repeatKey`
+- `draw()` 末尾调用 `ControlImpl::afterDraw()`，触发 `drawFocusRing()`
+- 焦点环：3 层（黑+白+颜色），在聚焦控件周围自动绘制
 
 ### 4.8 光标反馈
 

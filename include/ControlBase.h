@@ -10,6 +10,7 @@
 #include "TextRenderer.h"
 #include "InputBackend.h"
 #include "ResourceProvider.h"
+#include "FocusManager.h"
 
 using namespace std;
 
@@ -138,6 +139,22 @@ protected:
 
 public:
     virtual ~Control() = default;
+
+    // === Focus API ===
+    virtual void setFocused(bool focused, bool byKeyboard = false) = 0;
+    virtual bool getFocused() const = 0;
+    virtual bool isFocusable() const = 0;
+    virtual int  getTabIndex() const = 0;
+    virtual void setTabIndex(int index) = 0;
+    virtual void setFocusable(bool focusable) = 0;
+    virtual void onFocusGained(bool byKeyboard) = 0;
+    virtual void onFocusLost() = 0;
+    virtual void setShowFocusRing(bool show) = 0;
+    virtual void setFocusRingAlwaysVisible(bool always) = 0;
+    virtual void setFocusRingColor(SColor color) = 0;
+    virtual void setFocusRingStyle(FocusRingStyle style) = 0;
+    virtual bool isFocusBoundary() const = 0;
+
     virtual void create(void) = 0;  // 初始创建控件，缺省情况下只有初始创建控件后，才能显示和处理事件
     virtual void setId(int id) = 0;
     virtual int getId(void) const = 0;
@@ -261,6 +278,21 @@ protected:
     SRect m_frameDrawRect;
     bool m_frameDrawRectValid = false;
 
+    // === Focus state ===
+    bool m_focused = false;
+    bool m_focusable = false;
+    int  m_tabIndex = -1;
+    bool m_focusByKeyboard = false;
+
+    // === Focus ring config ===
+    bool m_showFocusRing = true;
+    bool m_focusRingAlwaysVisible = true;
+    SColor m_focusRingColor{66, 133, 244, 255};
+    FocusRingStyle m_focusRingStyle = FocusRingStyle::Solid;
+
+    // === Focus scope ===
+    bool m_isFocusBoundary = false;
+
     void recreate(void) override; //重新创建控件，主要用于在一些属性改变时需要重新创建控件的情况，比如大小改变，位置改变等
     // 保持 alwaysOnTop 子控件在 children 末尾
     void stabilizeTopmostChildren();
@@ -276,8 +308,25 @@ protected:
 public:
     ControlImpl(Control *parent, float xScale=1.0f, float yScale=1.0f);
     ControlImpl(const ControlImpl& other);
-    ~ControlImpl() = default;
+    ~ControlImpl();
     void create(void) override;  // 初始创建控件，缺省情况下只有初始创建控件后，才能显示和处理事件
+
+    // === Focus API ===
+    void setFocused(bool focused, bool byKeyboard = false) override;
+    bool getFocused() const override { return m_focused; }
+    bool isFocusable() const override { return m_focusable; }
+    int  getTabIndex() const override { return m_tabIndex; }
+    void setTabIndex(int index) override;
+    void setFocusable(bool focusable) override;
+    void onFocusGained(bool byKeyboard) override;
+    void onFocusLost() override;
+    void setShowFocusRing(bool show) override { m_showFocusRing = show; }
+    void setFocusRingAlwaysVisible(bool always) override { m_focusRingAlwaysVisible = always; }
+    void setFocusRingColor(SColor color) override { m_focusRingColor = color; }
+    void setFocusRingStyle(FocusRingStyle style) override { m_focusRingStyle = style; }
+    bool isFocusBoundary() const override { return m_isFocusBoundary; }
+    void drawFocusRing();
+
     void setId(int id) override { m_id = id; }
     int getId(void) const override { return m_id; }
     ControlImpl& operator=(const ControlImpl& other);

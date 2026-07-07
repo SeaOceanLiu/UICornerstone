@@ -70,9 +70,13 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
         .setTransparent(false)
         .setBorderVisible(false)
         .build());
+
+    m_isFocusBoundary = true;
+    GET_FOCUSMANAGER->registerBoundary(this);
 }
 
 WinFrame::~WinFrame() {
+    GET_FOCUSMANAGER->unregisterBoundary(this);
     delete m_cursorSizeWE;
     delete m_cursorSizeNS;
     delete m_cursorSizeNWSE;
@@ -144,6 +148,7 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
     if (hasPos && event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
         if (getDrawRect().contains(mousePos.x, mousePos.y)) {
             bringToFront();
+            GET_FOCUSMANAGER->focusFirstInScope(this);
             consumedByFocus = true;
         }
     }
@@ -329,6 +334,24 @@ void WinFrame::setRect(SRect rect) {
 void WinFrame::show(void) {
     Panel::show();
     bringToFront();
+    m_isFocusBoundary = true;
+    GET_FOCUSMANAGER->registerBoundary(this);
+}
+
+void WinFrame::hide(void) {
+    Control* fc = GET_FOCUSMANAGER->getCurrentFocused();
+    if (fc) {
+        Control* p = fc->getParent();
+        while (p) {
+            if (p == this) {
+                fc->setFocused(false, false);
+                break;
+            }
+            p = p->getParent();
+        }
+    }
+    GET_FOCUSMANAGER->unregisterBoundary(this);
+    Panel::hide();
 }
 
 void WinFrame::setWinFrameBGColor(const SColor& color) {

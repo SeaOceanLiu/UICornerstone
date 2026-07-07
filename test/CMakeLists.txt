@@ -99,6 +99,7 @@ set(UI_TEST_EXECUTABLES
     test_button
     test_graphtool
     test_handlecontrol
+    test_slider
     test_layout
     test_layout_advanced
     test_winframe

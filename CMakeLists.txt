@@ -42,6 +42,7 @@ set(CORE_SOURCES
     src/WinFrame.cpp
     src/EditBox.cpp
     src/EventQueue.cpp
+    src/FocusManager.cpp
     src/GraphTool.cpp
     src/HandleControl.cpp
     src/HotReloader.cpp
@@ -55,6 +56,7 @@ set(CORE_SOURCES
     src/ProgressBar.cpp
     src/ResourceProvider.cpp
     src/ScrollBar.cpp
+    src/Slider.cpp
     src/Surface.cpp
     src/TextArea.cpp
     src/Theme.cpp

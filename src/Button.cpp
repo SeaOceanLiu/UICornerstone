@@ -12,6 +12,7 @@ Button::Button(Control *parent, SRect rect, float xScale, float yScale):
     m_captionSize(ConstDef::BUTTON_CAPTION_SIZE)
 {
     m_rect = rect;
+    setFocusable(true);
 }
 
 void Button::update(void){
@@ -146,6 +147,24 @@ bool Button::handleEvent(shared_ptr<Event> event){
             setState(ControlState::Normal);
         }
     }
+    // Keyboard activation: Enter / Space
+    if (event->m_type == EventType::KeyDown && getFocused()) {
+        if (event->keyEvent.keycode == KeyCode::Return ||
+            event->keyEvent.keycode == KeyCode::Space) {
+            setState(ControlState::Pressed);
+            if (m_onClick)
+                m_onClick(dynamic_pointer_cast<Button>(this->getThis()));
+            return true;
+        }
+    }
+    if (event->m_type == EventType::KeyUp && getFocused()) {
+        if (event->keyEvent.keycode == KeyCode::Return ||
+            event->keyEvent.keycode == KeyCode::Space) {
+            setState(ControlState::Normal);
+            return true;
+        }
+    }
+
     if (ControlImpl::handleEvent(event)) return true;
     return false;
 }

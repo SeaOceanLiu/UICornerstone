@@ -1521,3 +1521,18 @@ Done, 180 frames                        # 帧循环正常完成
 **Raylib KeyUp 根因**：raylib 使用 `GetKeyPressed()` / `IsKeyDown()` 但无释放 API，`Keyboard` phase 从未生成 `KeyUp` 事件 → Slider 的 `m_repeatKey` 永不归零 → `handleKeyRepeat()` 无限重复无法停止。
 
 **验证**：SDL3/SFML/Raylib 三后端全部编译通过。test_slider 运行正常。
+
+### 2026-07-07: Focus 环 3 层对比优化 + 全设计文档更新
+
+**焦点环变更**：
+
+| 文件 | 变更 |
+|------|------|
+| `src/ControlBase.cpp` | `drawFocusRing()` 改为 3 层：黑(inset 0, alpha 150) + 白(inset 1, alpha 150) + 用户颜色(inset 2)，保证任何背景色下至少一条线可见 |
+| `include/ControlBase.h` | `m_focusRingAlwaysVisible = true`（默认） |
+| `src/backend/sfml/InputBackend.cpp` | 添加 `unicode < 0x20 \|\| unicode == 0x7F` 控制字符过滤，防止 Tab 注入为文本输入 |
+| `test/test_button.cpp` | 图片路径相对化（`assets/images/*.png` 替代硬编码绝对路径） |
+| `test/test_winframe.cpp` | 添加跨 WinFrame 焦点测试控件 |
+| 全部设计文档 | 同步更新焦点描述（3 层环、setFocusable(true)、m_focusRingAlwaysVisible、作用域边界等） |
+
+**验证**：6 构建配置 + 全部 samples 编译通过。test_fromsource_xxx 三后端焦点环可见。

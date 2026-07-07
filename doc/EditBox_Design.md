@@ -168,11 +168,11 @@ public:
 
 ### 4.1 光标闪烁
 
-使用 `m_cursorBlinkTime` 记录上次光标显示时间，在 `update()` 中每帧递增固定步长（16ms），达到 500ms 间隔后切换光标可见性：
+使用 `m_cursorBlinkTime` 记录上次光标显示时间，在 `update()` 中每帧递增固定步长（16ms），达到 500ms 间隔后切换光标可见性。焦点状态通过基类 `ControlImpl::getFocused()` 访问：
 
 ```cpp
 void EditBox::update(void) {
-    if (m_focused) {
+    if (getFocused()) {  // 基类 ControlImpl
         m_cursorBlinkTime += 16;
         if (m_cursorBlinkTime >= ConstDef::EDITBOX_CURSOR_BLINK_INTERVAL) {
             m_cursorVisible = !m_cursorVisible;
@@ -181,6 +181,12 @@ void EditBox::update(void) {
     }
 }
 ```
+
+**焦点说明**：
+- `m_focused` 已从 EditBox 自有成员迁移到基类 `ControlImpl`
+- 构造函数调用 `setFocusable(true)` 注册到 FocusManager
+- 覆盖 `onFocusGained()` 启动光标闪烁，`onFocusLost()` 停止闪烁并清空选择
+- 焦点环通过基类 `afterDraw()` → `drawFocusRing()` 自动绘制（3 层：黑+白+颜色）
 
 ### 4.2 密码模式
 

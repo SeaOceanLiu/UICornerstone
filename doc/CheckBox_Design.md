@@ -366,6 +366,37 @@ bool CheckBox::handleEvent(shared_ptr<Event> event) {
 
 **回调签名变更**：`OnCheckChangedHandler` 从旧 API 的 `(CheckBox*, CheckState)` 改为 `(CheckBox*, CheckState, CheckState)`（oldState 和 newState 两个参数）。
 
+### 7.3 键盘激活（Space 三态循环）
+
+CheckBox 在构造函数中调用 `setFocusable(true)` 注册到 FocusManager，支持键盘激活：
+
+```cpp
+// 构造函数（已实现）
+CheckBox::CheckBox(...) : ControlImpl(...) {
+    setFocusable(true);   // FocusManager::registerControl(this)
+}
+
+// handleEvent 新增键盘处理
+if (event->m_type == EventType::KeyDown && m_focused) {
+    if (event->keyEvent.keycode == KeyCode::Space) {
+        CheckState oldState = m_checkState;
+        // 三态循环：Unchecked → Checked → Indeterminate → Unchecked
+        int nextState = (static_cast<int>(m_checkState) + 1) % 3;
+        setCheckState(static_cast<CheckState>(nextState));
+        if (m_onCheckChanged) {
+            m_onCheckChanged(dynamic_pointer_cast<CheckBox>(getThis()),
+                             oldState, m_checkState);
+        }
+        return true;
+    }
+}
+```
+
+- Tab 导航到 CheckBox：显示焦点环（3 层：黑+白+颜色）
+- Space：与鼠标点击一致的三态循环
+- 三态顺序：`Unchecked → Checked → Indeterminate → Unchecked`
+- 两态模式：`Unchecked → Checked → Unchecked`
+
 ## 8. 实现细节
 
 ### 8.1 生命周期管理

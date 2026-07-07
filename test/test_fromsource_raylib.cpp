@@ -54,6 +54,10 @@ typedef void  (*UIDestroyControlFn)(void*);
 typedef void  (*UIWinFrameSetClientTextFn)(void*, const char*);
 typedef void* (*UICreateImageButtonFn)(const char*,const char*,const char*,float,float,float,float);
 typedef void  (*UISetButtonAnimationFn)(void*, const char*);
+typedef void* (*UICreateSliderFn)(float,float,float,float,float,float,float);
+typedef float (*UIGetSliderValueFn)(void*);
+typedef void  (*UISetSliderValueFn)(void*,float);
+typedef void  (*UISetOnSliderChangedFn)(void*, void (*)(void*,void*), void*);
 
 static UIInitFn             uiInit             = nullptr;
 static UISetViewportFn      uiSetViewport      = nullptr;
@@ -86,6 +90,10 @@ static UIDestroyControlFn   uiDestroyControl   = nullptr;
 static UIWinFrameSetClientTextFn uiSetWinFrameClientText = nullptr;
 static UICreateImageButtonFn uiCreateImageButton  = nullptr;
 static UISetButtonAnimationFn uiSetButtonAnimation = nullptr;
+static UICreateSliderFn         uiCreateSlider       = nullptr;
+static UIGetSliderValueFn       uiGetSliderValue     = nullptr;
+static UISetSliderValueFn       uiSetSliderValue     = nullptr;
+static UISetOnSliderChangedFn   uiSetOnSliderChanged = nullptr;
 
 static void* g_btnHandle      = nullptr;
 static void* g_checkHandle    = nullptr;
@@ -99,6 +107,7 @@ static void* g_edtStatus      = nullptr;
 static void* g_winFrameHandle = nullptr;
 static void* g_imgBtnHandle   = nullptr;  // 图片测试按钮
 static void* g_aniBtnHandle   = nullptr;  // LuotiAni 测试按钮
+static void* g_sliderHandle   = nullptr;
 
 static void onButtonClick(void* ctl, void* userData) {
     (void)ctl; (void)userData;
@@ -168,6 +177,10 @@ int main() {
     uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GET_PROC("WinFrameSetClientText");
     uiCreateImageButton  = (UICreateImageButtonFn)GET_PROC("CreateImageButton");
     uiSetButtonAnimation = (UISetButtonAnimationFn)GET_PROC("SetButtonAnimation");
+    uiCreateSlider       = (UICreateSliderFn)GET_PROC("CreateSlider");
+    uiGetSliderValue     = (UIGetSliderValueFn)GET_PROC("GetSliderValue");
+    uiSetSliderValue     = (UISetSliderValueFn)GET_PROC("SetSliderValue");
+    uiSetOnSliderChanged = (UISetOnSliderChangedFn)GET_PROC("SetOnSliderChanged");
     #undef GET_PROC
 
     if (!uiInit) {
@@ -248,6 +261,14 @@ int main() {
             uiAddChild(g_panelHandle, g_textAreaHandle);
             printf("OK: added TextArea to Panel\n");
         }
+    // Slider: range 0-100
+    if (uiCreateSlider) {
+        g_sliderHandle = uiCreateSlider(20, 470, 300, 30, 0, 100, 50);
+        if (g_sliderHandle) {
+            printf("OK: created Slider\n");
+        }
+    }
+
         // 图片测试按钮（cross_up/cross_over/cross_down, 左对齐）
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
@@ -309,6 +330,12 @@ int main() {
         uiProcessEvents();
         uiClear();
         uiUpdate(1.0 / 60.0);
+
+        // Slider value polling
+        if (g_sliderHandle && uiGetSliderValue) {
+            float sv = uiGetSliderValue(g_sliderHandle);
+            printf("Slider: %.1f\r", sv);
+        }
 
         // 轮询状态并更新标签
         char buf[256];

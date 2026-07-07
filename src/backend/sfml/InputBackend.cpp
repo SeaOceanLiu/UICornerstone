@@ -166,6 +166,8 @@ public:
         }
         else if (const auto* textEntered = sfmlEvent.getIf<sf::Event::TextEntered>()) {
             char32_t unicode = textEntered->unicode;
+            // Filter out control characters (<0x20) and DEL (0x7F) to match SDL3/raylib behavior
+            if (unicode < 0x20 || unicode == 0x7F) return true;
             char utf8[8] = {};
             if (unicode < 0x80) {
                 utf8[0] = static_cast<char>(unicode);

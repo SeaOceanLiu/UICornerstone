@@ -187,6 +187,8 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateEditBox(
     float x, float y, float w, float h);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateProgressBar(
     float x, float y, float w, float h);
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateSlider(
+    float x, float y, float w, float h, float min, float max, float value);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreatePanel(
     float x, float y, float w, float h);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateTextArea(
@@ -211,6 +213,11 @@ UICORNERSTONE_API const char* UICornerstone_GetText(UIControlHandle ctl);
 UICORNERSTONE_API int UICornerstone_GetChecked(UIControlHandle ctl);
 UICORNERSTONE_API float UICornerstone_GetProgress(UIControlHandle ctl);
 UICORNERSTONE_API void UICornerstone_WinFrameSetClientText(UIControlHandle wf, const char* text);
+
+/* ============ Slider ============ */
+UICORNERSTONE_API float UICornerstone_GetSliderValue(UIControlHandle ctl);
+UICORNERSTONE_API void UICornerstone_SetSliderValue(UIControlHandle ctl, float value);
+UICORNERSTONE_API void UICornerstone_SetOnSliderChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
 
 /* ============ 图片/动画按钮 ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(

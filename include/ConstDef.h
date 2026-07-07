@@ -177,6 +177,19 @@ public:
     static const float PROGRESSBAR_ANIMATION_SPEED;
     static const float PROGRESSBAR_DEFAULT_FONT_SIZE;
     static const float PROGRESSBAR_TEXT_MARGIN;
+
+    // 滑块相关常量
+    static const float SLIDER_TRACK_THICKNESS;
+    static const float SLIDER_THUMB_SIZE;
+    static const SColor SLIDER_TRACK_COLOR;
+    static const SColor SLIDER_TRACK_FILL_COLOR;
+    static const SColor SLIDER_THUMB_COLOR;
+    static const SColor SLIDER_THUMB_BORDER_COLOR;
+    static const SColor SLIDER_THUMB_HOVER_COLOR;
+    static const SColor SLIDER_LABEL_COLOR;
+    static const float SLIDER_TICK_INTERVAL;
+    static const float SLIDER_TICK_LENGTH;
+    static const SColor SLIDER_TICK_COLOR;
 };
 
 #endif // ConstDefH

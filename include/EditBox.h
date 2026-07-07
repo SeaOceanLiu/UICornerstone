@@ -23,7 +23,6 @@ protected:
     int m_selectionEnd;
     bool m_passwordMode;
     char m_passwordChar;
-    bool m_focused;
     int32_t m_cursorBlinkTime;
     bool m_cursorVisible;
     bool m_shiftPressed;
@@ -101,8 +100,10 @@ public:
     void setOnTextChanged(OnTextChangedHandler handler);
     void setOnEnter(OnEnterHandler handler);
 
-    void setFocused(bool focused);
-    bool isFocused() const { return m_focused; }
+    void setFocused(bool focused, bool byKeyboard = false) override;
+    void onFocusGained(bool byKeyboard) override;
+    void onFocusLost() override;
+    bool isFocused() const { return getFocused(); }
 
     void setMargin(const Margin& margin);
     Margin getMargin() const { return m_margin; }

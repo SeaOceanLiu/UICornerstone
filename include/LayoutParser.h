@@ -17,6 +17,7 @@
 #include "TextArea.h"
 #include "CheckBox.h"
 #include "ProgressBar.h"
+#include "Slider.h"
 #include "ScrollBar.h"
 #include "Panel.h"
 #include "WinFrame.h"
@@ -86,6 +87,7 @@ private:
     shared_ptr<TextArea>    parseTextArea(const json& j, Control* parent);
     shared_ptr<CheckBox>    parseCheckBox(const json& j, Control* parent);
     shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);
+    shared_ptr<Slider>      parseSlider(const json& j, Control* parent);
     shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
     shared_ptr<WinFrame>    parseWinFrame(const json& j, Control* parent);

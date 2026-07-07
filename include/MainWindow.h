@@ -6,6 +6,7 @@
 #include "BackendPlugin.h"
 #include "ResourceProvider.h"
 #include "AppCallbacks.h"
+#include "FocusManager.h"
 
 
 #define MAINWIN (MainWindow::getInstance())
@@ -13,11 +14,13 @@
 #define GET_TEXTRENDERER (MAINWIN->getTextRenderer())
 #define GET_INPUTBACKEND (MAINWIN->getInputBackend())
 #define GET_RESOURCEPROVIDER (MAINWIN->getResourceProvider())
+#define GET_FOCUSMANAGER (MAINWIN->getFocusManager())
 
 
 class MainWindow {
 private:
     ResourceProvider *m_resourceProvider;
+    FocusManager m_focusManager;
     SSize m_size;
     SPoint m_pos;
     float m_displayWidth;
@@ -87,6 +90,7 @@ public:
     TextRenderer* getTextRenderer(void) { return BackendManager::instance()->textRenderer(); }
     InputBackend* getInputBackend(void) { return BackendManager::instance()->inputBackend(); }
     ResourceProvider* getResourceProvider(void) { return m_resourceProvider; }
+    FocusManager* getFocusManager() { return &m_focusManager; }
     SSize getWindowSize(void) { return m_size; }
     SPoint getWindowPos(void) { return m_pos; }
     float getDisplayWidth(void) { return m_displayWidth; }

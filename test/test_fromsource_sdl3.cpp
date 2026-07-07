@@ -62,6 +62,10 @@ typedef void  (*UIDestroyControlFn)(void*);
 typedef void  (*UIWinFrameSetClientTextFn)(void*, const char*);
 typedef void* (*UICreateImageButtonFn)(const char*,const char*,const char*,float,float,float,float);
 typedef void  (*UISetButtonAnimationFn)(void*, const char*);
+typedef void* (*UICreateSliderFn)(float,float,float,float,float,float,float);
+typedef float (*UIGetSliderValueFn)(void*);
+typedef void  (*UISetSliderValueFn)(void*,float);
+typedef void  (*UISetOnSliderChangedFn)(void*, void (*)(void*,void*), void*);
 
 static UIInitFn             uiInit             = nullptr;
 static UISetViewportFn      uiSetViewport      = nullptr;
@@ -95,6 +99,10 @@ static UIDestroyControlFn   uiDestroyControl   = nullptr;
 static UIWinFrameSetClientTextFn uiSetWinFrameClientText = nullptr;
 static UICreateImageButtonFn    uiCreateImageButton  = nullptr;
 static UISetButtonAnimationFn   uiSetButtonAnimation = nullptr;
+static UICreateSliderFn         uiCreateSlider       = nullptr;
+static UIGetSliderValueFn       uiGetSliderValue     = nullptr;
+static UISetSliderValueFn       uiSetSliderValue     = nullptr;
+static UISetOnSliderChangedFn   uiSetOnSliderChanged = nullptr;
 
 static void* g_btnHandle     = nullptr;
 static void* g_checkHandle   = nullptr;
@@ -108,6 +116,7 @@ static void* g_edtStatus      = nullptr;
 static void* g_winFrameHandle = nullptr;
 static void* g_imgBtnHandle   = nullptr;
 static void* g_aniBtnHandle   = nullptr;
+static void* g_sliderHandle   = nullptr;
 static int   g_frameCount     = 0;
 
 // SDL_Event → UIEvent 转换
@@ -248,6 +257,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GetProcAddress(g_uiDll, "UICornerstone_WinFrameSetClientText");
     uiCreateImageButton  = (UICreateImageButtonFn)GetProcAddress(g_uiDll, "UICornerstone_CreateImageButton");
     uiSetButtonAnimation = (UISetButtonAnimationFn)GetProcAddress(g_uiDll, "UICornerstone_SetButtonAnimation");
+    uiCreateSlider       = (UICreateSliderFn)GetProcAddress(g_uiDll, "UICornerstone_CreateSlider");
+    uiGetSliderValue     = (UIGetSliderValueFn)GetProcAddress(g_uiDll, "UICornerstone_GetSliderValue");
+    uiSetSliderValue     = (UISetSliderValueFn)GetProcAddress(g_uiDll, "UICornerstone_SetSliderValue");
+    uiSetOnSliderChanged = (UISetOnSliderChangedFn)GetProcAddress(g_uiDll, "UICornerstone_SetOnSliderChanged");
 
     if (!uiInit) {
         printf("FAIL: GetProcAddress(UICornerstone_Init)\n");
@@ -320,7 +333,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
             uiAddChild(g_panelHandle, g_textAreaHandle);
             printf("OK: added TextArea to Panel\n");
         }
-        // 图片测试按钮（cross_up/cross_over/cross_down, 左对齐）
+        // 分组 5: Slider — range 0-100, horizontal, with callback
+    if (uiCreateSlider) {
+        g_sliderHandle = uiCreateSlider(20, 470, 300, 30, 0, 100, 50);
+        if (g_sliderHandle) {
+            printf("OK: created Slider\n");
+        }
+    }
+
+    // 图片测试按钮（cross_up/cross_over/cross_down, 左对齐）
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
                 "assets/images/cross_up.png",
@@ -392,6 +413,12 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         uiProcessEvents();
         uiClear();
         uiUpdate(1.0/60.0);
+
+        // 轮询 Slider 值
+        if (g_sliderHandle && uiGetSliderValue) {
+            float sv = uiGetSliderValue(g_sliderHandle);
+            printf("Slider: %.1f\r", sv);
+        }
 
         // 轮询状态并更新标签
         char buf[256];

@@ -175,6 +175,7 @@ void ControlImpl::afterDraw() {
     if (!getVisible()) return;
 
     drawBorder(&m_frameDrawRect);
+    drawFocusRing();
     m_frameDrawRectValid = false;
 }
 void ControlImpl::drawBackground(const SRect *pDrawRect){
@@ -652,6 +653,107 @@ bool ControlImpl::getBorderVisible(void){
 
 void ControlImpl::triggerEvent(shared_ptr<Event> event){
     m_eventQueueInstance->pushEventIntoQueue(event);
+}
+
+ControlImpl::~ControlImpl() {
+    if (m_focusable) {
+        FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+        if (fm) fm->unregisterControl(this);
+    }
+}
+
+void ControlImpl::setFocused(bool focused, bool byKeyboard) {
+    if (m_focused == focused) return;
+    m_focused = focused;
+    m_focusByKeyboard = byKeyboard && focused;
+    if (focused) {
+        onFocusGained(byKeyboard);
+    } else {
+        onFocusLost();
+    }
+}
+
+void ControlImpl::setFocusable(bool focusable) {
+    if (m_focusable == focusable) return;
+    m_focusable = focusable;
+    FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+    if (fm) {
+        if (focusable)
+            fm->registerControl(this);
+        else
+            fm->unregisterControl(this);
+    }
+}
+
+void ControlImpl::setTabIndex(int index) {
+    if (m_tabIndex == index) return;
+    m_tabIndex = index;
+}
+
+void ControlImpl::onFocusGained(bool byKeyboard) {
+}
+
+void ControlImpl::onFocusLost() {
+}
+
+void ControlImpl::drawFocusRing() {
+    if (!m_focused || !m_showFocusRing) return;
+    if (!m_focusRingAlwaysVisible && !m_focusByKeyboard) return;
+    if (!m_frameDrawRectValid) return;
+
+    SRect dr = m_frameDrawRect;
+    auto* rd = getRenderDevice();
+    if (!rd) return;
+
+    if (m_focusRingStyle == FocusRingStyle::Solid) {
+        // 3-layer ring: black outer (contrast on light bg), white middle (contrast on dark bg), color accent inner
+        rd->setDrawColor(SColor(0, 0, 0, 150));
+        rd->drawRect({dr.left, dr.top, dr.width, dr.height});
+        rd->setDrawColor(SColor(255, 255, 255, 150));
+        rd->drawRect({dr.left + 1, dr.top + 1, dr.width - 2, dr.height - 2});
+        rd->setDrawColor(m_focusRingColor);
+        rd->drawRect({dr.left + 2, dr.top + 2, dr.width - 4, dr.height - 4});
+    } else {
+        float dashLen = 6.0f;
+        float gapLen = 4.0f;
+
+        for (int pass = 0; pass < 3; pass++) {
+            float inset = (float)(pass + 1);
+            SColor c;
+            switch (pass) {
+                case 0: c = SColor(0, 0, 0, 150); break;
+                case 1: c = SColor(255, 255, 255, 150); break;
+                default: c = m_focusRingColor; break;
+            }
+            rd->setDrawColor(c);
+
+            float left = dr.left + inset;
+            float top = dr.top + inset;
+            float right = dr.left + dr.width - inset;
+            float bottom = dr.top + dr.height - inset;
+
+            // Top edge
+            for (float x = left; x < right; x += dashLen + gapLen) {
+                float endX = std::min(x + dashLen, right);
+                rd->drawLine(x, top, endX, top);
+            }
+            // Bottom edge
+            for (float x = left; x < right; x += dashLen + gapLen) {
+                float endX = std::min(x + dashLen, right);
+                rd->drawLine(x, bottom, endX, bottom);
+            }
+            // Left edge
+            for (float y = top; y < bottom; y += dashLen + gapLen) {
+                float endY = std::min(y + dashLen, bottom);
+                rd->drawLine(left, y, left, endY);
+            }
+            // Right edge
+            for (float y = top; y < bottom; y += dashLen + gapLen) {
+                float endY = std::min(y + dashLen, bottom);
+                rd->drawLine(right, y, right, endY);
+            }
+        }
+    }
 }
 
 void ControlImpl::inheritRenderer(void) {

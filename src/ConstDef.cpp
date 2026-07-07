@@ -97,6 +97,18 @@ const float ConstDef::PROGRESSBAR_ANIMATION_SPEED = 0.1f;
 const float ConstDef::PROGRESSBAR_DEFAULT_FONT_SIZE = 14.0f;
 const float ConstDef::PROGRESSBAR_TEXT_MARGIN = 5.0f;
 
+const float ConstDef::SLIDER_TRACK_THICKNESS = 4.0f;
+const float ConstDef::SLIDER_THUMB_SIZE = 16.0f;
+const SColor ConstDef::SLIDER_TRACK_COLOR(60, 60, 60, 255);
+const SColor ConstDef::SLIDER_TRACK_FILL_COLOR(0, 120, 255, 255);
+const SColor ConstDef::SLIDER_THUMB_COLOR(255, 255, 255, 255);
+const SColor ConstDef::SLIDER_THUMB_BORDER_COLOR(0, 120, 255, 255);
+const SColor ConstDef::SLIDER_THUMB_HOVER_COLOR(200, 200, 200, 255);
+const SColor ConstDef::SLIDER_LABEL_COLOR(255, 255, 255, 255);
+const float ConstDef::SLIDER_TICK_INTERVAL = 0.0f;
+const float ConstDef::SLIDER_TICK_LENGTH = 8.0f;
+const SColor ConstDef::SLIDER_TICK_COLOR(100, 100, 100, 255);
+
 const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
     {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
     {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},

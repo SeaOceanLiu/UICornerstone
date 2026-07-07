@@ -1,5 +1,6 @@
 ﻿#include "Bench.h"
 #include "PlatformUtils.h"
+#include "EventTypes.h"
 
 void Bench::initial(void){
     // setBGColor(INITIAL_BG_COLOR);
@@ -27,6 +28,7 @@ Bench::Bench(Control *parent, SRect rect, float xScale, float yScale):
 
     Platform::Log("Loading resources.....................................");
     m_isLoading = false;
+    m_isFocusBoundary = true;
     initial();
 }
 
@@ -68,6 +70,30 @@ void Bench::draw(void){
     if (!m_visible) return;
 
     Panel::draw();
+}
+
+bool Bench::handleEvent(shared_ptr<Event> event) {
+    // Intercept Tab / Ctrl+Tab before passing to children
+    if (event->m_type == EventType::KeyDown &&
+        event->keyEvent.keycode == KeyCode::Tab) {
+        bool ctrl = isModSet(event->keyEvent.mod, KeyMod::LCtrl) || isModSet(event->keyEvent.mod, KeyMod::RCtrl);
+        bool shift = isModSet(event->keyEvent.mod, KeyMod::Shift);
+
+        if (ctrl) {
+            if (shift)
+                GET_FOCUSMANAGER->focusPrevScope();
+            else
+                GET_FOCUSMANAGER->focusNextScope();
+        } else {
+            Control* current = GET_FOCUSMANAGER->getCurrentFocused();
+            if (shift)
+                GET_FOCUSMANAGER->focusPrev(current);
+            else
+                GET_FOCUSMANAGER->focusNext(current);
+        }
+        return true;
+    }
+    return Panel::handleEvent(event);
 }
 
 int Bench::isExiting(void) {
