@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <defs>
+    <!-- 弹窗背景 -->
+    <rect id="popupBg" width="300" height="400" rx="8" ry="8" fill="#2D2D2D" stroke="#666" stroke-width="1.5"/>
+
+    <!-- 预设色块样式 -->
+    <g id="presetCell">
+      <rect width="0" height="0" rx="2" stroke="#555" stroke-width="0.8"/>
+    </g>
+
+    <!-- 滑块轨道 -->
+    <linearGradient id="trackR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3D0000"/>
+      <stop offset="100%" stop-color="#8B0000"/>
+    </linearGradient>
+    <linearGradient id="trackG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#003D00"/>
+      <stop offset="100%" stop-color="#008B00"/>
+    </linearGradient>
+    <linearGradient id="trackB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00003D"/>
+      <stop offset="100%" stop-color="#00008B"/>
+    </linearGradient>
+    <linearGradient id="trackA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#444"/>
+      <stop offset="100%" stop-color="#888"/>
+    </linearGradient>
+
+    <!-- 阴影滤镜 -->
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- 阴影 -->
+  <rect x="5" y="5" width="300" height="400" rx="8" fill="rgba(0,0,0,0.35)" filter="url(#shadow)"/>
+
+  <!-- 弹窗背景 -->
+  <use href="#popupBg"/>
+
+  <!-- ===== 预设色面板标题 ===== -->
+  <text x="15" y="22" font-family="sans-serif" font-size="10" fill="#999">预设色</text>
+
+  <!-- ===== 预设色块 5×4 ===== -->
+  <!-- 行 0 -->
+  <rect x="15" y="30" width="50" height="24" rx="2" fill="#FF0000" stroke="#666" stroke-width="0.8"/>
+  <rect x="69" y="30" width="50" height="24" rx="2" fill="#00FF00" stroke="#666" stroke-width="0.8"/>
+  <rect x="123" y="30" width="50" height="24" rx="2" fill="#0000FF" stroke="#666" stroke-width="0.8"/>
+  <rect x="177" y="30" width="50" height="24" rx="2" fill="#FFFF00" stroke="#666" stroke-width="0.8"/>
+  <rect x="231" y="30" width="54" height="24" rx="2" fill="#FF00FF" stroke="#666" stroke-width="0.8"/>
+
+  <!-- 行 1 -->
+  <rect x="15" y="58" width="50" height="24" rx="2" fill="#00FFFF" stroke="#666" stroke-width="0.8"/>
+  <rect x="69" y="58" width="50" height="24" rx="2" fill="#FFFFFF" stroke="#999" stroke-width="0.8"/>
+  <rect x="123" y="58" width="50" height="24" rx="2" fill="#000000" stroke="#555" stroke-width="0.8"/>
+  <rect x="177" y="58" width="50" height="24" rx="2" fill="#808080" stroke="#666" stroke-width="0.8"/>
+  <rect x="231" y="58" width="54" height="24" rx="2" fill="#C0C0C0" stroke="#666" stroke-width="0.8"/>
+
+  <!-- 行 2 -->
+  <rect x="15" y="86" width="50" height="24" rx="2" fill="#800000" stroke="#666" stroke-width="0.8"/>
+  <rect x="69" y="86" width="50" height="24" rx="2" fill="#808000" stroke="#666" stroke-width="0.8"/>
+  <rect x="123" y="86" width="50" height="24" rx="2" fill="#008000" stroke="#666" stroke-width="0.8"/>
+  <rect x="177" y="86" width="50" height="24" rx="2" fill="#800080" stroke="#666" stroke-width="0.8"/>
+  <rect x="231" y="86" width="54" height="24" rx="2" fill="#008080" stroke="#666" stroke-width="0.8"/>
+
+  <!-- 行 3 -->
+  <rect x="15" y="114" width="50" height="24" rx="2" fill="#000080" stroke="#666" stroke-width="0.8"/>
+  <rect x="69" y="114" width="50" height="24" rx="2" fill="#FFA500" stroke="#666" stroke-width="0.8"/>
+  <rect x="123" y="114" width="50" height="24" rx="2" fill="#FFC0CB" stroke="#666" stroke-width="0.8"/>
+  <!-- 选中状态：A52A2A 色块带白框 -->
+  <rect x="177" y="114" width="50" height="24" rx="2" fill="#A52A2A" stroke="#666" stroke-width="0.8"/>
+  <rect x="176" y="113" width="52" height="26" rx="3" fill="none" stroke="#FFF" stroke-width="2"/>
+  <rect x="231" y="114" width="54" height="24" rx="2" fill="#F0F8FF" stroke="#666" stroke-width="0.8"/>
+
+  <!-- ===== 分割线 ===== -->
+  <line x1="15" y1="152" x2="285" y2="152" stroke="#444" stroke-width="1"/>
+
+  <!-- ===== Hex 输入区 ===== -->
+  <text x="18" y="175" font-family="Consolas, monospace" font-size="13" fill="#888">#</text>
+  <rect x="32" y="162" width="140" height="20" rx="3" fill="#1E1E1E" stroke="#555" stroke-width="1"/>
+  <text x="38" y="176" font-family="Consolas, monospace" font-size="12" fill="#4A90D9">4A90D9</text>
+
+  <!-- 光标 -->
+  <line x1="112" y1="165" x2="112" y2="179" stroke="#FFF" stroke-width="1.2">
+    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- ===== 分割线 ===== -->
+  <line x1="15" y1="198" x2="285" y2="198" stroke="#444" stroke-width="1"/>
+
+  <!-- ===== R 滑块 ===== -->
+  <text x="18" y="219" font-family="Consolas, monospace" font-size="12" fill="#FF6B6B" font-weight="bold">R</text>
+  <rect x="36" y="210" width="165" height="6" rx="3" fill="url(#trackR)"/>
+  <!-- 填充段 -->
+  <rect x="36" y="210" width="90" height="6" rx="3" fill="#FF4444"/>
+  <!-- 手柄 -->
+  <circle cx="126" cy="213" r="7" fill="#FFF" stroke="#FF4444" stroke-width="1.5"/>
+  <!-- 值 -->
+  <text x="212" y="219" font-family="Consolas, monospace" font-size="12" fill="#CCC" text-anchor="end">145</text>
+
+  <!-- ===== G 滑块 ===== -->
+  <text x="18" y="243" font-family="Consolas, monospace" font-size="12" fill="#6BFF6B" font-weight="bold">G</text>
+  <rect x="36" y="234" width="165" height="6" rx="3" fill="url(#trackG)"/>
+  <rect x="36" y="234" width="50" height="6" rx="3" fill="#44FF44"/>
+  <circle cx="86" cy="237" r="7" fill="#FFF" stroke="#44FF44" stroke-width="1.5"/>
+  <text x="212" y="243" font-family="Consolas, monospace" font-size="12" fill="#CCC" text-anchor="end">72</text>
+
+  <!-- ===== B 滑块 ===== -->
+  <text x="18" y="267" font-family="Consolas, monospace" font-size="12" fill="#6B6BFF" font-weight="bold">B</text>
+  <rect x="36" y="258" width="165" height="6" rx="3" fill="url(#trackB)"/>
+  <rect x="36" y="258" width="130" height="6" rx="3" fill="#4444FF"/>
+  <circle cx="166" cy="261" r="7" fill="#FFF" stroke="#4444FF" stroke-width="1.5"/>
+  <text x="212" y="267" font-family="Consolas, monospace" font-size="12" fill="#CCC" text-anchor="end">217</text>
+
+  <!-- ===== A 滑块 ===== -->
+  <text x="18" y="291" font-family="Consolas, monospace" font-size="12" fill="#AAA" font-weight="bold">A</text>
+  <rect x="36" y="282" width="165" height="6" rx="3" fill="url(#trackA)"/>
+  <rect x="36" y="282" width="165" height="6" rx="3" fill="#888"/>
+  <circle cx="201" cy="285" r="7" fill="#FFF" stroke="#888" stroke-width="1.5"/>
+  <text x="212" y="291" font-family="Consolas, monospace" font-size="12" fill="#CCC" text-anchor="end">255</text>
+
+  <!-- ===== 分割线 ===== -->
+  <line x1="15" y1="308" x2="285" y2="308" stroke="#444" stroke-width="1"/>
+
+  <!-- ===== 预览色块 ===== -->
+  <text x="18" y="328" font-family="sans-serif" font-size="10" fill="#999">预览</text>
+  <rect x="18" y="336" width="30" height="30" rx="3" fill="#4A90D9" stroke="#888" stroke-width="1"/>
+
+  <!-- ===== 确定 / 取消 按钮 ===== -->
+  <rect x="148" y="338" width="65" height="28" rx="4" fill="#0D6EFD" stroke="#0A58CA" stroke-width="1"/>
+  <text x="180.5" y="356" font-family="sans-serif" font-size="12" fill="#FFF" text-anchor="middle" font-weight="bold">确定</text>
+
+  <rect x="221" y="338" width="65" height="28" rx="4" fill="#3D3D3D" stroke="#555" stroke-width="1"/>
+  <text x="253.5" y="356" font-family="sans-serif" font-size="12" fill="#CCC" text-anchor="middle">取消</text>
+
+  <!-- ===== 弹窗边框高光 ===== -->
+  <rect x="1" y="1" width="298" height="398" rx="8" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+</svg>

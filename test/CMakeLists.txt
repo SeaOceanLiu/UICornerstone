@@ -97,6 +97,7 @@ set(UI_TEST_EXECUTABLES
     test_checkbox
     test_progressbar
     test_button
+    test_colorpicker
     test_graphtool
     test_handlecontrol
     test_slider

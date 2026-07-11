@@ -11,6 +11,7 @@
 #include "Panel.h"
 #include "TextArea.h"
 #include "Slider.h"
+#include "ColorPicker.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
 #include "PlatformUtils.h"
@@ -634,6 +635,74 @@ float UICornerstone_GetProgress(UIControlHandle ctl) {
     if (!ctl) return 0.0f;
     auto* pb = dynamic_cast<ProgressBar*>(static_cast<Control*>(ctl));
     return pb ? pb->getValue() : 0.0f;
+}
+
+// ============================================================
+// ColorPicker
+// ============================================================
+UIControlHandle UICornerstone_CreateColorPicker(
+    float x, float y, float w, float h, const char* color)
+{
+    auto ctl = std::make_shared<ColorPicker>(BENCH, SRect(x, y, w, h));
+    if (color) ctl->setColor(color);
+    BENCH->addControl(ctl);
+    ctl->create();
+    ctl->setVisible(true);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
+void UICornerstone_GetColorPickerColor(UIControlHandle ctl, char* hexOut, int maxLen) {
+    if (!ctl || !hexOut || maxLen <= 0) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) {
+        std::string hex = cp->getColorHex();
+        strncpy(hexOut, hex.c_str(), (size_t)maxLen - 1);
+        hexOut[maxLen - 1] = '\0';
+    } else {
+        hexOut[0] = '\0';
+    }
+}
+
+void UICornerstone_SetOnColorChanged(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) {
+        cp->setOnColorChanged([cb, userData](std::shared_ptr<ColorPicker>, const SColor&) {
+            if (cb) cb(nullptr, userData);
+        });
+    }
+}
+
+void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, float size) {
+    if (!ctl) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) cp->setClosedSwatchSize(size);
+}
+
+void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size) {
+    if (!ctl) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) cp->setClosedFontSize(size);
+}
+
+void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex) {
+    if (!ctl || !hex) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) {
+        SColor c;
+        if (SColor::fromHex(hex, c))
+            cp->setClosedTextColor(c);
+    }
+}
+
+void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex) {
+    if (!ctl || !hex) return;
+    auto* cp = dynamic_cast<ColorPicker*>(static_cast<Control*>(ctl));
+    if (cp) {
+        SColor c;
+        if (SColor::fromHex(hex, c))
+            cp->setPopupBGColor(c);
+    }
 }
 
 float UICornerstone_GetSliderValue(UIControlHandle ctl) {

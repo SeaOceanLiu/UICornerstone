@@ -725,7 +725,7 @@ void Slider::setRect(SRect rect)
 
 void Slider::setLabelGap(float gap)
 {
-    m_labelGap = std::max(0.0f, gap);
+    m_labelGap = gap;
     repositionValueLabel();
 }
 

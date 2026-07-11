@@ -66,6 +66,13 @@ typedef void* (*UICreateSliderFn)(float,float,float,float,float,float,float);
 typedef float (*UIGetSliderValueFn)(void*);
 typedef void  (*UISetSliderValueFn)(void*,float);
 typedef void  (*UISetOnSliderChangedFn)(void*, void (*)(void*,void*), void*);
+typedef void* (*UICreateColorPickerFn)(float,float,float,float,const char*);
+typedef void  (*UIGetColorPickerColorFn)(void*,char*,int);
+typedef void  (*UISetOnColorChangedFn)(void*, void (*)(void*,void*), void*);
+typedef void  (*UISetClosedSwatchSizeFn)(void*,float);
+typedef void  (*UISetClosedFontSizeFn)(void*,int);
+typedef void  (*UISetClosedTextColorFn)(void*,const char*);
+typedef void  (*UISetPopupBGColorFn)(void*,const char*);
 
 static UIInitFn             uiInit             = nullptr;
 static UISetViewportFn      uiSetViewport      = nullptr;
@@ -103,6 +110,13 @@ static UICreateSliderFn         uiCreateSlider       = nullptr;
 static UIGetSliderValueFn       uiGetSliderValue     = nullptr;
 static UISetSliderValueFn       uiSetSliderValue     = nullptr;
 static UISetOnSliderChangedFn   uiSetOnSliderChanged = nullptr;
+static UICreateColorPickerFn    uiCreateColorPicker    = nullptr;
+static UIGetColorPickerColorFn  uiGetColorPickerColor  = nullptr;
+static UISetOnColorChangedFn    uiSetOnColorChanged    = nullptr;
+static UISetClosedSwatchSizeFn  uiSetClosedSwatchSize  = nullptr;
+static UISetClosedFontSizeFn    uiSetClosedFontSize    = nullptr;
+static UISetClosedTextColorFn   uiSetClosedTextColor   = nullptr;
+static UISetPopupBGColorFn      uiSetPopupBGColor      = nullptr;
 
 static void* g_btnHandle     = nullptr;
 static void* g_checkHandle   = nullptr;
@@ -117,6 +131,7 @@ static void* g_winFrameHandle = nullptr;
 static void* g_imgBtnHandle   = nullptr;
 static void* g_aniBtnHandle   = nullptr;
 static void* g_sliderHandle   = nullptr;
+static void* g_colorPickerHandle = nullptr;
 static int   g_frameCount     = 0;
 
 // SDL_Event → UIEvent 转换
@@ -261,6 +276,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     uiGetSliderValue     = (UIGetSliderValueFn)GetProcAddress(g_uiDll, "UICornerstone_GetSliderValue");
     uiSetSliderValue     = (UISetSliderValueFn)GetProcAddress(g_uiDll, "UICornerstone_SetSliderValue");
     uiSetOnSliderChanged = (UISetOnSliderChangedFn)GetProcAddress(g_uiDll, "UICornerstone_SetOnSliderChanged");
+    uiCreateColorPicker    = (UICreateColorPickerFn)GetProcAddress(g_uiDll, "UICornerstone_CreateColorPicker");
+    uiGetColorPickerColor  = (UIGetColorPickerColorFn)GetProcAddress(g_uiDll, "UICornerstone_GetColorPickerColor");
+    uiSetOnColorChanged    = (UISetOnColorChangedFn)GetProcAddress(g_uiDll, "UICornerstone_SetOnColorChanged");
+    uiSetClosedSwatchSize  = (UISetClosedSwatchSizeFn)GetProcAddress(g_uiDll, "UICornerstone_SetClosedSwatchSize");
+    uiSetClosedFontSize    = (UISetClosedFontSizeFn)GetProcAddress(g_uiDll, "UICornerstone_SetClosedFontSize");
+    uiSetClosedTextColor   = (UISetClosedTextColorFn)GetProcAddress(g_uiDll, "UICornerstone_SetClosedTextColor");
+    uiSetPopupBGColor      = (UISetPopupBGColorFn)GetProcAddress(g_uiDll, "UICornerstone_SetPopupBGColor");
 
     if (!uiInit) {
         printf("FAIL: GetProcAddress(UICornerstone_Init)\n");
@@ -341,6 +363,18 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
         }
     }
 
+    // ColorPicker: hex color picker with presets
+    if (uiCreateColorPicker) {
+        g_colorPickerHandle = uiCreateColorPicker(340, 470, 96, 24, "#FF6600");
+        if (g_colorPickerHandle) {
+            printf("OK: created ColorPicker\n");
+            if (uiSetClosedSwatchSize)
+                uiSetClosedSwatchSize(g_colorPickerHandle, 16.0f);
+            if (uiSetClosedFontSize)
+                uiSetClosedFontSize(g_colorPickerHandle, 12);
+        }
+    }
+
     // 图片测试按钮（cross_up/cross_over/cross_down, 左对齐）
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
@@ -418,6 +452,13 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         if (g_sliderHandle && uiGetSliderValue) {
             float sv = uiGetSliderValue(g_sliderHandle);
             printf("Slider: %.1f\r", sv);
+        }
+
+        // 轮询 ColorPicker 颜色
+        if (g_colorPickerHandle && uiGetColorPickerColor) {
+            char hex[16];
+            uiGetColorPickerColor(g_colorPickerHandle, hex, sizeof(hex));
+            printf("Color: %s\r", hex);
         }
 
         // 轮询状态并更新标签

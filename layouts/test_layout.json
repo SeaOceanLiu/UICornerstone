@@ -275,6 +275,17 @@
                     }
                 },
                 {
+                    "type": "ColorPicker",
+                    "id": "testColorPicker",
+                    "rect": { "x": 20, "y": 432, "w": 96, "h": 24 },
+                    "color": "#FF6600",
+                    "presets": ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF"],
+                    "presetLayout": { "cols": 5, "rows": 1 },
+                    "events": {
+                        "onColorChanged": "onColorChanged"
+                    }
+                },
+                {
                     "type": "ScrollBar",
                     "id": "hScroll",
                     "rect": { "x": 440, "y": 472, "w": 200, "h": 16 },

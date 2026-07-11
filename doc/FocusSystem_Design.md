@@ -220,6 +220,7 @@ bool m_isFocusBoundary;  // 默认 false；WinFrame、Bench 设为 true
 - **作用域边界容器**的 Tab 导航限制在其 **直接后代** 内（即子控件的子控件…，但不跨越另一个作用域边界）
 - **Bench**：`m_isFocusBoundary = true`，作用域为所有不在任何 WinFrame 内的控件 + 最顶层 WinFrame 内的控件（详见下方作用域穿透规则）
 - **WinFrame**：`m_isFocusBoundary = true`，作用域仅限该 WinFrame 内的控件
+- **ColorPicker**：`m_isFocusBoundary = true`，弹出色板时 Tab 限定在 ColorPicker 内部
 
 **作用域穿透规则**：Tab 导航不穿越作用域边界。当前聚焦控件的作用域定义为**向上追溯最近的一个 `m_isFocusBoundary == true` 的祖先**（若没有，则作用域为 Bench）。
 
@@ -599,6 +600,7 @@ bool Bench::handleEvent(shared_ptr<Event> event) {
 | Label | `false` | -1 | `false` | `false` | `false` | — |
 | ProgressBar | `false` | -1 | `false` | `false` | `false` | — |
 | Panel | `false` | -1 | `false` | `false` | `false` | — |
+| ColorPicker | `false` | -1 | **`true`** | `false` | `false` | — |
 | WinFrame | `false` | -1 | **`true`** | `false` | `false` | — |
 | Bench | `false` | -1 | **`true`** | `false` | `false` | — |
 

@@ -223,6 +223,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parsePanel(j, parent);
     } else if (type == "WinFrame") {
         result = parseWinFrame(j, parent);
+    } else if (type == "ColorPicker") {
+        result = parseColorPicker(j, parent);
     } else if (type == "MenuBar") {
         // MenuBar 不加入控件树（会被父容器裁剪），独立存储后再由调用方加入 BENCH 顶层
         auto menuBar = parseMenuBar(j, parent);
@@ -740,6 +742,57 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
 
     panel->create();
     return panel;
+}
+
+// ==================== ColorPicker ====================
+
+shared_ptr<ColorPicker> LayoutParser::parseColorPicker(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    auto cp = make_shared<ColorPicker>(parent, rect);
+
+    m_theme.applyCommonColors(cp, "colorpicker");
+    parseCommonProperties(cp, j);
+
+    if (j.contains("color"))
+        cp->setColor(parseColor(j["color"]));
+
+    if (j.contains("presets") && j["presets"].is_array()) {
+        vector<SColor> colors;
+        for (auto& c : j["presets"])
+            colors.push_back(parseColor(c));
+        if (!colors.empty())
+            cp->setPresetColors(colors);
+    }
+
+    if (j.contains("presetLayout") && j["presetLayout"].is_object()) {
+        const json& pl = j["presetLayout"];
+        int cols = pl.value("cols", ConstDef::COLORPICKER_PRESET_COLS);
+        int rows = pl.value("rows", ConstDef::COLORPICKER_PRESET_ROWS);
+        cp->setPresetLayout(cols, rows);
+    }
+
+    if (j.contains("swatchSize") && j["swatchSize"].is_number())
+        cp->setClosedSwatchSize(j["swatchSize"].get<float>());
+
+    if (j.contains("closedFontSize") && j["closedFontSize"].is_number())
+        cp->setClosedFontSize(j["closedFontSize"].get<int>());
+
+    if (j.contains("closedTextColor"))
+        cp->setClosedTextColor(parseColor(j["closedTextColor"]));
+
+    if (j.contains("popupBGColor"))
+        cp->setPopupBGColor(parseColor(j["popupBGColor"]));
+
+    parseEvents(cp, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = cp;
+
+    cp->create();
+    return cp;
 }
 
 // ==================== WinFrame ====================
@@ -1505,6 +1558,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
                 auto handler = it->second;
                 sb->setOnPositionChanged([handler](shared_ptr<ScrollBar> sender, float, float, float, float) {
                     handler(sender);
+                });
+            }
+        }
+    }
+
+    // ColorPicker: onColorChanged
+    if (auto cp = dynamic_pointer_cast<ColorPicker>(ctrl)) {
+        if (events.contains("onColorChanged") && events["onColorChanged"].is_string()) {
+            string handlerName = events["onColorChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                cp->setOnColorChanged([handler](shared_ptr<ColorPicker>, const SColor&) {
+                    handler(nullptr);
                 });
             }
         }

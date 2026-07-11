@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <string>
+#include <cctype>
 #include <SDL3/SDL_pixels.h>
 
 static constexpr float sClamp(float value) {
@@ -39,6 +41,67 @@ public:
         return SColor(brightness, brightness, brightness, alpha);
     }
     static constexpr SColor Transparent() { return SColor(0.0f, 0.0f, 0.0f, 0.0f); }
+
+    static bool fromHex(const std::string& hex, SColor& outColor) {
+        std::string h;
+        for (char c : hex) {
+            if (c == '#') continue;
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+                h += c;
+            else
+                return false;
+        }
+        if (h.empty()) return false;
+        while (h.length() < 6) h = "0" + h;
+        if (h.length() > 8) h = h.substr(0, 8);
+        auto hexVal = [](char c) -> int {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            return 0;
+        };
+        int r = (hexVal(h[0]) << 4) | hexVal(h[1]);
+        int g = (hexVal(h[2]) << 4) | hexVal(h[3]);
+        int b = (hexVal(h[4]) << 4) | hexVal(h[5]);
+        int a = (h.length() >= 8) ? ((hexVal(h[6]) << 4) | hexVal(h[7])) : 255;
+        outColor = SColor(r, g, b, a);
+        return true;
+    }
+
+    static bool fromRRGGBB(const std::string& s, SColor& out) {
+        return fromHex(s, out);
+    }
+
+    static bool fromRRGGBBAA(const std::string& s, SColor& out) {
+        return fromHex(s, out);
+    }
+
+    std::string toHex(bool withAlpha = false) const {
+        static const char* hexDigits = "0123456789ABCDEF";
+        std::string s = "#";
+        s += hexDigits[(redByte() >> 4) & 0xF];
+        s += hexDigits[redByte() & 0xF];
+        s += hexDigits[(greenByte() >> 4) & 0xF];
+        s += hexDigits[greenByte() & 0xF];
+        s += hexDigits[(blueByte() >> 4) & 0xF];
+        s += hexDigits[blueByte() & 0xF];
+        if (withAlpha) {
+            s += hexDigits[(alphaByte() >> 4) & 0xF];
+            s += hexDigits[alphaByte() & 0xF];
+        }
+        return s;
+    }
+
+    std::string toRRGGBB() const {
+        return toHex(false).substr(1);
+    }
+
+    std::string toRRGGBBAA() const {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%02X%02X%02X%02X",
+            redByte(), greenByte(), blueByte(), alphaByte());
+        return std::string(buf);
+    }
 
     float red() const { return m_r; }
     float green() const { return m_g; }

@@ -28,6 +28,8 @@ public:
 
     void unregisterBoundary(Control* boundary);
 
+    void clearFocus();
+    bool focusControl(Control* ctl);
     bool focusNextScope();
     bool focusPrevScope();
     bool focusFirstInScope(Control* scope);

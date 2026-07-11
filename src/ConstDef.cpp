@@ -109,6 +109,45 @@ const float ConstDef::SLIDER_TICK_INTERVAL = 0.0f;
 const float ConstDef::SLIDER_TICK_LENGTH = 8.0f;
 const SColor ConstDef::SLIDER_TICK_COLOR(100, 100, 100, 255);
 
+// ColorPicker 常量
+const float ConstDef::COLORPICKER_SWATCH_SIZE = 16.0f;
+const float ConstDef::COLORPICKER_HEX_GAP = 4.0f;
+const int   ConstDef::COLORPICKER_HEX_FONT_SIZE = 12;
+const float ConstDef::COLORPICKER_POPUP_WIDTH = 296.0f;
+const float ConstDef::COLORPICKER_POPUP_HEIGHT = 422.0f;
+const float ConstDef::COLORPICKER_POPUP_PADDING = 10.0f;
+const float ConstDef::COLORPICKER_SLIDER_LABEL_W = 14.0f;
+const float ConstDef::COLORPICKER_HEX_HASH_W = 10.0f;
+const SColor ConstDef::COLORPICKER_POPUP_BG(60, 60, 65, 255);
+const SColor ConstDef::COLORPICKER_POPUP_BORDER(100, 100, 100, 255);
+const SColor ConstDef::COLORPICKER_SHADOW_COLOR(0, 0, 0, 80);
+const int   ConstDef::COLORPICKER_PRESET_COLS = 5;
+const int   ConstDef::COLORPICKER_PRESET_ROWS = 4;
+const float ConstDef::COLORPICKER_PRESET_CELL_W = 40.0f;
+const float ConstDef::COLORPICKER_PRESET_CELL_H = 32.0f;
+const float ConstDef::COLORPICKER_PRESET_GAP = 4.0f;
+const SColor ConstDef::COLORPICKER_PRESET_SELECTED(255, 255, 255, 255);
+const SColor ConstDef::COLORPICKER_PRESET_NORMAL(80, 80, 80, 255);
+const float ConstDef::COLORPICKER_HEX_INPUT_H = 22.0f;
+const float ConstDef::COLORPICKER_SLIDER_H = 20.0f;
+const float ConstDef::COLORPICKER_SLIDER_GAP = 4.0f;
+const float ConstDef::COLORPICKER_BTN_W = 60.0f;
+const float ConstDef::COLORPICKER_BTN_H = 24.0f;
+const float ConstDef::COLORPICKER_BTN_GAP = 8.0f;
+
+const std::vector<SColor> ConstDef::COLORPICKER_DEFAULT_PRESETS = {
+    SColor(0xFF, 0x00, 0x00, 0xFF), SColor(0x00, 0xFF, 0x00, 0xFF),
+    SColor(0x00, 0x00, 0xFF, 0xFF), SColor(0xFF, 0xFF, 0x00, 0xFF),
+    SColor(0xFF, 0x00, 0xFF, 0xFF), SColor(0x00, 0xFF, 0xFF, 0xFF),
+    SColor(0xFF, 0xFF, 0xFF, 0xFF), SColor(0x00, 0x00, 0x00, 0xFF),
+    SColor(0x80, 0x80, 0x80, 0xFF), SColor(0xC0, 0xC0, 0xC0, 0xFF),
+    SColor(0x80, 0x00, 0x00, 0xFF), SColor(0x80, 0x80, 0x00, 0xFF),
+    SColor(0x00, 0x80, 0x00, 0xFF), SColor(0x80, 0x00, 0x80, 0xFF),
+    SColor(0x00, 0x80, 0x80, 0xFF), SColor(0x00, 0x00, 0x80, 0xFF),
+    SColor(0xFF, 0xA5, 0x00, 0xFF), SColor(0xFF, 0xC0, 0xCB, 0xFF),
+    SColor(0xA5, 0x2A, 0x2A, 0xFF), SColor(0xF0, 0xF8, 0xFF, 0xFF),
+};
+
 const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
     {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
     {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},

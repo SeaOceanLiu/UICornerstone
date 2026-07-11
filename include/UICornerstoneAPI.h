@@ -219,6 +219,16 @@ UICORNERSTONE_API float UICornerstone_GetSliderValue(UIControlHandle ctl);
 UICORNERSTONE_API void UICornerstone_SetSliderValue(UIControlHandle ctl, float value);
 UICORNERSTONE_API void UICornerstone_SetOnSliderChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
 
+/* ============ ColorPicker ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateColorPicker(
+    float x, float y, float w, float h, const char* color);
+UICORNERSTONE_API void UICornerstone_GetColorPickerColor(UIControlHandle ctl, char* hexOut, int maxLen);
+UICORNERSTONE_API void UICornerstone_SetOnColorChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, float size);
+UICORNERSTONE_API void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
+UICORNERSTONE_API void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
+UICORNERSTONE_API void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
+
 /* ============ 图片/动画按钮 ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(
     const char* normalImage,

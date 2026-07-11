@@ -50,6 +50,23 @@ void FocusManager::unregisterBoundary(Control* boundary)
         m_boundaries.erase(it, m_boundaries.end());
 }
 
+void FocusManager::clearFocus() {
+    if (m_currentFocused) {
+        m_currentFocused->setFocused(false, false);
+        m_currentFocused = nullptr;
+    }
+}
+
+bool FocusManager::focusControl(Control* ctl) {
+    if (!ctl || !ctl->isFocusable() || !ctl->getVisible() || !ctl->getEnable())
+        return false;
+    if (m_currentFocused && m_currentFocused != ctl)
+        m_currentFocused->setFocused(false, false);
+    ctl->setFocused(true, true);
+    m_currentFocused = ctl;
+    return true;
+}
+
 Control* FocusManager::findFocusScope(Control* ctl)
 {
     while (ctl) {
@@ -211,6 +228,14 @@ bool FocusManager::focusFirstInScope(Control* scope)
             m_currentFocused = c;
             return true;
         }
+    }
+    // Fallback: focus the scope itself if it's focusable and visible
+    if (scope->isFocusable() && scope->getVisible()) {
+        if (m_currentFocused && m_currentFocused != scope)
+            m_currentFocused->setFocused(false, false);
+        scope->setFocused(true, true);
+        m_currentFocused = scope;
+        return true;
     }
     return false;
 }

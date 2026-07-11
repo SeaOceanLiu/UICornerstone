@@ -190,6 +190,33 @@ public:
     static const float SLIDER_TICK_INTERVAL;
     static const float SLIDER_TICK_LENGTH;
     static const SColor SLIDER_TICK_COLOR;
+
+    // ColorPicker 相关常量
+    static const float COLORPICKER_SWATCH_SIZE;
+    static const float COLORPICKER_HEX_GAP;
+    static const int   COLORPICKER_HEX_FONT_SIZE;
+    static const float COLORPICKER_POPUP_WIDTH;
+    static const float COLORPICKER_POPUP_HEIGHT;
+    static const float COLORPICKER_POPUP_PADDING;
+    static const float COLORPICKER_SLIDER_LABEL_W;
+    static const float COLORPICKER_HEX_HASH_W;
+    static const SColor COLORPICKER_POPUP_BG;
+    static const SColor COLORPICKER_POPUP_BORDER;
+    static const SColor COLORPICKER_SHADOW_COLOR;
+    static const int   COLORPICKER_PRESET_COLS;
+    static const int   COLORPICKER_PRESET_ROWS;
+    static const float COLORPICKER_PRESET_CELL_W;
+    static const float COLORPICKER_PRESET_CELL_H;
+    static const float COLORPICKER_PRESET_GAP;
+    static const SColor COLORPICKER_PRESET_SELECTED;
+    static const SColor COLORPICKER_PRESET_NORMAL;
+    static const float COLORPICKER_HEX_INPUT_H;
+    static const float COLORPICKER_SLIDER_H;
+    static const float COLORPICKER_SLIDER_GAP;
+    static const float COLORPICKER_BTN_W;
+    static const float COLORPICKER_BTN_H;
+    static const float COLORPICKER_BTN_GAP;
+    static const std::vector<SColor> COLORPICKER_DEFAULT_PRESETS;
 };
 
 #endif // ConstDefH

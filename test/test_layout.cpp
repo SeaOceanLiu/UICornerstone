@@ -35,6 +35,10 @@ void onAgreeChanged(shared_ptr<Control> c) {
     TestUtil::log("CheckBox state changed via auto-binding!");
 }
 
+void onColorChanged(shared_ptr<Control> c) {
+    TestUtil::log("ColorPicker color changed!");
+}
+
 void onImageBtnClick(shared_ptr<Control> c) {
     TestUtil::log("Image button clicked!");
 }

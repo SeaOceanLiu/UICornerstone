@@ -154,6 +154,7 @@ public:
     virtual void setFocusRingColor(SColor color) = 0;
     virtual void setFocusRingStyle(FocusRingStyle style) = 0;
     virtual bool isFocusBoundary() const = 0;
+    virtual void setFocusBoundary(bool boundary) = 0;
 
     virtual void create(void) = 0;  // 初始创建控件，缺省情况下只有初始创建控件后，才能显示和处理事件
     virtual void setId(int id) = 0;
@@ -325,6 +326,7 @@ public:
     void setFocusRingColor(SColor color) override { m_focusRingColor = color; }
     void setFocusRingStyle(FocusRingStyle style) override { m_focusRingStyle = style; }
     bool isFocusBoundary() const override { return m_isFocusBoundary; }
+    void setFocusBoundary(bool boundary) override { m_isFocusBoundary = boundary; }
     void drawFocusRing();
 
     void setId(int id) override { m_id = id; }
