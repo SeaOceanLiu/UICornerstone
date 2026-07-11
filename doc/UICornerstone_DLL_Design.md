@@ -400,7 +400,19 @@ UIControlHandle UICornerstone_CreateEditBox(
     float x, float y, float w, float h);
 UIControlHandle UICornerstone_CreateProgressBar(
     float x, float y, float w, float h);
+UIControlHandle UICornerstone_CreateSlider(
+    float x, float y, float w, float h, float min, float max, float value);
 UIControlHandle UICornerstone_CreatePanel(
+    float x, float y, float w, float h);
+UIControlHandle UICornerstone_CreateTextArea(
+    float x, float y, float w, float h);
+UIControlHandle UICornerstone_CreateWinFrame(
+    const char* title, float x, float y, float w, float h);
+UIControlHandle UICornerstone_CreateMenu(void);
+UIControlHandle UICornerstone_CreateColorPicker(
+    float x, float y, float w, float h, const char* color);
+UIControlHandle UICornerstone_CreateImageButton(
+    const char* normalImage, const char* hoverImage, const char* pressedImage,
     float x, float y, float w, float h);
 
 /* ============ 控件通用操作 ============ */
@@ -410,8 +422,25 @@ void UICornerstone_SetVisible(UIControlHandle ctl, int visible);
 void UICornerstone_SetEnabled(UIControlHandle ctl, int enabled);
 void UICornerstone_SetText(UIControlHandle ctl, const char* text);
 void UICornerstone_AddChild(UIControlHandle parent, UIControlHandle child);
-
 void UICornerstone_SetOnClick(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_SetBGColor(UIControlHandle ctl, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void UICornerstone_SetProgress(UIControlHandle ctl, float value);
+void UICornerstone_SetChecked(UIControlHandle ctl, int checked);
+void UICornerstone_DestroyControl(UIControlHandle ctl);
+const char* UICornerstone_GetText(UIControlHandle ctl);
+int UICornerstone_GetChecked(UIControlHandle ctl);
+float UICornerstone_GetProgress(UIControlHandle ctl);
+float UICornerstone_GetSliderValue(UIControlHandle ctl);
+void UICornerstone_SetSliderValue(UIControlHandle ctl, float value);
+void UICornerstone_SetOnSliderChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_WinFrameSetClientText(UIControlHandle wf, const char* text);
+void UICornerstone_SetButtonAnimation(UIControlHandle btn, const char* jsoncPath);
+void UICornerstone_GetColorPickerColor(UIControlHandle ctl, char* hexOut, int maxLen);
+void UICornerstone_SetOnColorChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, float size);
+void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
+void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
+void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
 
 #ifdef __cplusplus
 }

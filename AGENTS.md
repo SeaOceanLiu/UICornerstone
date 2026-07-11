@@ -1536,3 +1536,53 @@ Done, 180 frames                        # 帧循环正常完成
 | 全部设计文档 | 同步更新焦点描述（3 层环、setFocusable(true)、m_focusRingAlwaysVisible、作用域边界等） |
 
 **验证**：6 构建配置 + 全部 samples 编译通过。test_fromsource_xxx 三后端焦点环可见。
+
+### 2026-07-11: ColorPicker 控件完整实现 + C ABI + JSON + 三后端验证
+
+**ColorPicker 实现**（~2100 行源码）：
+
+- 核心控件：`ColorPicker.h`/`ColorPicker.cpp` — 继承 Panel，闭合状态（色块 + 十六进制文本）+ 弹窗状态（预设色面板/Hex 输入/RGB+A 滑块/确定取消）
+- 内部类 `PresetCell`：继承 ControlImpl，带选中/非选中状态色块绘制
+- `ColorPickerBuilder`：Builder 模式工厂，支持全部视觉属性设置
+
+**交互逻辑**：
+- 点击色块切换弹窗；预设色点击选中不关闭；Hex 输入/Slider 三向同步
+- 确定（`onOK`）提交颜色触发回调；取消（`onCancel`）恢复初始颜色
+- Enter/ESC 键通过 `BeforeEventHandlingWatcher` 拦截，ESC=取消，Enter=确定
+- `m_ignoreKeyEvent` 标志防止关闭弹窗后同一 Enter 事件重新打开
+- 弹窗为 `FocusBoundary`，Tab 在弹窗内部循环，不越过边界
+- 外部点击通过 watcher 检测关闭弹窗
+
+**视觉属性**：
+- `m_swatchSize` — 闭合状态色块大小（`setClosedSwatchSize(float)`)
+- `m_closedFontSize` — Hex 文本字号（`setClosedFontSize(int)`）
+- `m_closedTextColor` — Hex 文本颜色（`setClosedTextColor(SColor)`）
+- `m_popupBGColor` — 弹窗背景色（`setPopupBGColor(SColor)`）
+
+**C ABI 新增**（UICornerstoneAPI.h/.cpp）：
+- `UICornerstone_CreateColorPicker` — 工厂函数
+- `UICornerstone_GetColorPickerColor` — 获取当前颜色 Hex
+- `UICornerstone_SetOnColorChanged` — 设置颜色变化回调
+- `UICornerstone_SetClosedSwatchSize/SetClosedFontSize/SetClosedTextColor/SetPopupBGColor` — 视觉属性设置
+
+**LayoutParser JSON 新增**：
+- `swatchSize` — 闭合色块大小
+- `closedFontSize` — Hex 文本字号
+- `closedTextColor` — Hex 文本颜色
+- `popupBGColor` — 弹窗背景色
+- 已有：`color`、`presets`、`presetLayout`、`events.onColorChanged`
+
+**测试**：
+- `test/test_colorpicker.cpp` — 5 个 ColorPicker（含 2x 缩放）+ 状态标签
+- `layouts/test_layout.json` — 新增 `testColorPicker` JSON 示例
+- `test_fromsource_sdl3/sfml/raylib` — 三后端 C ABI ColorPicker 验证
+
+**设计文档更新**：
+- `doc/ColorPicker_Design.md` — 完整设计文档（13 节）
+- `doc/FocusSystem_Design.md` — ColorPicker 焦点边界
+- `doc/LayoutSystem_Design.md` — ColorPicker JSON 格式
+- `README.md` — 14+ 控件、test_colorpicker/test_slider 列表
+- `doc/Build_Guide.md` — test_colorpicker/test_slider 列表
+- `doc/UICornerstone_DLL_Design.md` — 完整 C ABI API 清单（含 ColorPicker/Slider/WinFrame/TextArea/ImageButton 等）
+
+**三后端构建验证**：SDL3/SFML/Raylib 全部编译通过，test_fromsource 三后端输出 "Color: #FF6600"。

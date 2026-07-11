@@ -62,8 +62,10 @@ build_scripts\build_test.bat test_label raylib      # Raylib
 | `test_label` | 测试 | Label 控件 |
 | `test_button` | 测试 | Button 控件 |
 | `test_checkbox` | 测试 | CheckBox 控件 |
+| `test_colorpicker` | 测试 | ColorPicker 控件 |
 | `test_editbox` | 测试 | EditBox 控件 |
 | `test_progressbar` | 测试 | ProgressBar 控件 |
+| `test_slider` | 测试 | Slider 控件 |
 | `test_menu` | 测试 | Menu 控件 |
 | `test_winframe` | 测试 | WinFrame 控件 |
 | `test_graphtool` | 测试 | GraphTool 绘制 |

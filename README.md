@@ -6,7 +6,7 @@
 
 ## 功能特性
 
-- **12+ UI 控件**：Label、Button（支持 Actor/LuotiAni）、CheckBox（三态）、EditBox、TextArea（多行+滚动）、ProgressBar、ScrollBar、Menu、WinFrame 等
+- **14+ UI 控件**：Label、Button（支持 Actor/LuotiAni）、CheckBox（三态）、EditBox、TextArea（多行+滚动）、ProgressBar、ScrollBar、Slider、Menu、WinFrame、ColorPicker、Panel 等
 - **声明式 UI（JSON 布局）**：通过 JSON 描述控件树和事件绑定，`LayoutParser` 自动解析，无需手写创建代码
 - **三后端切换**：SDL3（主开发后端）、SFML、Raylib，只需改 CMake 变量即可切换
 - **LuotiAni 粒子动画引擎**：为 Button 控件提供粒子动画支持
@@ -81,6 +81,7 @@ build\sdl3_dll --config Debug --target sample_fromsource
 |----------------------|------|
 | test_button | 按钮动画（LuotiAni 粒子动画）测试 |
 | test_checkbox | 复选框（三态）测试 |
+| test_colorpicker | 颜色选择器测试 |
 | test_editbox | 输入框测试（含中文输入） |
 | test_graphtool | 图形工具绘制测试（几何图元、线型、填充） |
 | test_label | 标签及标题栏按钮动画演示 |
@@ -88,6 +89,7 @@ build\sdl3_dll --config Debug --target sample_fromsource
 | test_layout_advanced | 高级布局：百分比、嵌套、对齐 |
 | test_menu | 菜单控件测试（MenuItem / MenuPanel / MenuBar） |
 | test_progressbar | 进度条动画测试 |
+| test_slider | 滑块控件测试（含刻度线/值标签） |
 | test_winframe | 窗口框架测试（拖动、缩放、关闭按钮） |
 
 ### C ABI 测试
