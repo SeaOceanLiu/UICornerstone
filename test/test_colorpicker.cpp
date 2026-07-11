@@ -24,7 +24,7 @@ SColor g_lastColor = SColor::White();
 void onColorPicked(shared_ptr<ColorPicker>, const SColor& color) {
     g_lastColor = color;
     char buf[64];
-    snprintf(buf, sizeof(buf), "上次选中: %s",
+    snprintf(buf, sizeof(buf), u8"上次选中: %s",
         color.toHex(false).c_str());
     if (g_lastColorLabel)
         g_lastColorLabel->setCaption(buf);

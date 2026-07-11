@@ -68,6 +68,8 @@ ColorPicker::ColorPicker(Control* parent, SRect rect,
     m_popupHeight(ConstDef::COLORPICKER_POPUP_HEIGHT)
 {
     setFocusable(true);
+    setTransparent(true);
+    setBorderVisible(false);
 }
 
 ColorPicker::~ColorPicker() {
@@ -80,6 +82,8 @@ ColorPicker::~ColorPicker() {
 
 void ColorPicker::create() {
     Panel::create();
+    setTransparent(true);  // 闭合状态背景透明，不继承 Panel 的默认深灰背景
+    setBorderVisible(false);
     m_popup = make_shared<Panel>(nullptr, SRect(0, 0, 1, 1), m_xScale, m_yScale);
     m_popup->setEnable(true);
     m_popup->setNormalStateBGColor(m_popupBGColor);
@@ -333,7 +337,7 @@ void ColorPicker::createHexInput() {
     float inputH = ConstDef::COLORPICKER_HEX_INPUT_H;
     float usable = m_popupWidth - pad * 2 - (m_presetCols - 1) * gap;
     float cellW = usable / m_presetCols;
-    float gridBottom = pad + m_presetRows * (cellH + gap);
+    float gridBottom = pad + ConstDef::COLORPICKER_PRESET_ROWS * (cellH + gap);
     float rowTop = gridBottom + 8.0f;
 
     // Preview swatch (same size as one preset cell)
@@ -382,7 +386,7 @@ void ColorPicker::createSliders() {
     float cellH = ConstDef::COLORPICKER_PRESET_CELL_H;
     float sliderH = ConstDef::COLORPICKER_SLIDER_H;
     float labelW = ConstDef::COLORPICKER_SLIDER_LABEL_W;
-    float gridBottom = pad + m_presetRows * (cellH + gap);
+    float gridBottom = pad + ConstDef::COLORPICKER_PRESET_ROWS * (cellH + gap);
     float rowTop = gridBottom + 8.0f;
     float rowBottom = rowTop + cellH;
 
@@ -461,7 +465,7 @@ void ColorPicker::createButtons() {
     float btnW = ConstDef::COLORPICKER_BTN_W;
     float btnH = ConstDef::COLORPICKER_BTN_H;
     float btnGap = ConstDef::COLORPICKER_BTN_GAP;
-    float gridBottom = pad + m_presetRows * (cellH + gap);
+    float gridBottom = pad + ConstDef::COLORPICKER_PRESET_ROWS * (cellH + gap);
     float rowTop = gridBottom + 8.0f;
     float rowBottom = rowTop + cellH;
     float sliderY0 = rowBottom + 26.0f;

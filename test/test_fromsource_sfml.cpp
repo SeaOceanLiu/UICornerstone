@@ -290,7 +290,7 @@ int main() {
 
     // ColorPicker: hex color picker with presets
     if (uiCreateColorPicker) {
-        g_colorPickerHandle = uiCreateColorPicker(340, 470, 96, 24, "#FF6600");
+        g_colorPickerHandle = uiCreateColorPicker(450, 470, 96, 24, "#FF6600");
         if (g_colorPickerHandle) {
             printf("OK: created ColorPicker\n");
             if (uiSetClosedSwatchSize)

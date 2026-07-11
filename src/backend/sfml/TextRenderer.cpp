@@ -97,7 +97,9 @@ public:
         if (!text) return SSize(0, 0);
         auto* sfmlText = static_cast<sf::Text*>(text);
         sf::FloatRect bounds = sfmlText->getLocalBounds();
-        return SSize(bounds.position.x + bounds.size.x, bounds.size.y);
+        float w = bounds.position.x + bounds.size.x;
+        float h = static_cast<float>(sfmlText->getFont().getLineSpacing(sfmlText->getCharacterSize()));
+        return SSize(w, h);
     }
 
     void drawText(void* text, float x, float y, SColor color) override {
@@ -174,7 +176,9 @@ public:
         sf::Text tmp(*sfmlFont->get(), sf::String::fromUtf8(text.begin(), text.end()),
                       static_cast<unsigned>(sfmlFont->getSize()));
         sf::FloatRect bounds = tmp.getLocalBounds();
-        return SSize(bounds.position.x + bounds.size.x, bounds.size.y);
+        float w = bounds.position.x + bounds.size.x;
+        float h = static_cast<float>(sfmlFont->get()->getLineSpacing(static_cast<unsigned>(sfmlFont->getSize())));
+        return SSize(w, h);
     }
 
     void drawText(Font* font, const std::string& text, float x, float y, SColor color) override {

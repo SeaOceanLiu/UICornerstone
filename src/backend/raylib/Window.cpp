@@ -21,6 +21,7 @@ public:
 
         InitWindow(w, h, title);
         SetTraceLogLevel(LOG_WARNING);  // Suppress raylib's INFO spam (font/texture load logs)
+        SetExitKey(0);                  // Don't let ESC close the window — UICornerstone handles it
         // SetTargetFPS is NOT set — present() does its own 60 Hz timing.
 
         m_renderDevice = CreateRaylibRenderDevice();

@@ -277,7 +277,7 @@
                 {
                     "type": "ColorPicker",
                     "id": "testColorPicker",
-                    "rect": { "x": 20, "y": 432, "w": 96, "h": 24 },
+                    "rect": { "x": 240, "y": 498, "w": 96, "h": 24 },
                     "color": "#FF6600",
                     "presets": ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF"],
                     "presetLayout": { "cols": 5, "rows": 1 },

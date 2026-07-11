@@ -143,20 +143,21 @@ public:
         if (it != m_fontCache.end()) {
             // Lazy expansion: if the cached font already has all needed codepoints, reuse it.
             // Otherwise, merge codepoint sets and reload.
-            bool needReload = false;
+            // Collect missing codepoints without modifying loadedCps yet.
+            std::vector<int> missing;
             for (int cp : cps) {
                 if (it->second.loadedCps.find(cp) == it->second.loadedCps.end()) {
-                    needReload = true;
-                    it->second.loadedCps.insert(cp);
+                    missing.push_back(cp);
                 }
             }
-            if (!needReload) {
+            if (missing.empty()) {
                 return it->second.font;
             }
 
-            // Reload with merged codepoint set — update in-place so existing
-            // shared_ptr<Font> handles (e.g. from bridge_loadFontFromMemory) stay valid.
-            std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
+            // Merge existing + missing
+            std::unordered_set<int> mergedSet = it->second.loadedCps;
+            for (int cp : missing) mergedSet.insert(cp);
+            std::vector<int> mergedCps(mergedSet.begin(), mergedSet.end());
             rlFont f;
             if (it->second.fromFile) {
                 f = LoadFontEx(it->second.path.c_str(), it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
@@ -167,6 +168,8 @@ public:
                     it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
             }
             if (f.texture.id == 0) return it->second.font; // fallback on failure
+            // Accept new codepoint set only after successful reload
+            it->second.loadedCps = std::move(mergedSet);
             SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
             static_cast<RaylibFont*>(it->second.font.get())->reload(f);
             return it->second.font;
@@ -208,18 +211,20 @@ public:
         // Check if all codepoints are already loaded
         for (auto it = m_fontCache.begin(); it != m_fontCache.end(); ++it) {
             if (it->second.font == fontRef) {
-                bool needReload = false;
+                // Collect missing codepoints without modifying loadedCps yet
+                std::vector<int> missing;
                 for (int cp : cps) {
                     if (it->second.loadedCps.find(cp) == it->second.loadedCps.end()) {
-                        needReload = true;
-                        it->second.loadedCps.insert(cp);
+                        missing.push_back(cp);
                     }
                 }
-                if (!needReload) return;
+                if (missing.empty()) return;
 
-                // Reload with merged set — reload in-place so existing
-                // shared_ptr<Font> handles (e.g. from bridge_loadFontFromMemory) stay valid.
-                std::vector<int> mergedCps(it->second.loadedCps.begin(), it->second.loadedCps.end());
+                // Merge existing + missing
+                std::unordered_set<int> mergedSet = it->second.loadedCps;
+                for (int cp : missing) mergedSet.insert(cp);
+                std::vector<int> mergedCps(mergedSet.begin(), mergedSet.end());
+
                 rlFont f;
                 if (it->second.fromFile) {
                     f = LoadFontEx(it->second.path.c_str(), it->second.scaledSize,
@@ -231,6 +236,9 @@ public:
                         it->second.scaledSize, mergedCps.data(), static_cast<int>(mergedCps.size()));
                 }
                 if (f.texture.id == 0) return;
+
+                // Reload in-place — only now do we accept the new codepoint set
+                it->second.loadedCps = std::move(mergedSet);
                 SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR);
                 static_cast<RaylibFont*>(it->second.font.get())->reload(f);
                 fontRef = it->second.font;

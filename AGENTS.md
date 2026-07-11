@@ -1586,3 +1586,16 @@ Done, 180 frames                        # 帧循环正常完成
 - `doc/UICornerstone_DLL_Design.md` — 完整 C ABI API 清单（含 ColorPicker/Slider/WinFrame/TextArea/ImageButton 等）
 
 **三后端构建验证**：SDL3/SFML/Raylib 全部编译通过，test_fromsource 三后端输出 "Color: #FF6600"。
+
+### 2026-07-11: ColorPicker 闭合状态透明背景修复
+
+**Bug**：LayoutParser 和 C ABI 路径下 ColorPicker 闭合状态背景为黑色（`DEFAULT_NORMAL_COLOR`），与父容器背景不一致。
+
+**根因**：`setTransparent(true)` 和 `setBorderVisible(false)` 仅放在 `ColorPicker::create()` 中，但三个代码路径的时序不同：
+- Builder 路径：`create()` → `addControl()`（无问题）
+- LayoutParser 路径：构造 → 属性解析 → `create()` → `parseChildren` 中 `addControl`（`create()` 虽已调用但构造函数阶段的 `inheritRenderer()` 可能受其他因素影响）
+- C ABI 路径：构造 → `addControl()` → `create()`（`addControl` 在 `create` 之前）
+
+**Fix**：将 `setTransparent(true)` 和 `setBorderVisible(false)` 移至 `ColorPicker` 构造函数（`src/ColorPicker.cpp:70-71`），与 Label 做法一致（`src/Label.cpp:30`）。`create()` 中保留相同调用作为防御性冗余。
+
+**验证**：test_layout / test_fromsource 三后端全部编译通过，闭合状态背景透明。

@@ -137,9 +137,11 @@ private:
     // ── 焦点 ──
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
 
-public:
+    // ── 生命周期 ──
     ColorPicker(Control* parent, SRect rect,
                 float xScale = 1.0f, float yScale = 1.0f);
+    // 构造函数中设置 setTransparent(true) 和 setBorderVisible(false)，
+    // 确保在所有代码路径（Builder / LayoutParser / C ABI）中闭合状态背景透明。
     ~ColorPicker();
     void create(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
@@ -558,6 +560,8 @@ shared_ptr<ColorPicker> LayoutParser::parseColorPicker(
     if (j.contains("id") && j["id"].is_string())
         m_controlsById[j["id"].get<string>()] = cp;
 
+    // ColorPicker 构造函数已内设 setTransparent(true) 和 setBorderVisible(false)，
+    // 因此此处 cp->create() 仅做子控件初始化，不会覆盖默认可见区域的透明背景。
     cp->create();
     return cp;
 }
@@ -683,6 +687,10 @@ if (auto cp = dynamic_pointer_cast<ColorPicker>(ctrl)) {
 6. **Alpha 滑块在闭合状态的展示**：闭合状态色块始终以全 alpha 绘制（视觉预览），Hex 文本默认显示 `#RRGGBB`（无 Alpha）。仅当用户通过 Hex 输入 `#RRGGBBAA` 或拖动 A 滑块后，Hex 文本切换为带 Alpha 格式。
 7. **确定/取消语义**：取消不触发 `onColorChanged`，颜色回滚到弹窗打开前的值。必须保证 `m_committedColor` 在 `openPopup()` 时正确保存。
 8. **缩放测试**：2x 缩放用例必须验证弹窗定位不超出屏幕边界（未缩放弹窗尺寸较小不易暴露问题，2x 下弹窗 520×700 更容易到达边界）。
+9. **闭合状态透明背景**：`setTransparent(true)` 和 `setBorderVisible(false)` 必须在**构造函数**中设置（而非 `create()`），以确保在任何 `addControl` / `parseCommonProperties` 之前生效。与 Label 做法一致（`src/Label.cpp:30`）。  
+   - Builder 路径：`build()` → `create()` → `BENCH->addControl()` 中 `create()` 足够早  
+   - LayoutParser 路径：构造 → 属性解析 → `cp->create()` → `parseChildren` 中 `addControl` 需要构造时就设好  
+   - C ABI 路径：构造 → `BENCH->addControl()` → `ctl->create()` 需要构造时就设好
 
 ## 13. C ABI (UICornerstoneAPI)
 
