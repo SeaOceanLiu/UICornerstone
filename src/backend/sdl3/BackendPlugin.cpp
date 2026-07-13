@@ -65,6 +65,10 @@ BackendAPI g_sdl3Backend = {
 
 extern void RegisterSDL3SurfaceFactories(void);
 extern void RegisterSDL3CursorFactories(void);
+#include "Cursor.h"
+extern Cursor* sdl3CreateSystemCursor(SystemCursorType);
+extern Cursor* sdl3GetDefaultCursor();
+extern void sdl3SetCurrentCursor(Cursor*);
 
 // ============================================================
 // GetUIBackendCallbacks — C ABI callback table for plugin mode
@@ -117,6 +121,18 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     // can delegate to our concrete implementations
     RegisterSDL3SurfaceFactories();
     RegisterSDL3CursorFactories();
+
+    // Also populate the callback table so BackendManager::initialize(callbacks)
+    // can register cursor factories from the DLL side (for fromsource/DLL bridge path)
+    cb.createSystemCursor = [](int type) -> void* {
+        return sdl3CreateSystemCursor(static_cast<SystemCursorType>(type));
+    };
+    cb.getDefaultCursor = []() -> void* {
+        return sdl3GetDefaultCursor();
+    };
+    cb.setCurrentCursor = [](void* cursor) {
+        sdl3SetCurrentCursor(static_cast<Cursor*>(cursor));
+    };
 
     cb.version = 1;
 

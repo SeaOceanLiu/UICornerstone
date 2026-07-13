@@ -482,7 +482,12 @@ void Label::setParent(Control *parent) {
         ControlImpl::setParent(parent);
         return;
     }
+    float oldScaleX = getScaleXX();
+    float oldScaleY = getScaleYY();
     ControlImpl::setParent(parent);
+    if (oldScaleX != getScaleXX() || oldScaleY != getScaleYY()) {
+        releaseFont();
+    }
 
     recreate();
 }

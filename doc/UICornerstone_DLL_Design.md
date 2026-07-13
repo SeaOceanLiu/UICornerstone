@@ -364,6 +364,11 @@ typedef struct {
     UIResourceProviderHandle (*createResourceProvider)(const char* basePath);
     void                     (*destroyResourceProvider)(UIResourceProviderHandle);
     int                      (*readFile)(UIResourceProviderHandle, const char* path, void* buf, int maxLen);
+
+    // --- Cursor factories (可选, 可为 NULL；NULL 时禁用光标反馈) ---
+    void* (*createSystemCursor)(int type);
+    void* (*getDefaultCursor)();
+    void  (*setCurrentCursor)(void* cursor);
 } UIBackendCallbacks;
 
 /* ============ 初始化 ============ */
@@ -441,6 +446,24 @@ void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, float size);
 void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
 void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
 void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
+
+/* ============ Dialog / Popup ============ */
+UIControlHandle UICornerstone_CreateDialog(
+    const char* confirmText, const char* cancelText,
+    float x, float y, float w, float h);
+void UICornerstone_Show(UIControlHandle ctl);
+void UICornerstone_Close(UIControlHandle ctl);
+void UICornerstone_SetDialogCentered(UIControlHandle ctl, int centered);
+void UICornerstone_SetDialogPosition(UIControlHandle ctl, float x, float y, float w, float h);
+void UICornerstone_SetContent(UIControlHandle dlg, UIControlHandle content);
+void UICornerstone_SetOnConfirm(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_SetOnCancel(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_SetOnClose(UIControlHandle ctl, UIActionCallback cb, void* userData);
+void UICornerstone_SetConfirmButtonText(UIControlHandle ctl, const char* text);
+void UICornerstone_SetCancelButtonText(UIControlHandle ctl, const char* text);
+
+/* ============ 控件查询 ============ */
+const char* UICornerstone_GetControlId(UIControlHandle ctl);
 
 #ifdef __cplusplus
 }
@@ -1149,3 +1172,4 @@ int main() {
 | 1.10 | 2026-06-18 | Raylib `DrawTexturePro` DLL 桥接不可见修复：改用 `rlPushMatrix + rlScalef + DrawTextureEx` |
 | 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化） |
 | 1.12 | 2026-06-20 | SFML/Raylib 静态+DLL 双构建目录（`build/{sfml,raylib}` + `build/{sfml,raylib}_dll`）；`test_fromsource.cpp` → `test_fromsource_sdl3.cpp`；`InitFromPlugin` 恢复静态回退（`#if !UICORNERSTONE_BUILD_SHARED`）；`test_api.c` 改用 `UICORNERSTONE_BACKEND_NAME` 编译定义替代硬编码 `"sdl3"` |
+| 1.13 | 2026-07-12 | Dialog C ABI API（`CreateDialog/Show/Close/SetOnConfirm/SetOnCancel/SetOnClose` 等 11 个函数）；`UIBackendCallbacks` 新增 `createSystemCursor/getDefaultCursor/setCurrentCursor` 光标工厂回调；`test_dialog_cabi` 三后端共享头文件模式；`windows.h` 冲突工作区（`#ifndef _WINDOWS_` 条件式手动 Win32 API 声明） |

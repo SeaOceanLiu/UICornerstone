@@ -134,6 +134,11 @@ typedef struct {
     void (*fillTriangle)(UIRenderDeviceHandle, float x0, float y0, float x1, float y1, float x2, float y2, UIColor color);
     void (*fillQuad)(UIRenderDeviceHandle, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, UIColor color);
 
+    // --- Cursor factories (可选 — 可为 NULL；禁用光标反馈) ---
+    void* (*createSystemCursor)(int type);
+    void* (*getDefaultCursor)();
+    void  (*setCurrentCursor)(void* cursor);
+
     // --- ResourceProvider (可选，可为 NULL) ---
     UIResourceProviderHandle (*createResourceProvider)(const char* basePath);
     void                     (*destroyResourceProvider)(UIResourceProviderHandle);
@@ -210,6 +215,7 @@ UICORNERSTONE_API void UICornerstone_SetProgress(UIControlHandle ctl, float valu
 UICORNERSTONE_API void UICornerstone_SetChecked(UIControlHandle ctl, int checked);
 UICORNERSTONE_API void UICornerstone_DestroyControl(UIControlHandle ctl);
 UICORNERSTONE_API const char* UICornerstone_GetText(UIControlHandle ctl);
+UICORNERSTONE_API const char* UICornerstone_GetControlId(UIControlHandle ctl);
 UICORNERSTONE_API int UICornerstone_GetChecked(UIControlHandle ctl);
 UICORNERSTONE_API float UICornerstone_GetProgress(UIControlHandle ctl);
 UICORNERSTONE_API void UICornerstone_WinFrameSetClientText(UIControlHandle wf, const char* text);
@@ -228,6 +234,21 @@ UICORNERSTONE_API void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, fl
 UICORNERSTONE_API void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
 UICORNERSTONE_API void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
 UICORNERSTONE_API void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
+
+/* ============ Dialog/Popup ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateDialog(
+    const char* confirmText, const char* cancelText,
+    float x, float y, float w, float h);
+UICORNERSTONE_API void UICornerstone_Show(UIControlHandle ctl);
+UICORNERSTONE_API void UICornerstone_Close(UIControlHandle ctl);
+UICORNERSTONE_API void UICornerstone_SetDialogCentered(UIControlHandle ctl, int centered);
+UICORNERSTONE_API void UICornerstone_SetDialogPosition(UIControlHandle ctl, float x, float y, float w, float h);
+UICORNERSTONE_API void UICornerstone_SetContent(UIControlHandle dlg, UIControlHandle content);
+UICORNERSTONE_API void UICornerstone_SetOnConfirm(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetOnCancel(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetOnClose(UIControlHandle ctl, UIActionCallback cb, void* userData);
+UICORNERSTONE_API void UICornerstone_SetConfirmButtonText(UIControlHandle ctl, const char* text);
+UICORNERSTONE_API void UICornerstone_SetCancelButtonText(UIControlHandle ctl, const char* text);
 
 /* ============ 图片/动画按钮 ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(

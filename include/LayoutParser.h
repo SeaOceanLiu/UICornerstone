@@ -22,6 +22,7 @@
 #include "ColorPicker.h"
 #include "Panel.h"
 #include "WinFrame.h"
+#include "Dialog.h"
 #include "Menu.h"
 #include "Theme.h"
 #include "DataContext.h"
@@ -47,6 +48,7 @@ public:
     void clearHandlers();
 
     const vector<shared_ptr<MenuBar>>& getMenuBars() const;
+    const vector<shared_ptr<Popup>>& getDialogs() const { return m_dialogs; }
 
     void clear();
 
@@ -64,6 +66,7 @@ private:
     unordered_map<string, shared_ptr<Control>> m_controlsById;
     unordered_map<string, function<void(shared_ptr<Control>)>> m_handlers;
     vector<shared_ptr<MenuBar>> m_menuBars;
+    vector<shared_ptr<Popup>> m_dialogs;
 
     // Component system
     unordered_map<string, json> m_components;
@@ -92,6 +95,9 @@ private:
     shared_ptr<ScrollBar>   parseScrollBar(const json& j, Control* parent);
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
     shared_ptr<ColorPicker> parseColorPicker(const json& j, Control* parent);
+    shared_ptr<Popup>       parsePopup(const json& j, Control* parent);
+    shared_ptr<ConfirmPopup> parseConfirmPopup(const json& j, Control* parent);
+    shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);
     shared_ptr<WinFrame>    parseWinFrame(const json& j, Control* parent);
     shared_ptr<MenuBar>     parseMenuBar(const json& j, Control* parent);
     void populateMenuPanel(shared_ptr<MenuPanel> panel, const json& items, float xScale, float yScale);

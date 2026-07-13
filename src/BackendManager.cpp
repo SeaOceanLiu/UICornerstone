@@ -1,6 +1,7 @@
 ﻿#include "BackendPlugin.h"
 #include "UICornerstoneAPI.h"
 #include "CallbackAdapters.h"
+#include "Cursor.h"
 #include <cstdio>
 
 // ============================================================
@@ -139,6 +140,14 @@ bool BackendManager::initialize(const UIBackendCallbacks* callbacks) {
         ibHandle = callbacks->createInputBackend(winHandle);
     }
     m_inputBackend = new CallbackInputBackend(callbacks, ibHandle);
+
+    // Register cursor factories from the callback table (if provided)
+    if (callbacks->createSystemCursor && callbacks->getDefaultCursor && callbacks->setCurrentCursor) {
+        auto createFn = reinterpret_cast<Cursor*(*)(SystemCursorType)>(callbacks->createSystemCursor);
+        auto getDefFn = reinterpret_cast<Cursor*(*)()>(callbacks->getDefaultCursor);
+        auto setCurFn = reinterpret_cast<void(*)(Cursor*)>(callbacks->setCurrentCursor);
+        Cursor::registerFactories(createFn, getDefFn, setCurFn);
+    }
 
     printf("BackendManager: initialized from callback table\n");
     s_initialized = true;

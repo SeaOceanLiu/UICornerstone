@@ -98,6 +98,7 @@ set(UI_TEST_EXECUTABLES
     test_progressbar
     test_button
     test_colorpicker
+    test_dialog
     test_graphtool
     test_handlecontrol
     test_slider
@@ -258,6 +259,49 @@ if(UICORNERSTONE_BUILD_DLL)
 
     if(_BACKEND_UPPER STREQUAL "RAYLIB")
         add_fromsource_target(test_fromsource_raylib test_fromsource_raylib.cpp)
+    endif()
+endif()
+
+# ============================================================
+# test_dialog_cabi — LoadLibrary + C ABI + Dialog + JSON
+# 按后端选择源文件（test_dialog_cabi_sdl3/sfml/raylib.cpp）
+# ============================================================
+# 仅在 DLL 模式下构建。不链接 UICornerstone_dll.lib。
+if(UICORNERSTONE_BUILD_DLL)
+    set(test_dialog_cabi_src "test_dialog_cabi_${_BACKEND_LOWER}.cpp")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_dialog_cabi_src}")
+        add_executable(test_dialog_cabi "${test_dialog_cabi_src}")
+
+        target_include_directories(test_dialog_cabi PRIVATE
+            ${TEST_INCLUDES}
+            "${CMAKE_SOURCE_DIR}/src/backend"
+        )
+
+        target_compile_definitions(test_dialog_cabi PRIVATE
+            UICORNERSTONE_BACKEND_PLUGIN=0
+        )
+
+        target_link_libraries(test_dialog_cabi PRIVATE
+            ${FROMSOURCE_BACKEND_LIBS}
+        )
+
+        if(WIN32)
+            add_custom_command(TARGET test_dialog_cabi POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
+                    "$<TARGET_FILE_DIR:test_dialog_cabi>")
+
+            foreach(dll ${TEST_DLLS})
+                add_custom_command(TARGET test_dialog_cabi POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${dll}" "$<TARGET_FILE_DIR:test_dialog_cabi>")
+            endforeach()
+
+            add_custom_command(TARGET test_dialog_cabi POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${ASSETS_DIR}"
+                    "$<TARGET_FILE_DIR:test_dialog_cabi>/assets")
+        endif()
     endif()
 endif()
 

@@ -10,6 +10,10 @@ TextRenderer* CreateRaylibTextRenderer(RenderDevice* device);
 InputBackend* CreateRaylibInputBackend(Window* window);
 void RegisterRaylibSurfaceFactories(void);
 void RegisterRaylibCursorFactories(void);
+#include "Cursor.h"
+extern Cursor* raylibCreateSystemCursor(SystemCursorType);
+extern Cursor* raylibGetDefaultCursor();
+extern void raylibSetCurrentCursor(Cursor*);
 
 // ============================================================
 // Raylib Backend Registration
@@ -98,6 +102,18 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     RegisterRaylibSurfaceFactories();
     // Register cursor factories so the DLL's Cursor::createSystem()/getDefault()/setCurrent() work
     RegisterRaylibCursorFactories();
+
+    // Also populate the callback table so BackendManager::initialize(callbacks)
+    // can register cursor factories from the DLL side
+    cb.createSystemCursor = [](int type) -> void* {
+        return raylibCreateSystemCursor(static_cast<SystemCursorType>(type));
+    };
+    cb.getDefaultCursor = []() -> void* {
+        return raylibGetDefaultCursor();
+    };
+    cb.setCurrentCursor = [](void* cursor) {
+        raylibSetCurrentCursor(static_cast<Cursor*>(cursor));
+    };
 
     // Window
     cb.createWindow         = plugin_createWindow;

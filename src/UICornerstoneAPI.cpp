@@ -12,6 +12,7 @@
 #include "TextArea.h"
 #include "Slider.h"
 #include "ColorPicker.h"
+#include "Dialog.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
 #include "PlatformUtils.h"
@@ -23,6 +24,8 @@
 #include <unordered_map>
 #include <functional>
 #include <queue>
+#include <vector>
+#include <algorithm>
 
 // ============================================================
 // 全局状态
@@ -43,6 +46,10 @@ SRect g_viewport(0, 0, 1024, 768);
 std::unordered_map<std::string, std::pair<UIActionCallback, void*>> g_actions;
 std::unordered_map<std::string, UIControlHandle> g_controlsById;
 std::queue<UIEvent> g_queuedEvents;
+
+// 保持 Dialog/Popup 生命期：CreateDialog 中创建后立即加入，
+// close() 的 onClose 回调中自动清理。
+static std::vector<std::shared_ptr<Popup>> g_popupPool;
 
 static void registerControlById(const std::string& id, UIControlHandle ctl) {
     if (!id.empty()) g_controlsById[id] = ctl;
@@ -106,6 +113,9 @@ void UICornerstone_Shutdown(void) {
 
     g_controlsById.clear();
     g_actions.clear();
+
+    // 清理所有 Dialog/Popup，确保在 BackendManager shutdown 前析构
+    g_popupPool.clear();
 
     delete g_resourceProvider; g_resourceProvider = nullptr;
 
@@ -340,13 +350,19 @@ int UICornerstone_LoadLayout(const char* jsonContent) {
         BENCH->addControl(mb);
     }
 
+    // 将 JSON 定义的 Dialog 加入 g_popupPool 保持生命期
+    for (auto& pop : parser.getDialogs()) {
+        g_popupPool.push_back(pop);
+    }
+
     for (auto& id : parser.getAllControlIds()) {
         auto ctl = parser.findControlById(id);
         if (ctl) g_controlsById[id] = reinterpret_cast<UIControlHandle>(ctl.get());
     }
 
-    printf("UICornerstone: LoadLayout OK (%zu control ids, %zu menu bars)\n",
-           parser.getAllControlIds().size(), parser.getMenuBars().size());
+    printf("UICornerstone: LoadLayout OK (%zu control ids, %zu menu bars, %zu dialogs)\n",
+           parser.getAllControlIds().size(), parser.getMenuBars().size(),
+           parser.getDialogs().size());
     return 1;
 }
 
@@ -619,6 +635,20 @@ const char* UICornerstone_GetText(UIControlHandle ctl) {
     return g_getTextBuf;
 }
 
+const char* UICornerstone_GetControlId(UIControlHandle ctl) {
+    if (!ctl) return "";
+    static char buf[256];
+    for (const auto& pair : g_controlsById) {
+        if (pair.second == ctl) {
+            strncpy(buf, pair.first.c_str(), sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+            return buf;
+        }
+    }
+    buf[0] = '\0';
+    return buf;
+}
+
 int UICornerstone_GetChecked(UIControlHandle ctl) {
     if (!ctl) return 0;
     auto* cb = dynamic_cast<CheckBox*>(static_cast<Control*>(ctl));
@@ -703,6 +733,137 @@ void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex) {
         if (SColor::fromHex(hex, c))
             cp->setPopupBGColor(c);
     }
+}
+
+// ============================================================
+// Dialog / Popup
+// ============================================================
+UIControlHandle UICornerstone_CreateDialog(
+    const char* confirmText, const char* cancelText,
+    float x, float y, float w, float h)
+{
+    auto ctl = std::make_shared<Dialog>(BENCH, SRect(x, y, w, h));
+    if (confirmText) ctl->setConfirmButtonText(confirmText);
+    if (cancelText) ctl->setCancelButtonText(cancelText);
+    ctl->setCentered();
+    ctl->create();
+
+    // 保持 Dialog 生命期：加入 g_popupPool，close() 时自动清理
+    g_popupPool.push_back(ctl);
+
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
+void UICornerstone_Show(UIControlHandle ctl) {
+    if (!ctl) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) { dlg->open(); return; }
+    auto* cp = dynamic_cast<ConfirmPopup*>(static_cast<Control*>(ctl));
+    if (cp) { cp->open(); return; }
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(ctl));
+    if (pop) { pop->open(); }
+}
+
+void UICornerstone_Close(UIControlHandle ctl) {
+    if (!ctl) return;
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(ctl));
+    if (pop) {
+        // 清理 pool（如果 close() 触发 m_onClose，也会在 SetOnClose 的包装器中清理）
+        auto& pool = g_popupPool;
+        auto it = std::find_if(pool.begin(), pool.end(),
+            [pop](const std::shared_ptr<Popup>& p) { return p.get() == pop; });
+        if (it != pool.end()) pool.erase(it);
+        pop->close();
+    }
+}
+
+void UICornerstone_SetDialogCentered(UIControlHandle ctl, int centered) {
+    if (!ctl || !centered) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) { dlg->setCentered(); return; }
+    auto* cp = dynamic_cast<ConfirmPopup*>(static_cast<Control*>(ctl));
+    if (cp) { cp->setCentered(); return; }
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(ctl));
+    if (pop) { pop->setCentered(); }
+}
+
+void UICornerstone_SetDialogPosition(UIControlHandle ctl, float x, float y, float w, float h) {
+    if (!ctl) return;
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(ctl));
+    if (pop) pop->setAbsolute(SRect(x, y, w, h));
+}
+
+void UICornerstone_SetContent(UIControlHandle dlg, UIControlHandle content) {
+    if (!dlg || !content) return;
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(dlg));
+    if (!pop) return;
+    auto* contentCtrl = dynamic_cast<ControlImpl*>(static_cast<Control*>(content));
+    if (!contentCtrl) return;
+    try {
+        auto sp = contentCtrl->shared_from_this();
+        Control* parent = contentCtrl->getParent();
+        if (parent && parent != BENCH) {
+            parent->removeControl(sp);
+        } else {
+            BENCH->removeControl(sp);
+        }
+        pop->setContent(std::dynamic_pointer_cast<ControlImpl>(sp));
+    } catch (...) {}
+}
+
+void UICornerstone_SetOnConfirm(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) {
+        dlg->setOnConfirm([cb, userData](std::shared_ptr<ConfirmPopup>) {
+            if (cb) cb(nullptr, userData);
+        });
+        return;
+    }
+    auto* cp = dynamic_cast<ConfirmPopup*>(static_cast<Control*>(ctl));
+    if (cp) {
+        cp->setOnConfirm([cb, userData](std::shared_ptr<ConfirmPopup>) {
+            if (cb) cb(nullptr, userData);
+        });
+    }
+}
+
+void UICornerstone_SetOnCancel(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) {
+        dlg->setOnCancel([cb, userData](std::shared_ptr<Dialog>) {
+            if (cb) cb(nullptr, userData);
+        });
+    }
+}
+
+void UICornerstone_SetOnClose(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* pop = dynamic_cast<Popup*>(static_cast<Control*>(ctl));
+    if (pop) {
+        pop->setOnClose([cb, userData](std::shared_ptr<Popup> p, DialogResult r) {
+            if (cb) cb(nullptr, userData);
+            // 清理 pool
+            auto& pool = g_popupPool;
+            auto it = std::find(pool.begin(), pool.end(), p);
+            if (it != pool.end()) pool.erase(it);
+        });
+    }
+}
+
+void UICornerstone_SetConfirmButtonText(UIControlHandle ctl, const char* text) {
+    if (!ctl || !text) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) { dlg->setConfirmButtonText(text); return; }
+    auto* cp = dynamic_cast<ConfirmPopup*>(static_cast<Control*>(ctl));
+    if (cp) cp->setConfirmButtonText(text);
+}
+
+void UICornerstone_SetCancelButtonText(UIControlHandle ctl, const char* text) {
+    if (!ctl || !text) return;
+    auto* dlg = dynamic_cast<Dialog*>(static_cast<Control*>(ctl));
+    if (dlg) dlg->setCancelButtonText(text);
 }
 
 float UICornerstone_GetSliderValue(UIControlHandle ctl) {

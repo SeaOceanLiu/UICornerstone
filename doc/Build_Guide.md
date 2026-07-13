@@ -75,6 +75,7 @@ build_scripts\build_test.bat test_label raylib      # Raylib
 | `test_fromsource_sdl3` | 测试 | SDL3 fromsource 测试 |
 | `test_fromsource_sfml` | 测试 | SFML fromsource 测试 |
 | `test_fromsource_raylib` | 测试 | Raylib fromsource 测试 |
+| `test_dialog_cabi` | 测试 | C ABI Dialog 集成测试（LoadLibrary + JSON dialogs），三后端共享 |
 | `hello_uicornerstone` | 示例 | 纯 C 示例（JSON 布局），Button + Label 交互 |
 | `sample_programmatic` | 示例 | 纯 C 示例（编程式创建），Button + Label 交互 |
 | `sample_fromsource` | 示例 | 纯 C 示例（混合集成），Button + Label 交互，需 DLL 模式 |
@@ -167,6 +168,7 @@ fromsource 将后端源码（Window/RenderDevice/TextRenderer/InputBackend/Curso
 | `test_fromsource_sdl3` | 纯测试，`LoadLibrary` + SDL App 模式 |
 | `sample_fromsource` | 纯 C 示例，`ILT` 隐式加载 + `main()` 帧循环 |
 | `sample_loadlibrary` | 纯 C++ 示例，`LoadLibrary` 显式加载 + `#include` 后端源码 |
+| `test_dialog_cabi` | 三后端 C ABI Dialog 测试，`LoadLibrary` + `#include` 后端源码 + JSON dialogs |
 
 ## 故障排除
 

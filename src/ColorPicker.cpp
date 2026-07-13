@@ -73,40 +73,45 @@ ColorPicker::ColorPicker(Control* parent, SRect rect,
 }
 
 ColorPicker::~ColorPicker() {
-    auto eq = EventQueue::getInstance();
-    if (eq) {
-        eq->removeBeforeEventHandlingWatcher(EventType::MouseDown, getThis());
-        eq->removeBeforeEventHandlingWatcher(EventType::KeyDown, getThis());
-    }
 }
 
 void ColorPicker::create() {
     Panel::create();
-    setTransparent(true);  // 闭合状态背景透明，不继承 Panel 的默认深灰背景
+    setTransparent(true);
     setBorderVisible(false);
-    m_popup = make_shared<Panel>(nullptr, SRect(0, 0, 1, 1), m_xScale, m_yScale);
-    m_popup->setEnable(true);
-    m_popup->setNormalStateBGColor(m_popupBGColor);
-    m_popup->setBorderVisible(true);
-    m_popup->setNormalStateBDColor(ConstDef::COLORPICKER_POPUP_BORDER);
-    m_popup->setRenderDevice(getRenderDevice());
-    m_popup->setTextRenderer(getTextRenderer());
-    m_popup->setResourceProvider(getResourceProvider());
-    m_popup->setInputBackend(getInputBackend());
-    m_popup->setFocusBoundary(true);
-    m_popup->create();
-    m_popup->setVisible(false);
-    EventQueue::getInstance()->addBeforeEventHandlingWatcher(
-        EventType::KeyDown, getThis());
-    // Do NOT addControl to ColorPicker's children — popup is manually added
-    // to BENCH when open so it draws on top of all siblings.
+    m_dialog = make_shared<Dialog>(nullptr, SRect(0, 0, m_popupWidth, m_popupHeight),
+                                   m_xScale, m_yScale);
+    m_dialog->setConfirmButtonText(u8"确定");
+    m_dialog->setCancelButtonText(u8"取消");
+    m_dialog->setNormalStateBGColor(m_popupBGColor);
+    m_dialog->setBorderVisible(true);
+    m_dialog->setNormalStateBDColor(ConstDef::COLORPICKER_POPUP_BORDER);
+    m_dialog->setRenderDevice(getRenderDevice());
+    m_dialog->setTextRenderer(getTextRenderer());
+    m_dialog->setResourceProvider(getResourceProvider());
+    m_dialog->setInputBackend(getInputBackend());
+    m_dialog->setOnConfirm([this](shared_ptr<ConfirmPopup>) {
+        onOK();
+    });
+    m_dialog->setOnClose([this](shared_ptr<Popup>, DialogResult r) {
+        if (r == DialogResult::Cancelled) {
+            m_color = m_committedColor;
+            syncUIFromColor();
+        }
+    });
+    m_dialog->setCloseOnClickOutside(true);
+    m_dialog->setCloseOnEsc(true);
+    m_dialog->setPadding(0);
+    m_dialog->create();
+    m_dialog->setVisible(false);
     createClosedStateControls();
     recreatePopupContent();
 }
 
 void ColorPicker::recreatePopupContent() {
-    if (!m_popup) return;
-    m_popup->removeAllControls();
+    if (!m_dialog) return;
+    m_dialog->removeAllControls();
+    m_dialog->recreateButtons();
     m_presetCells.clear();
     m_previewSwatch.reset();
     m_hexInput.reset();
@@ -114,13 +119,11 @@ void ColorPicker::recreatePopupContent() {
     m_sliderG.reset();
     m_sliderB.reset();
     m_sliderA.reset();
-    m_btnOK.reset();
-    m_btnCancel.reset();
     m_presetGridCreated = false;
     createPresetGrid();
     createHexInput();
     createSliders();
-    createButtons();
+    layoutButtons();
 }
 
 void ColorPicker::setRect(SRect rect) {
@@ -179,18 +182,11 @@ void ColorPicker::recreateClosedState() {
 // ==================== Popup Control ====================
 
 bool ColorPicker::handleEvent(shared_ptr<Event> event) {
-    if (m_ignoreKeyEvent) {
-        m_ignoreKeyEvent = false;
+    if (event->m_type == EventType::KeyDown &&
+        (event->keyEvent.keycode == KeyCode::Return || event->keyEvent.keycode == KeyCode::Space) &&
+        getFocused() && !m_dialog->getVisible()) {
+        togglePopup();
         return true;
-    }
-    if (!m_popup || !m_popup->getVisible()) {
-        // Closed state: Enter/Space opens popup when focused
-        if (event->m_type == EventType::KeyDown &&
-            (event->keyEvent.keycode == KeyCode::Return || event->keyEvent.keycode == KeyCode::Space) &&
-            getFocused()) {
-            togglePopup();
-            return true;
-        }
     }
     if (event->m_type == EventType::MouseDown &&
         event->mouseButton.button == MouseButton::Left) {
@@ -258,50 +254,38 @@ SRect ColorPicker::computePopupRect() {
 }
 
 void ColorPicker::openPopup() {
-    if (!m_popup || m_popup->getVisible()) return;
+    if (!m_dialog) return;
     SRect pr = computePopupRect();
-    m_popup->setRect(pr);
-    m_popup->setVisible(true);
-    // Add to BENCH so popup draws on top of ALL other controls
-    // (BENCH draws children in order; addControl appends to end)
-    BENCH->addControl(m_popup);
+    m_dialog->setAbsolute(pr);
+    layoutButtons();
     m_committedColor = m_color;
     syncUIFromColor();
-    EventQueue::getInstance()->addBeforeEventHandlingWatcher(
-        EventType::MouseDown, getThis());
-    GET_FOCUSMANAGER->registerBoundary(m_popup.get());
-    GET_FOCUSMANAGER->focusFirstInScope(m_popup.get());
+    m_dialog->open();
     if (m_hexInput)
         GET_FOCUSMANAGER->focusControl(m_hexInput.get());
 }
 
 void ColorPicker::closePopup() {
-    if (!m_popup || !m_popup->getVisible()) return;
-    m_popup->setVisible(false);
-    BENCH->removeControl(m_popup);
-    GET_FOCUSMANAGER->unregisterBoundary(m_popup.get());
-    // Do NOT call removeBeforeEventHandlingWatcher here:
-    //   if called from beforeEventHandlingWatcher (same EventQueue mutex),
-    //   std::mutex::lock() on the same thread is UB → deadlock/exception.
-    //   The watcher checks m_popup->getVisible() and is harmless when hidden.
+    if (!m_dialog) return;
+    m_dialog->close();
     GET_FOCUSMANAGER->focusControl(this);
 }
 
 void ColorPicker::togglePopup() {
-    if (m_popup && m_popup->getVisible())
-        onCancel();
+    if (m_dialog && m_dialog->getVisible())
+        closePopup();
     else
         openPopup();
 }
 
 bool ColorPicker::isPopupVisible() const {
-    return m_popup && m_popup->getVisible();
+    return m_dialog && m_dialog->getVisible();
 }
 
 // ==================== Create Sub-Controls ====================
 
 void ColorPicker::createPresetGrid() {
-    if (m_presetGridCreated || !m_popup) return;
+    if (m_presetGridCreated || !m_dialog) return;
     float pad = ConstDef::COLORPICKER_POPUP_PADDING;
     float gap = ConstDef::COLORPICKER_PRESET_GAP;
     float cellH = ConstDef::COLORPICKER_PRESET_CELL_H;
@@ -314,7 +298,7 @@ void ColorPicker::createPresetGrid() {
         int row = i / m_presetCols;
         SRect r(pad + col * (cellW + gap), gridTop + row * (cellH + gap),
                 cellW, cellH);
-        auto cell = make_shared<PresetCell>(m_popup.get(), r, m_presetColors[i],
+        auto cell = make_shared<PresetCell>(m_dialog.get(), r, m_presetColors[i],
             1.0f, 1.0f);
         cell->setSelected(m_presetColors[i] == m_color);
         SColor color = m_presetColors[i];
@@ -323,13 +307,13 @@ void ColorPicker::createPresetGrid() {
         });
         cell->create();
         m_presetCells.push_back(cell);
-        m_popup->addControl(cell);
+        m_dialog->addControl(cell);
     }
     m_presetGridCreated = true;
 }
 
 void ColorPicker::createHexInput() {
-    if (!m_popup) return;
+    if (!m_dialog) return;
     float pad = ConstDef::COLORPICKER_POPUP_PADDING;
     float gap = ConstDef::COLORPICKER_PRESET_GAP;
     float cellH = ConstDef::COLORPICKER_PRESET_CELL_H;
@@ -341,7 +325,7 @@ void ColorPicker::createHexInput() {
     float rowTop = gridBottom + 8.0f;
 
     // Preview swatch (same size as one preset cell)
-    m_previewSwatch = make_shared<Panel>(m_popup.get(),
+    m_previewSwatch = make_shared<Panel>(m_dialog.get(),
         SRect(pad, rowTop, cellW, cellH), 1.0f, 1.0f);
     m_previewSwatch->setNormalStateBGColor(m_color);
     m_previewSwatch->setDisabledStateBGColor(m_color);
@@ -349,12 +333,12 @@ void ColorPicker::createHexInput() {
     m_previewSwatch->setNormalStateBDColor(ConstDef::COLORPICKER_POPUP_BORDER);
     m_previewSwatch->setEnable(false);
     m_previewSwatch->create();
-    m_popup->addControl(m_previewSwatch);
+    m_dialog->addControl(m_previewSwatch);
 
     // "#" label
     float hashX = pad + cellW + 5.0f;
     float hashY = rowTop + (cellH - 16.0f) / 2.0f;
-    auto hashLabel = make_shared<Label>(m_popup.get(),
+    auto hashLabel = make_shared<Label>(m_dialog.get(),
         SRect(hashX, hashY, hashW, 16.0f), 1.0f, 1.0f);
     hashLabel->setCaption("#");
     hashLabel->setFontSize(ConstDef::COLORPICKER_HEX_FONT_SIZE);
@@ -363,24 +347,24 @@ void ColorPicker::createHexInput() {
     hashLabel->setTextDisabledStateColor(ConstDef::DEFAULT_TEXT_NORMAL_COLOR);
     hashLabel->setEnable(false);
     hashLabel->create();
-    m_popup->addControl(hashLabel);
+    m_dialog->addControl(hashLabel);
 
     // Hex input
     float hexX = hashX + hashW + 5.0f;
     float hexW = m_popupWidth - hexX - pad;
     float hexY = rowTop + (cellH - inputH) / 2.0f;
-    m_hexInput = make_shared<EditBox>(m_popup.get(),
+    m_hexInput = make_shared<EditBox>(m_dialog.get(),
         SRect(hexX, hexY, hexW, inputH), 1.0f, 1.0f);
     m_hexInput->setText(m_color.toRRGGBBAA());
     m_hexInput->setOnTextChanged([this](shared_ptr<Control>, string) {
         onHexInputChanged(m_hexInput->getText());
     });
     m_hexInput->create();
-    m_popup->addControl(m_hexInput);
+    m_dialog->addControl(m_hexInput);
 }
 
 void ColorPicker::createSliders() {
-    if (!m_popup) return;
+    if (!m_dialog) return;
     float pad = ConstDef::COLORPICKER_POPUP_PADDING;
     float gap = ConstDef::COLORPICKER_PRESET_GAP;
     float cellH = ConstDef::COLORPICKER_PRESET_CELL_H;
@@ -400,7 +384,7 @@ void ColorPicker::createSliders() {
     float sliderY0 = rowBottom + 26.0f;
 
     auto makeLetter = [&](float sx, const string& ch) {
-        auto lb = make_shared<Label>(m_popup.get(),
+        auto lb = make_shared<Label>(m_dialog.get(),
             SRect(pad, sx + (sliderH - 16.0f) / 2.0f, labelW, 16.0f),
             1.0f, 1.0f);
         lb->setCaption(ch);
@@ -410,14 +394,14 @@ void ColorPicker::createSliders() {
         lb->setTextDisabledStateColor(ConstDef::DEFAULT_TEXT_NORMAL_COLOR);
         lb->setEnable(false);
         lb->create();
-        m_popup->addControl(lb);
+        m_dialog->addControl(lb);
     };
 
     auto makeSlider = [&](float yOff, const SColor& fillCol,
                           const string& letter) -> shared_ptr<Slider> {
         float sy = sliderY0 + yOff;
         makeLetter(sy, letter);
-        auto sl = make_shared<Slider>(m_popup.get(),
+        auto sl = make_shared<Slider>(m_dialog.get(),
             SRect(trackX, sy, trackW, sliderH),
             1.0f, 1.0f);
         sl->setRange(0, 255);
@@ -429,7 +413,7 @@ void ColorPicker::createSliders() {
         sl->setTrackFillColor(fillCol);
         sl->setThumbBorderColor(fillCol);
         sl->create();
-        m_popup->addControl(sl);
+        m_dialog->addControl(sl);
         return sl;
     };
 
@@ -456,16 +440,15 @@ void ColorPicker::createSliders() {
     });
 }
 
-void ColorPicker::createButtons() {
-    if (!m_popup) return;
+void ColorPicker::layoutButtons() {
+    if (!m_dialog) return;
     float pad = ConstDef::COLORPICKER_POPUP_PADDING;
-    float gap = ConstDef::COLORPICKER_PRESET_GAP;
     float cellH = ConstDef::COLORPICKER_PRESET_CELL_H;
     float sliderH = ConstDef::COLORPICKER_SLIDER_H;
     float btnW = ConstDef::COLORPICKER_BTN_W;
     float btnH = ConstDef::COLORPICKER_BTN_H;
     float btnGap = ConstDef::COLORPICKER_BTN_GAP;
-    float gridBottom = pad + ConstDef::COLORPICKER_PRESET_ROWS * (cellH + gap);
+    float gridBottom = pad + ConstDef::COLORPICKER_PRESET_ROWS * (cellH + ConstDef::COLORPICKER_PRESET_GAP);
     float rowTop = gridBottom + 8.0f;
     float rowBottom = rowTop + cellH;
     float sliderY0 = rowBottom + 26.0f;
@@ -475,21 +458,8 @@ void ColorPicker::createButtons() {
 
     float btnRightX = m_popupWidth - pad - btnW;
 
-    m_btnOK = make_shared<Button>(m_popup.get(),
-        SRect(btnRightX - btnW - btnGap, btnY, btnW, btnH),
-        1.0f, 1.0f);
-    m_btnOK->setCaption(u8"\u786E\u5B9A");
-    m_btnOK->setOnClick([this](shared_ptr<Button>) { onOK(); });
-    m_btnOK->create();
-    m_popup->addControl(m_btnOK);
-
-    m_btnCancel = make_shared<Button>(m_popup.get(),
-        SRect(btnRightX, btnY, btnW, btnH),
-        1.0f, 1.0f);
-    m_btnCancel->setCaption(u8"\u53D6\u6D88");
-    m_btnCancel->setOnClick([this](shared_ptr<Button>) { onCancel(); });
-    m_btnCancel->create();
-    m_popup->addControl(m_btnCancel);
+    m_dialog->setConfirmButtonRect(SRect(btnRightX - btnW - btnGap, btnY, btnW, btnH));
+    m_dialog->setCancelButtonRect(SRect(btnRightX, btnY, btnW, btnH));
 }
 
 // ==================== Color ====================
@@ -508,7 +478,7 @@ void ColorPicker::setColor(const string& hex) {
 void ColorPicker::setPresetColors(const vector<SColor>& colors) {
     m_presetColors = colors;
     m_presetGridCreated = false;
-    if (m_popup && m_popup->getVisible()) {
+    if (m_dialog && m_dialog->getVisible()) {
         recreatePopupContent();
         syncUIFromColor();
     }
@@ -518,7 +488,7 @@ void ColorPicker::setPresetLayout(int cols, int rows) {
     m_presetCols = (std::max)(1, cols);
     m_presetRows = (std::max)(1, rows);
     m_presetGridCreated = false;
-    if (m_popup) {
+    if (m_dialog) {
         recreatePopupContent();
         syncUIFromColor();
     }
@@ -617,43 +587,11 @@ void ColorPicker::onOK() {
     m_committedColor = m_color;
     if (m_onColorChanged)
         m_onColorChanged(std::dynamic_pointer_cast<ColorPicker>(getThis()), m_committedColor);
-    closePopup();
 }
 
 void ColorPicker::onCancel() {
     m_color = m_committedColor;
     syncUIFromColor();
-    closePopup();
-}
-
-// ==================== Watcher ====================
-
-bool ColorPicker::beforeEventHandlingWatcher(shared_ptr<Event> event) {
-    if (!m_popup || !m_popup->getVisible()) return false;
-    if (event->m_type == EventType::KeyDown) {
-        if (event->keyEvent.keycode == KeyCode::Return) {
-            m_ignoreKeyEvent = true;
-            onOK();
-            return true;
-        }
-        if (event->keyEvent.keycode == KeyCode::Escape) {
-            m_ignoreKeyEvent = true;
-            onCancel();
-            return true;
-        }
-        return false;
-    }
-    if (event->m_type == EventType::MouseDown) {
-        SPoint mp(event->mouseButton.x, event->mouseButton.y);
-        if (m_popup->isContainsPoint(mp.x, mp.y))
-            return false;
-        if (isContainsPoint(mp.x, mp.y))
-            return false;
-        onCancel();
-        // return false so event propagates to other controls
-        // (e.g. clicking on another ColorPicker should open its popup)
-    }
-    return false;
 }
 
 // ==================== ColorPickerBuilder ====================

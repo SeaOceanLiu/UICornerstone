@@ -45,7 +45,7 @@ static sf::Cursor::Type systemCursorTypeToSFML(SystemCursorType type) {
     return sf::Cursor::Type::Arrow;
 }
 
-static Cursor* sfmlCreateSystemCursor(SystemCursorType type) {
+Cursor* sfmlCreateSystemCursor(SystemCursorType type) {
     auto optCursor = sf::Cursor::createFromSystem(systemCursorTypeToSFML(type));
     if (!optCursor) {
         return nullptr;
@@ -53,14 +53,14 @@ static Cursor* sfmlCreateSystemCursor(SystemCursorType type) {
     return new SFMLCursor(std::move(*optCursor));
 }
 
-static Cursor* sfmlGetDefaultCursor() {
+Cursor* sfmlGetDefaultCursor() {
     static SFMLCursor defaultCursor(
         std::move(*sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow))
     );
     return &defaultCursor;
 }
 
-static void sfmlSetCurrentCursor(Cursor* cursor) {
+void sfmlSetCurrentCursor(Cursor* cursor) {
     if (!cursor || !g_cursorWindow) return;
     SFMLCursor* sfmlCursor = dynamic_cast<SFMLCursor*>(cursor);
     if (sfmlCursor && sfmlCursor->get()) {

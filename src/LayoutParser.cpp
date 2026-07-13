@@ -1,6 +1,7 @@
 ﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
 #include "WinFrame.h"
+#include "Dialog.h"
 #include "LayoutEngine.h"
 #include <fstream>
 #include <sstream>
@@ -63,6 +64,17 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
         auto ctrl = parseControl(controls[i], nullptr, (int)i);
         if (ctrl) {
             root = ctrl;
+        }
+    }
+
+    // 解析独立的 Dialogs（从 controls 树外管理）
+    if (j.contains("dialogs") && j["dialogs"].is_array()) {
+        const json& dialogs = j["dialogs"];
+        for (size_t i = 0; i < dialogs.size(); ++i) {
+            auto dlg = parseControl(dialogs[i], nullptr, (int)i);
+            if (auto pop = dynamic_pointer_cast<Popup>(dlg)) {
+                m_dialogs.push_back(pop);
+            }
         }
     }
 
@@ -131,6 +143,7 @@ void LayoutParser::clear() {
     DataContext::instance()->unwatchAll();
     m_controlsById.clear();
     m_menuBars.clear();
+    m_dialogs.clear();
     m_currentJsonPath.clear();
     m_currentLineNo = 0;
     m_rawJsonContent.clear();
@@ -225,6 +238,12 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseWinFrame(j, parent);
     } else if (type == "ColorPicker") {
         result = parseColorPicker(j, parent);
+    } else if (type == "Popup") {
+        result = parsePopup(j, parent);
+    } else if (type == "ConfirmPopup") {
+        result = parseConfirmPopup(j, parent);
+    } else if (type == "Dialog") {
+        result = parseDialog(j, parent);
     } else if (type == "MenuBar") {
         // MenuBar 不加入控件树（会被父容器裁剪），独立存储后再由调用方加入 BENCH 顶层
         auto menuBar = parseMenuBar(j, parent);
@@ -1414,6 +1433,157 @@ shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* paren
     return scrollBar;
 }
 
+// ==================== Popup ====================
+
+shared_ptr<Popup> LayoutParser::parsePopup(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto popup = make_shared<Popup>(parent, rect, xScale, yScale);
+    m_theme.applyCommonColors(popup, "popup");
+    parseCommonProperties(popup, j);
+
+    // Popup-specific
+    if (j.contains("centered") && j["centered"].is_boolean())
+        popup->setCentered();
+    if (j.contains("closeOnEsc") && j["closeOnEsc"].is_boolean())
+        popup->setCloseOnEsc(j["closeOnEsc"].get<bool>());
+    if (j.contains("closeOnClickOutside") && j["closeOnClickOutside"].is_boolean())
+        popup->setCloseOnClickOutside(j["closeOnClickOutside"].get<bool>());
+
+    parseEvents(popup, j);
+    parseBindings(popup, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = popup;
+
+    parseChildren(popup, j);
+    popup->create();
+    return popup;
+}
+
+// ==================== ConfirmPopup ====================
+
+shared_ptr<ConfirmPopup> LayoutParser::parseConfirmPopup(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto cp = make_shared<ConfirmPopup>(parent, rect, xScale, yScale);
+    m_theme.applyCommonColors(cp, "confirmpopup");
+    parseCommonProperties(cp, j);
+
+    if (j.contains("centered") && j["centered"].is_boolean())
+        cp->setCentered();
+    if (j.contains("closeOnEsc") && j["closeOnEsc"].is_boolean())
+        cp->setCloseOnEsc(j["closeOnEsc"].get<bool>());
+    if (j.contains("closeOnClickOutside") && j["closeOnClickOutside"].is_boolean())
+        cp->setCloseOnClickOutside(j["closeOnClickOutside"].get<bool>());
+
+    // confirm button
+    if (j.contains("confirmButton") && j["confirmButton"].is_object()) {
+        const json& btn = j["confirmButton"];
+        if (btn.contains("text") && btn["text"].is_string())
+            cp->setConfirmButtonText(btn["text"].get<string>());
+        if (btn.contains("rect") && btn["rect"].is_object())
+            cp->setConfirmButtonRect(parseRect(btn["rect"]));
+        if (btn.contains("visible") && btn["visible"].is_boolean())
+            cp->setConfirmButtonVisible(btn["visible"].get<bool>());
+    }
+
+    if (j.contains("buttonHeight") && j["buttonHeight"].is_number())
+        cp->setButtonHeight(j["buttonHeight"].get<float>());
+    if (j.contains("buttonGap") && j["buttonGap"].is_number())
+        cp->setButtonGap(j["buttonGap"].get<float>());
+    if (j.contains("padding") && j["padding"].is_number())
+        cp->setPadding(j["padding"].get<float>());
+
+    parseEvents(cp, j);
+    parseBindings(cp, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = cp;
+
+    parseChildren(cp, j);
+    cp->create();
+    return cp;
+}
+
+// ==================== Dialog ====================
+
+shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto dlg = make_shared<Dialog>(parent, rect, xScale, yScale);
+    m_theme.applyCommonColors(dlg, "dialog");
+    parseCommonProperties(dlg, j);
+
+    if (j.contains("centered") && j["centered"].is_boolean())
+        dlg->setCentered();
+    if (j.contains("closeOnEsc") && j["closeOnEsc"].is_boolean())
+        dlg->setCloseOnEsc(j["closeOnEsc"].get<bool>());
+    if (j.contains("closeOnClickOutside") && j["closeOnClickOutside"].is_boolean())
+        dlg->setCloseOnClickOutside(j["closeOnClickOutside"].get<bool>());
+
+    // confirm button
+    if (j.contains("confirmButton") && j["confirmButton"].is_object()) {
+        const json& btn = j["confirmButton"];
+        if (btn.contains("text") && btn["text"].is_string())
+            dlg->setConfirmButtonText(btn["text"].get<string>());
+        if (btn.contains("rect") && btn["rect"].is_object())
+            dlg->setConfirmButtonRect(parseRect(btn["rect"]));
+        if (btn.contains("visible") && btn["visible"].is_boolean())
+            dlg->setConfirmButtonVisible(btn["visible"].get<bool>());
+    }
+
+    // cancel button
+    if (j.contains("cancelButton") && j["cancelButton"].is_object()) {
+        const json& btn = j["cancelButton"];
+        if (btn.contains("text") && btn["text"].is_string())
+            dlg->setCancelButtonText(btn["text"].get<string>());
+        if (btn.contains("rect") && btn["rect"].is_object())
+            dlg->setCancelButtonRect(parseRect(btn["rect"]));
+    }
+
+    if (j.contains("buttonHeight") && j["buttonHeight"].is_number())
+        dlg->setButtonHeight(j["buttonHeight"].get<float>());
+    if (j.contains("buttonGap") && j["buttonGap"].is_number())
+        dlg->setButtonGap(j["buttonGap"].get<float>());
+    if (j.contains("padding") && j["padding"].is_number())
+        dlg->setPadding(j["padding"].get<float>());
+
+    parseEvents(dlg, j);
+    parseBindings(dlg, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = dlg;
+
+    parseChildren(dlg, j);
+    dlg->create();
+    return dlg;
+}
+
 // ==================== 通用属性解析 ====================
 
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
@@ -1437,6 +1607,10 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
 
     // enabled
     ctrl->setEnable(j.value("enabled", true));
+
+    // borderVisible
+    if (j.contains("borderVisible") && j["borderVisible"].is_boolean())
+        ctrl->setBorderVisible(j["borderVisible"].get<bool>());
 
     // colors
     if (j.contains("colors") && j["colors"].is_object()) {
@@ -1563,6 +1737,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // Slider: onValueChanged
+    if (auto sl = dynamic_pointer_cast<Slider>(ctrl)) {
+        if (events.contains("onValueChanged") && events["onValueChanged"].is_string()) {
+            string handlerName = events["onValueChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                sl->setOnValueChanged([handler](shared_ptr<Slider> sender, float) {
+                    handler(sender);
+                });
+            }
+        }
+    }
+
     // ColorPicker: onColorChanged
     if (auto cp = dynamic_pointer_cast<ColorPicker>(ctrl)) {
         if (events.contains("onColorChanged") && events["onColorChanged"].is_string()) {
@@ -1572,6 +1760,62 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
                 auto handler = it->second;
                 cp->setOnColorChanged([handler](shared_ptr<ColorPicker>, const SColor&) {
                     handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // Dialog/ConfirmPopup/Popup: onConfirm, onCancel, onClose
+    if (auto dlg = dynamic_pointer_cast<Dialog>(ctrl)) {
+        if (events.contains("onConfirm") && events["onConfirm"].is_string()) {
+            string handlerName = events["onConfirm"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                dlg->setOnConfirm([handler](shared_ptr<ConfirmPopup> sender) {
+                    handler(sender);
+                });
+            }
+        }
+        if (events.contains("onCancel") && events["onCancel"].is_string()) {
+            string handlerName = events["onCancel"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                dlg->setOnCancel([handler](shared_ptr<Dialog> sender) {
+                    handler(sender);
+                });
+            }
+        }
+        if (events.contains("onClose") && events["onClose"].is_string()) {
+            string handlerName = events["onClose"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                dlg->setOnClose([handler](shared_ptr<Popup> sender, DialogResult) {
+                    handler(sender);
+                });
+            }
+        }
+    } else if (auto cp = dynamic_pointer_cast<ConfirmPopup>(ctrl)) {
+        if (events.contains("onConfirm") && events["onConfirm"].is_string()) {
+            string handlerName = events["onConfirm"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                cp->setOnConfirm([handler](shared_ptr<ConfirmPopup> sender) {
+                    handler(sender);
+                });
+            }
+        }
+    } else if (auto pop = dynamic_pointer_cast<Popup>(ctrl)) {
+        if (events.contains("onClose") && events["onClose"].is_string()) {
+            string handlerName = events["onClose"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                pop->setOnClose([handler](shared_ptr<Popup> sender, DialogResult) {
+                    handler(sender);
                 });
             }
         }
@@ -1935,7 +2179,8 @@ void LayoutParser::parseComponents(const json& j) {
     // Known control type names to check against
     unordered_set<string> knownTypes = {
         "Label", "Button", "EditBox", "TextArea", "CheckBox",
-        "ProgressBar", "ScrollBar", "Panel", "WinFrame", "MenuBar"
+        "ProgressBar", "ScrollBar", "Panel", "WinFrame", "MenuBar",
+        "ColorPicker", "Slider", "Popup", "ConfirmPopup", "Dialog"
     };
 
     for (auto it = comps.begin(); it != comps.end(); ++it) {

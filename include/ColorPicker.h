@@ -13,6 +13,7 @@
 #include "EditBox.h"
 #include "Slider.h"
 #include "Button.h"
+#include "Dialog.h"
 #include "EventQueue.h"
 
 class ColorPicker : public Panel {
@@ -42,13 +43,12 @@ private:
     SColor m_color;
     SColor m_committedColor;
 
-    shared_ptr<Panel>  m_popup;
+    shared_ptr<Dialog> m_dialog;
     shared_ptr<Panel>  m_closedSwatch;
     shared_ptr<Label>  m_closedLabel;
     shared_ptr<EditBox> m_hexInput;
     shared_ptr<Control> m_previewSwatch;
     shared_ptr<Slider>  m_sliderR, m_sliderG, m_sliderB, m_sliderA;
-    shared_ptr<Button>  m_btnOK, m_btnCancel;
     vector<shared_ptr<PresetCell>> m_presetCells;
 
     vector<SColor> m_presetColors;
@@ -61,7 +61,6 @@ private:
 
     OnColorChangedHandler m_onColorChanged;
     bool m_isSyncing = false;
-    bool m_ignoreKeyEvent = false;
 
     float m_swatchSize = ConstDef::COLORPICKER_SWATCH_SIZE;
     int   m_closedFontSize = ConstDef::COLORPICKER_HEX_FONT_SIZE;
@@ -80,7 +79,7 @@ private:
     void createPresetGrid();
     void createHexInput();
     void createSliders();
-    void createButtons();
+    void layoutButtons();
     void recreatePopupContent();
 
     void onPresetClicked(const SColor& color);
@@ -91,8 +90,6 @@ private:
     void onSliderAChanged(shared_ptr<Slider> s, float val);
     void onOK();
     void onCancel();
-
-    bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
 
 public:
     ColorPicker(Control* parent, SRect rect,
@@ -119,7 +116,7 @@ public:
     void setClosedSwatchSize(float size) { m_swatchSize = size; recreateClosedState(); }
     void setClosedFontSize(int size) { m_closedFontSize = size; recreateClosedState(); }
     void setClosedTextColor(SColor color) { m_closedTextColor = color; recreateClosedState(); }
-    void setPopupBGColor(SColor color) { m_popupBGColor = color; if (m_popup) m_popup->setNormalStateBGColor(color); }
+    void setPopupBGColor(SColor color) { m_popupBGColor = color; if (m_dialog) m_dialog->setNormalStateBGColor(color); }
 };
 
 class ColorPickerBuilder {

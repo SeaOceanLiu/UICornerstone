@@ -1,0 +1,2 @@
+ButtonApp::onInit
+Button test controls created

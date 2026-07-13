@@ -10,6 +10,10 @@ TextRenderer* CreateSFMLTextRenderer(RenderDevice* device);
 InputBackend* CreateSFMLInputBackend(Window* window);
 void RegisterSFMLSurfaceFactories(void);
 void RegisterSFMLCursorFactories(void);
+#include "Cursor.h"
+extern Cursor* sfmlCreateSystemCursor(SystemCursorType);
+extern Cursor* sfmlGetDefaultCursor();
+extern void sfmlSetCurrentCursor(Cursor*);
 
 // ============================================================
 // SFML Backend Registration
@@ -98,6 +102,18 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     RegisterSFMLSurfaceFactories();
     // Register cursor factories so the DLL's Cursor::createSystem()/getDefault()/setCurrent() work
     RegisterSFMLCursorFactories();
+
+    // Also populate the callback table so BackendManager::initialize(callbacks)
+    // can register cursor factories from the DLL side
+    cb.createSystemCursor = [](int type) -> void* {
+        return sfmlCreateSystemCursor(static_cast<SystemCursorType>(type));
+    };
+    cb.getDefaultCursor = []() -> void* {
+        return sfmlGetDefaultCursor();
+    };
+    cb.setCurrentCursor = [](void* cursor) {
+        sfmlSetCurrentCursor(static_cast<Cursor*>(cursor));
+    };
 
     // Window
     cb.createWindow         = plugin_createWindow;

@@ -1587,6 +1587,20 @@ Done, 180 frames                        # 帧循环正常完成
 
 **三后端构建验证**：SDL3/SFML/Raylib 全部编译通过，test_fromsource 三后端输出 "Color: #FF6600"。
 
+### 2026-07-11: Dialog 2 Bug Fixes — Content Render Device + Destructor Crash
+
+**Bug 1 — Popup 内容不可见**：
+
+- Root cause: `setContent()` 在 `create()` 之前调用，此时 Popup 尚未从父级继承 `RenderDevice`。内容控件获取到 null render device → 不可见。
+- Fix: `Popup::create()` 末尾添加对 `m_content` 的 render device/text renderer/resource provider/input backend 传播。
+
+**Bug 2 — 关闭窗口时崩溃**：
+
+- Root cause: `Popup::~Popup()` 调用 `getThis()`（即 `shared_from_this()`），在静态析构阶段 EventQueue 已被销毁后调用危险。
+- Fix: 将析构函数清空；不在 `close()` 中移除 watcher（避免 ESC/outside-click 路径的 mutex 递归 lock → UB），不可见时 watcher 检查 `getVisible()` 安全返回 false；EventQueue 静态析构时自动清理 shared_ptr。
+
+**验证**：全部 18 个 SDL3 目标编译通过，0 error 0 warning。test_dialog 运行 15 秒无崩溃。
+
 ### 2026-07-11: ColorPicker 闭合状态透明背景修复
 
 **Bug**：LayoutParser 和 C ABI 路径下 ColorPicker 闭合状态背景为黑色（`DEFAULT_NORMAL_COLOR`），与父容器背景不一致。
@@ -1599,3 +1613,51 @@ Done, 180 frames                        # 帧循环正常完成
 **Fix**：将 `setTransparent(true)` 和 `setBorderVisible(false)` 移至 `ColorPicker` 构造函数（`src/ColorPicker.cpp:70-71`），与 Label 做法一致（`src/Label.cpp:30`）。`create()` 中保留相同调用作为防御性冗余。
 
 **验证**：test_layout / test_fromsource 三后端全部编译通过，闭合状态背景透明。
+
+### 2026-07-12: test_dialog_cabi — Button色块 + RGB滑块 + 预设色 via JSON Dialog
+
+**需求**：用户希望 Dialog 用纯 JSON 定义，含 Button 色块 + R/G/B 滑块 + 预设色按钮，而非 C++ ColorPicker 组件。
+
+**变更**（3 个文件）：
+
+- `src/LayoutParser.cpp` `parseEvents()`: 新增 Slider `onValueChanged` JSON 事件绑定
+- `src/LayoutParser.cpp` `parseCommonProperties()`: 新增 `borderVisible` 属性支持
+- `test/test_dialog_cabi.cpp`: 完全重写
+  - 主界面：Button 色块(可点击) + Label 显示 Hex
+  - JSON Dialog (`"dialogs"` 数组)：预览色块，R/G/B 滑块(`labelFormat: "R: %.0f"`)，5 个预设色按钮
+  - `onColorChange` 滑块事件：`FindControl` + `GetSliderValue` 读取 RGB → `SetBGColor` 更新预览
+  - `onPreset0-4` 预设色点击：`SetSliderValue` 设置 RGB → 更新预览
+  - `onColorConfirmed` 确定回调：更新主界面色块 + Hex 标签
+  - 使用 `UICornerstone_GetSliderValue/SetSliderValue/SetBGColor` C ABI
+
+**验证**：SDL3 DLL 模式编译 0 错误，运行无崩溃。标准 test_dialog 无回归。
+
+### 2026-07-12: test_dialog_cabi 三后端 + 设计文档刷新
+
+**Bug 修复 — OK 按钮不提交颜色**：
+
+- 根因：`test_dialog_cabi_shared.h:204` `//` 注释覆盖了整行，`g_savedR/G/B/A` 赋值语句被注释掉从未执行
+- OK 流程：`onColorConfirmed` → 赋值被注释 → `close()` → `onColorClose` → `restoreFromSaved()` → 读取旧 `g_savedR/G/B/A` → swatch 恢复为原始颜色
+- 修复：赋值移到注释后新行
+
+**Raylib windows.h 冲突修复**：
+
+- 根因：`CloseWindow()`/`DrawTextExA()` 等 raylib 函数名与 `<windows.h>` Win32 API 函数名冲突（均为 `extern "C"` 但签名不同）
+- 修复：`test_dialog_cabi_shared.h` 用 `#ifndef _WINDOWS_` 条件守卫，未包含 windows.h 时手动 `extern "C" __declspec(dllimport)` 声明 `LoadLibraryA`/`GetProcAddress`/`FreeLibrary` + `using HMODULE = void*`
+
+**UTF-8 BOM + 中文乱码修复**：
+
+- 4 个测试文件（`test_dialog_cabi_shared.h` + 3 个 `.cpp`）全部转换为 UTF-8 with BOM
+- 所有因 GBK→UTF-8 双编码而乱码的中文注释已恢复为正确文本
+
+**设计文档刷新**（6 文件）：
+
+| 文档 | 主要变更 |
+|------|----------|
+| `doc/EventSystem_Design.md` | **新建** — 事件系统完整设计文档（EventType→Event→InputBackend→EventQueue→控件分派→FocusManager→StateMachine） |
+| `doc/Build_Guide.md` | 测试表 + fromsource 表添加 `test_dialog_cabi` 条目 |
+| `doc/BackendAbstraction_Design.md` | 进度表新增 Phase 16h；§13 新增 Cursor 回调表工厂子节 |
+| `doc/UICornerstone_DLL_Design.md` | `UIBackendCallbacks` 新增 3 个光标工厂回调；新增 Dialog C ABI API（11 个函数）；版本历史 1.13 |
+| `doc/Dialog_Design.md` | 测试计划新增第 13 项（test_dialog_cabi）；新增 §14 跨后端注意事项（windows.h 冲突 + Cursor 工厂注册） |
+
+**验证**：SDL3/SFML/Raylib 三后端 DLL 模式 test_dialog_cabi 全部编译通过，0 error，0 C4819。
