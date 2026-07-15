@@ -5,6 +5,8 @@
 #include <SDL3/SDL_rect.h>
 #include <array>
 #include <cmath>
+#include <string>
+#include <functional>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -814,6 +816,47 @@ inline bool isPointOnPolygonSide(const Container& points,
                                 const SPoint& testPoint, bool checkInside = true) {
     bool inside = isPointInPolygon(points, testPoint);
     return checkInside ? inside : !inside;
+}
+
+/**
+ * @brief 用省略号截断文本，使其不超过最大宽度
+ * @param text 原始文本
+ * @param maxWidth 最大允许宽度（像素）
+ * @param measureFn 测量字符串宽度的回调
+ * @return 截断后的文本（可能追加"..."）
+ */
+inline std::string truncateText(const std::string& text, float maxWidth,
+    const std::function<float(const std::string&)>& measureFn)
+{
+    if (maxWidth <= 0 || text.empty()) return "";
+    if (measureFn(text) <= maxWidth) return text;
+
+    const std::string ellipsis3 = "...";
+    const std::string ellipsis2 = "..";
+    const std::string ellipsis1 = ".";
+
+    float w3 = measureFn(ellipsis3);
+    float w2 = measureFn(ellipsis2);
+    float w1 = measureFn(ellipsis1);
+
+    if (maxWidth >= w3) {
+        int low = 0;
+        int high = (int)text.length();
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            std::string test = text.substr(0, mid) + ellipsis3;
+            if (measureFn(test) <= maxWidth)
+                low = mid;
+            else
+                high = mid - 1;
+        }
+        return text.substr(0, low) + ellipsis3;
+    } else if (maxWidth >= w2) {
+        return ellipsis2;
+    } else if (maxWidth >= w1) {
+        return ellipsis1;
+    }
+    return "";
 }
 
 #endif // UtilityH

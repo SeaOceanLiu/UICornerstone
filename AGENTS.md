@@ -1661,3 +1661,37 @@ Done, 180 frames                        # 帧循环正常完成
 | `doc/Dialog_Design.md` | 测试计划新增第 13 项（test_dialog_cabi）；新增 §14 跨后端注意事项（windows.h 冲突 + Cursor 工厂注册） |
 
 **验证**：SDL3/SFML/Raylib 三后端 DLL 模式 test_dialog_cabi 全部编译通过，0 error，0 C4819。
+
+### 2026-07-14: ComboBox 滚轮滚动 + Focus Tab 环重复 + 2x Popup 大小修复
+
+**Bug 1 — 鼠标点击 ComboBox 箭头造成 Tab 环重复**：
+
+- Root cause: `ControlImpl::setFocused()` 没有通知 `FocusManager`，导致 `FocusManager::m_currentFocused` 与控件的焦点状态不同步
+- Fix: 在 `setFocused()` 末尾调用 `FocusManager::notifyControlFocused(this, byKeyboard)` 同步状态
+- 注意：`FocusManager::notifyControlFocused` **不调用** `setFocused`（避免递归），只更新 `m_currentFocused`
+
+**Bug 2 — ComboBox 弹出 Popup 中鼠标滚轮滚动不工作**（根因链复杂；需修复 3 个子问题才完全解决）：
+
+1. **符号错误**：`ComboBoxListPanel::handleEvent` 中 `newOffset = m_scrollOffset - delta` 导致 `scrollY < 0`（向下滚动）时 `newOffset = 0 - 1 = -1` → 钳位到 0
+   - Fix: `m_scrollOffset + delta`
+2. **回调级联重置**：`updateScrollBar()` 调用 `setRange(0,22)` → 触发 `notifyPositionChanged` → `syncListFromScroll` → `setScrollOffset(0)`（ScrollBar 值尚未更新）；`setPageSize(8)` 同理。之后 `setValue(getScrollOffset())` 拿到被重置的 0。
+   - Fix: 在 `setRange/setPageSize` 之前**保存** `int intendedOffset = m_listPanel->getScrollOffset()`，`setValue(intendedOffset)` 使用保存值
+3. **ScrollBar 区域不可用**：鼠标在 ScrollBar 上时，ListPanel 的 `dr.contains(mx, my)` 返回 false（点不在 ListPanel 的 draw rect 内）。同时也应限制鼠标在 popup 区域外时不滚动。
+   - Fix: `Popup::handleEvent` 拦截 `MouseWheel` 后用 `isContainsPoint` 检查鼠标是否在 Popup 区域内，仅在区域内才转发；不在区域内时直接 `return false` 阻止落到 `Panel::handleEvent`（否则子控件被重新遍历时不带区域检查）
+4. **ComboBox 焦点时无位置限制**：`ComboBox::handleEvent` 中 `!isPopupOpen() && getFocused()` 的 MouseWheel 分支缺少 `isContainsPoint` 检查
+   - Fix: 添加 `isContainsPoint(event->mouseWheel.x, event->mouseWheel.y)` 检查
+
+**重现过程**：通过 EventQueue 注入含正确屏幕坐标的 MouseWheel 事件，验证 `Popup::handleEvent` → `ComboBoxListPanel::handleEvent` → `setScrollOffset` 完整路由。
+
+**Bug 3 — 2x 缩放下 Popup 尺寸翻倍**：
+
+- `computePopupRect()` 返回缩放后的 pw/ph，`setRect` 再用 getDrawRect 时会再次缩放 → 2×
+- Fix: `computePopupRect()` 返回 `pw / sx, bestPh / sy`（未缩放值）
+- ListPanel/ScrollBar 子控件使用 base `1.0f` 缩放避免复合缩放
+
+**ComboBox API 扩展**：
+
+- `include/ComboBox.h`: 新增 `getListPanel()`（公开访问 `m_listPanel`），`openPopupForTest()`（公开调用 `openPopup()`）
+- `src/ComboBox.cpp`: `updateScrollBar()` 保存预期 offset 避免回调级联
+
+**验证**：SDL3 18 个目标全部编译通过。SFML/Raylib 静态构建通过。

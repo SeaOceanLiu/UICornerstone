@@ -36,6 +36,7 @@ set(CORE_SOURCES
     src/CallbackAdapters.cpp
     src/CheckBox.cpp
     src/ColorPicker.cpp
+    src/ComboBox.cpp
     src/ConstDef.cpp
     src/ControlBase.cpp
     src/Cursor.cpp

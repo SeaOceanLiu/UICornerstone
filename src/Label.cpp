@@ -1,4 +1,5 @@
 ﻿#include "Label.h"
+#include "Utility.h"
 #include "PlatformUtils.h"
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
@@ -248,39 +249,8 @@ void Label::createMultilineText(void) {
 }
 
 void Label::truncateLine(string& line, float maxWidth) {
-    if (maxWidth <= 0) {
-        line = "";
-        return;
-    }
-
-    const string ellipsis3 = "...";
-    const string ellipsis2 = "..";
-    const string ellipsis1 = ".";
-
-    float w3 = getStringWidth(ellipsis3);
-    float w2 = getStringWidth(ellipsis2);
-    float w1 = getStringWidth(ellipsis1);
-
-    if (maxWidth >= w3) {
-        int low = 0;
-        int high = static_cast<int>(line.length());
-        while (low < high) {
-            int mid = (low + high + 1) / 2;
-            string test = line.substr(0, mid) + ellipsis3;
-            if (getStringWidth(test) <= maxWidth) {
-                low = mid;
-            } else {
-                high = mid - 1;
-            }
-        }
-        line = line.substr(0, low) + ellipsis3;
-    } else if (maxWidth >= w2) {
-        line = ellipsis2;
-    } else if (maxWidth >= w1) {
-        line = ellipsis1;
-    } else {
-        line = "";
-    }
+    line = ::truncateText(line, maxWidth,
+        [this](const string& s) { return getStringWidth(s); });
 }
 
 SSize Label::getTextSize(const string& text) {

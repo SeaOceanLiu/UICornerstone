@@ -157,6 +157,17 @@ void Popup::setAbsolute(const SRect& rect) {
 // ==================== Popup Event Handlers ====================
 
 bool Popup::handleEvent(shared_ptr<Event> event) {
+    if (event->m_type == EventType::MouseWheel) {
+        if (isContainsPoint(event->mouseWheel.x, event->mouseWheel.y)) {
+            for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+                if ((*it)->getVisible() && (*it)->getEnable() && (*it)->handleEvent(event))
+                    return true;
+            }
+        }
+        // Don't fall through to Panel::handleEvent — children already tried above,
+        // and without area check they'd incorrectly scroll from outside the popup.
+        return false;
+    }
     return Panel::handleEvent(event);
 }
 

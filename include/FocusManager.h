@@ -28,6 +28,7 @@ public:
 
     void unregisterBoundary(Control* boundary);
 
+    void notifyControlFocused(Control* ctl, bool byKeyboard);
     void clearFocus();
     bool focusControl(Control* ctl);
     bool focusNextScope();

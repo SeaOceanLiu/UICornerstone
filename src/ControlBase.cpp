@@ -671,6 +671,8 @@ void ControlImpl::setFocused(bool focused, bool byKeyboard) {
     } else {
         onFocusLost();
     }
+    FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+    if (fm) fm->notifyControlFocused(this, byKeyboard);
 }
 
 void ControlImpl::setFocusable(bool focusable) {

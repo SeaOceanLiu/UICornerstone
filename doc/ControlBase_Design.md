@@ -426,6 +426,22 @@ void ControlImpl::removeControl(shared_ptr<Control> child){
 
 **析构注销**：`~ControlImpl()` 非默认析构，自动调用 `FocusManager::unregisterControl(this)`。
 
+**setFocused 实现**：
+
+```cpp
+void ControlImpl::setFocused(bool focused, bool byKeyboard) {
+    if (m_focused == focused) return;
+    m_focused = focused;
+    m_focusByKeyboard = byKeyboard && focused;
+    if (focused) onFocusGained(byKeyboard);
+    else onFocusLost();
+    FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+    if (fm) fm->notifyControlFocused(this, byKeyboard);
+}
+```
+
+`notifyControlFocused` 仅更新 `FocusManager::m_currentFocused`，**不会**再次调用 `setFocused`（避免递归）。
+
 ## 5. 事件处理
 
 ### 5.1 鼠标进入/退出

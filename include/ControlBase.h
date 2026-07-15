@@ -74,7 +74,7 @@ public:
         normal = color;
         return *this;
     }
-    SColor getNormal(void){
+    SColor getNormal(void) const {
         return normal;
     }
     StateColor& setHover(SColor color){

@@ -109,6 +109,24 @@ const float ConstDef::SLIDER_TICK_INTERVAL = 0.0f;
 const float ConstDef::SLIDER_TICK_LENGTH = 8.0f;
 const SColor ConstDef::SLIDER_TICK_COLOR(100, 100, 100, 255);
 
+// ComboBox 常量
+const int     ConstDef::COMBOBOX_DEFAULT_MAX_VISIBLE_ITEMS = 6;
+const float   ConstDef::COMBOBOX_DEFAULT_ITEM_HEIGHT       = 24.0f;
+const float   ConstDef::COMBOBOX_DEFAULT_ARROW_WIDTH       = 20.0f;
+const float   ConstDef::COMBOBOX_DROPDOWN_OFFSET           = 2.0f;
+const float   ConstDef::COMBOBOX_LIST_PADDING              = 4.0f;
+const float   ConstDef::COMBOBOX_ARROW_WIDTH_RATIO         = 0.40f;
+const float   ConstDef::COMBOBOX_ARROW_HEIGHT_RATIO        = 0.346f;
+const float   ConstDef::COMBOBOX_ARROW_MARGIN              = 4.0f;
+const int     ConstDef::COMBOBOX_DEFAULT_FONT_SIZE         = 14;
+const SColor  ConstDef::COMBOBOX_DEFAULT_ARROW_COLOR(180, 180, 180, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_ARROW_HOVER_COLOR(255, 255, 255, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_ITEM_SELECTED_COLOR(0, 120, 215, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_ITEM_HOVER_COLOR(50, 50, 50, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_ITEM_DISABLED_COLOR(80, 80, 80, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_LIST_BG_COLOR(37, 37, 38, 255);
+const SColor  ConstDef::COMBOBOX_DEFAULT_LIST_BORDER_COLOR(60, 60, 60, 255);
+
 // ColorPicker 常量
 const float ConstDef::COLORPICKER_SWATCH_SIZE = 16.0f;
 const float ConstDef::COLORPICKER_HEX_GAP = 4.0f;

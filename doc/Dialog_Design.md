@@ -292,6 +292,9 @@ Dialog::show()
 
 ```
 handleEvent(event)
+├── MouseWheel
+│   ├── 点在弹窗内部 → 转发到子控件（从后向前遍历）
+│   └── 点在弹窗外部 → return false（不落到 Panel::handleEvent，防止从弹窗外滚动）
 ├── 其他 → Panel::handleEvent(event)
 
 beforeEventHandlingWatcher(event)

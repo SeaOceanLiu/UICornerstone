@@ -191,6 +191,24 @@ public:
     static const float SLIDER_TICK_LENGTH;
     static const SColor SLIDER_TICK_COLOR;
 
+    // ComboBox 相关常量
+    static const int     COMBOBOX_DEFAULT_MAX_VISIBLE_ITEMS;
+    static const float   COMBOBOX_DEFAULT_ITEM_HEIGHT;
+    static const float   COMBOBOX_DEFAULT_ARROW_WIDTH;
+    static const float   COMBOBOX_DROPDOWN_OFFSET;
+    static const float   COMBOBOX_LIST_PADDING;
+    static const float   COMBOBOX_ARROW_WIDTH_RATIO;
+    static const float   COMBOBOX_ARROW_HEIGHT_RATIO;
+    static const float   COMBOBOX_ARROW_MARGIN;
+    static const int     COMBOBOX_DEFAULT_FONT_SIZE;
+    static const SColor  COMBOBOX_DEFAULT_ARROW_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_ARROW_HOVER_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_ITEM_SELECTED_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_ITEM_HOVER_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_ITEM_DISABLED_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_LIST_BG_COLOR;
+    static const SColor  COMBOBOX_DEFAULT_LIST_BORDER_COLOR;
+
     // ColorPicker 相关常量
     static const float COLORPICKER_SWATCH_SIZE;
     static const float COLORPICKER_HEX_GAP;

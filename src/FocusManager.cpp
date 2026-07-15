@@ -50,6 +50,19 @@ void FocusManager::unregisterBoundary(Control* boundary)
         m_boundaries.erase(it, m_boundaries.end());
 }
 
+void FocusManager::notifyControlFocused(Control* ctl, bool byKeyboard) {
+    if (!ctl) return;
+    if (ctl->getFocused()) {
+        if (m_currentFocused == ctl) return;
+        if (m_currentFocused)
+            m_currentFocused->setFocused(false, false);
+        m_currentFocused = ctl;
+    } else {
+        if (m_currentFocused == ctl)
+            m_currentFocused = nullptr;
+    }
+}
+
 void FocusManager::clearFocus() {
     if (m_currentFocused) {
         m_currentFocused->setFocused(false, false);

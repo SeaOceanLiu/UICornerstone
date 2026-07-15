@@ -132,11 +132,11 @@ void ControlImpl::setFocused(bool focused, bool byKeyboard) {
     if (m_focused == focused) return;
     m_focused = focused;
     m_focusByKeyboard = byKeyboard && focused;
-    if (focused) {
-        onFocusGained(byKeyboard);
-    } else {
-        onFocusLost();
-    }
+    if (focused) onFocusGained(byKeyboard);
+    else onFocusLost();
+    // 同步 FocusManager 状态
+    FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+    if (fm) fm->notifyControlFocused(this, byKeyboard);
 }
 
 void ControlImpl::onFocusGained(bool byKeyboard) {
@@ -181,6 +181,10 @@ public:
     // Tab 导航（走查焦点作用域内的下一个/上一个控件）
     bool focusNext(Control* current);   // Tab
     bool focusPrev(Control* current);   // Shift+Tab
+
+    // 由 ControlImpl::setFocused 调用，同步 FocusManager 状态
+    // 注意：不会再次调用 setFocused（避免递归），仅更新 m_currentFocused
+    void notifyControlFocused(Control* ctl, bool byKeyboard);
 
     // 查询
     Control* getCurrentFocused() const { return m_currentFocused; }
@@ -375,7 +379,24 @@ WinFrameB → 注册到 m_boundaries
 - **鼠标点击聚焦**：鼠标点击某个 control 时，`setFocused(true, false)` → `m_currentFocused = ctl`。此时 `m_focusByKeyboard == false`，焦点环不显示（如果 `focusRingAlwaysVisible == false`）
 - **键盘 Tab 聚焦**：`setFocused(true, true)` → `m_focusByKeyboard == true`，焦点环显示
 
-### 4.7 MainWindow 持有
+### 4.7 notifyControlFocused 同步机制
+
+`ControlImpl::setFocused()` 在更新控件自身焦点状态后，末尾调用 `FocusManager::notifyControlFocused()` 以确保管理系统状态一致：
+
+```cpp
+void ControlImpl::setFocused(bool focused, bool byKeyboard) {
+    // ... 更新 m_focused, 调用 onFocusGained/onFocusLost ...
+    FocusManager* fm = MAINWIN ? MAINWIN->getFocusManager() : nullptr;
+    if (fm) fm->notifyControlFocused(this, byKeyboard);
+}
+```
+
+**要点**：
+1. **调用时机**：`setFocused()` 末尾，所有焦点回调完成后
+2. **不递归**：`notifyControlFocused` **不会**再次调用 `setFocused`，仅更新 `m_currentFocused` 成员，避免递归死循环
+3. **作用**：确保鼠标点击聚焦后，`FocusManager::getCurrentFocused()` 返回正确的当前聚焦控件
+
+### 4.8 MainWindow 持有
 
 ```cpp
 // include/MainWindow.h
