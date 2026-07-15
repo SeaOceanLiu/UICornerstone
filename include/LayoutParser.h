@@ -19,6 +19,7 @@
 #include "ProgressBar.h"
 #include "Slider.h"
 #include "ScrollBar.h"
+#include "ComboBox.h"
 #include "ColorPicker.h"
 #include "Panel.h"
 #include "WinFrame.h"
@@ -88,6 +89,7 @@ private:
     shared_ptr<Label>       parseLabel(const json& j, Control* parent);
     shared_ptr<Button>      parseButton(const json& j, Control* parent);
     shared_ptr<EditBox>     parseEditBox(const json& j, Control* parent);
+    shared_ptr<ComboBox>    parseComboBox(const json& j, Control* parent);
     shared_ptr<TextArea>    parseTextArea(const json& j, Control* parent);
     shared_ptr<CheckBox>    parseCheckBox(const json& j, Control* parent);
     shared_ptr<ProgressBar> parseProgressBar(const json& j, Control* parent);

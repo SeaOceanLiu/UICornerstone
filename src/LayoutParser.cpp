@@ -2,6 +2,7 @@
 #include "LayoutParser.h"
 #include "WinFrame.h"
 #include "Dialog.h"
+#include "ComboBox.h"
 #include "LayoutEngine.h"
 #include <fstream>
 #include <sstream>
@@ -222,6 +223,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseButton(j, parent);
     } else if (type == "EditBox") {
         result = parseEditBox(j, parent);
+    } else if (type == "ComboBox") {
+        result = parseComboBox(j, parent);
     } else if (type == "TextArea") {
         result = parseTextArea(j, parent);
     } else if (type == "CheckBox") {
@@ -636,6 +639,96 @@ shared_ptr<EditBox> LayoutParser::parseEditBox(const json& j, Control* parent) {
 
     editBox->create();
     return editBox;
+}
+
+// ==================== ComboBox ====================
+
+shared_ptr<ComboBox> LayoutParser::parseComboBox(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto combo = make_shared<ComboBox>(parent, rect, xScale, yScale);
+
+    m_theme.applyCommonColors(combo, "editbox");
+    combo->setFont(m_theme.getFontName("editbox"));
+    combo->setFontSize(m_theme.getFontSize("editbox"));
+    parseCommonProperties(combo, j);
+
+    if (j.contains("text") && j["text"].is_string()) {
+        combo->setText(j["text"].get<string>());
+    }
+
+    if (j.contains("placeholder") && j["placeholder"].is_string()) {
+        combo->setPlaceholder(j["placeholder"].get<string>());
+    }
+
+    if (j.contains("items") && j["items"].is_array()) {
+        pushJsonPath("items");
+        vector<ComboBoxItem> items;
+        for (size_t i = 0; i < j["items"].size(); ++i) {
+            const json& ji = j["items"][i];
+            ComboBoxItem item;
+            item.label = ji.value("label", "");
+            item.value = ji.value("value", item.label);
+            item.disabled = ji.value("disabled", false);
+            items.push_back(item);
+        }
+        combo->setItems(items);
+        popJsonPath();
+    }
+
+    if (j.contains("selectedIndex") && j["selectedIndex"].is_number()) {
+        combo->setSelectedIndex(j["selectedIndex"].get<int>());
+    }
+
+    if (j.contains("arrowWidth") && j["arrowWidth"].is_number()) {
+        combo->setArrowWidth(j["arrowWidth"].get<float>());
+    }
+
+    if (j.contains("itemHeight") && j["itemHeight"].is_number()) {
+        combo->setItemHeight(j["itemHeight"].get<float>());
+    }
+
+    if (j.contains("maxVisibleItems") && j["maxVisibleItems"].is_number()) {
+        combo->setMaxVisibleItems(j["maxVisibleItems"].get<int>());
+    }
+
+    if (j.contains("cycleEnabled") && j["cycleEnabled"].is_boolean()) {
+        combo->setCycleEnabled(j["cycleEnabled"].get<bool>());
+    }
+
+    if (j.contains("font") && j["font"].is_object()) {
+        pushJsonPath("font");
+        const json& font = j["font"];
+        if (font.contains("name") && font["name"].is_string()) {
+            combo->setFont(parseFontName(font["name"].get<string>()));
+        }
+        if (font.contains("size") && font["size"].is_number()) {
+            combo->setFontSize(font["size"].get<int>());
+        }
+        popJsonPath();
+    }
+
+    if (j.contains("alignment") && j["alignment"].is_string()) {
+        combo->setAlignmentMode(parseAlignment(j["alignment"].get<string>()));
+    }
+
+    parseEvents(combo, j);
+    parseBindings(combo, j);
+
+    if (j.contains("id") && j["id"].is_string()) {
+        m_controlsById[j["id"].get<string>()] = combo;
+    }
+
+    combo->create();
+    return combo;
 }
 
 // ==================== Panel ====================
@@ -1695,6 +1788,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // ComboBox: onSelectionChanged
+    if (auto combo = dynamic_pointer_cast<ComboBox>(ctrl)) {
+        if (events.contains("onSelectionChanged") && events["onSelectionChanged"].is_string()) {
+            string handlerName = events["onSelectionChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                combo->setOnSelectionChanged([handler](shared_ptr<ComboBox> sender, int, const string&) {
+                    handler(sender);
+                });
+            }
+        }
+    }
+
     // CheckBox: onCheckChanged
     if (auto cb = dynamic_pointer_cast<CheckBox>(ctrl)) {
         if (events.contains("onCheckChanged") && events["onCheckChanged"].is_string()) {
@@ -2178,7 +2285,7 @@ void LayoutParser::parseComponents(const json& j) {
 
     // Known control type names to check against
     unordered_set<string> knownTypes = {
-        "Label", "Button", "EditBox", "TextArea", "CheckBox",
+        "Label", "Button", "EditBox", "ComboBox", "TextArea", "CheckBox",
         "ProgressBar", "ScrollBar", "Panel", "WinFrame", "MenuBar",
         "ColorPicker", "Slider", "Popup", "ConfirmPopup", "Dialog"
     };

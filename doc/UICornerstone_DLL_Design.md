@@ -447,6 +447,16 @@ void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
 void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
 void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
 
+/* ============ ComboBox ============ */
+UIControlHandle UICornerstone_CreateComboBox(
+    float x, float y, float w, float h);
+int UICornerstone_ComboBoxSetItems(UIControlHandle ctl, const char* itemsJson);
+int UICornerstone_ComboBoxSetSelectedIndex(UIControlHandle ctl, int index);
+int UICornerstone_ComboBoxGetSelectedIndex(UIControlHandle ctl);
+const char* UICornerstone_ComboBoxGetSelectedLabel(UIControlHandle ctl);
+void UICornerstone_ComboBoxSetOnSelectionChanged(
+    UIControlHandle ctl, UIActionCallback cb, void* userData);
+
 /* ============ Dialog / Popup ============ */
 UIControlHandle UICornerstone_CreateDialog(
     const char* confirmText, const char* cancelText,
@@ -1173,3 +1183,4 @@ int main() {
 | 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化） |
 | 1.12 | 2026-06-20 | SFML/Raylib 静态+DLL 双构建目录（`build/{sfml,raylib}` + `build/{sfml,raylib}_dll`）；`test_fromsource.cpp` → `test_fromsource_sdl3.cpp`；`InitFromPlugin` 恢复静态回退（`#if !UICORNERSTONE_BUILD_SHARED`）；`test_api.c` 改用 `UICORNERSTONE_BACKEND_NAME` 编译定义替代硬编码 `"sdl3"` |
 | 1.13 | 2026-07-12 | Dialog C ABI API（`CreateDialog/Show/Close/SetOnConfirm/SetOnCancel/SetOnClose` 等 11 个函数）；`UIBackendCallbacks` 新增 `createSystemCursor/getDefaultCursor/setCurrentCursor` 光标工厂回调；`test_dialog_cabi` 三后端共享头文件模式；`windows.h` 冲突工作区（`#ifndef _WINDOWS_` 条件式手动 Win32 API 声明） |
+| 1.14 | 2026-07-15 | ComboBox C ABI API（`CreateComboBox`/`ComboBoxSetItems`/`ComboBoxSetSelectedIndex`/`ComboBoxGetSelectedIndex`/`ComboBoxGetSelectedLabel`/`ComboBoxSetOnSelectionChanged`）；鼠标滚轮事件桥接新增 x/y 坐标；ComboBox JSON 布局解析；`test_combobox_cabi` 三后端共享头文件模式 |

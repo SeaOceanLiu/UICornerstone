@@ -177,6 +177,8 @@ inline int bridge_pollEvent(UIInputBackendHandle h, UIEvent* ue) {
     case EventType::MouseWheel:
         ue->type = UI_EVENT_MOUSE_WHEEL;
         memcpy(ue->data, &event.mouseWheel.scrollY, sizeof(float));
+        memcpy(ue->data + 4, &event.mouseWheel.x, sizeof(float));
+        memcpy(ue->data + 8, &event.mouseWheel.y, sizeof(float));
         break;
     case EventType::KeyDown:
         ue->type = UI_EVENT_KEY_DOWN;

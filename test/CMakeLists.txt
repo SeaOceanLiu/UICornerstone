@@ -133,7 +133,7 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
                 add_custom_command(TARGET ${test_name} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
                         "${CMAKE_SOURCE_DIR}/layouts"
-                        $<TARGET_FILE_DIR:${test_name}>/layouts)
+                    $<TARGET_FILE_DIR:${test_name}>/layouts)
             endif()
         endif()
     endif()
@@ -302,6 +302,49 @@ if(UICORNERSTONE_BUILD_DLL)
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${ASSETS_DIR}"
                     "$<TARGET_FILE_DIR:test_dialog_cabi>/assets")
+        endif()
+    endif()
+endif()
+
+# ============================================================
+# test_combobox_cabi — LoadLibrary + C ABI + ComboBox + JSON
+# 按后端选择源文件（test_combobox_cabi_sdl3/sfml/raylib.cpp）
+# ============================================================
+# 仅在 DLL 模式下构建。不链接 UICornerstone_dll.lib。
+if(UICORNERSTONE_BUILD_DLL)
+    set(test_combobox_cabi_src "test_combobox_cabi_${_BACKEND_LOWER}.cpp")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_combobox_cabi_src}")
+        add_executable(test_combobox_cabi "${test_combobox_cabi_src}")
+
+        target_include_directories(test_combobox_cabi PRIVATE
+            ${TEST_INCLUDES}
+            "${CMAKE_SOURCE_DIR}/src/backend"
+        )
+
+        target_compile_definitions(test_combobox_cabi PRIVATE
+            UICORNERSTONE_BACKEND_PLUGIN=0
+        )
+
+        target_link_libraries(test_combobox_cabi PRIVATE
+            ${FROMSOURCE_BACKEND_LIBS}
+        )
+
+        if(WIN32)
+            add_custom_command(TARGET test_combobox_cabi POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
+                    "$<TARGET_FILE_DIR:test_combobox_cabi>")
+
+            foreach(dll ${TEST_DLLS})
+                add_custom_command(TARGET test_combobox_cabi POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${dll}" "$<TARGET_FILE_DIR:test_combobox_cabi>")
+            endforeach()
+
+            add_custom_command(TARGET test_combobox_cabi POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${ASSETS_DIR}"
+                    "$<TARGET_FILE_DIR:test_combobox_cabi>/assets")
         endif()
     endif()
 endif()

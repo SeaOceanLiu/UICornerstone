@@ -63,6 +63,8 @@ typedef struct {
 #define UI_EVENT_MOUSE_Y(ev)     (*(float*)((ev)->data + 4))
 #define UI_EVENT_BUTTON(ev)      (*(int*)((ev)->data + 8))
 #define UI_EVENT_WHEEL_DELTA(ev) (*(float*)(ev)->data)
+#define UI_EVENT_WHEEL_MOUSE_X(ev) (*(float*)((ev)->data + 4))
+#define UI_EVENT_WHEEL_MOUSE_Y(ev) (*(float*)((ev)->data + 8))
 #define UI_EVENT_KEY_CODE(ev)    (*(int*)(ev)->data)
 #define UI_EVENT_KEY_MOD(ev)     (*(uint16_t*)((ev)->data + 4))
 #define UI_EVENT_TEXT(ev)        ((const char*)(ev)->data)
@@ -234,6 +236,15 @@ UICORNERSTONE_API void UICornerstone_SetClosedSwatchSize(UIControlHandle ctl, fl
 UICORNERSTONE_API void UICornerstone_SetClosedFontSize(UIControlHandle ctl, int size);
 UICORNERSTONE_API void UICornerstone_SetClosedTextColor(UIControlHandle ctl, const char* hex);
 UICORNERSTONE_API void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex);
+
+/* ============ ComboBox ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateComboBox(
+    float x, float y, float w, float h);
+UICORNERSTONE_API void UICornerstone_SetComboItems(UIControlHandle ctl, const char* jsonItems);
+UICORNERSTONE_API void UICornerstone_SetSelectedIndex(UIControlHandle ctl, int index);
+UICORNERSTONE_API int  UICornerstone_GetSelectedIndex(UIControlHandle ctl);
+UICORNERSTONE_API const char* UICornerstone_GetSelectedLabel(UIControlHandle ctl);
+UICORNERSTONE_API void UICornerstone_SetOnSelectionChanged(UIControlHandle ctl, UIActionCallback cb, void* userData);
 
 /* ============ Dialog/Popup ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateDialog(

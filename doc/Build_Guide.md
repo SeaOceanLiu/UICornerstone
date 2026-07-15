@@ -66,6 +66,8 @@ build_scripts\build_test.bat test_label raylib      # Raylib
 | `test_editbox` | 测试 | EditBox 控件 |
 | `test_progressbar` | 测试 | ProgressBar 控件 |
 | `test_slider` | 测试 | Slider 控件 |
+| `test_combobox` | 测试 | ComboBox 控件 |
+| `test_combobox_cabi` | 测试 | C ABI ComboBox 集成测试（LoadLibrary + ComboBox JSON），三后端共享 |
 | `test_menu` | 测试 | Menu 控件 |
 | `test_winframe` | 测试 | WinFrame 控件 |
 | `test_graphtool` | 测试 | GraphTool 绘制 |

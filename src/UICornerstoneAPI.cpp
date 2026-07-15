@@ -12,6 +12,7 @@
 #include "TextArea.h"
 #include "Slider.h"
 #include "ColorPicker.h"
+#include "ComboBox.h"
 #include "Dialog.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
@@ -211,7 +212,12 @@ static bool uiEventToEvent(const UIEvent& ue, Event& event) {
         return true;
     case UI_EVENT_MOUSE_WHEEL:
         event.m_type = EventType::MouseWheel;
-        event.mouseWheel = EventMouseWheel{0, 0, 0, UI_EVENT_WHEEL_DELTA(&ue)};
+        event.mouseWheel = EventMouseWheel{
+            UI_EVENT_WHEEL_MOUSE_X(&ue),
+            UI_EVENT_WHEEL_MOUSE_Y(&ue),
+            0,
+            UI_EVENT_WHEEL_DELTA(&ue)
+        };
         return true;
     case UI_EVENT_KEY_DOWN:
         event.m_type = EventType::KeyDown;
@@ -732,6 +738,70 @@ void UICornerstone_SetPopupBGColor(UIControlHandle ctl, const char* hex) {
         SColor c;
         if (SColor::fromHex(hex, c))
             cp->setPopupBGColor(c);
+    }
+}
+
+// ============================================================
+// ComboBox
+// ============================================================
+UIControlHandle UICornerstone_CreateComboBox(
+    float x, float y, float w, float h)
+{
+    auto ctl = std::make_shared<ComboBox>(BENCH, SRect(x, y, w, h));
+    BENCH->addControl(ctl);
+    ctl->create();
+    ctl->setVisible(true);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
+void UICornerstone_SetComboItems(UIControlHandle ctl, const char* jsonItems) {
+    if (!ctl || !jsonItems) return;
+    auto* combo = dynamic_cast<ComboBox*>(static_cast<Control*>(ctl));
+    if (!combo) return;
+    try {
+        auto j = nlohmann::json::parse(jsonItems);
+        vector<ComboBoxItem> items;
+        for (auto& jitem : j) {
+            ComboBoxItem item;
+            item.label = jitem.value("label", "");
+            item.value = jitem.value("value", item.label);
+            item.disabled = jitem.value("disabled", false);
+            items.push_back(item);
+        }
+        combo->setItems(items);
+    } catch (...) {}
+}
+
+void UICornerstone_SetSelectedIndex(UIControlHandle ctl, int index) {
+    if (!ctl) return;
+    auto* combo = dynamic_cast<ComboBox*>(static_cast<Control*>(ctl));
+    if (combo) combo->setSelectedIndex(index);
+}
+
+int UICornerstone_GetSelectedIndex(UIControlHandle ctl) {
+    if (!ctl) return -1;
+    auto* combo = dynamic_cast<ComboBox*>(static_cast<Control*>(ctl));
+    return combo ? combo->getSelectedIndex() : -1;
+}
+
+const char* UICornerstone_GetSelectedLabel(UIControlHandle ctl) {
+    if (!ctl) return "";
+    auto* combo = dynamic_cast<ComboBox*>(static_cast<Control*>(ctl));
+    if (!combo) return "";
+    static char buf[256];
+    string label = combo->getSelectedLabel();
+    strncpy(buf, label.c_str(), sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    return buf;
+}
+
+void UICornerstone_SetOnSelectionChanged(UIControlHandle ctl, UIActionCallback cb, void* userData) {
+    if (!ctl) return;
+    auto* combo = dynamic_cast<ComboBox*>(static_cast<Control*>(ctl));
+    if (combo) {
+        combo->setOnSelectionChanged([cb, userData](std::shared_ptr<ComboBox>, int, const string&) {
+            if (cb) cb(nullptr, userData);
+        });
     }
 }
 

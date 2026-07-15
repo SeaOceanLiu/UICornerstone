@@ -241,7 +241,12 @@ bool CallbackInputBackend::pollEvent(Event& event) {
     }
     case UI_EVENT_MOUSE_WHEEL: {
         event.m_type = EventType::MouseWheel;
-        event.mouseWheel = EventMouseWheel{0, 0, 0, UI_EVENT_WHEEL_DELTA(&ue)};
+        event.mouseWheel = EventMouseWheel{
+            UI_EVENT_WHEEL_MOUSE_X(&ue),
+            UI_EVENT_WHEEL_MOUSE_Y(&ue),
+            0,
+            UI_EVENT_WHEEL_DELTA(&ue)
+        };
         break;
     }
     case UI_EVENT_KEY_DOWN:
