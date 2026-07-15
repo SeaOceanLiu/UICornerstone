@@ -895,7 +895,7 @@ endif()
 | 模式 | SDL3 | SFML | Raylib |
 |------|------|------|--------|
 | 静态 (UICornerstone.lib) | 10/10 测试 | 10/10 测试 | 10/10 测试 |
-| DLL (UICornerstone.dll + UIBackend_*.dll) | test_fromsource_sdl3 ALL PASS | test_fromsource_sfml ALL PASS | test_fromsource_raylib ALL PASS |
+| DLL (UICornerstone.dll) | test_fromsource_cabi ALL PASS | test_fromsource_cabi ALL PASS | test_fromsource_cabi ALL PASS |
 | API 测试 | test_api 6/6 全过 | test_api 6/6 全过 | test_api 6/6 全过 |
 
 test_api 输出：
@@ -921,11 +921,11 @@ FindControl: 18/18 found
 #### 9.4.2 架构
 
 ```
-test_fromsource_sdl3.exe
+test_fromsource_cabi.exe
   ├── 动态加载: LoadLibrary("UICornerstone.dll")
   │     → GetProcAddress 解析所有 C ABI 函数指针
   │     → UICornerstone_Init(callbacks) 传入回调查表
-  ├── 源码编译:
+  ├── 源码编译（独立 TU）:
   │     → BackendPlugin.cpp, RenderDevice.cpp, Window.cpp,
   │       InputBackend.cpp, TextRenderer.cpp, Cursor.cpp
   │     → GetUIBackendCallbacks() 填入回调表
@@ -933,13 +933,15 @@ test_fromsource_sdl3.exe
   └── 帧循环: ProcessEvents → Update → Clear → Render → Present
 ```
 
-三个 fromsource 测试文件：
+fromsource 测试已重构为单源文件模式，通过 `BACKEND_SHORT_NAME`/`BACKEND_DISPLAY_NAME` 编译定义区分后端，后端源码作为独立 TU 编译：
 
-| 文件 | 后端 | 入口 |
-|------|------|------|
-| `test/test_fromsource_sdl3.cpp` | SDL3 | `SDL_AppEvent` 回调（SDL 管主循环） |
-| `test/test_fromsource_sfml.cpp` | SFML | `main()` + `LoadLibrary` |
-| `test/test_fromsource_raylib.cpp` | Raylib | `main()` + `LoadLibrary` |
+| 文件 | 说明 |
+|------|------|
+| `test/test_fromsource_cabi.cpp` | 三后端 C ABI 集成测试，`LoadLibrary` + `main()` 帧循环 |
+| `test/test_dialog_cabi.cpp` | 三后端 C ABI Dialog 测试，`LoadLibrary` + JSON dialogs |
+| `test/test_combobox_cabi.cpp` | 三后端 C ABI ComboBox 测试，`LoadLibrary` + JSON ComboBox |
+
+CMake 通过 `add_fromsource_target` 宏统一创建目标，自动注入后端编译定义和链接库。
 
 #### 9.4.3 后端工厂注册
 
@@ -1182,5 +1184,6 @@ int main() {
 | 1.10 | 2026-06-18 | Raylib `DrawTexturePro` DLL 桥接不可见修复：改用 `rlPushMatrix + rlScalef + DrawTextureEx` |
 | 1.11 | 2026-06-19 | SFML fromsource 纹理不可见修复（`Actor::setParent` 保护 + `sf::Sprite`）；SFML 事件响应慢修复（Label recreate 字体缓存优化） |
 | 1.12 | 2026-06-20 | SFML/Raylib 静态+DLL 双构建目录（`build/{sfml,raylib}` + `build/{sfml,raylib}_dll`）；`test_fromsource.cpp` → `test_fromsource_sdl3.cpp`；`InitFromPlugin` 恢复静态回退（`#if !UICORNERSTONE_BUILD_SHARED`）；`test_api.c` 改用 `UICORNERSTONE_BACKEND_NAME` 编译定义替代硬编码 `"sdl3"` |
-| 1.13 | 2026-07-12 | Dialog C ABI API（`CreateDialog/Show/Close/SetOnConfirm/SetOnCancel/SetOnClose` 等 11 个函数）；`UIBackendCallbacks` 新增 `createSystemCursor/getDefaultCursor/setCurrentCursor` 光标工厂回调；`test_dialog_cabi` 三后端共享头文件模式；`windows.h` 冲突工作区（`#ifndef _WINDOWS_` 条件式手动 Win32 API 声明） |
-| 1.14 | 2026-07-15 | ComboBox C ABI API（`CreateComboBox`/`ComboBoxSetItems`/`ComboBoxSetSelectedIndex`/`ComboBoxGetSelectedIndex`/`ComboBoxGetSelectedLabel`/`ComboBoxSetOnSelectionChanged`）；鼠标滚轮事件桥接新增 x/y 坐标；ComboBox JSON 布局解析；`test_combobox_cabi` 三后端共享头文件模式 |
+| 1.13 | 2026-07-12 | Dialog C ABI API（`CreateDialog/Show/Close/SetOnConfirm/SetOnCancel/SetOnClose` 等 11 个函数）；`UIBackendCallbacks` 新增 `createSystemCursor/getDefaultCursor/setCurrentCursor` 光标工厂回调；`test_dialog_cabi` 三后端单源文件测试（共享头文件→合并为单一 `.cpp`，后端独立 TU 编译）；`windows.h` 冲突工作区（`#ifndef _WINDOWS_` 条件式手动 Win32 API 声明，后因独立 TU 编译移除） |
+| 1.14 | 2026-07-15 | ComboBox C ABI API（`CreateComboBox`/`ComboBoxSetItems`/`ComboBoxSetSelectedIndex`/`ComboBoxGetSelectedIndex`/`ComboBoxGetSelectedLabel`/`ComboBoxSetOnSelectionChanged`）；鼠标滚轮事件桥接新增 x/y 坐标；ComboBox JSON 布局解析；`test_combobox_cabi` 三后端单源文件测试 |
+| 1.15 | 2026-07-16 | 重构：`test_fromsource_cabi`、`test_dialog_cabi`、`test_combobox_cabi` 统一为单源文件 + 编译定义模式，删除共享头文件和后端变体文件；CMake 改用 `add_fromsource_target` 宏统一管理 |

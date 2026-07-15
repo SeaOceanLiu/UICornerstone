@@ -1198,9 +1198,9 @@ static const SColor  COMBOBOX_DEFAULT_LIST_BORDER_COLOR   {60, 60, 60, 255};
 | 事件 | onSelectionChanged | 选中变化时触发回调 |
 | JSON 解析 | 全参数/缺省 | 解析正确 |
 
-### 15.2 增量加入 fromsource 测试
+### 15.2 `test_combobox_cabi` 独立测试
 
-在已有的 `test_fromsource_sdl3/raylib/sfml` 三后端测试中，各增加一个 ComboBox 控件及其 C ABI 调用，验证 `UICornerstone_CreateComboBox` / `ComboBoxSetItems` / `ComboBoxSetOnSelectionChanged` 基本可用。
+新增 `test_combobox_cabi` 单源文件测试（三后端共享，通过编译定义区分），内嵌 JSON 布局包含 ComboBox 控件，验证 `UICornerstone_CreateComboBox` / `ComboBoxSetItems` / `ComboBoxSetOnSelectionChanged` 基本可用。
 
 | 测试项 | 方法 | 通过标准 |
 |--------|------|---------|

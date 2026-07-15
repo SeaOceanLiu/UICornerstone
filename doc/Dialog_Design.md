@@ -684,7 +684,7 @@ UICornerstone_Show(dlg);
 | 10 | DialogResult 状态查询 | Dialog |
 | 11 | FocusBoundary Tab 不越界 | Popup |
 | 12 | 2x 缩放 | Popup |
-| 13 | `test_dialog_cabi` 三后端 C ABI Dialog 集成测试（LoadLibrary + JSON dialogs + 共享头文件模式） | 集成（SDL3/SFML/Raylib） |
+| 13 | `test_dialog_cabi` 三后端 C ABI Dialog 集成测试（LoadLibrary + JSON dialogs + 单源文件 + 后端独立 TU 编译） | 集成（SDL3/SFML/Raylib） |
 
 ---
 
@@ -694,7 +694,9 @@ UICornerstone_Show(dlg);
 
 Raylib 后端因 `CloseWindow()`/`DrawTextExA()` 等函数名与 `<windows.h>` 中的 Win32 API 函数名冲突（均为 `extern "C"` 但签名不同），无法在同一翻译单元中同时包含 `<windows.h>` 和 `raylib.h`。
 
-`test_dialog_cabi_shared.h` 的解决方案：
+`test_dialog_cabi.cpp` 的解决方案：由于后端源码作为独立 TU 编译，`test_dialog_cabi.cpp` 不再与 `raylib.h` 同 TU，因此可以直接安全地 `#include <windows.h>`，无需条件守卫。
+
+旧版（共享头文件 + `#include` 后端源码模式）曾使用以下方案：
 
 ```cpp
 #ifndef _WINDOWS_
@@ -714,4 +716,4 @@ using HMODULE = void*;
 ### 14.2 Cursor 工厂注册
 
 在 fromsource/DLL 桥接模式下，`Cursor::registerFactories()` 的静态工厂注册路径不可用（`Cursor.cpp` 属于核心 DLL，后端函数指针未注册）。`UIBackendCallbacks` 回调查表新增三个函数指针（`createSystemCursor`/`getDefaultCursor`/`setCurrentCursor`），`BackendManager::initialize(callbacks)` 调用 `Cursor::registerFactories()` 从回调表注册。三后端的 `BackendPlugin.cpp` 均在 `GetUIBackendCallbacks()` 中填充这些回调。
-| 13 | `test_dialog_cabi` 三后端 C ABI Dialog 集成测试（LoadLibrary + JSON dialogs + 共享头文件模式） | 集成（SDL3/SFML/Raylib） |
+| 13 | `test_dialog_cabi` 三后端 C ABI Dialog 集成测试（LoadLibrary + JSON dialogs + 单源文件 + 后端独立 TU 编译） | 集成（SDL3/SFML/Raylib） |

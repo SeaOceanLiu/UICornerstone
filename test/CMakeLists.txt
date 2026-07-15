@@ -223,6 +223,17 @@ macro(add_fromsource_target target_name source_file)
         target_compile_definitions(${target_name} PRIVATE UICORNERSTONE_BUILD_SHARED=1)
         target_compile_definitions(${target_name} PUBLIC UICORNERSTONE_BACKEND_PLUGIN=0)
 
+        if(_BACKEND_UPPER STREQUAL "SDL3")
+            target_compile_definitions(${target_name} PRIVATE
+                BACKEND_SHORT_NAME="sdl3" BACKEND_DISPLAY_NAME="SDL3")
+        elseif(_BACKEND_UPPER STREQUAL "SFML")
+            target_compile_definitions(${target_name} PRIVATE
+                BACKEND_SHORT_NAME="sfml" BACKEND_DISPLAY_NAME="SFML")
+        elseif(_BACKEND_UPPER STREQUAL "RAYLIB")
+            target_compile_definitions(${target_name} PRIVATE
+                BACKEND_SHORT_NAME="raylib" BACKEND_DISPLAY_NAME="Raylib")
+        endif()
+
         target_link_libraries(${target_name} PRIVATE
             UICornerstone_dll
             ${FROMSOURCE_BACKEND_LIBS}
@@ -251,101 +262,43 @@ endmacro()
 
 if(UICORNERSTONE_BUILD_DLL)
     if(_BACKEND_UPPER STREQUAL "SDL3")
-        add_fromsource_target(test_fromsource_sdl3 test_fromsource_sdl3.cpp)
+        add_fromsource_target(test_fromsource_cabi test_fromsource_cabi.cpp)
     endif()
 
     if(_BACKEND_UPPER STREQUAL "SFML")
-        add_fromsource_target(test_fromsource_sfml test_fromsource_sfml.cpp)
+        add_fromsource_target(test_fromsource_cabi test_fromsource_cabi.cpp)
     endif()
 
     if(_BACKEND_UPPER STREQUAL "RAYLIB")
-        add_fromsource_target(test_fromsource_raylib test_fromsource_raylib.cpp)
+        add_fromsource_target(test_fromsource_cabi test_fromsource_cabi.cpp)
     endif()
 endif()
 
-# ============================================================
-# test_dialog_cabi — LoadLibrary + C ABI + Dialog + JSON
-# 按后端选择源文件（test_dialog_cabi_sdl3/sfml/raylib.cpp）
-# ============================================================
-# 仅在 DLL 模式下构建。不链接 UICornerstone_dll.lib。
 if(UICORNERSTONE_BUILD_DLL)
-    set(test_dialog_cabi_src "test_dialog_cabi_${_BACKEND_LOWER}.cpp")
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_dialog_cabi_src}")
-        add_executable(test_dialog_cabi "${test_dialog_cabi_src}")
+    if(_BACKEND_UPPER STREQUAL "SDL3")
+        add_fromsource_target(test_dialog_cabi test_dialog_cabi.cpp)
+    endif()
 
-        target_include_directories(test_dialog_cabi PRIVATE
-            ${TEST_INCLUDES}
-            "${CMAKE_SOURCE_DIR}/src/backend"
-        )
+    if(_BACKEND_UPPER STREQUAL "SFML")
+        add_fromsource_target(test_dialog_cabi test_dialog_cabi.cpp)
+    endif()
 
-        target_compile_definitions(test_dialog_cabi PRIVATE
-            UICORNERSTONE_BACKEND_PLUGIN=0
-        )
-
-        target_link_libraries(test_dialog_cabi PRIVATE
-            ${FROMSOURCE_BACKEND_LIBS}
-        )
-
-        if(WIN32)
-            add_custom_command(TARGET test_dialog_cabi POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
-                    "$<TARGET_FILE_DIR:test_dialog_cabi>")
-
-            foreach(dll ${TEST_DLLS})
-                add_custom_command(TARGET test_dialog_cabi POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${dll}" "$<TARGET_FILE_DIR:test_dialog_cabi>")
-            endforeach()
-
-            add_custom_command(TARGET test_dialog_cabi POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${ASSETS_DIR}"
-                    "$<TARGET_FILE_DIR:test_dialog_cabi>/assets")
-        endif()
+    if(_BACKEND_UPPER STREQUAL "RAYLIB")
+        add_fromsource_target(test_dialog_cabi test_dialog_cabi.cpp)
     endif()
 endif()
 
-# ============================================================
-# test_combobox_cabi — LoadLibrary + C ABI + ComboBox + JSON
-# 按后端选择源文件（test_combobox_cabi_sdl3/sfml/raylib.cpp）
-# ============================================================
-# 仅在 DLL 模式下构建。不链接 UICornerstone_dll.lib。
 if(UICORNERSTONE_BUILD_DLL)
-    set(test_combobox_cabi_src "test_combobox_cabi_${_BACKEND_LOWER}.cpp")
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${test_combobox_cabi_src}")
-        add_executable(test_combobox_cabi "${test_combobox_cabi_src}")
+    if(_BACKEND_UPPER STREQUAL "SDL3")
+        add_fromsource_target(test_combobox_cabi test_combobox_cabi.cpp)
+    endif()
 
-        target_include_directories(test_combobox_cabi PRIVATE
-            ${TEST_INCLUDES}
-            "${CMAKE_SOURCE_DIR}/src/backend"
-        )
+    if(_BACKEND_UPPER STREQUAL "SFML")
+        add_fromsource_target(test_combobox_cabi test_combobox_cabi.cpp)
+    endif()
 
-        target_compile_definitions(test_combobox_cabi PRIVATE
-            UICORNERSTONE_BACKEND_PLUGIN=0
-        )
-
-        target_link_libraries(test_combobox_cabi PRIVATE
-            ${FROMSOURCE_BACKEND_LIBS}
-        )
-
-        if(WIN32)
-            add_custom_command(TARGET test_combobox_cabi POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
-                    "$<TARGET_FILE_DIR:test_combobox_cabi>")
-
-            foreach(dll ${TEST_DLLS})
-                add_custom_command(TARGET test_combobox_cabi POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${dll}" "$<TARGET_FILE_DIR:test_combobox_cabi>")
-            endforeach()
-
-            add_custom_command(TARGET test_combobox_cabi POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${ASSETS_DIR}"
-                    "$<TARGET_FILE_DIR:test_combobox_cabi>/assets")
-        endif()
+    if(_BACKEND_UPPER STREQUAL "RAYLIB")
+        add_fromsource_target(test_combobox_cabi test_combobox_cabi.cpp)
     endif()
 endif()
 

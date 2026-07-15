@@ -100,11 +100,13 @@ build\sdl3_dll --config Debug --target sample_fromsource
 
 ### From-source / DLL 桥接测试（仅 `UICORNERSTONE_BUILD_DLL=ON` 模式）
 
-| 测试名 | 后端 | 说明 |
-|--------|------|------|
-| test_fromsource_sdl3 | SDL3 | DLL 桥接 + SDL3 后端源码编译进 exe |
-| test_fromsource_sfml | SFML | DLL 桥接 + SFML 后端源码编译进 exe |
-| test_fromsource_raylib | Raylib | DLL 桥接 + Raylib 后端源码编译进 exe |
+fromsource 测试使用单源文件 + 编译定义区分后端，后端源码作为独立 TU 编译：
+
+| 测试名 | 说明 |
+|--------|------|
+| test_fromsource_cabi | C ABI 编程式创建控件（Button/Label/CheckBox/EditBox/ProgressBar/Panel/Slider/ColorPicker...） |
+| test_dialog_cabi | JSON Dialog 颜色选择器（预设色 + RGB 滑块 + Hex 输入 + Dialog 确定/取消） |
+| test_combobox_cabi | JSON ComboBox（10 个城市选项，选中回调验证） |
 
 ## 项目结构
 
@@ -157,7 +159,11 @@ UICornerstone/
 | [LayoutSystem_Design.md](doc/LayoutSystem_Design.md) | JSON 布局系统设计 |
 | [ControlBase_Design.md](doc/ControlBase_Design.md) | 控件基类架构与绘制机制 |
 | [GraphTool_Design.md](doc/GraphTool_Design.md) | 内部图形工具设计 |
-| Button_Design.md / Label_Design.md / ... | 各控件详细设计 |
+| [EventSystem_Design.md](doc/EventSystem_Design.md) | 事件系统设计（EventType → InputBackend → EventQueue → 控件分派 → FocusManager） |
+| [FocusSystem_Design.md](doc/FocusSystem_Design.md) | 焦点系统设计（Tab 环、FocusBoundary、焦点环绘制） |
+| [Dialog_Design.md](doc/Dialog_Design.md) | Dialog/Popup 弹窗设计 |
+| [ComboBox_Design.md](doc/ComboBox_Design.md) | ComboBox 下拉框设计 |
+| Button_Design.md / Label_Design.md / ... | 各控件详细设计（CheckBox / EditBox / TextArea / ScrollBar / ProgressBar / WinFrame / Menu / Slider / ColorPicker / HandleControl） |
 
 ## 许可证
 

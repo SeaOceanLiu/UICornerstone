@@ -74,9 +74,7 @@ build_scripts\build_test.bat test_label raylib      # Raylib
 | `test_layout` | 测试 | Layout 布局 |
 | `test_layout_advanced` | 测试 | 高级布局 |
 | `test_api` | 测试 | C ABI API 测试 |
-| `test_fromsource_sdl3` | 测试 | SDL3 fromsource 测试 |
-| `test_fromsource_sfml` | 测试 | SFML fromsource 测试 |
-| `test_fromsource_raylib` | 测试 | Raylib fromsource 测试 |
+| `test_fromsource_cabi` | 测试 | 三后端 C ABI 集成测试（LoadLibrary + 编程式创建），单源文件，通过编译定义区分后端 |
 | `test_dialog_cabi` | 测试 | C ABI Dialog 集成测试（LoadLibrary + JSON dialogs），三后端共享 |
 | `hello_uicornerstone` | 示例 | 纯 C 示例（JSON 布局），Button + Label 交互 |
 | `sample_programmatic` | 示例 | 纯 C 示例（编程式创建），Button + Label 交互 |
@@ -85,7 +83,9 @@ build_scripts\build_test.bat test_label raylib      # Raylib
 
 ## 输出目录
 
-编译完成后，可执行文件位于对应后端和模式的 test/Debug 目录：
+### 静态模式
+
+编译完成后，静态模式可执行文件位于对应后端的 test/Debug 目录：
 
 ```
 build\sdl3\test\Debug\
@@ -96,6 +96,24 @@ build\sdl3\test\Debug\
 ├── SDL3_ttf.dll
 └── SDL3_image.dll
 ```
+
+### DLL 模式
+
+DLL 模式可执行文件位于 `build\<backend>_dll\test\Debug\` 目录：
+
+```
+build\sdl3_dll\test\Debug\
+├── test_fromsource_cabi.exe    # fromsource 测试（后端独立 TU 编译）
+├── test_dialog_cabi.exe
+├── test_combobox_cabi.exe
+├── UICornerstone.dll           # 核心 DLL（由 LoadLibrary 显式加载）
+├── assets/                     # 字体等资源
+├── SDL3.dll                    # 第三方依赖
+├── SDL3_ttf.dll
+└── SDL3_image.dll
+```
+
+### 示例
 
 示例独立输出到 `build/sample/` 目录，按示例名+后端命名：
 
@@ -118,15 +136,22 @@ build\sample\sample_fromsource\sdl3\Debug\
 └── SDL3_image.dll
 ```
 
-DLL 模式额外包含 `UICornerstone.dll`（and `UIBackend_*.dll` for fromsource tests, but NOT for sample_fromsource which compiles backend into exe）。
+静态模式零自家 DLL 依赖；DLL 模式测试和 fromsource 示例需 `UICornerstone.dll` 同目录。
 
 ## 运行测试
 
 直接在对应输出目录运行：
 
 ```batch
+# 静态模式
 cd build\sdl3\test\Debug
 test_label.exe
+
+# DLL 模式（fromsource 测试）
+cd build\sdl3_dll\test\Debug
+test_fromsource_cabi.exe
+test_dialog_cabi.exe
+test_combobox_cabi.exe
 ```
 
 ## DLL 模式构建
@@ -167,10 +192,11 @@ fromsource 将后端源码（Window/RenderDevice/TextRenderer/InputBackend/Curso
 
 | 目标 | 说明 |
 |------|------|
-| `test_fromsource_sdl3` | 纯测试，`LoadLibrary` + SDL App 模式 |
+| `test_fromsource_cabi` | 纯测试，三后端 `LoadLibrary` + C ABI 编程式创建，后端源码独立 TU 编译 |
 | `sample_fromsource` | 纯 C 示例，`ILT` 隐式加载 + `main()` 帧循环 |
 | `sample_loadlibrary` | 纯 C++ 示例，`LoadLibrary` 显式加载 + `#include` 后端源码 |
-| `test_dialog_cabi` | 三后端 C ABI Dialog 测试，`LoadLibrary` + `#include` 后端源码 + JSON dialogs |
+| `test_dialog_cabi` | 三后端 C ABI Dialog 测试，`LoadLibrary` + JSON dialogs，后端源码独立 TU 编译 |
+| `test_combobox_cabi` | 三后端 C ABI ComboBox 测试，`LoadLibrary` + JSON 布局，后端源码独立 TU 编译 |
 
 ## 故障排除
 

@@ -1,25 +1,20 @@
-﻿#define NOMINMAX
+﻿// =========================================================================
+// test_fromsource_cabi.cpp -- single fromsource C ABI test for all backends
+// Backend name provided via -DBACKEND_SHORT_NAME / -DBACKEND_DISPLAY_NAME
+// =========================================================================
+
+#define NOMINMAX
 #include <cstdio>
 #include <cstdint>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <windows.h>
 
-// ============================================================
-// GetUIBackendCallbacks — compiled from BackendPlugin.cpp
-// ============================================================
-extern "C" struct UIBackendCallbacks* GetUIBackendCallbacks(void);
+#include "../../include/UICornerstoneAPI.h"
 
-// ============================================================
-// 全局变量
-// ============================================================
-static HMODULE g_uiDll = nullptr;
-static bool g_uiInitialized = false;
-static int  g_frameCount = 0;
+extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
 
-// ============================================================
-// C ABI 函数指针
-// ============================================================
+// ===== C ABI function pointer types =====
 typedef int   (*UIInitFn)(void*);
 typedef void  (*UISetViewportFn)(float,float,float,float);
 typedef void  (*UIProcessEventsFn)(void);
@@ -45,6 +40,7 @@ typedef void  (*UIAddChildFn)(void*,void*);
 typedef const char* (*UIGetTextFn)(void*);
 typedef int   (*UIGetCheckedFn)(void*);
 typedef float (*UIGetProgressFn)(void*);
+typedef void  (*UIPushUIEventFn)(const void*);
 typedef void  (*UISetOnClickFn)(void*, void (*)(void*,void*), void*);
 typedef void  (*UISetVisibleFn)(void*, int);
 typedef void  (*UIDestroyControlFn)(void*);
@@ -63,6 +59,7 @@ typedef void  (*UISetClosedFontSizeFn)(void*,int);
 typedef void  (*UISetClosedTextColorFn)(void*,const char*);
 typedef void  (*UISetPopupBGColorFn)(void*,const char*);
 
+// ===== C ABI function pointers =====
 static UIInitFn             uiInit             = nullptr;
 static UISetViewportFn      uiSetViewport      = nullptr;
 static UIProcessEventsFn    uiProcessEvents    = nullptr;
@@ -88,6 +85,7 @@ static UIAddChildFn         uiAddChild         = nullptr;
 static UIGetTextFn          uiGetText          = nullptr;
 static UIGetCheckedFn       uiGetChecked       = nullptr;
 static UIGetProgressFn      uiGetProgress      = nullptr;
+static UIPushUIEventFn      uiPushUIEvent      = nullptr;
 static UISetOnClickFn       uiSetOnClick       = nullptr;
 static UISetVisibleFn       uiSetVisible       = nullptr;
 static UIDestroyControlFn   uiDestroyControl   = nullptr;
@@ -106,6 +104,7 @@ static UISetClosedFontSizeFn    uiSetClosedFontSize    = nullptr;
 static UISetClosedTextColorFn   uiSetClosedTextColor   = nullptr;
 static UISetPopupBGColorFn      uiSetPopupBGColor      = nullptr;
 
+// ===== Control handle globals =====
 static void* g_btnHandle      = nullptr;
 static void* g_checkHandle    = nullptr;
 static void* g_editHandle     = nullptr;
@@ -121,6 +120,11 @@ static void* g_aniBtnHandle   = nullptr;
 static void* g_sliderHandle   = nullptr;
 static void* g_colorPickerHandle = nullptr;
 
+static HMODULE g_uiDll = nullptr;
+static bool    g_uiInitialized = false;
+static int     g_frameCount = 0;
+
+// ===== Button callback =====
 static void onButtonClick(void* ctl, void* userData) {
     (void)ctl; (void)userData;
     printf("Button clicked! Showing WinFrame with TextArea content...\n");
@@ -147,89 +151,63 @@ static void onButtonClick(void* ctl, void* userData) {
     }
 }
 
-int main() {
-    printf("=== test_fromsource_sfml: UICornerstone.dll + SFML backend ===\n");
+// ===== Load all C ABI function pointers from DLL =====
+static bool loadAllProcs(HMODULE dll) {
+    uiInit          = (UIInitFn)GetProcAddress(dll, "UICornerstone_Init");
+    uiSetViewport   = (UISetViewportFn)GetProcAddress(dll, "UICornerstone_SetViewport");
+    uiProcessEvents = (UIProcessEventsFn)GetProcAddress(dll, "UICornerstone_ProcessEvents");
+    uiUpdate        = (UIUpdateFn)GetProcAddress(dll, "UICornerstone_Update");
+    uiClear         = (UIClearFn)GetProcAddress(dll, "UICornerstone_Clear");
+    uiRender        = (UIRenderFn)GetProcAddress(dll, "UICornerstone_Render");
+    uiPresent       = (UIPresentFn)GetProcAddress(dll, "UICornerstone_Present");
+    uiIsQuit        = (UIIsQuitFn)GetProcAddress(dll, "UICornerstone_IsQuitRequested");
+    uiShutdown      = (UIShutdownFn)GetProcAddress(dll, "UICornerstone_Shutdown");
+    uiCreateButton     = (UICreateButtonFn)GetProcAddress(dll, "UICornerstone_CreateButton");
+    uiCreateLabel      = (UICreateLabelFn)GetProcAddress(dll, "UICornerstone_CreateLabel");
+    uiCreateCheckBox   = (UICreateCheckBoxFn)GetProcAddress(dll, "UICornerstone_CreateCheckBox");
+    uiCreateEditBox    = (UICreateEditBoxFn)GetProcAddress(dll, "UICornerstone_CreateEditBox");
+    uiCreateProgressBar = (UICreateProgressBarFn)GetProcAddress(dll, "UICornerstone_CreateProgressBar");
+    uiCreatePanel      = (UICreatePanelFn)GetProcAddress(dll, "UICornerstone_CreatePanel");
+    uiCreateTextArea   = (UICreateTextAreaFn)GetProcAddress(dll, "UICornerstone_CreateTextArea");
+    uiCreateWinFrame   = (UICreateWinFrameFn)GetProcAddress(dll, "UICornerstone_CreateWinFrame");
+    uiSetBGColor       = (UISetBGColorFn)GetProcAddress(dll, "UICornerstone_SetBGColor");
+    uiSetText          = (UISetTextFn)GetProcAddress(dll, "UICornerstone_SetText");
+    uiSetProgress      = (UISetProgressFn)GetProcAddress(dll, "UICornerstone_SetProgress");
+    uiSetChecked       = (UISetCheckedFn)GetProcAddress(dll, "UICornerstone_SetChecked");
+    uiAddChild         = (UIAddChildFn)GetProcAddress(dll, "UICornerstone_AddChild");
+    uiGetText          = (UIGetTextFn)GetProcAddress(dll, "UICornerstone_GetText");
+    uiGetChecked       = (UIGetCheckedFn)GetProcAddress(dll, "UICornerstone_GetChecked");
+    uiGetProgress      = (UIGetProgressFn)GetProcAddress(dll, "UICornerstone_GetProgress");
+    uiPushUIEvent      = (UIPushUIEventFn)GetProcAddress(dll, "UICornerstone_PushUIEvent");
+    uiSetOnClick       = (UISetOnClickFn)GetProcAddress(dll, "UICornerstone_SetOnClick");
+    uiSetVisible       = (UISetVisibleFn)GetProcAddress(dll, "UICornerstone_SetVisible");
+    uiDestroyControl   = (UIDestroyControlFn)GetProcAddress(dll, "UICornerstone_DestroyControl");
+    uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GetProcAddress(dll, "UICornerstone_WinFrameSetClientText");
+    uiCreateImageButton  = (UICreateImageButtonFn)GetProcAddress(dll, "UICornerstone_CreateImageButton");
+    uiSetButtonAnimation = (UISetButtonAnimationFn)GetProcAddress(dll, "UICornerstone_SetButtonAnimation");
+    uiCreateSlider       = (UICreateSliderFn)GetProcAddress(dll, "UICornerstone_CreateSlider");
+    uiGetSliderValue     = (UIGetSliderValueFn)GetProcAddress(dll, "UICornerstone_GetSliderValue");
+    uiSetSliderValue     = (UISetSliderValueFn)GetProcAddress(dll, "UICornerstone_SetSliderValue");
+    uiSetOnSliderChanged = (UISetOnSliderChangedFn)GetProcAddress(dll, "UICornerstone_SetOnSliderChanged");
+    uiCreateColorPicker    = (UICreateColorPickerFn)GetProcAddress(dll, "UICornerstone_CreateColorPicker");
+    uiGetColorPickerColor  = (UIGetColorPickerColorFn)GetProcAddress(dll, "UICornerstone_GetColorPickerColor");
+    uiSetOnColorChanged    = (UISetOnColorChangedFn)GetProcAddress(dll, "UICornerstone_SetOnColorChanged");
+    uiSetClosedSwatchSize  = (UISetClosedSwatchSizeFn)GetProcAddress(dll, "UICornerstone_SetClosedSwatchSize");
+    uiSetClosedFontSize    = (UISetClosedFontSizeFn)GetProcAddress(dll, "UICornerstone_SetClosedFontSize");
+    uiSetClosedTextColor   = (UISetClosedTextColorFn)GetProcAddress(dll, "UICornerstone_SetClosedTextColor");
+    uiSetPopupBGColor      = (UISetPopupBGColorFn)GetProcAddress(dll, "UICornerstone_SetPopupBGColor");
+    return uiInit != nullptr;
+}
 
-    g_uiDll = LoadLibraryA("UICornerstone.dll");
-    if (!g_uiDll) {
-        printf("FAIL: LoadLibrary(UICornerstone.dll)\n");
-        return 1;
-    }
-    printf("OK: loaded UICornerstone.dll\n"); fflush(stdout);
-
-    #define GET_PROC(name) (void*)GetProcAddress(g_uiDll, "UICornerstone_" name)
-    uiInit             = (UIInitFn)GET_PROC("Init");
-    uiSetViewport      = (UISetViewportFn)GET_PROC("SetViewport");
-    uiProcessEvents    = (UIProcessEventsFn)GET_PROC("ProcessEvents");
-    uiUpdate           = (UIUpdateFn)GET_PROC("Update");
-    uiClear            = (UIClearFn)GET_PROC("Clear");
-    uiRender           = (UIRenderFn)GET_PROC("Render");
-    uiPresent          = (UIPresentFn)GET_PROC("Present");
-    uiIsQuit           = (UIIsQuitFn)GET_PROC("IsQuitRequested");
-    uiShutdown         = (UIShutdownFn)GET_PROC("Shutdown");
-    uiCreateButton     = (UICreateButtonFn)GET_PROC("CreateButton");
-    uiCreateLabel      = (UICreateLabelFn)GET_PROC("CreateLabel");
-    uiCreateCheckBox   = (UICreateCheckBoxFn)GET_PROC("CreateCheckBox");
-    uiCreateEditBox    = (UICreateEditBoxFn)GET_PROC("CreateEditBox");
-    uiCreateProgressBar = (UICreateProgressBarFn)GET_PROC("CreateProgressBar");
-    uiCreatePanel      = (UICreatePanelFn)GET_PROC("CreatePanel");
-    uiCreateTextArea   = (UICreateTextAreaFn)GET_PROC("CreateTextArea");
-    uiCreateWinFrame   = (UICreateWinFrameFn)GET_PROC("CreateWinFrame");
-    uiSetBGColor       = (UISetBGColorFn)GET_PROC("SetBGColor");
-    uiSetText          = (UISetTextFn)GET_PROC("SetText");
-    uiSetProgress      = (UISetProgressFn)GET_PROC("SetProgress");
-    uiSetChecked       = (UISetCheckedFn)GET_PROC("SetChecked");
-    uiAddChild         = (UIAddChildFn)GET_PROC("AddChild");
-    uiGetText          = (UIGetTextFn)GET_PROC("GetText");
-    uiGetChecked       = (UIGetCheckedFn)GET_PROC("GetChecked");
-    uiGetProgress      = (UIGetProgressFn)GET_PROC("GetProgress");
-    uiSetOnClick       = (UISetOnClickFn)GET_PROC("SetOnClick");
-    uiSetVisible       = (UISetVisibleFn)GET_PROC("SetVisible");
-    uiDestroyControl   = (UIDestroyControlFn)GET_PROC("DestroyControl");
-    uiSetWinFrameClientText = (UIWinFrameSetClientTextFn)GET_PROC("WinFrameSetClientText");
-    uiCreateImageButton  = (UICreateImageButtonFn)GET_PROC("CreateImageButton");
-    uiSetButtonAnimation = (UISetButtonAnimationFn)GET_PROC("SetButtonAnimation");
-    uiCreateSlider       = (UICreateSliderFn)GET_PROC("CreateSlider");
-    uiGetSliderValue     = (UIGetSliderValueFn)GET_PROC("GetSliderValue");
-    uiSetSliderValue     = (UISetSliderValueFn)GET_PROC("SetSliderValue");
-    uiSetOnSliderChanged = (UISetOnSliderChangedFn)GET_PROC("SetOnSliderChanged");
-    uiCreateColorPicker    = (UICreateColorPickerFn)GET_PROC("CreateColorPicker");
-    uiGetColorPickerColor  = (UIGetColorPickerColorFn)GET_PROC("GetColorPickerColor");
-    uiSetOnColorChanged    = (UISetOnColorChangedFn)GET_PROC("SetOnColorChanged");
-    uiSetClosedSwatchSize  = (UISetClosedSwatchSizeFn)GET_PROC("SetClosedSwatchSize");
-    uiSetClosedFontSize    = (UISetClosedFontSizeFn)GET_PROC("SetClosedFontSize");
-    uiSetClosedTextColor   = (UISetClosedTextColorFn)GET_PROC("SetClosedTextColor");
-    uiSetPopupBGColor      = (UISetPopupBGColorFn)GET_PROC("SetPopupBGColor");
-    #undef GET_PROC
-
-    if (!uiInit) {
-        printf("FAIL: GetProcAddress(UICornerstone_Init)\n");
-        FreeLibrary(g_uiDll);
-        return 1;
-    }
-
-    // 后端自动创建 SFML 窗口
-    void* cbs = GetUIBackendCallbacks();
-    if (!cbs) {
-        printf("FAIL: GetUIBackendCallbacks\n");
-        FreeLibrary(g_uiDll);
-        return 1;
-    }
-    if (!uiInit(cbs)) {
-        printf("FAIL: UICornerstone_Init\n");
-        FreeLibrary(g_uiDll);
-        return 1;
-    }
-
-    // 后端已创建窗口后再设视口
-    uiSetViewport(0, 0, 800, 480);
+// ===== Common functions =====
+static bool initCABI(void* cbs, int viewportW, int viewportH) {
+    if (!uiInit(cbs)) return false;
+    uiSetViewport(0, 0, (float)viewportW, (float)viewportH);
     g_uiInitialized = true;
-    printf("OK: UICornerstone initialized (SFML backend)\n"); fflush(stdout);
+    return true;
+}
 
-    // ============================================================
-    // 创建测试控件（与 SDL3 版本相同布局）
-    // ============================================================
-    // 分组 1: CheckBox + 状态标签（靠左）
+static void createAllControls() {
     if (uiCreateCheckBox) {
         g_checkHandle = uiCreateCheckBox("Check me", 20, 15, 180, 30);
         if (g_checkHandle) {
@@ -238,10 +216,10 @@ int main() {
         }
     }
     if (uiCreateLabel) {
-        g_chkStatus = uiCreateLabel(u8"CheckBox: Checked", 12.0f, 20, 50, 180, 16);
+        g_chkStatus = uiCreateLabel("CheckBox: Checked", 12.0f, 20, 50, 180, 16);
         if (g_chkStatus) printf("OK: created chkStatus\n");
     }
-    // 分组 2: EditBox + 状态标签（紧接 CheckBox，宽度延伸到窗体边缘）
+
     if (uiCreateEditBox) {
         g_editHandle = uiCreateEditBox(220, 15, 560, 30);
         if (g_editHandle) {
@@ -253,7 +231,7 @@ int main() {
         g_edtStatus = uiCreateLabel("Edit: ", 12.0f, 220, 50, 560, 16);
         if (g_edtStatus) printf("OK: created edtStatus\n");
     }
-    // 分组 3: ProgressBar + 状态标签（宽度与 EditBox 对齐）
+
     if (uiCreateProgressBar) {
         g_progressHandle = uiCreateProgressBar(20, 80, 760, 20);
         if (g_progressHandle) {
@@ -263,44 +241,42 @@ int main() {
         }
     }
     if (uiCreateLabel) {
-        g_prgStatus = uiCreateLabel(u8"Progress: 0.0%", 12.0f, 20, 105, 230, 16);
+        g_prgStatus = uiCreateLabel("Progress: 0.0%", 12.0f, 20, 105, 230, 16);
         if (g_prgStatus) printf("OK: created prgStatus\n");
     }
-    // 分组 4: Panel + TextArea + Button（按钮放在面板内）
+
     if (uiCreatePanel && uiCreateTextArea && uiAddChild) {
         g_panelHandle = uiCreatePanel(20, 135, 760, 330);
         if (g_panelHandle) {
             printf("OK: created Panel\n");
             if (uiSetBGColor) uiSetBGColor(g_panelHandle, 50, 55, 60, 255);
         }
+
         g_textAreaHandle = uiCreateTextArea(5, 5, 750, 260);
         if (g_textAreaHandle) {
             printf("OK: created TextArea\n");
-            if (uiSetText) uiSetText(g_textAreaHandle, "Hello from TextArea!\nEdit me and click the button.");
+            if (uiSetText) uiSetText(g_textAreaHandle,
+                "Hello from TextArea!\nEdit me and click the button.");
             uiAddChild(g_panelHandle, g_textAreaHandle);
             printf("OK: added TextArea to Panel\n");
         }
-    // Slider: range 0-100
-    if (uiCreateSlider) {
-        g_sliderHandle = uiCreateSlider(20, 470, 300, 30, 0, 100, 50);
-        if (g_sliderHandle) {
-            printf("OK: created Slider\n");
-        }
-    }
 
-    // ColorPicker: hex color picker with presets
-    if (uiCreateColorPicker) {
-        g_colorPickerHandle = uiCreateColorPicker(450, 470, 96, 24, "#FF6600");
-        if (g_colorPickerHandle) {
-            printf("OK: created ColorPicker\n");
-            if (uiSetClosedSwatchSize)
-                uiSetClosedSwatchSize(g_colorPickerHandle, 16.0f);
-            if (uiSetClosedFontSize)
-                uiSetClosedFontSize(g_colorPickerHandle, 12);
+        if (uiCreateSlider) {
+            g_sliderHandle = uiCreateSlider(20, 470, 300, 30, 0, 100, 50);
+            if (g_sliderHandle) printf("OK: created Slider\n");
         }
-    }
 
-        // Image test button (cross_up/cross_over/cross_down, left-aligned)
+        if (uiCreateColorPicker) {
+            g_colorPickerHandle = uiCreateColorPicker(450, 470, 96, 24, "#FF6600");
+            if (g_colorPickerHandle) {
+                printf("OK: created ColorPicker\n");
+                if (uiSetClosedSwatchSize)
+                    uiSetClosedSwatchSize(g_colorPickerHandle, 16.0f);
+                if (uiSetClosedFontSize)
+                    uiSetClosedFontSize(g_colorPickerHandle, 12);
+            }
+        }
+
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
                 "assets/images/cross_up.png",
@@ -314,19 +290,22 @@ int main() {
                 uiAddChild(g_panelHandle, g_imgBtnHandle);
             }
         }
-        // LuotiAni animation test button
+
         if (uiCreateButton && uiSetButtonAnimation) {
             g_aniBtnHandle = uiCreateButton("Ani Test", 210, 270, 200, 30);
             if (g_aniBtnHandle) {
                 printf("OK: created Animation Button\n");
-                uiSetButtonAnimation(g_aniBtnHandle, "assets/animations/rotateBtn/rotateBtn.jsonc");
+                uiSetButtonAnimation(g_aniBtnHandle,
+                    "assets/animations/rotateBtn/rotateBtn.jsonc");
                 if (uiSetOnClick)
                     uiSetOnClick(g_aniBtnHandle, onButtonClick, nullptr);
                 uiAddChild(g_panelHandle, g_aniBtnHandle);
             }
         }
+
         if (uiCreateButton) {
-            g_btnHandle = uiCreateButton("Read TextArea Content", 555, 270, 200, 30);
+            g_btnHandle = uiCreateButton(
+                "Read TextArea Content", 555, 270, 200, 30);
             if (g_btnHandle) {
                 printf("OK: created Button (in Panel)\n");
                 if (uiSetBGColor)
@@ -339,75 +318,69 @@ int main() {
         }
     }
     fflush(stdout);
+}
 
-    // ============================================================
-    // 帧循环（由 InputBackend 自动轮询 SFML 事件）
-    // ============================================================
-    printf("Starting frame loop...\n"); fflush(stdout);
+static void updateStatusLabels() {
+    char buf[256];
 
-    while (!uiIsQuit()) {
-        g_frameCount++;
-
-        // 进度条动画
-        if (g_progressHandle && uiSetProgress) {
-            float p = ((g_frameCount % 120) / 120.0f) * 100.0f;
-            uiSetProgress(g_progressHandle, p);
-        }
-
-        uiProcessEvents();
-        uiClear();
-        uiUpdate(1.0 / 60.0);
-
-        // Slider value polling
-        if (g_sliderHandle && uiGetSliderValue) {
-            float sv = uiGetSliderValue(g_sliderHandle);
-            printf("Slider: %.1f\r", sv);
-        }
-
-        // ColorPicker polling
-        if (g_colorPickerHandle && uiGetColorPickerColor) {
-            char hex[16];
-            uiGetColorPickerColor(g_colorPickerHandle, hex, sizeof(hex));
-            printf("Color: %s\r", hex);
-        }
-
-        // 轮询状态并更新标签
-        char buf[256];
-        if (g_checkHandle && uiGetChecked && g_chkStatus && uiSetText) {
-            int st = uiGetChecked(g_checkHandle);
-            const char* label = "Unchecked";
-            if (st == 1) label = "Checked";
-            else if (st == 2) label = "Indeterminate";
-            snprintf(buf, sizeof(buf), "CheckBox: %s", label);
-            uiSetText(g_chkStatus, buf);
-        }
-        if (g_progressHandle && uiGetProgress && g_prgStatus && uiSetText) {
-            float v = uiGetProgress(g_progressHandle);
-            snprintf(buf, sizeof(buf), u8"Progress: %.1f%%", v);
-            uiSetText(g_prgStatus, buf);
-        }
-        if (g_editHandle && uiGetText && g_edtStatus && uiSetText) {
-            const char* t = uiGetText(g_editHandle);
-            size_t tlen = strlen(t);
-            if (tlen > 32) {
-                memcpy(buf, t, 32);
-                buf[32] = '\0';
-                snprintf(buf + 32, sizeof(buf) - 32, "...(%zu)", tlen);
-            } else {
-                snprintf(buf, sizeof(buf), "Edit: %s", t);
-            }
-            uiSetText(g_edtStatus, buf);
-        }
-
-        uiRender();
-        uiPresent();
+    if (g_checkHandle && uiGetChecked && g_chkStatus && uiSetText) {
+        int st = uiGetChecked(g_checkHandle);
+        const char* label = "Unchecked";
+        if (st == 1) label = "Checked";
+        else if (st == 2) label = "Indeterminate";
+        snprintf(buf, sizeof(buf), "CheckBox: %s", label);
+        uiSetText(g_chkStatus, buf);
     }
 
-    printf("Done, %d frames\n", g_frameCount); fflush(stdout);
+    if (g_progressHandle && uiGetProgress && g_prgStatus && uiSetText) {
+        float v = uiGetProgress(g_progressHandle);
+        snprintf(buf, sizeof(buf), "Progress: %.1f%%", v);
+        uiSetText(g_prgStatus, buf);
+    }
 
-    // ============================================================
-    // 清理
-    // ============================================================
+    if (g_editHandle && uiGetText && g_edtStatus && uiSetText) {
+        const char* t = uiGetText(g_editHandle);
+        size_t tlen = strlen(t);
+        if (tlen > 32) {
+            memcpy(buf, t, 32);
+            buf[32] = '\0';
+            snprintf(buf + 32, sizeof(buf) - 32, "...(%zu)", tlen);
+        } else {
+            snprintf(buf, sizeof(buf), "Edit: %s", t);
+        }
+        uiSetText(g_edtStatus, buf);
+    }
+
+    if (g_sliderHandle && uiGetSliderValue) {
+        float sv = uiGetSliderValue(g_sliderHandle);
+        printf("Slider: %.1f\r", sv);
+    }
+
+    if (g_colorPickerHandle && uiGetColorPickerColor) {
+        char hex[16];
+        uiGetColorPickerColor(g_colorPickerHandle, hex, sizeof(hex));
+        printf("Color: %s\r", hex);
+    }
+}
+
+static void doFrame() {
+    g_frameCount++;
+
+    if (g_progressHandle && uiSetProgress) {
+        float p = ((g_frameCount % 120) / 120.0f) * 100.0f;
+        uiSetProgress(g_progressHandle, p);
+    }
+
+    uiProcessEvents();
+    uiClear();
+    uiUpdate(1.0 / 60.0);
+
+    updateStatusLabels();
+
+    uiRender();
+}
+
+static void shutdownApp() {
     if (g_uiInitialized && uiShutdown) {
         uiShutdown();
         g_uiInitialized = false;
@@ -416,7 +389,43 @@ int main() {
         FreeLibrary(g_uiDll);
         g_uiDll = nullptr;
     }
+}
 
-    printf("test_fromsource_sfml: done\n");
+static int runTest(const char* shortName, const char* displayName) {
+    printf("=== test_fromsource_%s: UICornerstone.dll + %s backend ===\n",
+           shortName, displayName);
+
+    g_uiDll = LoadLibraryA("UICornerstone.dll");
+    if (!g_uiDll) { printf("FAIL: LoadLibrary\n"); return 1; }
+    printf("OK: loaded UICornerstone.dll\n"); fflush(stdout);
+
+    if (!loadAllProcs(g_uiDll)) {
+        printf("FAIL: GetProcAddress\n");
+        FreeLibrary(g_uiDll);
+        return 1;
+    }
+
+    void* cbs = GetUIBackendCallbacks();
+    if (!cbs || !initCABI(cbs, 800, 480)) {
+        printf("FAIL: UICornerstone_Init\n");
+        FreeLibrary(g_uiDll);
+        return 1;
+    }
+    printf("OK: UICornerstone initialized (%s backend)\n", displayName);
+    fflush(stdout);
+
+    createAllControls();
+    printf("Starting frame loop...\n"); fflush(stdout);
+
+    while (!uiIsQuit()) {
+        doFrame();
+        uiPresent();
+    }
+
+    printf("Done, %d frames\n", g_frameCount); fflush(stdout);
+    shutdownApp();
+    printf("test_fromsource_%s: done\n", shortName);
     return 0;
 }
+
+int main() { return runTest(BACKEND_SHORT_NAME, BACKEND_DISPLAY_NAME); }

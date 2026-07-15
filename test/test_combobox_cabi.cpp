@@ -1,63 +1,20 @@
 ﻿// =========================================================================
-// test_combobox_cabi_shared.h — 三后端共享的 ComboBox C ABI 测试逻辑
-//
-// 包含：Core 符号 stub、C ABI 函数指针、JSON 布局、回调、main()
-// Backend 源码（Window/RenderDevice/TextRenderer/InputBackend/Cursor/BackendPlugin）
-// 必须在 include 本文件之前通过 #include 编译入同一 TU。
+// test_combobox_cabi.cpp -- single fromsource C ABI test for ComboBox (all backends)
+// Backend name provided via -DBACKEND_SHORT_NAME / -DBACKEND_DISPLAY_NAME
 // =========================================================================
-#ifndef TEST_COMBOBOX_CABI_SHARED_H
-#define TEST_COMBOBOX_CABI_SHARED_H
 
-#ifndef _WINDOWS_
-extern "C" {
-    __declspec(dllimport) void* __stdcall LoadLibraryA(const char* lpLibFileName);
-    __declspec(dllimport) void* __stdcall GetProcAddress(void* hModule, const char* lpProcName);
-    __declspec(dllimport) int   __stdcall FreeLibrary(void* hLibModule);
-}
-using HMODULE = void*;
-#else
+#define NOMINMAX
 #include <windows.h>
-#endif
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
 
 #include "../../include/UICornerstoneAPI.h"
 
-// ===== 零导入库：内联实现 Core 符号 =====
-void Surface::registerFactories(SurfaceCreateFn, SurfaceLoadFromFileFn, SurfaceLoadFromMemFn) {}
-void Cursor::registerFactories(CursorCreateSystemFn, CursorGetDefaultFn, CursorSetCurrentFn) {}
+extern "C" UIBackendCallbacks* GetUIBackendCallbacks(void);
 
-namespace fs = std::filesystem;
-class FilesystemResourceProvider : public ResourceProvider {
-    fs::path m_basePath;
-public:
-    explicit FilesystemResourceProvider(const std::string& basePath) : m_basePath(basePath) {}
-    std::shared_ptr<std::vector<char>> readFile(const std::string& path) override {
-        fs::path fullPath = m_basePath / path;
-        FILE* f = fopen(fullPath.string().c_str(), "rb");
-        if (!f) return nullptr;
-        fseek(f, 0, SEEK_END);
-        long size = ftell(f);
-        if (size <= 0) { fclose(f); return nullptr; }
-        fseek(f, 0, SEEK_SET);
-        auto buffer = std::make_shared<std::vector<char>>(static_cast<size_t>(size));
-        size_t bytesRead = fread(buffer->data(), 1, static_cast<size_t>(size), f);
-        fclose(f);
-        if (bytesRead != static_cast<size_t>(size)) return nullptr;
-        return buffer;
-    }
-    bool exists(const std::string& path) override {
-        return fs::exists(m_basePath / path);
-    }
-};
-ResourceProvider* ResourceProvider::createFilesystem(const std::string& basePath) {
-    return new FilesystemResourceProvider(basePath);
-}
-
-// ===== C ABI 函数指针 =====
+// ===== C ABI function pointer types =====
 typedef int   (*UIInitFn)(void*);
 typedef void  (*UISetViewportFn)(float,float,float,float);
 typedef void  (*UIProcessEventsFn)(void);
@@ -109,16 +66,9 @@ static void onSelectionChanged(void* ctl, void* user) {
     printf("%s\n", g_selectionInfo);
 }
 
-// ===== main =====
-int main(void) {
-    // ==== 加载 DLL ====
-    g_uiDll = LoadLibraryA("UICornerstone.dll");
-    if (!g_uiDll) { printf("FAIL: LoadLibrary\n"); return 1; }
-    printf("OK: loaded UICornerstone.dll\n");
-
-    // ==== 解析 C ABI ====
+static void loadAllProcs(HMODULE dll) {
 #define RESOLVE(name) \
-    *(void**)&ui##name = GetProcAddress(g_uiDll, "UICornerstone_" #name)
+    *(void**)&ui##name = GetProcAddress(dll, "UICornerstone_" #name)
 
     RESOLVE(Init);
     RESOLVE(SetViewport);
@@ -138,22 +88,27 @@ int main(void) {
     RESOLVE(GetSelectedIndex);
     RESOLVE(GetSelectedLabel);
 #undef RESOLVE
+}
 
+static int runTest(const char* shortName, const char* displayName) {
+    printf("=== test_combobox_cabi: UICornerstone.dll + %s ===\n", displayName);
+
+    g_uiDll = LoadLibraryA("UICornerstone.dll");
+    if (!g_uiDll) { printf("FAIL: LoadLibrary\n"); return 1; }
+    printf("OK: loaded UICornerstone.dll\n");
+
+    loadAllProcs(g_uiDll);
     if (!uiInit) { printf("FAIL: GetProcAddress(Init)\n"); FreeLibrary(g_uiDll); return 1; }
 
-    // ==== 获取后端回调表 ====
     UIBackendCallbacks* callbacks = GetUIBackendCallbacks();
     if (!callbacks) { printf("FAIL: GetUIBackendCallbacks\n"); FreeLibrary(g_uiDll); return 1; }
 
-    // ==== 初始化 ====
     if (!uiInit(callbacks)) { printf("FAIL: Init\n"); FreeLibrary(g_uiDll); return 1; }
     uiSetViewport(0, 0, 540, 320);
     printf("OK: initialized\n");
 
-    // ==== 注册 Action ====
     uiRegisterAction("onSelectionChanged", onSelectionChanged, nullptr);
 
-    // ==== JSON 布局 ====
     const char* layoutJson = R"json({
         "version": "1.0",
         "controls": [
@@ -215,7 +170,6 @@ int main(void) {
     if (!uiLoadLayout(layoutJson)) { printf("FAIL: LoadLayout\n"); uiShutdown(); FreeLibrary(g_uiDll); return 1; }
     printf("OK: layout loaded\n");
 
-    // ==== 帧循环 ====
     printf("Frame loop... (interact with the ComboBox or close the window)\n");
     while (!uiIsQuitRequested()) {
         uiProcessEvents();
@@ -228,7 +182,8 @@ int main(void) {
     uiShutdown();
     FreeLibrary(g_uiDll);
     g_uiDll = nullptr;
+    printf("test_combobox_cabi_%s: done\n", shortName);
     return 0;
 }
 
-#endif // TEST_COMBOBOX_CABI_SHARED_H
+int main() { return runTest(BACKEND_SHORT_NAME, BACKEND_DISPLAY_NAME); }
