@@ -95,6 +95,13 @@ void NumericUpDown::draw() {
 bool NumericUpDown::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
 
+    if (m_readOnly) {
+        if (event->m_type == EventType::MouseDown ||
+            event->m_type == EventType::KeyDown ||
+            event->m_type == EventType::TextInput)
+            return false;
+    }
+
     if (event->m_type == EventType::MouseDown &&
         event->mouseButton.button == MouseButton::Left) {
         if (isContainsPoint(event->mouseButton.x, event->mouseButton.y) &&
@@ -125,6 +132,7 @@ bool NumericUpDown::handleEvent(shared_ptr<Event> event) {
     }
 
     if (event->m_type == EventType::KeyDown && getFocused()) {
+        if (m_readOnly) return true;
         switch (event->keyEvent.keycode) {
             case KeyCode::Up: case KeyCode::Plus: stepValue(+1); return true;
             case KeyCode::Down: case KeyCode::Minus: stepValue(-1); return true;

@@ -52,12 +52,12 @@ test_label.exe
 
 - **标准测试编译目标目录**（非 DLL 模式）：
 
-  | 后端   | 构建目录              | 测试输出目录                        |
-  | ------ | --------------------- | ----------------------------------- |
-  | SDL3   | `build/sdl3/`         | `build/sdl3/test/Debug/`            |
-  | SFML   | `build/sfml/`         | `build/sfml/test/Debug/`            |
-  | Raylib | `build/raylib/`       | `build/raylib/test/Debug/`          |
 
+  | 后端   | 构建目录        | 测试输出目录               |
+  | ------ | --------------- | -------------------------- |
+  | SDL3   | `build/sdl3/`   | `build/sdl3/test/Debug/`   |
+  | SFML   | `build/sfml/`   | `build/sfml/test/Debug/`   |
+  | Raylib | `build/raylib/` | `build/raylib/test/Debug/` |
 - `build/*_dll/` 目录专用于 DLL 模式的集成测试（如 `test_fromsource_cabi`），**不应用于编译标准测试用例**。
 - 构建命令示例：
 
@@ -66,7 +66,6 @@ test_label.exe
   build_scripts\build.bat sfml    # → build/sfml/  （正确）
   build_scripts\build.bat raylib  # → build/raylib/（正确）
   ```
-
 - 如果不确定当前构建输出目录，检查 `build/` 下各子目录中的 `test/Debug/`。
 
 ### Raylib Backend Notes
