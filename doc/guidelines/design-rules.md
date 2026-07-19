@@ -12,3 +12,9 @@
 - 仅在 `ConstDef.h/.cpp` 中定义全局共享常量（如 `EDITBOX_DEFAULT_HEIGHT`、`NUMERICUPDOWN_BUTTON_WIDTH`）。
 - 控件内部的局域默认值在类声明中定义为 `static constexpr` 成员，或通过构造函数参数注入。
 - 例外：0、1、-1、空字符串、true/false 等无歧义的基础值不受此限制。
+
+## 3. Unicode 字符串编码
+
+- 如果字符串中包含中文等非 ASCII 字符，必须使用 `u8` 前缀（如 `u8"中文"`），确保在多字节/Unicode 编译环境下编码一致。
+- **禁止**对中文字符做 `\uxxxx` 转义（如 `"\u4E2D\u6587"`），应直接书写原文。转义后的字符串不可读，且不影响编译结果。例外：非 BMP 字符（如 emoji）可用 surrogate pair 转义。
+
