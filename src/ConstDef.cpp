@@ -166,6 +166,28 @@ const std::vector<SColor> ConstDef::COLORPICKER_DEFAULT_PRESETS = {
     SColor(0xA5, 0x2A, 0x2A, 0xFF), SColor(0xF0, 0xF8, 0xFF, 0xFF),
 };
 
+// ── NumericUpDown ──
+const float ConstDef::NUMERICUPDOWN_BUTTON_WIDTH           = 28.0f;
+const float ConstDef::NUMERICUPDOWN_MIN_WIDTH_PADDING      = 10.0f;
+const float ConstDef::NUMERICUPDOWN_TRIANGLE_HEIGHT_RATIO  = 0.22f;
+const float ConstDef::NUMERICUPDOWN_TRIANGLE_WIDTH_RATIO   = 1.2f;
+const float ConstDef::NUMERICUPDOWN_ARROW_GAP              = 3.0f;
+const int   ConstDef::NUMERICUPDOWN_FONT_SIZE              = 14;
+const int   ConstDef::NUMERICUPDOWN_DECIMALS_MAX           = 6;
+const double ConstDef::NUMERICUPDOWN_REPEAT_DELAY_SEC      = 0.5;
+const double ConstDef::NUMERICUPDOWN_REPEAT_INTERVAL_SEC   = 0.1;
+const double ConstDef::NUMERICUPDOWN_DEFAULT_STEP          = 1.0;
+const double ConstDef::NUMERICUPDOWN_DEFAULT_PAGESTEP      = 10.0;
+const int    ConstDef::NUMERICUPDOWN_DEFAULT_DECIMALS      = 0;
+const SColor ConstDef::NUMERICUPDOWN_BG_COLOR(45, 45, 45, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_BG(55, 55, 55, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_BG_HOVER(65, 65, 65, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_BG_PRESS(75, 75, 75, 255);
+const SColor ConstDef::NUMERICUPDOWN_SEPARATOR_COLOR(40, 40, 40, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_COLOR(180, 180, 180, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_HOVER_COLOR(255, 255, 255, 255);
+const SColor ConstDef::NUMERICUPDOWN_ARROW_PRESS_COLOR(220, 220, 220, 255);
+
 const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
     {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
     {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},

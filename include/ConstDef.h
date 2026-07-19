@@ -235,6 +235,28 @@ public:
     static const float COLORPICKER_BTN_H;
     static const float COLORPICKER_BTN_GAP;
     static const std::vector<SColor> COLORPICKER_DEFAULT_PRESETS;
+
+    // NumericUpDown
+    static const float NUMERICUPDOWN_BUTTON_WIDTH;
+    static const float NUMERICUPDOWN_MIN_WIDTH_PADDING;
+    static const float NUMERICUPDOWN_TRIANGLE_HEIGHT_RATIO;
+    static const float NUMERICUPDOWN_TRIANGLE_WIDTH_RATIO;
+    static const float NUMERICUPDOWN_ARROW_GAP;
+    static const int   NUMERICUPDOWN_FONT_SIZE;
+    static const int   NUMERICUPDOWN_DECIMALS_MAX;
+    static const double NUMERICUPDOWN_REPEAT_DELAY_SEC;
+    static const double NUMERICUPDOWN_REPEAT_INTERVAL_SEC;
+    static const double NUMERICUPDOWN_DEFAULT_STEP;
+    static const double NUMERICUPDOWN_DEFAULT_PAGESTEP;
+    static const int    NUMERICUPDOWN_DEFAULT_DECIMALS;
+    static const SColor NUMERICUPDOWN_BG_COLOR;
+    static const SColor NUMERICUPDOWN_ARROW_BG;
+    static const SColor NUMERICUPDOWN_ARROW_BG_HOVER;
+    static const SColor NUMERICUPDOWN_ARROW_BG_PRESS;
+    static const SColor NUMERICUPDOWN_SEPARATOR_COLOR;
+    static const SColor NUMERICUPDOWN_ARROW_COLOR;
+    static const SColor NUMERICUPDOWN_ARROW_HOVER_COLOR;
+    static const SColor NUMERICUPDOWN_ARROW_PRESS_COLOR;
 };
 
 #endif // ConstDefH

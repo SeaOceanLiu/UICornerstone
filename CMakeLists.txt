@@ -56,6 +56,7 @@ set(CORE_SOURCES
     src/Material.cpp
     src/Panel.cpp
     src/Menu.cpp
+    src/NumericUpDown.cpp
     src/ProgressBar.cpp
     src/ResourceProvider.cpp
     src/ScrollBar.cpp

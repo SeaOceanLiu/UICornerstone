@@ -103,6 +103,7 @@ set(UI_TEST_EXECUTABLES
     test_graphtool
     test_handlecontrol
     test_slider
+    test_numericupdown
     test_layout
     test_layout_advanced
     test_winframe

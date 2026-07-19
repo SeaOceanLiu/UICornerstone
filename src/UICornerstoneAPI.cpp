@@ -13,6 +13,7 @@
 #include "Slider.h"
 #include "ColorPicker.h"
 #include "ComboBox.h"
+#include "NumericUpDown.h"
 #include "Dialog.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
@@ -958,6 +959,84 @@ void UICornerstone_SetOnSliderChanged(UIControlHandle ctl, UIActionCallback cb, 
     }
 }
 
+// ── NumericUpDown C ABI ──
+
+UIControlHandle UICornerstone_CreateNumericUpDown(float x, float y, float w, float h) {
+    auto nud = make_shared<NumericUpDown>(BENCH, SRect(x, y, w, h));
+    BENCH->addControl(nud);
+    nud->create();
+    nud->setVisible(true);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(nud.get()));
+}
+
+void UICornerstone_SetNumericUpDownValue(UIControlHandle ctl, double val) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setValue(val);
+}
+
+double UICornerstone_GetNumericUpDownValue(UIControlHandle ctl) {
+    if (!ctl) return 0.0;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    return nud ? nud->getValue() : 0.0;
+}
+
+void UICornerstone_SetNumericUpDownRange(UIControlHandle ctl, double min, double max) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setRange(min, max);
+}
+
+void UICornerstone_SetNumericUpDownStep(UIControlHandle ctl, double step) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setStep(step);
+}
+
+void UICornerstone_SetNumericUpDownPageStep(UIControlHandle ctl, double ps) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setPageStep(ps);
+}
+
+void UICornerstone_SetNumericUpDownDecimals(UIControlHandle ctl, int decimals) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setDecimals(decimals);
+}
+
+void UICornerstone_SetNumericUpDownPlaceholder(UIControlHandle ctl, const char* placeholder) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setPlaceholder(placeholder ? string(placeholder) : "");
+}
+
+void UICornerstone_SetNumericUpDownReadOnly(UIControlHandle ctl, int readOnly) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setReadOnly(readOnly != 0);
+}
+
+void UICornerstone_SetNumericUpDownButtonWidth(UIControlHandle ctl, float width) {
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) nud->setButtonWidth(width);
+}
+
+void UICornerstone_SetOnNumericUpDownValueChanged(
+    UIControlHandle ctl,
+    void (*callback)(void* userData, double newValue),
+    void* userData)
+{
+    if (!ctl) return;
+    auto* nud = dynamic_cast<NumericUpDown*>(static_cast<Control*>(ctl));
+    if (nud) {
+        nud->setOnValueChanged([callback, userData](shared_ptr<Control>, double v) {
+            if (callback) callback(userData, v);
+        });
+    }
+}
+
 void UICornerstone_DestroyControl(UIControlHandle ctl) {
     if (!ctl) return;
     auto* ctrl = dynamic_cast<ControlImpl*>(static_cast<Control*>(ctl));
@@ -1000,3 +1079,4 @@ void UICornerstone_WinFrameSetClientText(UIControlHandle wf, const char* text) {
     label->create();
     label->setVisible(true);
 }
+

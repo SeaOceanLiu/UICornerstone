@@ -261,6 +261,21 @@ UICORNERSTONE_API void UICornerstone_SetOnClose(UIControlHandle ctl, UIActionCal
 UICORNERSTONE_API void UICornerstone_SetConfirmButtonText(UIControlHandle ctl, const char* text);
 UICORNERSTONE_API void UICornerstone_SetCancelButtonText(UIControlHandle ctl, const char* text);
 
+/* ============ NumericUpDown ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateNumericUpDown(
+    float x, float y, float w, float h);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownValue(UIControlHandle ctl, double val);
+UICORNERSTONE_API double UICornerstone_GetNumericUpDownValue(UIControlHandle ctl);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownRange(UIControlHandle ctl, double min, double max);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownStep(UIControlHandle ctl, double step);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownPageStep(UIControlHandle ctl, double ps);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownDecimals(UIControlHandle ctl, int decimals);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownPlaceholder(UIControlHandle ctl, const char* placeholder);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownReadOnly(UIControlHandle ctl, int readOnly);
+UICORNERSTONE_API void   UICornerstone_SetNumericUpDownButtonWidth(UIControlHandle ctl, float width);
+UICORNERSTONE_API void   UICornerstone_SetOnNumericUpDownValueChanged(
+    UIControlHandle ctl, void (*callback)(void* userData, double newValue), void* userData);
+
 /* ============ 图片/动画按钮 ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(
     const char* normalImage,
@@ -277,3 +292,4 @@ UICORNERSTONE_API void UICornerstone_SetButtonAnimation(
 #endif
 
 #endif // UICORNERSTONE_API_H
+

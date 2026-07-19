@@ -3,6 +3,7 @@
 #include "WinFrame.h"
 #include "Dialog.h"
 #include "ComboBox.h"
+#include "NumericUpDown.h"
 #include "LayoutEngine.h"
 #include <fstream>
 #include <sstream>
@@ -256,6 +257,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = nullptr;
         popJsonPath();
         return nullptr;
+    } else if (type == "NumericUpDown") {
+        result = parseNumericUpDown(j, parent);
     } else if (m_components.find(type) != m_components.end()) {
         // Component type: instantiate from template
         result = instantiateComponent(type, j, parent, index);
@@ -1465,6 +1468,60 @@ shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
     return slider;
 }
 
+// ==================== NumericUpDown ====================
+
+shared_ptr<NumericUpDown> LayoutParser::parseNumericUpDown(const json& j, Control* parent) {
+    pushJsonPath("rect");
+    SRect rect = parseRect(j["rect"]);
+    popJsonPath();
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto nud = make_shared<NumericUpDown>(parent, rect, xScale, yScale);
+
+    m_theme.applyCommonColors(nud, "numericupdown");
+    parseCommonProperties(nud, j);
+
+    if (j.contains("value"))
+        nud->setValue(j["value"].get<double>());
+
+    if (j.contains("range") && j["range"].is_object()) {
+        double mn = j["range"].value("min", 0.0);
+        double mx = j["range"].value("max", 100.0);
+        nud->setRange(mn, mx);
+    }
+
+    if (j.contains("step"))
+        nud->setStep(j["step"].get<double>());
+
+    if (j.contains("pageStep"))
+        nud->setPageStep(j["pageStep"].get<double>());
+
+    if (j.contains("decimals"))
+        nud->setDecimals(j["decimals"].get<int>());
+
+    if (j.contains("placeholder"))
+        nud->setPlaceholder(j["placeholder"].get<string>());
+
+    if (j.contains("readOnly"))
+        nud->setReadOnly(j["readOnly"].get<bool>());
+
+    if (j.contains("buttonWidth"))
+        nud->setButtonWidth(j["buttonWidth"].get<float>());
+
+    parseEvents(nud, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = nud;
+
+    nud->create();
+    return nud;
+}
+
 // ==================== ScrollBar ====================
 
 static ScrollBarOrientation parseScrollBarOrientation(const string& s) {
@@ -1942,6 +1999,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // NumericUpDown: onValueChanged
+    if (auto nud = dynamic_pointer_cast<NumericUpDown>(ctrl)) {
+        if (events.contains("onValueChanged") && events["onValueChanged"].is_string()) {
+            string handlerName = events["onValueChanged"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                nud->setOnValueChanged([handler](shared_ptr<NumericUpDown>, double) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
     popJsonPath();
 }
 
@@ -2015,6 +2086,8 @@ static void bindProperty(shared_ptr<ControlImpl> ctrl, const string& prop, const
             }
         }
     }
+
+    // (bindProperty end)
 }
 
 void LayoutParser::parseBindings(shared_ptr<ControlImpl> ctrl, const json& j) {
