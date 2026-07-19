@@ -48,6 +48,27 @@ test_label.exe
 - SDL3 编译通过且**经评估审核后**，再启动 SFML 和 Raylib 后端的编译和测试。
 - 三后端的差异通常在 RenderDevice、InputBackend 等抽象层，而非控件逻辑本身，因此快速迭代期间只编译 SDL3 即可。
 
+### 构建目录说明
+
+- **标准测试编译目标目录**（非 DLL 模式）：
+
+  | 后端   | 构建目录              | 测试输出目录                        |
+  | ------ | --------------------- | ----------------------------------- |
+  | SDL3   | `build/sdl3/`         | `build/sdl3/test/Debug/`            |
+  | SFML   | `build/sfml/`         | `build/sfml/test/Debug/`            |
+  | Raylib | `build/raylib/`       | `build/raylib/test/Debug/`          |
+
+- `build/*_dll/` 目录专用于 DLL 模式的集成测试（如 `test_fromsource_cabi`），**不应用于编译标准测试用例**。
+- 构建命令示例：
+
+  ```batch
+  build_scripts\build.bat sdl3    # → build/sdl3/  （正确）
+  build_scripts\build.bat sfml    # → build/sfml/  （正确）
+  build_scripts\build.bat raylib  # → build/raylib/（正确）
+  ```
+
+- 如果不确定当前构建输出目录，检查 `build/` 下各子目录中的 `test/Debug/`。
+
 ### Raylib Backend Notes
 
 - `EndDrawing()` is never called — `present()` manually flushes + swaps
