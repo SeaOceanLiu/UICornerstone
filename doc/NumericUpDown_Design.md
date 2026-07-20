@@ -858,97 +858,27 @@ if (auto nud = dynamic_pointer_cast<NumericUpDown>(ctrl)) {
 }
 ```
 
-### 7.5 按钮布局方案对比（独立按钮区 vs EditBox 内嵌）
+### 7.5 箭头区域设计
 
-需求文档 §6 规定"右侧：两个三角形箭头按钮（上/下），垂直排列，各占一半高度"——这是**独立按钮区方案**（方案 A）。但用户也可考虑 **EditBox 内嵌方案**（方案 B，类似 ComboBox 的下拉箭头）。两种方案各有优劣：
+NumericUpDown **继承自 EditBox**，在右侧 margin 区域绘制 ▲/▼ 三角形。
 
-### 7.5.1 方案 A：独立按钮区（默认）
+**布局**：
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
-  <defs>
-    <linearGradient id="bgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3A3A3A"/><stop offset="100%" stop-color="#2D2D2D"/></linearGradient>
-    <linearGradient id="btnA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5A5A5A"/><stop offset="100%" stop-color="#454545"/></linearGradient>
-  </defs>
-  <rect x="2" y="2" width="200" height="32" rx="4" fill="url(#bgA)" stroke="#666" stroke-width="1"/>
-  <text x="14" y="24" font-family="Consolas,monospace" font-size="14" fill="#E0E0E0">100</text>
-  <line x1="182" y1="6" x2="182" y2="30" stroke="#444" stroke-width="0.8"/>
-  <rect x="183" y="2" width="18" height="15" fill="url(#btnA)"/>
-  <polygon points="192,5 188,14 196,14" fill="#D0D0D0"/>
-  <line x1="183" y1="17" x2="201" y2="17" stroke="#222" stroke-width="0.8"/>
-  <rect x="183" y="17" width="18" height="16" fill="url(#btnA)"/>
-  <polygon points="192,30 188,21 196,21" fill="#D0D0D0"/>
-  <line x1="182" y1="42" x2="182" y2="52" stroke="#888" stroke-width="0.5" stroke-dasharray="2,2"/>
-  <text x="100" y="66" font-family="Arial,sans-serif" font-size="9" fill="#888" text-anchor="middle">EditBox 区（宽度 = 控件总宽 − m_buttonWidth）</text>
-  <text x="192" y="66" font-family="Arial,sans-serif" font-size="9" fill="#888" text-anchor="middle">▲<tspan x="192" dy="10">▼</tspan></text>
-  <line x1="192" y1="42" x2="192" y2="52" stroke="#888" stroke-width="0.5" stroke-dasharray="2,2"/>
-  <text x="192" y="78" font-family="Arial,sans-serif" font-size="8" fill="#888" text-anchor="middle">独立按钮区<br/>(m_buttonWidth=16)</text>
-</svg>
-
-**实现**：`layoutButtons()` 计算 3 个子区域，Up/Down 按钮是 NumericUpDown 内部成员，不属于 EditBox。
-
-| 优点 | 缺点 |
-|------|------|
-| 符合需求文档 §6 | 占用额外宽度（默认 16px） |
-| 上下按钮分区明确 | EditBox 区域相对窄（输入长数字可能截断） |
-| 长按逻辑清晰（按钮 pressed 状态独立） | 需要额外维护 2 个按钮 hitRect |
-| 与 Slider/ProgressBar 的 thumb 区域类似 | 整体宽度 = EditBox 宽度 + 按钮宽度 |
-
-**适用场景**：PropertyGrid、参数编辑器、需要明确点击反馈的场合。
-
-### 7.5.2 方案 B：EditBox 内嵌（ComboBox 风格）
-
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80">
-  <defs>
-    <linearGradient id="bgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3A3A3A"/><stop offset="100%" stop-color="#2D2D2D"/></linearGradient>
-  </defs>
-  <rect x="2" y="2" width="200" height="32" rx="4" fill="url(#bgB)" stroke="#666" stroke-width="1"/>
-  <text x="14" y="24" font-family="Consolas,monospace" font-size="14" fill="#E0E0E0">100</text>
-  <line x1="184" y1="6" x2="184" y2="30" stroke="#444" stroke-width="0.5" stroke-dasharray="2,1"/>
-  <!-- ▲ 朝上（上方） -->
-  <polygon points="192,10 188,18 196,18" fill="#888"/>
-  <!-- ▼ 朝下（下方） -->
-  <polygon points="192,28 188,20 196,20" fill="#888"/>
-  <line x1="184" y1="42" x2="184" y2="52" stroke="#888" stroke-width="0.5" stroke-dasharray="2,2"/>
-  <text x="100" y="66" font-family="Arial,sans-serif" font-size="9" fill="#888" text-anchor="middle">EditBox 区（padding-right=12px 为箭头保留空间）</text>
-  <text x="192" y="66" font-family="Arial,sans-serif" font-size="9" fill="#888" text-anchor="middle">▲<tspan x="192" dy="10">▼</tspan></text>
-  <line x1="192" y1="42" x2="192" y2="52" stroke="#888" stroke-width="0.5" stroke-dasharray="2,2"/>
-  <text x="192" y="78" font-family="Arial,sans-serif" font-size="8" fill="#888" text-anchor="middle">箭头内嵌<br/>在 padding 区</text>
-</svg>
-
-**实现**：在 EditBox 内部右侧 padding 区域直接绘制上下三角，hit-test 通过 `getEditBox()->getPaddingRight()` 范围判断。
-
-| 优点 | 缺点 |
-|------|------|
-| 与 ComboBox 视觉一致 | EditBox 区域仍然被占用（三角在内部） |
-| 整体宽度不变（与 EditBox 等宽） | 上下按钮垂直空间仅为 EditBox 高度一半，三角小 |
-| 复用 ComboBox 的 padding 机制 | 长按时 padding 区需响应点击，EditBox 焦点管理复杂化 |
-| 控件宽度利用率高 | 三角形 hit-area 小，难点击 |
-
-**适用场景**：紧凑 UI（如表格内嵌编辑器、属性面板），希望控件宽度等于 EditBox 宽度。
-
-### 7.5.3 推荐：方案 A（独立按钮区）
-
-理由：
-
-1. **需求文档明确要求** §6 "右侧两个三角形箭头按钮，垂直排列，各占一半高度"
-2. **WinForms/WPF NumericUpDown** 均为独立按钮区（用户熟悉）
-3. **可点击区域更大**（16×12 vs ~12×6），移动端友好
-4. **实现简单**：NumericUpDown 内部维护 2 个 UpDownButton，与 EditBox 解耦
-5. **未来扩展**：若需要支持垂直方向 NumericUpDown，独立按钮区天然支持
-
-**已选**：方案 A。如未来需要方案 B 风格，可通过 `m_buttonPosition = INLINE_EDITBOX` 配置项扩展（不影响主流程）。
-
-### 7.5.4 JSON 切换（未来扩展）
-
-```json
-{
-    "type": "NumericUpDown",
-    "id": "compact",
-    "rect": { "x": 10, "y": 10, "w": 80, "h": 24 },
-    // 未来支持，默认 "RightSide"
-    ...
-}
 ```
+┌──────────────────────────────────┬──────┐
+│  EditBox 文本区                  │  ▲  │
+│  (m_margin.right 留出空间)        │  ─  │  ← 水平分隔线
+│                                  │  ▼  │
+└──────────────────────────────────┴──────┘
+                                   ↑ m_buttonWidth (默认 28px)
+```
+
+**实现**：
+
+- 构造时 `m_margin.right += m_buttonWidth`，EditBox 的文本渲染自动避开箭头区
+- `draw()`: `EditBox::draw()` 后，在右侧 margin 内绘制三角和分隔线
+- `handleEvent`: 通过 `isInArrowArea(x)` + `isInUpArrow(x,y)` / `isInDownArrow(x,y)` 检测点击
+- 三个层都不遮挡焦点环（箭头背景从右边缘内缩 3px）
 
 ## 8. 测试计划
 
@@ -1489,7 +1419,7 @@ onFocusLost() 中显式清零（防御性）
 void NumericUpDown::setValueInternal(double val, bool fireCallback) {
     double oldCommitted = m_committedValue;
     m_value = clampAndSnap(val);
-    m_editBox->setText(formatValue(m_value));
+    EditBox::setText(formatValue(m_value));
 
     if (fireCallback) {
         m_committedValue = m_value;
