@@ -303,3 +303,17 @@ if(UICORNERSTONE_BUILD_DLL)
     endif()
 endif()
 
+if(UICORNERSTONE_BUILD_DLL)
+    if(_BACKEND_UPPER STREQUAL "SDL3")
+        add_fromsource_target(test_numericupdown_cabi test_numericupdown_cabi.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "SFML")
+        add_fromsource_target(test_numericupdown_cabi test_numericupdown_cabi.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "RAYLIB")
+        add_fromsource_target(test_numericupdown_cabi test_numericupdown_cabi.cpp)
+    endif()
+endif()
+

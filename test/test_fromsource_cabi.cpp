@@ -53,11 +53,14 @@ typedef void  (*UISetSliderValueFn)(void*,float);
 typedef void  (*UISetOnSliderChangedFn)(void*, void (*)(void*,void*), void*);
 typedef void* (*UICreateColorPickerFn)(float,float,float,float,const char*);
 typedef void  (*UIGetColorPickerColorFn)(void*,char*,int);
-typedef void  (*UISetOnColorChangedFn)(void*, void (*)(void*,void*), void*);
+typedef void  (*UISetOnColorChangedFn)(void*,void(*)(void*,void*),void*);
 typedef void  (*UISetClosedSwatchSizeFn)(void*,float);
 typedef void  (*UISetClosedFontSizeFn)(void*,int);
 typedef void  (*UISetClosedTextColorFn)(void*,const char*);
 typedef void  (*UISetPopupBGColorFn)(void*,const char*);
+typedef void* (*UICreateNumericUpDownFn)(float,float,float,float);
+typedef void  (*UISetNumericUpDownValueFn)(void*,double);
+typedef double (*UIGetNumericUpDownValueFn)(void*);
 
 // ===== C ABI function pointers =====
 static UIInitFn             uiInit             = nullptr;
@@ -103,6 +106,9 @@ static UISetClosedSwatchSizeFn  uiSetClosedSwatchSize  = nullptr;
 static UISetClosedFontSizeFn    uiSetClosedFontSize    = nullptr;
 static UISetClosedTextColorFn   uiSetClosedTextColor   = nullptr;
 static UISetPopupBGColorFn      uiSetPopupBGColor      = nullptr;
+static UICreateNumericUpDownFn  uiCreateNumericUpDown  = nullptr;
+static UISetNumericUpDownValueFn uiSetNumericUpDownValue = nullptr;
+static UIGetNumericUpDownValueFn uiGetNumericUpDownValue = nullptr;
 
 // ===== Control handle globals =====
 static void* g_btnHandle      = nullptr;
@@ -119,6 +125,7 @@ static void* g_imgBtnHandle   = nullptr;
 static void* g_aniBtnHandle   = nullptr;
 static void* g_sliderHandle   = nullptr;
 static void* g_colorPickerHandle = nullptr;
+static void* g_nudHandle      = nullptr;
 
 static HMODULE g_uiDll = nullptr;
 static bool    g_uiInitialized = false;
@@ -196,6 +203,9 @@ static bool loadAllProcs(HMODULE dll) {
     uiSetClosedFontSize    = (UISetClosedFontSizeFn)GetProcAddress(dll, "UICornerstone_SetClosedFontSize");
     uiSetClosedTextColor   = (UISetClosedTextColorFn)GetProcAddress(dll, "UICornerstone_SetClosedTextColor");
     uiSetPopupBGColor      = (UISetPopupBGColorFn)GetProcAddress(dll, "UICornerstone_SetPopupBGColor");
+    uiCreateNumericUpDown  = (UICreateNumericUpDownFn)GetProcAddress(dll, "UICornerstone_CreateNumericUpDown");
+    uiSetNumericUpDownValue = (UISetNumericUpDownValueFn)GetProcAddress(dll, "UICornerstone_SetNumericUpDownValue");
+    uiGetNumericUpDownValue = (UIGetNumericUpDownValueFn)GetProcAddress(dll, "UICornerstone_GetNumericUpDownValue");
     return uiInit != nullptr;
 }
 
@@ -277,6 +287,15 @@ static void createAllControls() {
             }
         }
 
+        if (uiCreateNumericUpDown) {
+            g_nudHandle = uiCreateNumericUpDown(340, 470, 120, 32);
+            if (g_nudHandle) {
+                printf("OK: created NumericUpDown\n");
+                if (uiSetNumericUpDownValue)
+                    uiSetNumericUpDownValue(g_nudHandle, 50);
+            }
+        }
+
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
                 "assets/images/cross_up.png",
@@ -354,6 +373,11 @@ static void updateStatusLabels() {
     if (g_sliderHandle && uiGetSliderValue) {
         float sv = uiGetSliderValue(g_sliderHandle);
         printf("Slider: %.1f\r", sv);
+    }
+
+    if (g_nudHandle && uiGetNumericUpDownValue) {
+        double nv = uiGetNumericUpDownValue(g_nudHandle);
+        printf("NumericUpDown: %.0f\r", nv);
     }
 
     if (g_colorPickerHandle && uiGetColorPickerColor) {
