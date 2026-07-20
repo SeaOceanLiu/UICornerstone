@@ -457,6 +457,14 @@ NumericUpDown 继承 EditBox，事件处理采用 ComboBox 模式：先拦截箭
 bool NumericUpDown::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
 
+    // 只读模式：跳过交互但允许事件传播（由 KeyDown 块的聚焦检查决定消费）
+    if (m_readOnly) {
+        if (event->m_type == EventType::MouseDown ||
+            event->m_type == EventType::KeyDown ||
+            event->m_type == EventType::TextInput)
+            return false;
+    }
+
     // 箭头区点击（优先于 EditBox 的文本选中）
     if (event->m_type == EventType::MouseDown &&
         event->mouseButton.button == MouseButton::Left) {
@@ -490,6 +498,7 @@ bool NumericUpDown::handleEvent(shared_ptr<Event> event) {
 
     // 键盘拦截（优先级高于 EditBox 的光标/剪贴板处理）
     if (event->m_type == EventType::KeyDown && getFocused()) {
+        if (m_readOnly) return true;  // 只读聚焦控件：消费事件，不做操作
         switch (event->keyEvent.keycode) {
             case KeyCode::Up: case KeyCode::Plus: stepValue(+1); return true;
             case KeyCode::Down: case KeyCode::Minus: stepValue(-1); return true;
@@ -501,9 +510,6 @@ bool NumericUpDown::handleEvent(shared_ptr<Event> event) {
             default: break;
         }
     }
-
-    // TextInput：只读模式丢弃，否则交给 EditBox
-    if (event->m_type == EventType::TextInput && m_readOnly) return true;
 
     // 其余交给 EditBox 基类（光标移动、文本输入、剪贴板等）
     return EditBox::handleEvent(event);
