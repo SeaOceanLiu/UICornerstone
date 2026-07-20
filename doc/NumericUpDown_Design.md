@@ -864,14 +864,20 @@ NumericUpDown **继承自 EditBox**，在右侧 margin 区域绘制 ▲/▼ 三�
 
 **布局**：
 
-```
-┌──────────────────────────────────┬──────┐
-│  EditBox 文本区                  │  ▲  │
-│  (m_margin.right 留出空间)        │  ─  │  ← 水平分隔线
-│                                  │  ▼  │
-└──────────────────────────────────┴──────┘
-                                   ↑ m_buttonWidth (默认 28px)
-```
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 72" width="380" height="72">
+  <defs>
+    <linearGradient id="bg75" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3A3A3A"/><stop offset="100%" stop-color="#2D2D2D"/></linearGradient>
+  </defs>
+  <rect x="0" y="0" width="280" height="36" rx="4" fill="url(#bg75)" stroke="#666" stroke-width="1"/>
+  <text x="10" y="24" font-family="Consolas,monospace" font-size="14" fill="#E0E0E0">100</text>
+  <line x1="248" y1="4" x2="248" y2="32" stroke="#444" stroke-width="0.8"/>
+  <polygon points="264,10 256,17 272,17" fill="#CCC"/>
+  <line x1="256" y1="22" x2="272" y2="22" stroke="#555" stroke-width="0.5"/>
+  <polygon points="256,23 272,23 264,30" fill="#CCC"/>
+  <line x1="248" y1="44" x2="248" y2="52" stroke="#888" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="210" y="64" font-family="Arial,sans-serif" font-size="9" fill="#888" text-anchor="end">m_buttonWidth（默认 28px）</text>
+  <text x="120" y="48" font-family="Arial,sans-serif" font-size="9" fill="#888">EditBox 文本区（m_margin.right 预留空间）</text>
+</svg>
 
 **实现**：
 
