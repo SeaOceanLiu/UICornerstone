@@ -257,6 +257,17 @@ public:
     static const SColor NUMERICUPDOWN_ARROW_COLOR;
     static const SColor NUMERICUPDOWN_ARROW_HOVER_COLOR;
     static const SColor NUMERICUPDOWN_ARROW_PRESS_COLOR;
+
+    // Splitter
+    static const float SPLITTER_THICKNESS_H;
+    static const float SPLITTER_THICKNESS_V;
+    static const float SPLITTER_MIN_SIZE_DEFAULT;
+    static const SColor SPLITTER_COLOR_NORMAL;
+    static const SColor SPLITTER_COLOR_HOVER;
+    static const SColor SPLITTER_COLOR_DRAG;
+    static const int    SPLITTER_DOUBLE_CLICK_MS;
+    static const float  SPLITTER_KEY_STEP;
+    static const float  SPLITTER_KEY_FINE_STEP;
 };
 
 #endif // ConstDefH

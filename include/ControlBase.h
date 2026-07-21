@@ -453,8 +453,10 @@ public:
         shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
         while(eventInQueue != nullptr){
             evCount++;
-            m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
-            handleEvent(eventInQueue);
+            bool consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
+            if (!consumed) {
+                handleEvent(eventInQueue);
+            }
             m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
 
             eventInQueue = m_eventQueueInstance->popEventFromQueue();

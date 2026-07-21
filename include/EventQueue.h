@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <mutex>
+#include <memory>
 #include "StateMachine.h"
 
 using namespace std;
@@ -28,8 +29,8 @@ private:
     static std::mutex m_mtxForBeforeEventHandlingWatcher;
     static std::mutex m_mtxForAfterEventHandlingWatcher;
     std::queue<shared_ptr<Event>> m_eventQueue;
-    std::unordered_map<EventType, std::vector<shared_ptr<Control>>> m_beforeEventHandlingWatcherMap;
-    std::unordered_map<EventType, std::vector<shared_ptr<Control>>> m_afterEventHandlingWatcherMap;
+    std::unordered_map<EventType, std::vector<weak_ptr<Control>>> m_beforeEventHandlingWatcherMap;
+    std::unordered_map<EventType, std::vector<weak_ptr<Control>>> m_afterEventHandlingWatcherMap;
     EventQueue(){}
     ~EventQueue(){clear();}
 public:
@@ -57,7 +58,7 @@ public:
 
     bool addBeforeEventHandlingWatcher(EventType eventType, shared_ptr<Control> control);
     bool removeBeforeEventHandlingWatcher(EventType eventType, shared_ptr<Control> control);
-    void notifyBeforeEventHandlingWatchers(shared_ptr<Event> event);
+    bool notifyBeforeEventHandlingWatchers(shared_ptr<Event> event);
 
     bool addAfterEventHandlingWatcher(EventType eventType, shared_ptr<Control> control);
     bool removeAfterEventHandlingWatcher(EventType eventType, shared_ptr<Control> control);

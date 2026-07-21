@@ -259,6 +259,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         return nullptr;
     } else if (type == "NumericUpDown") {
         result = parseNumericUpDown(j, parent);
+    } else if (type == "Splitter") {
+        result = parseSplitter(j, parent);
     } else if (m_components.find(type) != m_components.end()) {
         // Component type: instantiate from template
         result = instantiateComponent(type, j, parent, index);
@@ -516,9 +518,11 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         if (actors.contains("disabled") && !actors["disabled"].is_null()) {
             auto actor = createActor(actors["disabled"]);
             if (actor) btn->setDisabledStateActor(actor);
-        }
+    }
 
-        popJsonPath();
+    
+
+    popJsonPath();
     }
 
     // LuotiAni (particle animation)
@@ -1522,6 +1526,63 @@ shared_ptr<NumericUpDown> LayoutParser::parseNumericUpDown(const json& j, Contro
     return nud;
 }
 
+// ==================== Splitter ====================
+
+shared_ptr<Splitter> LayoutParser::parseSplitter(const json& j, Control* parent) {
+    SRect rect = {0, 0, 10, 10};
+    if (j.contains("rect")) rect = parseRect(j["rect"]);
+
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains("scale") && j["scale"].is_object()) {
+        xScale = j["scale"].value("x", 1.0f);
+        yScale = j["scale"].value("y", 1.0f);
+    }
+
+    auto sp = make_shared<Splitter>(parent, rect, xScale, yScale);
+    m_theme.applyCommonColors(sp, "splitter");
+    parseCommonProperties(sp, j);
+
+    if (j.contains("orientation")) {
+        string orient = j["orientation"].get<string>();
+        sp->setOrientation(orient == "vertical");
+    }
+
+    if (j.contains("firstPanel") && j.contains("secondPanel")) {
+        string firstId = j["firstPanel"].get<string>();
+        string secondId = j["secondPanel"].get<string>();
+        auto first = findControlById(firstId);
+        auto second = findControlById(secondId);
+        if (first && second) {
+            sp->setLinkedControls(first, second);
+            SRect fr = first->getRect();
+            if (sp->isHorizontal()) {
+                sp->setRect({fr.left + fr.width, fr.top,
+                             sp->getThickness(), fr.height});
+            } else {
+                sp->setRect({fr.left, fr.top + fr.height,
+                             fr.width, sp->getThickness()});
+            }
+        }
+    }
+
+    if (j.contains("minFirst"))
+        sp->setMinSize(j["minFirst"].get<float>(), sp->getMinSecond());
+    if (j.contains("minSecond"))
+        sp->setMinSize(sp->getMinFirst(), j["minSecond"].get<float>());
+    if (j.contains("thickness"))
+        sp->setThickness(j["thickness"].get<float>());
+    if (j.contains("ratio"))
+        sp->setSplitRatio(j["ratio"].get<float>());
+
+    parseEvents(sp, j);
+
+    if (j.contains("id") && j["id"].is_string())
+        m_controlsById[j["id"].get<string>()] = sp;
+
+    sp->create();
+    return sp;
+}
+
 // ==================== ScrollBar ====================
 
 static ScrollBarOrientation parseScrollBarOrientation(const string& s) {
@@ -2007,6 +2068,20 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 nud->setOnValueChanged([handler](shared_ptr<NumericUpDown>, double) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // Splitter: onSplitterMoved
+    if (auto sp = dynamic_pointer_cast<Splitter>(ctrl)) {
+        if (events.contains("onSplitterMoved") && events["onSplitterMoved"].is_string()) {
+            string handlerName = events["onSplitterMoved"].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                sp->setOnSplitterMoved([handler](shared_ptr<Splitter>, float) {
                     handler(nullptr);
                 });
             }

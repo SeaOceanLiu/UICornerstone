@@ -14,6 +14,7 @@
 #include "ColorPicker.h"
 #include "ComboBox.h"
 #include "NumericUpDown.h"
+#include "Splitter.h"
 #include "Dialog.h"
 #include "WinFrame.h"
 #include "LayoutParser.h"
@@ -118,6 +119,10 @@ void UICornerstone_Shutdown(void) {
 
     // 清理所有 Dialog/Popup，确保在 BackendManager shutdown 前析构
     g_popupPool.clear();
+
+    // 销毁整个控制树，确保所有控件析构时后端仍存活。
+    // 避免 FreeLibrary 触发静态析构时 ~Splitter/~Actor 等访问已释放的后端资源。
+    BENCH->removeAllControls();
 
     delete g_resourceProvider; g_resourceProvider = nullptr;
 
@@ -1033,6 +1038,84 @@ void UICornerstone_SetOnNumericUpDownValueChanged(
     if (nud) {
         nud->setOnValueChanged([callback, userData](shared_ptr<Control>, double v) {
             if (callback) callback(userData, v);
+        });
+    }
+}
+
+// ── Splitter C ABI ──
+
+UIControlHandle UICornerstone_CreateSplitter(float x, float y, float w, float h, int orientation) {
+    auto sp = make_shared<Splitter>(BENCH, SRect(x, y, w, h));
+    sp->setOrientation(orientation != 0);
+    BENCH->addControl(sp);
+    sp->create();
+    sp->setVisible(true);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(sp.get()));
+}
+
+void UICornerstone_SetSplitterLinkedControls(UIControlHandle ctl, UIControlHandle first, UIControlHandle second) {
+    if (!ctl || !first || !second) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    auto* fImpl = dynamic_cast<ControlImpl*>(static_cast<Control*>(first));
+    auto* sImpl = dynamic_cast<ControlImpl*>(static_cast<Control*>(second));
+    if (sp && fImpl && sImpl) {
+        sp->setLinkedControls(fImpl->shared_from_this(), sImpl->shared_from_this());
+        // Auto-position splitter between linked panels
+        SRect fr = fImpl->getRect();
+        if (sp->isHorizontal()) {
+            sp->setRect({fr.left + fr.width, fr.top, sp->getThickness(), fr.height});
+        } else {
+            sp->setRect({fr.left, fr.top + fr.height, fr.width, sp->getThickness()});
+        }
+    }
+}
+
+void UICornerstone_SetSplitterMinSize(UIControlHandle ctl, float firstMin, float secondMin) {
+    if (!ctl) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    if (sp) sp->setMinSize(firstMin, secondMin);
+}
+
+void UICornerstone_SetSplitterThickness(UIControlHandle ctl, float thickness) {
+    if (!ctl) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    if (sp) sp->setThickness(thickness);
+}
+
+void UICornerstone_SetSplitterRatio(UIControlHandle ctl, float ratio) {
+    if (!ctl) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    if (sp) sp->setSplitRatio(ratio);
+}
+
+float UICornerstone_GetSplitterRatio(UIControlHandle ctl) {
+    if (!ctl) return 0.0f;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    return sp ? sp->getSplitRatio() : 0.0f;
+}
+
+void UICornerstone_SetSplitterColor(UIControlHandle ctl, const char* normalHex, const char* hoverHex, const char* dragHex) {
+    if (!ctl) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    if (sp) {
+        SColor n, h, d;
+        if (normalHex) SColor::fromHex(normalHex, n);
+        if (hoverHex) SColor::fromHex(hoverHex, h);
+        if (dragHex) SColor::fromHex(dragHex, d);
+        sp->setColor(n, h, d);
+    }
+}
+
+void UICornerstone_SetOnSplitterMoved(
+    UIControlHandle ctl,
+    void (*callback)(void* userData, float ratio),
+    void* userData)
+{
+    if (!ctl) return;
+    auto* sp = dynamic_cast<Splitter*>(static_cast<Control*>(ctl));
+    if (sp) {
+        sp->setOnSplitterMoved([callback, userData](shared_ptr<Control>, float r) {
+            if (callback) callback(userData, r);
         });
     }
 }

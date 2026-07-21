@@ -188,6 +188,17 @@ const SColor ConstDef::NUMERICUPDOWN_ARROW_COLOR(180, 180, 180, 255);
 const SColor ConstDef::NUMERICUPDOWN_ARROW_HOVER_COLOR(255, 255, 255, 255);
 const SColor ConstDef::NUMERICUPDOWN_ARROW_PRESS_COLOR(220, 220, 220, 255);
 
+// ── Splitter ──
+const float ConstDef::SPLITTER_THICKNESS_H        = 4.0f;
+const float ConstDef::SPLITTER_THICKNESS_V        = 6.0f;
+const float ConstDef::SPLITTER_MIN_SIZE_DEFAULT   = 20.0f;
+const SColor ConstDef::SPLITTER_COLOR_NORMAL(128, 128, 128, 255);
+const SColor ConstDef::SPLITTER_COLOR_HOVER(74, 144, 217, 255);
+const SColor ConstDef::SPLITTER_COLOR_DRAG(58, 128, 201, 255);
+const int    ConstDef::SPLITTER_DOUBLE_CLICK_MS   = 300;
+const float  ConstDef::SPLITTER_KEY_STEP          = 5.0f;
+const float  ConstDef::SPLITTER_KEY_FINE_STEP     = 1.0f;
+
 const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
     {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
     {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},

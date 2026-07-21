@@ -172,12 +172,15 @@ void MainWindow::processEvents() {
 void TopControl::eventLoopEntry() {       // ControlBase.h
     shared_ptr<Event> eventInQueue;
     while (eventInQueue = popEventFromQueue()) {
-        EventQueue::notifyBeforeEventHandlingWatchers(eventInQueue);
-        handleEvent(eventInQueue);          // 进入控件树
-        EventQueue::notifyAfterEventHandlingWatchers(eventInQueue);
+        bool consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
+        if (!consumed)
+            handleEvent(eventInQueue);      // 进入控件树
+        m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
     }
 }
 ```
+
+**注意**：`notifyBeforeEventHandlingWatchers` 返回 `true` 时跳过 `handleEvent`——watcher 已消费此事件，防止低 Z-order 控件重复处理（如拖拽中的 Splitter 被 Label 覆盖时，watcher 消费 MouseMove 后 Label 不再收到）。
 
 ### 3.5 控件树事件分派
 
@@ -201,6 +204,13 @@ bool ControlImpl::handleEvent(shared_ptr<Event> event) {
 - `EditBox` — 监听外部 `MouseDown`（通过 `ON_FOCUS` 自定义事件 `customInt`）失去焦点
 - `Popup` / `Dialog` — 监听 `MouseDown` 外部点击关闭、`KeyDown` ESC/Enter 关闭
 - `ColorPicker` — ESC=取消，Enter=确定
+- `Splitter` — 拖拽期间通过 watcher 拦截 MouseMove/MouseUp/MouseDown，确保鼠标移出控件区域仍能接收事件
+- `Slider` — 聚焦时监听全局 MouseDown（值提交检测）
+
+**实现细节**：
+- `EventQueue` 内部存储 `weak_ptr<Control>` 而非 `shared_ptr<Control>`，不延长控件生命周期，避免静态析构顺序问题。
+- watcher 注册后通常不主动移除（如 Dialog/Splitter），不活动时通过标志位（`getVisible()`/`m_dragging`）返回 `false` 放行事件。
+- `notifyBeforeEventHandlingWatchers` 持有 `m_mtxForBeforeEventHandlingWatcher` 期间调用 watcher，因此 watcher 回调内部不得调用 `removeBeforeEventHandlingWatcher`（非递归 mutex → 死锁）。
 
 ---
 

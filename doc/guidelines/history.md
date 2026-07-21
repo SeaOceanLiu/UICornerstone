@@ -1596,3 +1596,33 @@ Done, 180 frames                        # 帧循环正常完成
 - `src/ComboBox.cpp`: `updateScrollBar()` 保存预期 offset 避免回调级联
 
 **验证**：SDL3 18 个目标全部编译通过。SFML/Raylib 静态构建通过。
+
+### 2026-07-21: Splitter 拖拽崩溃修复 + Raylib DLL 退出慢修复 + 编码规范整理
+
+**Bug — Splitter 拖拽释放后运行库异常**：
+
+- **Root cause**: `endDrag()` 从 `beforeEventHandlingWatcher` 回调内部调用 `removeBeforeEventHandlingWatcher`，此时 `EventQueue` 已持有 `m_mtxForBeforeEventHandlingWatcher` 非递归 mutex，递归 lock → 死锁 + 迭代器失效。
+- **Fix**: `endDrag()` 不再移除 watcher（同 Dialog 既有模式），不拖拽时 watcher 检查 `!m_dragging` 返回 false 放行事件。`EventQueue` watcher map 改用 `weak_ptr<Control>` 存储，不延长控件生命周期，消除静态析构顺序问题。
+
+**Bug — Raylib DLL 退出慢**：
+
+- **Root cause**: `UICornerstone_Shutdown()` 先销毁后端（`CloseWindow` 等），`FreeLibrary` 后触发 `Bench` 静态析构时控件析构访问已释放的后端资源。
+- **Fix**: `UICornerstone_Shutdown()` 在 `BackendManager::shutdown()` 前调用 `BENCH->removeAllControls()` 主动销毁控制树。
+
+**Files changed**:
+
+| File | Change |
+|------|--------|
+| `include/EventQueue.h` | watcher map: `shared_ptr<Control>` → `weak_ptr<Control>` |
+| `src/EventQueue.cpp` | 6 个 watcher 函数全部更新为 `std::find_if` + `lock()` |
+| `include/Splitter.h` | 删除未使用字段 `m_dragEventTypes[2]`；加 `#include "ConstDef.h"`；修复 UTF-8 BOM |
+| `src/Splitter.cpp` | `endDrag()` 移除 `removeBeforeEventHandlingWatcher` 调用；魔鬼数字改用 `ConstDef::SPLITTER_*`；`setSplitRatio` 加早期返回避免相同比例重复触发回调 |
+| `src/UICornerstoneAPI.cpp` | `UICornerstone_Shutdown()` 添加 `BENCH->removeAllControls()` |
+| `include/ConstDef.h` | 新增 `SPLITTER_KEY_STEP`、`SPLITTER_KEY_FINE_STEP` |
+| `src/ConstDef.cpp` | 新增上述常量定义 |
+
+**Documentation updated**:
+- `doc/Splitter_Design.md`: 更新 §3.1/4.2/4.3.3/4.4/6/12.3 与当前实现一致
+- `doc/EventSystem_Design.md`: 更新 §3.4 `eventLoopEntry` 含 consumed 检查；§3.6 补充 `weak_ptr` 实现细节
+- `doc/UICornerstone_DLL_Design.md`: 版本历史 v1.16
+- `doc/guidelines/history.md`: 本次记录

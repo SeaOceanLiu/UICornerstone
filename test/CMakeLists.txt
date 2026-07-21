@@ -104,6 +104,7 @@ set(UI_TEST_EXECUTABLES
     test_handlecontrol
     test_slider
     test_numericupdown
+    test_splitter
     test_layout
     test_layout_advanced
     test_winframe
@@ -314,6 +315,20 @@ if(UICORNERSTONE_BUILD_DLL)
 
     if(_BACKEND_UPPER STREQUAL "RAYLIB")
         add_fromsource_target(test_numericupdown_cabi test_numericupdown_cabi.cpp)
+    endif()
+endif()
+
+if(UICORNERSTONE_BUILD_DLL)
+    if(_BACKEND_UPPER STREQUAL "SDL3")
+        add_fromsource_target(test_splitter_cabi test_splitter_cabi.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "SFML")
+        add_fromsource_target(test_splitter_cabi test_splitter_cabi.cpp)
+    endif()
+
+    if(_BACKEND_UPPER STREQUAL "RAYLIB")
+        add_fromsource_target(test_splitter_cabi test_splitter_cabi.cpp)
     endif()
 endif()
 

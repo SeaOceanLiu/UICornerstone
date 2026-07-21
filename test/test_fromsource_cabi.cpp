@@ -61,6 +61,11 @@ typedef void  (*UISetPopupBGColorFn)(void*,const char*);
 typedef void* (*UICreateNumericUpDownFn)(float,float,float,float);
 typedef void  (*UISetNumericUpDownValueFn)(void*,double);
 typedef double (*UIGetNumericUpDownValueFn)(void*);
+typedef void* (*UICreateSplitterFn)(float,float,float,float,int);
+typedef void  (*UISetSplitterLinkedControlsFn)(void*,void*,void*);
+typedef void  (*UISetSplitterMinSizeFn)(void*,float,float);
+typedef float (*UIGetSplitterRatioFn)(void*);
+typedef void  (*UISetOnSplitterMovedFn)(void*,void(*)(void*,float),void*);
 
 // ===== C ABI function pointers =====
 static UIInitFn             uiInit             = nullptr;
@@ -109,6 +114,11 @@ static UISetPopupBGColorFn      uiSetPopupBGColor      = nullptr;
 static UICreateNumericUpDownFn  uiCreateNumericUpDown  = nullptr;
 static UISetNumericUpDownValueFn uiSetNumericUpDownValue = nullptr;
 static UIGetNumericUpDownValueFn uiGetNumericUpDownValue = nullptr;
+static UICreateSplitterFn           uiCreateSplitter           = nullptr;
+static UISetSplitterLinkedControlsFn uiSetSplitterLinkedControls = nullptr;
+static UISetSplitterMinSizeFn       uiSetSplitterMinSize       = nullptr;
+static UIGetSplitterRatioFn         uiGetSplitterRatio         = nullptr;
+static UISetOnSplitterMovedFn       uiSetOnSplitterMoved       = nullptr;
 
 // ===== Control handle globals =====
 static void* g_btnHandle      = nullptr;
@@ -126,6 +136,9 @@ static void* g_aniBtnHandle   = nullptr;
 static void* g_sliderHandle   = nullptr;
 static void* g_colorPickerHandle = nullptr;
 static void* g_nudHandle      = nullptr;
+static void* g_splitterHandle = nullptr;
+static void* g_spFirstPanel   = nullptr;
+static void* g_spSecondPanel  = nullptr;
 
 static HMODULE g_uiDll = nullptr;
 static bool    g_uiInitialized = false;
@@ -206,8 +219,16 @@ static bool loadAllProcs(HMODULE dll) {
     uiCreateNumericUpDown  = (UICreateNumericUpDownFn)GetProcAddress(dll, "UICornerstone_CreateNumericUpDown");
     uiSetNumericUpDownValue = (UISetNumericUpDownValueFn)GetProcAddress(dll, "UICornerstone_SetNumericUpDownValue");
     uiGetNumericUpDownValue = (UIGetNumericUpDownValueFn)GetProcAddress(dll, "UICornerstone_GetNumericUpDownValue");
+    uiCreateSplitter           = (UICreateSplitterFn)GetProcAddress(dll, "UICornerstone_CreateSplitter");
+    uiSetSplitterLinkedControls = (UISetSplitterLinkedControlsFn)GetProcAddress(dll, "UICornerstone_SetSplitterLinkedControls");
+    uiSetSplitterMinSize       = (UISetSplitterMinSizeFn)GetProcAddress(dll, "UICornerstone_SetSplitterMinSize");
+    uiGetSplitterRatio         = (UIGetSplitterRatioFn)GetProcAddress(dll, "UICornerstone_GetSplitterRatio");
+    uiSetOnSplitterMoved       = (UISetOnSplitterMovedFn)GetProcAddress(dll, "UICornerstone_SetOnSplitterMoved");
     return uiInit != nullptr;
 }
+
+// ===== Splitter callback forward declaration =====
+static void onSplitterMovedCb(void* userData, float ratio);
 
 // ===== Common functions =====
 static bool initCABI(void* cbs, int viewportW, int viewportH) {
@@ -256,13 +277,13 @@ static void createAllControls() {
     }
 
     if (uiCreatePanel && uiCreateTextArea && uiAddChild) {
-        g_panelHandle = uiCreatePanel(20, 135, 760, 330);
+        g_panelHandle = uiCreatePanel(20, 135, 760, 220);
         if (g_panelHandle) {
             printf("OK: created Panel\n");
             if (uiSetBGColor) uiSetBGColor(g_panelHandle, 50, 55, 60, 255);
         }
 
-        g_textAreaHandle = uiCreateTextArea(5, 5, 750, 260);
+        g_textAreaHandle = uiCreateTextArea(5, 5, 750, 160);
         if (g_textAreaHandle) {
             printf("OK: created TextArea\n");
             if (uiSetText) uiSetText(g_textAreaHandle,
@@ -288,20 +309,43 @@ static void createAllControls() {
         }
 
         if (uiCreateNumericUpDown) {
-            g_nudHandle = uiCreateNumericUpDown(340, 470, 120, 32);
+            g_nudHandle = uiCreateNumericUpDown(360, 470, 80, 32);
             if (g_nudHandle) {
                 printf("OK: created NumericUpDown\n");
-                if (uiSetNumericUpDownValue)
-                    uiSetNumericUpDownValue(g_nudHandle, 50);
-            }
-        }
+        if (uiSetNumericUpDownValue)
+            uiSetNumericUpDownValue(g_nudHandle, 50);
+    }
 
+    // ── Splitter test ──
+    if (uiCreateSplitter && uiCreatePanel && uiAddChild) {
+        g_spFirstPanel = uiCreatePanel(20, 370, 60, 30);
+        if (g_spFirstPanel) {
+            printf("OK: created splitter first panel\n");
+            if (uiSetBGColor) uiSetBGColor(g_spFirstPanel, 60, 70, 80, 255);
+        }
+        g_spSecondPanel = uiCreatePanel(86, 370, 60, 30);
+        if (g_spSecondPanel) {
+            printf("OK: created splitter second panel\n");
+            if (uiSetBGColor) uiSetBGColor(g_spSecondPanel, 80, 70, 60, 255);
+        }
+        g_splitterHandle = uiCreateSplitter(80, 370, 6, 30, 1);
+        if (g_splitterHandle) {
+            printf("OK: created Splitter\n");
+            if (uiSetSplitterLinkedControls)
+                uiSetSplitterLinkedControls(g_splitterHandle, g_spFirstPanel, g_spSecondPanel);
+            if (uiSetSplitterMinSize)
+                uiSetSplitterMinSize(g_splitterHandle, 20.0f, 20.0f);
+            if (uiSetOnSplitterMoved)
+                uiSetOnSplitterMoved(g_splitterHandle, onSplitterMovedCb, nullptr);
+        }
+    }
+    }
         if (uiCreateImageButton) {
             g_imgBtnHandle = uiCreateImageButton(
-                "assets/images/cross_up.png",
-                "assets/images/cross_over.png",
-                "assets/images/cross_down.png",
-                5, 270, 200, 30);
+                    "assets/images/cross_up.png",
+                    "assets/images/cross_over.png",
+                    "assets/images/cross_down.png",
+                    5, 175, 200, 30);
             if (g_imgBtnHandle) {
                 printf("OK: created ImageButton\n");
                 if (uiSetOnClick)
@@ -311,7 +355,7 @@ static void createAllControls() {
         }
 
         if (uiCreateButton && uiSetButtonAnimation) {
-            g_aniBtnHandle = uiCreateButton("Ani Test", 210, 270, 200, 30);
+            g_aniBtnHandle = uiCreateButton("Ani Test", 210, 175, 200, 30);
             if (g_aniBtnHandle) {
                 printf("OK: created Animation Button\n");
                 uiSetButtonAnimation(g_aniBtnHandle,
@@ -324,7 +368,7 @@ static void createAllControls() {
 
         if (uiCreateButton) {
             g_btnHandle = uiCreateButton(
-                "Read TextArea Content", 555, 270, 200, 30);
+                "Read TextArea Content", 555, 175, 200, 30);
             if (g_btnHandle) {
                 printf("OK: created Button (in Panel)\n");
                 if (uiSetBGColor)
@@ -372,19 +416,38 @@ static void updateStatusLabels() {
 
     if (g_sliderHandle && uiGetSliderValue) {
         float sv = uiGetSliderValue(g_sliderHandle);
-        printf("Slider: %.1f\r", sv);
+        static float lastSv = -1e9f;
+        if (sv != lastSv) { lastSv = sv; printf("Slider: %.1f\n", sv); }
     }
 
     if (g_nudHandle && uiGetNumericUpDownValue) {
         double nv = uiGetNumericUpDownValue(g_nudHandle);
-        printf("NumericUpDown: %.0f\r", nv);
+        static double lastNv = -1e9;
+        if (nv != lastNv) { lastNv = nv; printf("NumericUpDown: %.0f\n", nv); }
     }
 
     if (g_colorPickerHandle && uiGetColorPickerColor) {
         char hex[16];
         uiGetColorPickerColor(g_colorPickerHandle, hex, sizeof(hex));
-        printf("Color: %s\r", hex);
+        static char lastHex[16] = "";
+        if (strcmp(hex, lastHex) != 0) {
+            strncpy(lastHex, hex, sizeof(lastHex) - 1);
+            printf("Color: %s\n", hex);
+        }
     }
+
+    if (g_splitterHandle && uiGetSplitterRatio) {
+        float sr = uiGetSplitterRatio(g_splitterHandle);
+        static float lastSr = -1.0f;
+        if (sr != lastSr) { lastSr = sr; printf("Splitter: %.3f\n", sr); }
+    }
+}
+
+// ===== Splitter callback =====
+static void onSplitterMovedCb(void* userData, float ratio) {
+    (void)userData;
+    printf("Splitter ratio: %.3f\n", ratio);
+    fflush(stdout);
 }
 
 static void doFrame() {

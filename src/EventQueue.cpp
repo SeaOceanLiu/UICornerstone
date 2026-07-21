@@ -42,10 +42,14 @@ bool EventQueue::addBeforeEventHandlingWatcher(EventType eventType, shared_ptr<C
     if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForBeforeEventHandlingWatcher.lock();
-    if (m_beforeEventHandlingWatcherMap.find(eventType) == m_beforeEventHandlingWatcherMap.end() ||
-        std::find(m_beforeEventHandlingWatcherMap[eventType].begin(), m_beforeEventHandlingWatcherMap[eventType].end(), control) ==
-            m_beforeEventHandlingWatcherMap[eventType].end()){
-        m_beforeEventHandlingWatcherMap[eventType].push_back(control);
+    auto& vec = m_beforeEventHandlingWatcherMap[eventType];
+    auto it = std::find_if(vec.begin(), vec.end(),
+        [&control](const weak_ptr<Control>& wp) {
+            auto sp = wp.lock();
+            return sp && sp == control;
+        });
+    if (it == vec.end()) {
+        vec.push_back(weak_ptr<Control>(control));
     }
     m_mtxForBeforeEventHandlingWatcher.unlock();
 
@@ -58,7 +62,11 @@ bool EventQueue::removeBeforeEventHandlingWatcher(EventType eventType, shared_pt
     m_mtxForBeforeEventHandlingWatcher.lock();
     auto it = m_beforeEventHandlingWatcherMap.find(eventType);
     if (it != m_beforeEventHandlingWatcherMap.end()){
-        auto it2 = std::find(it->second.begin(), it->second.end(), control);
+        auto it2 = std::find_if(it->second.begin(), it->second.end(),
+            [&control](const weak_ptr<Control>& wp) {
+                auto sp = wp.lock();
+                return sp && sp == control;
+            });
         if (it2 != it->second.end()){
             it->second.erase(it2);
             m_mtxForBeforeEventHandlingWatcher.unlock();
@@ -69,18 +77,23 @@ bool EventQueue::removeBeforeEventHandlingWatcher(EventType eventType, shared_pt
     return false;
 }
 
-void EventQueue::notifyBeforeEventHandlingWatchers(shared_ptr<Event> event){
-    if (event->m_type == EventType::None) return;
+bool EventQueue::notifyBeforeEventHandlingWatchers(shared_ptr<Event> event){
+    if (event->m_type == EventType::None) return false;
 
     m_mtxForBeforeEventHandlingWatcher.lock();
+    bool consumed = false;
     auto it = m_beforeEventHandlingWatcherMap.find(event->m_type);
     if (it != m_beforeEventHandlingWatcherMap.end()){
-        for (auto control : it->second){
-            if(control->beforeEventHandlingWatcher(event))
+        for (auto& weakControl : it->second){
+            auto control = weakControl.lock();
+            if (control && control->beforeEventHandlingWatcher(event)){
+                consumed = true;
                 break;
+            }
         }
     }
     m_mtxForBeforeEventHandlingWatcher.unlock();
+    return consumed;
 }
 
 
@@ -88,10 +101,14 @@ bool EventQueue::addAfterEventHandlingWatcher(EventType eventType, shared_ptr<Co
     if (control == nullptr || eventType == EventType::None) return false;
 
     m_mtxForAfterEventHandlingWatcher.lock();
-    if (m_afterEventHandlingWatcherMap.find(eventType) == m_afterEventHandlingWatcherMap.end() ||
-        std::find(m_afterEventHandlingWatcherMap[eventType].begin(), m_afterEventHandlingWatcherMap[eventType].end(), control) ==
-            m_afterEventHandlingWatcherMap[eventType].end()){
-        m_afterEventHandlingWatcherMap[eventType].push_back(control);
+    auto& vec = m_afterEventHandlingWatcherMap[eventType];
+    auto it = std::find_if(vec.begin(), vec.end(),
+        [&control](const weak_ptr<Control>& wp) {
+            auto sp = wp.lock();
+            return sp && sp == control;
+        });
+    if (it == vec.end()) {
+        vec.push_back(weak_ptr<Control>(control));
     }
     m_mtxForAfterEventHandlingWatcher.unlock();
 
@@ -104,7 +121,11 @@ bool EventQueue::removeAfterEventHandlingWatcher(EventType eventType, shared_ptr
     m_mtxForAfterEventHandlingWatcher.lock();
     auto it = m_afterEventHandlingWatcherMap.find(eventType);
     if (it != m_afterEventHandlingWatcherMap.end()){
-        auto it2 = std::find(it->second.begin(), it->second.end(), control);
+        auto it2 = std::find_if(it->second.begin(), it->second.end(),
+            [&control](const weak_ptr<Control>& wp) {
+                auto sp = wp.lock();
+                return sp && sp == control;
+            });
         if (it2 != it->second.end()){
             it->second.erase(it2);
             m_mtxForAfterEventHandlingWatcher.unlock();
@@ -121,8 +142,9 @@ void EventQueue::notifyAfterEventHandlingWatchers(shared_ptr<Event> event){
     m_mtxForAfterEventHandlingWatcher.lock();
     auto it = m_afterEventHandlingWatcherMap.find(event->m_type);
     if (it != m_afterEventHandlingWatcherMap.end()){
-        for (auto control : it->second){
-            if(control->afterEventHandlingWatcher(event))
+        for (auto& weakControl : it->second){
+            auto control = weakControl.lock();
+            if (control && control->afterEventHandlingWatcher(event))
                 break;
         }
     }

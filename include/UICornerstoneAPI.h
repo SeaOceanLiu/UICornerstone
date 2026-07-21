@@ -276,6 +276,21 @@ UICORNERSTONE_API void   UICornerstone_SetNumericUpDownButtonWidth(UIControlHand
 UICORNERSTONE_API void   UICornerstone_SetOnNumericUpDownValueChanged(
     UIControlHandle ctl, void (*callback)(void* userData, double newValue), void* userData);
 
+/* ============ Splitter ============ */
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateSplitter(
+    float x, float y, float w, float h, int orientation);
+UICORNERSTONE_API void   UICornerstone_SetSplitterLinkedControls(
+    UIControlHandle ctl, UIControlHandle first, UIControlHandle second);
+UICORNERSTONE_API void   UICornerstone_SetSplitterMinSize(
+    UIControlHandle ctl, float firstMin, float secondMin);
+UICORNERSTONE_API void   UICornerstone_SetSplitterThickness(UIControlHandle ctl, float thickness);
+UICORNERSTONE_API void   UICornerstone_SetSplitterRatio(UIControlHandle ctl, float ratio);
+UICORNERSTONE_API float  UICornerstone_GetSplitterRatio(UIControlHandle ctl);
+UICORNERSTONE_API void   UICornerstone_SetSplitterColor(
+    UIControlHandle ctl, const char* normalHex, const char* hoverHex, const char* dragHex);
+UICORNERSTONE_API void   UICornerstone_SetOnSplitterMoved(
+    UIControlHandle ctl, void (*callback)(void* userData, float ratio), void* userData);
+
 /* ============ 图片/动画按钮 ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(
     const char* normalImage,

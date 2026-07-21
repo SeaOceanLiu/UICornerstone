@@ -22,6 +22,7 @@
 #include "ComboBox.h"
 #include "ColorPicker.h"
 #include "NumericUpDown.h"
+#include "Splitter.h"
 #include "Panel.h"
 #include "WinFrame.h"
 #include "Dialog.h"
@@ -99,6 +100,7 @@ private:
     shared_ptr<Panel>       parsePanel(const json& j, Control* parent);
     shared_ptr<ColorPicker> parseColorPicker(const json& j, Control* parent);
     shared_ptr<NumericUpDown> parseNumericUpDown(const json& j, Control* parent);
+    shared_ptr<Splitter> parseSplitter(const json& j, Control* parent);
     shared_ptr<Popup>       parsePopup(const json& j, Control* parent);
     shared_ptr<ConfirmPopup> parseConfirmPopup(const json& j, Control* parent);
     shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);

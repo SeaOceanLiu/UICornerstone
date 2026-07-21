@@ -62,15 +62,6 @@ static UISetOnNumericUpDownValueChangedFn uiSetOnNumericUpDownValueChanged = nul
 
 static HMODULE g_uiDll = nullptr;
 
-// ===== 回调 =====
-static char g_statusInfo[256] = "NumericUpDown C ABI Test";
-
-static void onValueChanged(void* ctl, double newValue) {
-    snprintf(g_statusInfo, sizeof(g_statusInfo),
-        "ValueChanged: ctl=%p value=%.2f", ctl, newValue);
-    printf("%s\n", g_statusInfo);
-}
-
 static void loadAllProcs(HMODULE dll) {
 #define RESOLVE(name) \
     *(void**)&ui##name = GetProcAddress(dll, "UICornerstone_" #name)
@@ -117,8 +108,6 @@ static int runTest(const char* shortName, const char* displayName) {
     uiSetViewport(0, 0, 600, 480);
     printf("OK: initialized\n");
 
-    uiRegisterAction("onValueChanged", (void(*)(void*,void*))onValueChanged, nullptr);
-
     const char* layoutJson = R"json({
         "version": "1.0",
         "controls": [
@@ -150,8 +139,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 20, "y": 78, "w": 180, "h": 32 },
                         "value": 50,
                         "range": { "min": 0, "max": 100 },
-                        "step": 1,
-                        "events": { "onValueChanged": "onValueChanged" }
+                        "step": 1
                     },
                     {
                         "id": "lblHint2",
@@ -168,8 +156,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "value": 0.6,
                         "range": { "min": 0.0, "max": 1.0 },
                         "step": 0.2,
-                        "decimals": 2,
-                        "events": { "onValueChanged": "onValueChanged" }
+                        "decimals": 2
                     },
                     {
                         "id": "lblHint3",
@@ -201,8 +188,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 20, "y": 270, "w": 180, "h": 32 },
                         "value": 100,
                         "range": { "min": 0, "max": 1000 },
-                        "step": 50,
-                        "events": { "onValueChanged": "onValueChanged" }
+                        "step": 50
                     },
                     {
                         "id": "lblHint5",
@@ -219,8 +205,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "value": 50,
                         "range": { "min": 0, "max": 1000 },
                         "step": 1,
-                        "pageStep": 25,
-                        "events": { "onValueChanged": "onValueChanged" }
+                        "pageStep": 25
                     },
                     {
                         "id": "lblStatus",
@@ -242,6 +227,16 @@ static int runTest(const char* shortName, const char* displayName) {
         return 1;
     }
     printf("OK: layout loaded (5 NumericUpDown + labels)\n");
+
+    // 通过 C ABI 设置回调（比 JSON 事件更精确，能传递 double 值）
+    if (uiSetOnNumericUpDownValueChanged) {
+        void* nudInt = uiFindControl("nudInteger");
+        if (nudInt) {
+            uiSetOnNumericUpDownValueChanged(nudInt, [](void*, double v) {
+                printf("Value: %.2f\n", v);
+            }, nullptr);
+        }
+    }
 
     // ── 运行时通过 C ABI 修改属性 ──
     void* nudFloat = uiFindControl("nudFloat");
