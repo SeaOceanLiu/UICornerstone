@@ -386,7 +386,7 @@ public:
     float getFontContextSize() const { return m_fontContextSize; }
     bool hasExplicitFont() const { return m_fontContextExplicit; }
     bool hasExplicitFontName() const { return m_fontContextNameExplicit; }
-    FontName m_fontContextName = FontName::Asul_Regular;
+    FontName m_fontContextName = FontName::HarmonyOS_Sans_SC_Regular;
     float m_fontContextSize = 0.0f;         // 0 = 未声明
     bool m_fontContextExplicit = false;
     bool m_fontContextNameExplicit = false; // font.name 是否显式声明（仅显式时覆盖子默认字体名）

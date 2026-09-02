@@ -263,14 +263,14 @@
 }, {
   "id":"img1","label":"带图标的行",
   "leadingControl":{ "type":"image", "image":"assets/images/cross_down.png" },
-  "font":"harmonyos-sans-sc-bold", "size":16
+  "font":"maplemono-nf-cn-regular", "size":16
 } ]</code></pre>
 <ul>
 <li><code>leadingControl</code>：行前置控件容器（控件 JSON，复用 <code>type</code> + 控件属性，
 支持 check-box / image 等）。rect 由 TreeView 自适应（高 = 行内文字高度，宽按原始宽高比等比），
 文字缩进 = 无容器时文本缩进，文字被容器让位右移。</li>
 <li><code>leadingGap</code>：控件容器与文本之间的间隔（局部 px，默认 6）。</li>
-<li><code>font</code>：逐 Item 字体枚举（如 <code>harmonyos-sans-sc-bold</code> 粗体），
+<li><code>font</code>：逐 Item 字体枚举（如 <code>maplemono-nf-cn-regular</code>），
 <code>size</code>：逐 Item 字号（0 = 继承 TreeView 级）。</li>
 <li><code>alignment</code>：槽位对齐（复用 Label 的 <code>alignment</code> 键与 9 宫格字符串，
 如 <code>"bottom-left"</code>；默认 <code>"mid-left"</code> 居中；水平分量忽略，槽位贴文本起点）。</li>

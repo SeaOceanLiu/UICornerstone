@@ -74,7 +74,7 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
 
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-<tr><td><code>item-font</code></td><td><code>kTreeItemFont</code></td><td>Enum</td><td>继承 TreeView</td><td>逐 Item 字体枚举（如 <code>harmonyos-sans-sc-bold</code> 粗体）</td></tr>
+<tr><td><code>item-font</code></td><td><code>kTreeItemFont</code></td><td>Enum</td><td>继承 TreeView</td><td>逐 Item 字体枚举（如 <code>maplemono-nf-cn-regular</code> 粗体）</td></tr>
 <tr><td><code>item-font-size</code></td><td><code>kTreeItemFontSize</code></td><td>Int</td><td>0</td><td>逐 Item 字号（0 = 继承 TreeView 级）</td></tr>
 <tr><td><code>item-id</code></td><td><code>kTreeItemId</code></td><td>String</td><td>—</td><td>定位目标节点（后续 item 级属性的作用对象）</td></tr>
 <tr><td><code>item-leading-control</code></td><td><code>kTreeItemLeadingControl</code></td><td>Ptr</td><td>—</td><td>行前置控件容器句柄（<strong>借用语义</strong>，生命周期由调用方保证；类型经 <code>UICornerstone_GetControlType</code> / Binding <code>Control::GetType()</code> 查询，如 <code>"check-box"</code> / <code>"image"</code>，再经通用属性系统操作：<code>GetBool(ctl, "checked")</code> / <code>SetCallback(ctl, "check-changed", ...)</code>；C++ Binding 用 <code>ui-&gt;FromHandle(lc)</code> 包装代理）。<strong>运行时 SetPtr 立即挂树</strong>（结构变更之外无需等待重建），传 <code>NULL</code> 解除容器并摘树</td></tr>
@@ -123,7 +123,7 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
     "leadingGap": 10 },
   { "id": "img1", "label": "带图标的行",
     "leadingControl": { "type": "image", "image": "assets/images/cross_down.png" },
-    "font": "harmonyos-sans-sc-bold", "size": 16 }
+    "font": "maplemono-nf-cn-regular", "size": 16 }
 ]</code></pre>
 
 <ul>
@@ -133,7 +133,7 @@ check-box / image）。rect 由 TreeView 自适应（高 = 行内文字高度，
 左侧不重叠。给容器指定 <code>id</code> 后可直接 <code>FindControl(inst, id)</code> 拿到句柄
 （通用属性系统操作任意控件）。</li>
 <li><code>leadingGap</code>：容器与文本之间的间隔（局部 px，默认 6）。</li>
-<li><code>font</code> / <code>size</code>：逐 Item 字体枚举（如 <code>harmonyos-sans-sc-bold</code>
+<li><code>font</code> / <code>size</code>：逐 Item 字体枚举（如 <code>maplemono-nf-cn-regular</code>
 粗体）/ 字号（0 = 继承 TreeView 级）。</li>
 </ul>
 
@@ -166,7 +166,7 @@ UICornerstone_SetCallback(g_inst, tree, "select", onSelect, NULL);
 UICornerstone_SetString(g_inst, tree, "item-id", "img1");
 UICornerstone_SetFloat( g_inst, tree, "item-leading-gap", 10.0f);   // 容器与文本间隔
 UICornerstone_SetInt(   g_inst, tree, "item-font-size", 18);
-UICornerstone_SetEnum(  g_inst, tree, "item-font", "harmonyos-sans-sc-bold");  // 粗体
+UICornerstone_SetEnum(  g_inst, tree, "item-font", "maplemono-nf-cn-regular");  // 粗体
 UICornerstone_SetEnum(  g_inst, tree, "item-leading-align", "bottom-left");    // 槽位贴行底
 float gap = 0;
 UICornerstone_GetFloat( g_inst, tree, "item-leading-gap", &amp;gap);

@@ -38,13 +38,8 @@ static SColor parseHexColor(const json& j) {
 static FontName parseFontName(const string& name) {
     static const unordered_map<string, FontName> nameMap = {
         {"HarmonyOS_Sans_SC_Regular",   FontName::HarmonyOS_Sans_SC_Regular},
-        {"HarmonyOS_Sans_SC_Bold",      FontName::HarmonyOS_Sans_SC_Bold},
-        {"HarmonyOS_Sans_SC_Light",     FontName::HarmonyOS_Sans_SC_Light},
         {"HarmonyOS_Sans_SC_Thin",      FontName::HarmonyOS_Sans_SC_Thin},
-        {"HarmonyOS_Sans_SC_Medium",    FontName::HarmonyOS_Sans_SC_Medium},
-        {"HarmonyOS_Sans_SC_Black",     FontName::HarmonyOS_Sans_SC_Black},
         {"MapleMono_NF_CN_Regular",     FontName::MapleMono_NF_CN_Regular},
-        {"MapleMono_NF_CN_Bold",        FontName::MapleMono_NF_CN_Bold},
         {"Muyao_Softbrush",             FontName::Muyao_Softbrush},
         {"Asul_Bold",                   FontName::Asul_Bold},
         {"Quando_Regular",              FontName::Quando_Regular},

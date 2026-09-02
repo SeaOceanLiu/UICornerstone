@@ -65,7 +65,7 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认</th><th>说明</th></tr>
 <tr><td><code>item-id</code></td><td><code>kTreeItemId</code></td><td>String</td><td>—</td><td>定位目标菜单项（在 MenuPanel 上设置后，后续 item 级属性作用于该菜单项）</td></tr>
-<tr><td><code>item-font</code></td><td><code>kTreeItemFont</code></td><td>Enum</td><td>继承 MenuPanel</td><td>逐项字体枚举（如 <code>harmonyos-sans-sc-bold</code> 粗体）</td></tr>
+<tr><td><code>item-font</code></td><td><code>kTreeItemFont</code></td><td>Enum</td><td>继承 MenuPanel</td><td>逐项字体枚举（如 <code>maplemono-nf-cn-regular</code> 粗体）</td></tr>
 <tr><td><code>item-font-size</code></td><td><code>kTreeItemFontSize</code></td><td>Int</td><td>0</td><td>逐项字号（0 = 继承面板字号；&gt;0 时该行行高 = 字号×item-height-ratio，独立于面板其余行）</td></tr>
 <tr><td><code>item-leading-gap</code></td><td><code>kTreeItemLeadingGap</code></td><td>Float</td><td>8</td><td>行前置控件容器与文本之间的间隔（局部 px）</td></tr>
 <tr><td><code>item-leading-control</code></td><td><code>kTreeItemLeadingControl</code></td><td>Ptr</td><td>—</td><td>行前置控件容器句柄（<strong>借用语义</strong>，生命周期由调用方保证；类型经 <code>UICornerstone_GetControlType</code> 查询（如 <code>"check-box"</code>），再经通用属性系统操作）。有容器时该行保留 icon 区（宽 = max(各行字体高度, 20)）、不绘制手绘勾选标记（勾选视觉由容器内控件承担）；传 <code>NULL</code> 解除容器</td></tr>

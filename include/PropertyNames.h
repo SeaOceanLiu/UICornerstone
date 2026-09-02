@@ -355,33 +355,11 @@ PROP_CONSTEXPR const char* kCentered            = "centered";
 PROP_CONSTEXPR const char* kFocusRingSolid      = "solid";
 PROP_CONSTEXPR const char* kFocusRingDashed     = "dashed";
 
-// -- Font 枚举值 --
+// -- Font 枚举值（仅保留 assets/fonts 内实际存在的字体）--
 PROP_CONSTEXPR const char* kFontAsulBold                    = "asul-bold";
-PROP_CONSTEXPR const char* kFontAsulRegular                 = "asul-regular";
-PROP_CONSTEXPR const char* kFontHarmonySansCondensedRegular = "harmonyos-sans-condensed-regular";
-PROP_CONSTEXPR const char* kFontHarmonySansCondensedThin    = "harmonyos-sans-condensed-thin";
-PROP_CONSTEXPR const char* kFontHarmonySansSCBlack          = "harmonyos-sans-sc-black";
-PROP_CONSTEXPR const char* kFontHarmonySansSCBold           = "harmonyos-sans-sc-bold";
-PROP_CONSTEXPR const char* kFontHarmonySansSCLight          = "harmonyos-sans-sc-light";
-PROP_CONSTEXPR const char* kFontHarmonySansSCMedium         = "harmonyos-sans-sc-medium";
 PROP_CONSTEXPR const char* kFontHarmonySansSCRegular        = "harmonyos-sans-sc-regular";
 PROP_CONSTEXPR const char* kFontHarmonySansSCThin           = "harmonyos-sans-sc-thin";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNBold           = "maplemono-nf-cn-bold";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNBoldItalic     = "maplemono-nf-cn-bolditalic";
-PROP_CONSTEXPR const char* kFontMapleMonoCNFExtraBold       = "maplemono-nf-cn-extrabold";
-PROP_CONSTEXPR const char* kFontMapleMonoCNFExtraBoldItalic = "maplemono-nf-cn-extrabolditalic";
-PROP_CONSTEXPR const char* kFontMapleMonoCNFExtraLight      = "maplemono-nf-cn-extralight";
-PROP_CONSTEXPR const char* kFontMapleMonoCNFExtraLightItalic= "maplemono-nf-cn-extralightitalic";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNItalic         = "maplemono-nf-cn-italic";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNLight          = "maplemono-nf-cn-light";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNLightItalic    = "maplemono-nf-cn-lightitalic";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNMedium         = "maplemono-nf-cn-medium";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNMediumItalic   = "maplemono-nf-cn-mediumitalic";
 PROP_CONSTEXPR const char* kFontMapleMonoNFCNRegular        = "maplemono-nf-cn-regular";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNSemiBold       = "maplemono-nf-cn-semibold";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNSemiBoldItalic = "maplemono-nf-cn-semibolditalic";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNThin           = "maplemono-nf-cn-thin";
-PROP_CONSTEXPR const char* kFontMapleMonoNFCNThinItalic     = "maplemono-nf-cn-thinitalic";
 PROP_CONSTEXPR const char* kFontMuYaoSoftBrush              = "muyao-softbrush";
 PROP_CONSTEXPR const char* kFontQuandoRegular               = "quando-regular";
 

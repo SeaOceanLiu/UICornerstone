@@ -214,7 +214,7 @@
       }
     },
     "font-name": {
-      "enum": ["asul-bold", "asul-regular", "harmonyos-sans-condensed-regular", "harmonyos-sans-condensed-thin", "harmonyos-sans-sc-black", "harmonyos-sans-sc-bold", "harmonyos-sans-sc-light", "harmonyos-sans-sc-medium", "harmonyos-sans-sc-regular", "harmonyos-sans-sc-thin", "maplemono-nf-cn-bold", "maplemono-nf-cn-bolditalic", "maplemono-nf-cn-extrabold", "maplemono-nf-cn-extrabolditalic", "maplemono-nf-cn-extralight", "maplemono-nf-cn-extralightitalic", "maplemono-nf-cn-italic", "maplemono-nf-cn-light", "maplemono-nf-cn-lightitalic", "maplemono-nf-cn-medium", "maplemono-nf-cn-mediumitalic", "maplemono-nf-cn-regular", "maplemono-nf-cn-semibold", "maplemono-nf-cn-semibolditalic", "maplemono-nf-cn-thin", "maplemono-nf-cn-thinitalic", "muyao-softbrush", "quando-regular"]
+      "enum": ["asul-bold", "harmonyos-sans-sc-regular", "harmonyos-sans-sc-thin", "maplemono-nf-cn-regular", "muyao-softbrush", "quando-regular"]
     },
     "font-spec": {
       "type": "object",

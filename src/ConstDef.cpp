@@ -212,31 +212,9 @@ const int     ConstDef::TREEVIEW_SCROLL_STEP_LINES  = 3;
 
 FontName FontNameFromString(const char* s) {
     if (_stricmp(s, PropertyNames::kFontAsulBold) == 0) return FontName::Asul_Bold;
-    if (_stricmp(s, PropertyNames::kFontAsulRegular) == 0) return FontName::Asul_Regular;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansCondensedRegular) == 0) return FontName::HarmonyOS_Sans_Condensed_Regular;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansCondensedThin) == 0) return FontName::HarmonyOS_Sans_Condensed_Thin;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansSCBlack) == 0) return FontName::HarmonyOS_Sans_SC_Black;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansSCBold) == 0) return FontName::HarmonyOS_Sans_SC_Bold;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansSCLight) == 0) return FontName::HarmonyOS_Sans_SC_Light;
-    if (_stricmp(s, PropertyNames::kFontHarmonySansSCMedium) == 0) return FontName::HarmonyOS_Sans_SC_Medium;
     if (_stricmp(s, PropertyNames::kFontHarmonySansSCRegular) == 0) return FontName::HarmonyOS_Sans_SC_Regular;
     if (_stricmp(s, PropertyNames::kFontHarmonySansSCThin) == 0) return FontName::HarmonyOS_Sans_SC_Thin;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNBold) == 0) return FontName::MapleMono_NF_CN_Bold;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNBoldItalic) == 0) return FontName::MapleMono_NF_CN_BoldItalic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoCNFExtraBold) == 0) return FontName::MapleMono_NF_CN_ExtraBold;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoCNFExtraBoldItalic) == 0) return FontName::MapleMono_NF_CN_ExtraBoldItalic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoCNFExtraLight) == 0) return FontName::MapleMono_NF_CN_ExtraLight;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoCNFExtraLightItalic) == 0) return FontName::MapleMono_NF_CN_ExtraLightItalic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNItalic) == 0) return FontName::MapleMono_NF_CN_Italic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNLight) == 0) return FontName::MapleMono_NF_CN_Light;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNLightItalic) == 0) return FontName::MapleMono_NF_CN_LightItalic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNMedium) == 0) return FontName::MapleMono_NF_CN_Medium;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNMediumItalic) == 0) return FontName::MapleMono_NF_CN_MediumItalic;
     if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNRegular) == 0) return FontName::MapleMono_NF_CN_Regular;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNSemiBold) == 0) return FontName::MapleMono_NF_CN_SemiBold;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNSemiBoldItalic) == 0) return FontName::MapleMono_NF_CN_SemiBoldItalic;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNThin) == 0) return FontName::MapleMono_NF_CN_Thin;
-    if (_stricmp(s, PropertyNames::kFontMapleMonoNFCNThinItalic) == 0) return FontName::MapleMono_NF_CN_ThinItalic;
     if (_stricmp(s, PropertyNames::kFontMuYaoSoftBrush) == 0) return FontName::Muyao_Softbrush;
     if (_stricmp(s, PropertyNames::kFontQuandoRegular) == 0) return FontName::Quando_Regular;
     return FontName::HarmonyOS_Sans_SC_Regular;
@@ -244,31 +222,9 @@ FontName FontNameFromString(const char* s) {
 
 const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
     {FontName::Asul_Bold, "fonts/Asul-Bold.ttf"},
-    {FontName::Asul_Regular, "fonts/Asul-Regular.ttf"},
-    {FontName::HarmonyOS_Sans_Condensed_Regular, "fonts/HarmonyOS_Sans_Condensed_Regular.ttf"},
-    {FontName::HarmonyOS_Sans_Condensed_Thin, "fonts/HarmonyOS_Sans_Condensed_Thin.ttf"},
-    {FontName::HarmonyOS_Sans_SC_Black, "fonts/HarmonyOS_Sans_SC_Black.ttf"},
-    {FontName::HarmonyOS_Sans_SC_Bold, "fonts/HarmonyOS_Sans_SC_Bold.ttf"},
-    {FontName::HarmonyOS_Sans_SC_Light, "fonts/HarmonyOS_Sans_SC_Light.ttf"},
-    {FontName::HarmonyOS_Sans_SC_Medium, "fonts/HarmonyOS_Sans_SC_Medium.ttf"},
     {FontName::HarmonyOS_Sans_SC_Regular, "fonts/HarmonyOS_Sans_SC_Regular.ttf"},
     {FontName::HarmonyOS_Sans_SC_Thin, "fonts/HarmonyOS_Sans_SC_Thin.ttf"},
-    {FontName::MapleMono_NF_CN_Bold, "fonts/MapleMono-NF-CN-Bold.ttf"},
-    {FontName::MapleMono_NF_CN_BoldItalic, "fonts/MapleMono-NF-CN-BoldItalic.ttf"},
-    {FontName::MapleMono_NF_CN_ExtraBold, "fonts/MapleMono-NF-CN-ExtraBold.ttf"},
-    {FontName::MapleMono_NF_CN_ExtraBoldItalic, "fonts/MapleMono-NF-CN-ExtraBoldItalic.ttf"},
-    {FontName::MapleMono_NF_CN_ExtraLight, "fonts/MapleMono-NF-CN-ExtraLight.ttf"},
-    {FontName::MapleMono_NF_CN_ExtraLightItalic, "fonts/MapleMono-NF-CN-ExtraLightItalic.ttf"},
-    {FontName::MapleMono_NF_CN_Italic, "fonts/MapleMono-NF-CN-Italic.ttf"},
-    {FontName::MapleMono_NF_CN_Light, "fonts/MapleMono-NF-CN-Light.ttf"},
-    {FontName::MapleMono_NF_CN_LightItalic, "fonts/MapleMono-NF-CN-LightItalic.ttf"},
-    {FontName::MapleMono_NF_CN_Medium, "fonts/MapleMono-NF-CN-Medium.ttf"},
-    {FontName::MapleMono_NF_CN_MediumItalic, "fonts/MapleMono-NF-CN-MediumItalic.ttf"},
     {FontName::MapleMono_NF_CN_Regular, "fonts/MapleMono-NF-CN-Regular.ttf"},
-    {FontName::MapleMono_NF_CN_SemiBold, "fonts/MapleMono-NF-CN-SemiBold.ttf"},
-    {FontName::MapleMono_NF_CN_SemiBoldItalic, "fonts/MapleMono-NF-CN-SemiBoldItalic.ttf"},
-    {FontName::MapleMono_NF_CN_Thin, "fonts/MapleMono-NF-CN-Thin.ttf"},
-    {FontName::MapleMono_NF_CN_ThinItalic, "fonts/MapleMono-NF-CN-ThinItalic.ttf"},
     {FontName::Muyao_Softbrush, "fonts/Muyao-Softbrush.ttf"},
     {FontName::Quando_Regular, "fonts/Quando-Regular.ttf"},
 };
@@ -276,31 +232,9 @@ const std::unordered_map<FontName, std::string> ConstDef::fontFiles = {
 const char* FontNameToString(FontName font) {
     switch (font) {
         case FontName::Asul_Bold: return "asul-bold";
-        case FontName::Asul_Regular: return "asul-regular";
-        case FontName::HarmonyOS_Sans_Condensed_Regular: return "harmonyos-sans-condensed-regular";
-        case FontName::HarmonyOS_Sans_Condensed_Thin: return "harmonyos-sans-condensed-thin";
-        case FontName::HarmonyOS_Sans_SC_Black: return "harmonyos-sans-sc-black";
-        case FontName::HarmonyOS_Sans_SC_Bold: return "harmonyos-sans-sc-bold";
-        case FontName::HarmonyOS_Sans_SC_Light: return "harmonyos-sans-sc-light";
-        case FontName::HarmonyOS_Sans_SC_Medium: return "harmonyos-sans-sc-medium";
         case FontName::HarmonyOS_Sans_SC_Regular: return "harmonyos-sans-sc-regular";
         case FontName::HarmonyOS_Sans_SC_Thin: return "harmonyos-sans-sc-thin";
-        case FontName::MapleMono_NF_CN_Bold: return "maplemono-nf-cn-bold";
-        case FontName::MapleMono_NF_CN_BoldItalic: return "maplemono-nf-cn-bolditalic";
-        case FontName::MapleMono_NF_CN_ExtraBold: return "maplemono-nf-cn-extrabold";
-        case FontName::MapleMono_NF_CN_ExtraBoldItalic: return "maplemono-nf-cn-extrabolditalic";
-        case FontName::MapleMono_NF_CN_ExtraLight: return "maplemono-nf-cn-extralight";
-        case FontName::MapleMono_NF_CN_ExtraLightItalic: return "maplemono-nf-cn-extralightitalic";
-        case FontName::MapleMono_NF_CN_Italic: return "maplemono-nf-cn-italic";
-        case FontName::MapleMono_NF_CN_Light: return "maplemono-nf-cn-light";
-        case FontName::MapleMono_NF_CN_LightItalic: return "maplemono-nf-cn-lightitalic";
-        case FontName::MapleMono_NF_CN_Medium: return "maplemono-nf-cn-medium";
-        case FontName::MapleMono_NF_CN_MediumItalic: return "maplemono-nf-cn-mediumitalic";
         case FontName::MapleMono_NF_CN_Regular: return "maplemono-nf-cn-regular";
-        case FontName::MapleMono_NF_CN_SemiBold: return "maplemono-nf-cn-semibold";
-        case FontName::MapleMono_NF_CN_SemiBoldItalic: return "maplemono-nf-cn-semibolditalic";
-        case FontName::MapleMono_NF_CN_Thin: return "maplemono-nf-cn-thin";
-        case FontName::MapleMono_NF_CN_ThinItalic: return "maplemono-nf-cn-thinitalic";
         case FontName::Muyao_Softbrush: return "muyao-softbrush";
         case FontName::Quando_Regular: return "quando-regular";
     }

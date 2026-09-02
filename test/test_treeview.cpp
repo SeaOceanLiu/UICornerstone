@@ -367,7 +367,7 @@ static const char* ENH_JSON = R"({
           "leadingGap": 10 },
         { "id": "j2", "label": "JSON img row",
           "leadingControl": { "type": "image", "image": "assets/images/cross_down.png" },
-          "font": "harmonyos-sans-sc-bold", "size": 16 },
+          "font": "harmonyos-sans-sc-regular", "size": 16 },
         { "id": "j3", "label": "JSON align row",
           "leadingControl": { "type": "check-box" },
           "alignment": "bottom-left" }
@@ -404,7 +404,7 @@ void initTestJsonEnh(Bench* bench) {
     auto j3 = tv->findNodeById("j3");
     check(j1 != nullptr && j2 != nullptr, "json enh items found");
     check(j1 && j1->leadingGap == 10.0f, "json enh item leadingGap");
-    check(j2 && j2->fontName == FontName::HarmonyOS_Sans_SC_Bold, "json enh item bold font");
+    check(j2 && j2->fontName == FontName::HarmonyOS_Sans_SC_Regular, "json enh item regular font");
     check(j2 && j2->fontSize == 16, "json enh item font size");
 
     // 前置控件容器：挂树 + 类型 + 勾选态
