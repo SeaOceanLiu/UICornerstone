@@ -850,6 +850,10 @@ int ListView::setEnumProperty(const char* prop, const char* value) {
         if (strcmp(value, PropertyNames::kModeMulti) == 0)       { setMode(Mode::Multi);   return 1; }
         return 0;
     }
+    if (strcmp(prop, PropertyNames::kFont) == 0 && value) {
+        setFont(FontNameFromString(value));
+        return 1;
+    }
     return ControlImpl::setEnumProperty(prop, value);
 }
 int ListView::setBoolProperty(const char* prop, int value) {
@@ -865,6 +869,7 @@ int ListView::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { setRowHeight(value);      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { setHeaderHeight(value);   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { setMinColumnWidth(value); return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { setFontSize((int)value);  return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int ListView::setIntProperty(const char* prop, int value) {
@@ -879,6 +884,7 @@ int ListView::setIntProperty(const char* prop, int value) {
 int ListView::getEnumProperty(const char* prop, const char*& out) {
     if (strcmp(prop, PropertyNames::kMode) == 0) { out = (m_viewMode == Mode::Single)
         ? PropertyNames::kModeSingle : PropertyNames::kModeMulti; return 1; }
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }
     return ControlImpl::getEnumProperty(prop, out);
 }
 int ListView::getBoolProperty(const char* prop, int& out) {
@@ -894,6 +900,7 @@ int ListView::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { out = m_rowHeight;      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { out = m_headerHeight;   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { out = m_minColumnWidth; return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { out = (float)m_fontSize; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 int ListView::getIntProperty(const char* prop, int& out) {

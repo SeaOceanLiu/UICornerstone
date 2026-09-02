@@ -120,6 +120,15 @@ static void runAssertions() {
     g_probe->setBoolProperty("cycle-navigation", 0);
     CHECK(g_probe->getBoolProperty("cycle-navigation", cn) == 1 && cn == 0, "cycle-navigation roundtrip false");
 
+    // font/font-size 属性系统回环（JSON 层声明 + C ABI/Binding 属性通道）
+    g_probe->setFloatProperty("font-size", 20.f);
+    float fs = 0.f;
+    CHECK(g_probe->getFloatProperty("font-size", fs) == 1 && (int)fs == 20, "font-size roundtrip 20");
+    const char* fname = nullptr;
+    g_probe->setEnumProperty("font", "harmonyos-sans-sc-regular");
+    CHECK(g_probe->getEnumProperty("font", fname) == 1 && fname &&
+          strcmp(fname, "harmonyos-sans-sc-regular") == 0, "font enum roundtrip");
+
     // ── 事件：selection-changed / item-click / column-sort（C ABI 回调链路）──
     static int gEvRow = -9, gEvCol = -9, gEvAsc = -9, gEvSeen = 0;
     static char gEvName[64] = "";
