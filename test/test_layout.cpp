@@ -14,6 +14,7 @@
 #include "WinFrame.h"
 #include "TabControl.h"
 #include "ListView.h"
+#include "Slider.h"
 #include "PlatformUtils.h"
 #include "TestUtils.h"
 #include "TestInstance.h"
@@ -222,6 +223,36 @@ static void testFontInheritance() {
     } else {
         TestUtil::log("FAIL Font inherit: font{name,size} propagation (size=%d)", list3 ? list3->getFontSize() : -1);
     }
+    // 带文字的内部子控件（Button/CheckBox/WinFrame 的文字载体为内部 Label）应沿父链继承
+    const string jsonc4 = R"({
+      "controls": [
+        { "type": "panel", "id": "pFont", "rect": { "x": 10, "y": 10, "w": 400, "h": 300 },
+          "fontSize": 16,
+          "children": [
+            { "type": "button", "id": "btnFont", "rect": { "x": 10, "y": 10, "w": 100, "h": 30 }, "caption": "OK" },
+            { "type": "check-box", "id": "cbFont", "rect": { "x": 10, "y": 50, "w": 120, "h": 24 }, "caption": "Check" },
+            { "type": "win-frame", "id": "wfFont", "rect": { "x": 10, "y": 140, "w": 200, "h": 120 },
+              "title": "Frame" }
+          ] }
+      ]
+    })";
+    LayoutParser parser4;
+    auto root4 = parser4.parseLayout(jsonc4);
+    auto btn = root4 ? dynamic_pointer_cast<Button>(parser4.findControlById("btnFont")) : nullptr;
+    auto cb  = root4 ? dynamic_pointer_cast<CheckBox>(parser4.findControlById("cbFont")) : nullptr;
+    auto wf  = root4 ? dynamic_pointer_cast<WinFrame>(parser4.findControlById("wfFont")) : nullptr;
+    int btnSize = -1, cbSize = -1, wfSize = -1;
+    if (btn && btn->getCaptionLabel()) btnSize = btn->getCaptionLabel()->getFontSize();
+    if (cb && cb->getCaption()) cbSize = cb->getCaption()->getFontSize();
+    if (wf && wf->getTitleLabel()) wfSize = wf->getTitleLabel()->getFontSize();
+    if (btnSize == 16 && cbSize == 16 && wfSize == 16) {
+        TestUtil::log("OK   Font inherit: Button/CheckBox/WinFrame inner label inherit fontSize=16");
+    } else {
+        TestUtil::log("FAIL Font inherit: inner labels btn=%d cb=%d wf=%d (expect 16)",
+                      btnSize, cbSize, wfSize);
+    }
+    // Slider 数值标签走专用 label-font 键（kLabelFont，独立于通用继承，见 4.20.2），不参与通用继承
+    TestUtil::log("INFO Font inherit: Slider value label uses dedicated label-font key (not generic inherit)");
     TestUtil::log("---- Font inheritance done ----");
 }
 
