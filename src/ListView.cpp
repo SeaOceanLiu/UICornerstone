@@ -54,6 +54,22 @@ void ListView::ensureFont() {
     m_font = renderer->loadFontFromMemoryWithText(data->data(), data->size(), scaledSize, "W");
 }
 
+void ListView::setFont(FontName fontName) {
+    if (m_fontName == fontName && m_font) return;
+    m_fontName = fontName;
+    m_font.reset();
+    m_fontCache.clear();  // 逐格字体缓存随控件级字体失效
+    if (m_isCreated) ensureFont();
+}
+
+void ListView::setFontSize(int size) {
+    if (m_fontSize == size) return;
+    m_fontSize = size;
+    m_font.reset();
+    m_fontCache.clear();  // 逐格字体缓存随控件级字号失效
+    if (m_isCreated) ensureFont();
+}
+
 SharedFont ListView::fontFor(FontName name, int size) {
     if (size <= 0 || (name == m_fontName && size == m_fontSize)) { ensureFont(); return m_font; }
     const unsigned long long key =

@@ -223,6 +223,7 @@
 <tr><td><code>sort-ascending</code></td><td><code>kSortAscending</code></td><td>Int / Bool</td><td>-1 / true</td></tr>
 </table>
 <p>JSON 数据：<code>columns[]</code>（title / width / sortable / icon）、<code>rows[]</code>（id / cells / icon / cellControls[]）；C ABI 专用函数 <code>ListViewAddRow / ListViewAddColumn</code> 等见 8.3.1。</p>
+<p>字体：JSON 层声明 <code>font {name,size,style}</code> / <code>fontSize</code>（v1.1.1 起支持），未声明沿父控件链继承（如 TabControl 页内 ListView 继承页签字号）；不经属性系统分发。</p>
 <h3>LuotiAni（类型 <code>animation</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>

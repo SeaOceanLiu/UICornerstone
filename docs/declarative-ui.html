@@ -249,8 +249,9 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
   "image": "assets/images/cross_up.png", "scaleType": "fit-center" }
 { "type": "image", "rect": { "x": 160, "y": 20, "w": 64, "h": 64 },
   "providerName": "cross-down", "matchParentRect": false }</code></pre>
-<p><strong>通用字体键（v1.1.1）</strong>：任意控件均可在其 JSON 上声明 <code>font</code>（对象 <code>{name, size}</code>）或便捷键 <code>fontSize</code>：
-未声明时沿<b>父控件链继承</b>最近一次显式字体（含字号），父控件自身未声明时沿用主题默认。示例：Panel 上 <code>font:{size:20}</code> → 其内 Label/EditBox/TreeView 等无字体声明的子控件自动 20；子级 <code>font:{size:24}</code> 覆盖。字串形式（<code>font-name</code> 枚举）用于部分控件的 <code>name</code> 子键。</p>
+ <p><strong>通用字体键（v1.1.1）</strong>：任意控件均可在其 JSON 上声明 <code>font</code>（对象 <code>{name, size}</code>）或便捷键 <code>fontSize</code>：
+ 未声明时沿<b>父控件链继承</b>最近一次显式字体（含字号），父控件自身未声明时沿用主题默认。示例：Panel 上 <code>font:{size:20}</code> → 其内 Label/EditBox/TreeView/ListView 等无字体声明的子控件自动 20；子级 <code>font:{size:24}</code> 覆盖。字串形式（<code>font-name</code> 枚举）用于部分控件的 <code>name</code> 子键。</p>
+ <p>继承细节：仅当祖先<b>显式声明 <code>font.name</code></b> 时才会把字体名传给子控件；父只声明 <code>fontSize</code>（未声明 name）时，子控件保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
 <p>Label 字体三形态（<code>font</code> 枚举、<code>fontResource</code> 内存资源、<code>fontFile</code> 任意路径）与字符串属性互斥覆盖，均可带 <code>provider:</code> 前缀：</p>
 

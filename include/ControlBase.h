@@ -378,15 +378,18 @@ protected:
     }
 public:
     // ── 字体上下文（JSON 字体声明 + 父链继承；LayoutParser 使用）──
-    void setFontContext(FontName name, float size, bool isExplicit) {
-        m_fontContextName = name; m_fontContextSize = size; m_fontContextExplicit = isExplicit;
+    void setFontContext(FontName name, float size, bool isExplicit, bool nameExplicit) {
+        m_fontContextName = name; m_fontContextSize = size;
+        m_fontContextExplicit = isExplicit; m_fontContextNameExplicit = nameExplicit;
     }
     FontName getFontContextName() const { return m_fontContextName; }
     float getFontContextSize() const { return m_fontContextSize; }
     bool hasExplicitFont() const { return m_fontContextExplicit; }
+    bool hasExplicitFontName() const { return m_fontContextNameExplicit; }
     FontName m_fontContextName = FontName::Asul_Regular;
     float m_fontContextSize = 0.0f;         // 0 = 未声明
     bool m_fontContextExplicit = false;
+    bool m_fontContextNameExplicit = false; // font.name 是否显式声明（仅显式时覆盖子默认字体名）
 
     ControlImpl(Control *parent, float xScale=1.0f, float yScale=1.0f);
     ControlImpl(const ControlImpl& other);

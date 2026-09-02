@@ -2567,7 +2567,7 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
 }
 
 // 应用字体到支持的控件（继承/显式共用；仅设置，不写 context）
-static void ApplyFontToControl(Control* ctl, FontName name, float size) {
+static void ApplyFontToControl(Control* ctl, FontName name, float size, bool applyName) {
     if (!ctl) return;
     if (size > 0.0f) {
         if (auto* l = dynamic_cast<Label*>(ctl)) l->setFontSize((int)size);
@@ -2577,12 +2577,15 @@ static void ApplyFontToControl(Control* ctl, FontName name, float size) {
         else if (auto* tc = dynamic_cast<TabControl*>(ctl)) tc->setFontSize(size);
         else if (auto* sb = dynamic_cast<StatusBar*>(ctl)) sb->setFontSize(size);
         else if (auto* mb = dynamic_cast<MenuBar*>(ctl)) mb->setFontSize(size);
+        else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFontSize((int)size);
     }
-    // 字体名仅对显式 setFont 接口调用（FontName 无哨兵，未声明时沿用默认）
+    // 字体名仅当父显式声明 font.name 时覆盖（未声明时沿用控件自身默认字体名）
+    if (!applyName) return;
     if (auto* l = dynamic_cast<Label*>(ctl)) l->setFont(name);
     else if (auto* e = dynamic_cast<EditBox*>(ctl)) e->setFont(name);
     else if (auto* p = dynamic_cast<ProgressBar*>(ctl)) p->setFont(name);
     else if (auto* tr = dynamic_cast<TreeView*>(ctl)) tr->setFont(name);
+    else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFont(name);
 }
 
 void LayoutParser::applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j) {
@@ -2607,9 +2610,9 @@ void LayoutParser::applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j) {
         hasSize = true;
     }
     if (!hasName && !hasSize) return;
-    ctl->setFontContext(name, size, true);
+    ctl->setFontContext(name, size, true, hasName);
     ApplyFontToControl(ctl.get(), hasName ? name : ctl->getFontContextName(),
-                       hasSize ? size : 0.0f);
+                       hasSize ? size : 0.0f, hasName);
 }
 
 void LayoutParser::resolveFontInheritance(Control* root) {
@@ -2622,10 +2625,13 @@ void LayoutParser::resolveFontInheritance(Control* root) {
         auto cimpl = dynamic_cast<ControlImpl*>(child.get());
         if (!cimpl) continue;
         if (!cimpl->hasExplicitFont()) {
-            // 从父继承最近显式字体（父若无显式、本身也是继承值）
+            // 从父继承最近显式字体（父若无显式、本身也是继承值）；仅父显式声明
+            // font.name 时才覆盖子默认字体名，避免 fontSize-only 父把默认字体名强加给子
             ApplyFontToControl(child.get(),
-                impl->getFontContextName(), impl->getFontContextSize());
-            cimpl->setFontContext(impl->getFontContextName(), impl->getFontContextSize(), false);
+                impl->getFontContextName(), impl->getFontContextSize(),
+                impl->hasExplicitFontName());
+            cimpl->setFontContext(impl->getFontContextName(), impl->getFontContextSize(),
+                                  false, impl->hasExplicitFontName());
         }
         resolveFontInheritance(child.get());
     }

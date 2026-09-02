@@ -8,6 +8,7 @@ set(_SAMPLE_DIR "${CMAKE_SOURCE_DIR}/build/sample/sample_loadlibrary/${_BACKEND_
 
 # 后端源码按当前后端选择，编译为独立 TU（与 sample_fromsource 相同模式）
 set(_BACKEND_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/RenderDevice.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/Window.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/RenderDevice.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/TextRenderer.cpp"

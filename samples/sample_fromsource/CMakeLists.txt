@@ -8,6 +8,7 @@ set(_SAMPLE_DIR "${CMAKE_SOURCE_DIR}/build/sample/sample_fromsource/${_BACKEND_L
 
 # Backend source files compiled into the exe (not in a plugin DLL)
 set(_BACKEND_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/RenderDevice.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/Window.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/RenderDevice.cpp"
     "${CMAKE_SOURCE_DIR}/src/backend/${_BACKEND_LOWER}/TextRenderer.cpp"

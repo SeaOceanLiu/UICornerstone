@@ -140,7 +140,7 @@
   "rows": [ { "id":"f1", "cells":["main.cpp","2.1 KB"], "icon":"provider:icons/file",
               "cellControls":[ { "col":1, "control":{ "type":"check-box" } } ] } ],
   "events": { "onSelectionChanged":"onSel", "onColumnSort":"onSort" } }</code></pre>
-<p>属性键：<code>mode</code>（multi/single）/ <code>multiSelect</code> / <code>selectedIndex</code> / <code>rowHeight</code> / <code>headerHeight</code> / <code>gridlines</code> / <code>horizontalGridlines</code> / <code>hover</code> / <code>minColumnWidth</code> / <code>cycleNavigation</code> / <code>sortColumn</code> / <code>sortAscending</code>；<code>columns[]</code>/<code>rows[]</code> 见样例（<code>c</code>… <code>columns.icon</code> / <code>rows.icon</code> / <code>rows.cellControls[]</code>）。</p>
+ <p>属性键：<code>mode</code>（multi/single）/ <code>multiSelect</code> / <code>selectedIndex</code> / <code>rowHeight</code> / <code>headerHeight</code> / <code>gridlines</code> / <code>horizontalGridlines</code> / <code>hover</code> / <code>minColumnWidth</code> / <code>cycleNavigation</code> / <code>sortColumn</code> / <code>sortAscending</code> / <code>font</code>（<code>{name,size,style}</code>）/ <code>fontSize</code>；<code>columns[]</code>/<code>rows[]</code> 见样例（<code>c</code>… <code>columns.icon</code> / <code>rows.icon</code> / <code>rows.cellControls[]</code>）。</p>
 
 <h3>menu-bar（默认顶层独立；v1.1.1 起支持挂入布局容器作为普通子项）</h3>
 <p>顶层用法（缺省）：菜单栏全宽贴顶（挂到 Bench 时自动布置）。容器内用法（v1.1.1）：作为 panel / v-flow 子项时挂入即自动切换手动定位、参与引擎重排，无需 <code>manual-position</code>。</p>
@@ -223,7 +223,7 @@
   "items":[ { "id":"branch","text":"main","icon":"provider:icons/git","menu":"#branchMenu" },
             { "id":"enc","text":"UTF-8","align":"right" } ] }</code></pre>
 <p>属性键：<code>fontSize</code> / <code>itemHeight</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
-<p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>fontSize</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。</p>
+<p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>fontSize</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。继承细节：仅当祖先显式声明 <code>font.name</code> 时才覆盖子控件默认字体名；父只声明 <code>fontSize</code> 时子保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
 <h3>tab-control（四方向选项卡）</h3>
 <pre><code>{ "type":"tab-control", "id":"tabs", "rect":[120,80,560,240], "position":"top",

@@ -114,6 +114,10 @@ public:
     void clearCellStyle(int row, int col);
 
     // ── 属性 setter（全部触发 relayout/重绘；四层见设计文档 §5.6）──
+    void setFont(FontName fontName);                             // 控件级字体（字体继承链目标）
+    void setFontSize(int size);
+    int  getFontSize() const { return m_fontSize; }
+    FontName getFontName() const { return m_fontName; }
     void setMode(Mode mode);
     void setMultiSelect(bool on);
     void setSelectedRow(int index);                              // -1 = 清除选中
