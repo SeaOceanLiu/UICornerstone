@@ -223,6 +223,13 @@ static void testFontInheritance() {
     } else {
         TestUtil::log("FAIL Font inherit: font{name,size} propagation (size=%d)", list3 ? list3->getFontSize() : -1);
     }
+    // JSON 声明后属性系统 GetInt 读回（C ABI/Binding 通道，int 通道规范）
+    int propFs = -1;
+    if (list3 && list3->getIntProperty(PropertyNames::kFontSize, propFs) == 1 && propFs == 20) {
+        TestUtil::log("OK   Font inherit: JSON font{size:20} readable via GetInt(font-size)=20");
+    } else {
+        TestUtil::log("FAIL Font inherit: GetInt(font-size) -> %d (expect 20)", propFs);
+    }
     // 带文字的内部子控件（Button/CheckBox/WinFrame 的文字载体为内部 Label）应沿父链继承
     const string jsonc4 = R"({
       "controls": [

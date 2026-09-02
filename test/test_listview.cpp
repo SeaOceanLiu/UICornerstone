@@ -120,10 +120,10 @@ static void runAssertions() {
     g_probe->setBoolProperty("cycle-navigation", 0);
     CHECK(g_probe->getBoolProperty("cycle-navigation", cn) == 1 && cn == 0, "cycle-navigation roundtrip false");
 
-    // font/font-size 属性系统回环（JSON 层声明 + C ABI/Binding 属性通道）
-    g_probe->setFloatProperty("font-size", 20.f);
-    float fs = 0.f;
-    CHECK(g_probe->getFloatProperty("font-size", fs) == 1 && (int)fs == 20, "font-size roundtrip 20");
+    // font/font-size 属性系统回环（int 通道，与 Label 等控件规范一致；C ABI GetInt 可读）
+    g_probe->setIntProperty("font-size", 20);
+    int fs = 0;
+    CHECK(g_probe->getIntProperty("font-size", fs) == 1 && fs == 20, "font-size roundtrip 20 (int channel)");
     const char* fname = nullptr;
     g_probe->setEnumProperty("font", "harmonyos-sans-sc-regular");
     CHECK(g_probe->getEnumProperty("font", fname) == 1 && fname &&

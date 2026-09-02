@@ -869,11 +869,11 @@ int ListView::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { setRowHeight(value);      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { setHeaderHeight(value);   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { setMinColumnWidth(value); return 1; }
-    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { setFontSize((int)value);  return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int ListView::setIntProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kSelectedIndex) == 0) { setSelectedRow(value); return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)      { setFontSize(value);     return 1; }
     if (strcmp(prop, PropertyNames::kSortColumn) == 0)    {
         if (value < 0) { m_sortColumn = -1; }
         else { setSortColumn(value); }
@@ -900,12 +900,12 @@ int ListView::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { out = m_rowHeight;      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { out = m_headerHeight;   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { out = m_minColumnWidth; return 1; }
-    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { out = (float)m_fontSize; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 int ListView::getIntProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kSelectedIndex) == 0) { out = getSelectedRow(); return 1; }
     if (strcmp(prop, PropertyNames::kSortColumn) == 0)    { out = m_sortColumn;    return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)      { out = m_fontSize;      return 1; }
     return ControlImpl::getIntProperty(prop, out);
 }
 
