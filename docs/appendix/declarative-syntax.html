@@ -225,6 +225,14 @@
 <p>属性键：<code>fontSize</code> / <code>itemHeight</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
 <p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>fontSize</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。继承细节：仅当祖先显式声明 <code>font.name</code> 时才覆盖子控件默认字体名；父只声明 <code>fontSize</code> 时子保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
+<table>
+<tr><th>控件</th><th>继承方式</th></tr>
+<tr><td>Label / EditBox / ComboBox / TextArea / ProgressBar / TreeView / TabControl / StatusBar / MenuBar / ListView</td><td>直接承接（<code>ApplyFontToControl</code> 直连 <code>setFontSize/setFont</code>）</td></tr>
+<tr><td>Button / CheckBox / WinFrame / ColorPicker / Dialog（含确认按钮）</td><td>内部 Label 子控件经父链透传继承（文字载体为内部 Label）</td></tr>
+<tr><td>Slider 数值标签</td><td>专用 <code>label-font</code> 键（<code>kLabelFont</code>），独立于通用继承——数值标签字号可单独调</td></tr>
+<tr><td>Panel / ScrollBar / Splitter / Shape / Image / Actor / LuotiAni / HandleControl / ContextMenu</td><td>无文字渲染，不涉及</td></tr>
+</table>
+
 <h3>tab-control（四方向选项卡）</h3>
 <pre><code>{ "type":"tab-control", "id":"tabs", "rect":[120,80,560,240], "position":"top",
   "fontSize":13, "currentIndex":0,
