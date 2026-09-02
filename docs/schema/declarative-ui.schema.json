@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://uicornerstone.dev/schema/declarative-ui.schema.json",
   "title": "UICornerstone Declarative UI",
@@ -134,7 +134,7 @@
         "scale": { "$ref": "#/$defs/scale" },
         "textShadow": { "$ref": "#/$defs/color" },
         "font": { "$ref": "#/$defs/font-spec" },
-        "fontSize": { "type": "number", "description": "字号（font.size 的便捷形式，v1.1.1）" },
+        "fontSize": { "type": "integer", "description": "字号（font.size 的便捷形式，v1.1.1）" },
         "visible": { "type": "boolean", "x-default": "true" }
       }
     },
@@ -200,19 +200,6 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "font-spec": {
-      "type": "object",
-      "properties": {
-        "name": { "$ref": "#/$defs/font-name" },
-        "size": { "type": "integer", "description": "字号" },
-        "style": {
-          "oneOf": [
-            { "type": "array", "items": { "enum": ["normal", "bold", "italic", "underline", "strikethrough"] }, "uniqueItems": true, "description": "字体样式组合（如 [bold,italic]；raylib 不支持样式）" },
-            { "enum": ["normal", "bold", "italic", "underline", "strikethrough"], "description": "单样式（向后兼容）" }
-          ]
-        }
-      }
-    },
     "font-name": {
       "enum": ["asul-bold", "harmonyos-sans-sc-regular", "harmonyos-sans-sc-thin", "maplemono-nf-cn-regular", "muyao-softbrush", "quando-regular"]
     },
@@ -221,7 +208,7 @@
       "description": "字体声明 {name, size, style}；未声明时沿父控件链继承最近显式字体（v1.1.1）",
       "properties": {
         "name": { "$ref": "#/$defs/font-name" },
-        "size": { "type": "number", "x-default": "14" },
+        "size": { "type": "integer", "x-default": "14" },
         "style": {
           "oneOf": [
             { "type": "string" },
@@ -627,7 +614,7 @@
       "allOf": [ { "$ref": "#/$defs/common" } ],
       "properties": {
         "type": { "const": "status-bar" },
-        "fontSize": { "type": "number", "x-default": "13" },
+        "fontSize": { "type": "integer", "x-default": "13" },
         "itemHeight": { "type": "number", "x-default": "24（默认=rect 高）" },
         "items": {
           "type": "array",
@@ -644,7 +631,7 @@
       "properties": {
         "type": { "const": "tab-control" },
         "currentIndex": { "type": "integer", "x-default": "0" },
-        "fontSize": { "type": "number", "x-default": "13" },
+        "fontSize": { "type": "integer", "x-default": "13" },
         "position": { "enum": ["top", "bottom", "left", "right"], "x-default": "top" },
         "tabs": {
           "type": "array",

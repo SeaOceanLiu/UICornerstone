@@ -37,7 +37,7 @@ UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 
 <table>
 <tr><th>属性/字段</th><th>属性常量</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-<tr><td><code>fontSize</code></td><td><code>kFontSize</code></td><td>Float</td><td>13</td><td>段文字字号</td></tr>
+<tr><td><code>fontSize</code></td><td><code>kFontSize</code></td><td>Int</td><td>13</td><td>段文字字号</td></tr>
 <tr><td><code>itemHeight</code></td><td><code>kItemHeight</code></td><td>Float</td><td>rect 高</td><td>段高</td></tr>
 </table>
 
@@ -79,7 +79,7 @@ UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 
 <pre><code>auto bar = ui->CreateStatusBar(0, 876, 1400, 24);
 bar.SetString(PropertyNames::kItemId, "branch");   // 段定位后属性分发
-bar.SetFloat(PropertyNames::kFontSize, 13.0f);</code></pre>
+bar.SetInt(PropertyNames::kFontSize, 13);   // int 通道</code></pre>
 
 <h2>4.22.6 C ABI 调用样例</h2>
 
@@ -87,7 +87,7 @@ bar.SetFloat(PropertyNames::kFontSize, 13.0f);</code></pre>
 UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 UICornerstone_StatusBarAddItem(g_inst, bar, "enc", u8"UTF-8", 1);
 UICornerstone_StatusBarSetItemText(g_inst, bar, "branch", u8"dev");
-UICornerstone_SetFloat(g_inst, bar, "font-size", 13.0f);</code></pre>
+UICornerstone_SetInt(g_inst, bar, "font-size", 13);    // int 通道</code></pre>
 
 </body>
 </html>

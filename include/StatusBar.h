@@ -59,7 +59,9 @@ public:
     void setRect(SRect rect) override;
 
     // ── 属性系统 override ──
-    int setFloatProperty(const char* prop, float value) override;   // font-size/item-height
+    int setIntProperty(const char* prop, int value) override;    // font-size（int 通道）
+    int getIntProperty(const char* prop, int& out) override;
+    int setFloatProperty(const char* prop, float value) override;   // item-height
     int getFloatProperty(const char* prop, float& out) override;
 
 private:

@@ -46,7 +46,7 @@ UIControlHandle label = UICornerstone_CreateLabel(g_inst, "Hello", 24.0f, 20, 20
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>空</td><td>文本内容</td></tr>
 <tr><td><code>clickable</code></td><td><code>kClickable</code></td><td>Bool</td><td>false</td><td>可点击命中</td></tr>
 <tr><td><code>expand</code></td><td><code>kExpand</code></td><td>Bool</td><td>false</td><td>自动扩展尺寸</td></tr>
-<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular</td><td>字体名（内置 28 种，见 ConstDef::fontFiles）</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular</td><td>字体名（内置 6 种，见 ConstDef::fontFiles）</td></tr>
 <tr><td><code>font-file</code></td><td><code>kFontFile</code></td><td>String</td><td>空</td><td>任意字体文件路径（相对 resourceRoot，支持 <code>provider:</code> 前缀）</td></tr>
 <tr><td><code>font-resource</code></td><td><code>kFontResource</code></td><td>String</td><td>空</td><td>内存注册的字体资源 ID（MemoryResourceProvider）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td><td>字号</td></tr>
@@ -133,7 +133,7 @@ UICornerstone_SetString(g_inst, lbl, "font-resource", "maple-font");     // 内�
 <tr><td><code>setClickable(bool)</code></td><td>可点击（事件命中）开关</td></tr>
 <tr><td><code>setDebugDraw(bool)</code> / <code>getDebugDraw()</code></td><td>调试热区绘制</td></tr>
 <tr><td><code>setEnableExpand(bool)</code> / <code>getEnableExpand()</code></td><td>自动扩展尺寸</td></tr>
-<tr><td><code>setFont(FontName)</code> / <code>getFont()</code></td><td>字体（枚举内置 28 种；任意字体见 <code>font-file</code> / <code>font-resource</code> 属性）</td></tr>
+<tr><td><code>setFont(FontName)</code> / <code>getFont()</code></td><td>字体（枚举内置 6 种；任意字体见 <code>font-file</code> / <code>font-resource</code> 属性）</td></tr>
 <tr><td><code>SetFontStyle(int)</code></td><td>字体样式（normal/bold/italic/underline/strikethrough）</td></tr>
 <tr><td><code>setLineHeight(int)</code> / <code>getLineHeight()</code> / <code>setLineSpacingRatio(float)</code> / <code>getLineSpacingRatio()</code></td><td>行高 / 行距比例</td></tr>
 <tr><td><code>setMargin(Margin)</code> / <code>setFontSize(int)</code> / <code>getFontSize()</code></td><td>边距 / 字号（默认 16）</td></tr>

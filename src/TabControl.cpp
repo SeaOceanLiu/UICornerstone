@@ -379,18 +379,18 @@ int TabControl::getEnumProperty(const char* prop, const char*& out) {
 }
 int TabControl::setIntProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kTabCurrentIndex) == 0) { setCurrentIndex(value); return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)        { setFontSize((float)value); return 1; }
     return ControlImpl::setIntProperty(prop, value);
 }
 int TabControl::getIntProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kTabCurrentIndex) == 0) { out = m_currentIndex; return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)        { out = (int)m_fontSize; return 1; }
     return ControlImpl::getIntProperty(prop, out);
 }
 int TabControl::setFloatProperty(const char* prop, float value) {
-    if (strcmp(prop, PropertyNames::kFontSize) == 0) { setFontSize(value); return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int TabControl::getFloatProperty(const char* prop, float& out) {
-    if (strcmp(prop, PropertyNames::kFontSize) == 0) { out = m_fontSize; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 

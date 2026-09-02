@@ -27,7 +27,7 @@
 <tr><td><code>enabled</code></td><td><code>kEnabled</code></td><td>Bool</td><td>响应交互</td></tr>
 <tr><td><code>text</code></td><td><code>kText</code></td><td>StateColor</td><td>文本 / 文本阴影状态色</td></tr>
 <tr><td><code>text-shadow</code></td><td><code>kTextShadow</code></td><td>StateColor</td><td>文本 / 文本阴影状态色</td></tr>
-<tr><td><code>font</code></td><td><code>kFont</code></td><td>Obj / Float</td><td>字体声明 <code>{name, size, style}</code> 或便捷 <code>fontSize</code>；未声明时<b>沿父控件链继承</b>最近显式字体（v1.1.1）</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Obj</td><td>字体声明 <code>{name, size, style}</code>（<code>size</code> 为 Int）；便捷 <code>font-size</code> 同效；未声明时<b>沿父控件链继承</b>最近显式字体（v1.1.1）</td></tr>
 <tr><td><code>transparent</code></td><td><code>kTransparent</code></td><td>Bool</td><td>背景透明</td></tr>
 <tr><td><code>visible</code></td><td><code>kVisible</code></td><td>Bool</td><td>可见性</td></tr>
 <tr><td><code>focusable</code></td><td><code>kFocusable</code></td><td>Bool</td><td>可聚焦</td></tr>
@@ -189,7 +189,7 @@
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>空</td></tr>
 <tr><td><code>clickable</code></td><td><code>kClickable</code></td><td>Bool</td><td>false</td></tr>
 <tr><td><code>expand</code></td><td><code>kExpand</code></td><td>Bool</td><td>false</td></tr>
-<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular（内置 28 种字体）</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular（内置 6 种字体）</td></tr>
 <tr><td><code>align</code></td><td><code>kAlign</code></td><td>Enum</td><td><code>kAlignLowerMidLeft</code>（9 值）</td></tr>
 <tr><td><code>font-file</code></td><td><code>kFontFile</code></td><td>String（只写）</td><td>任意字体文件路径（相对 resourceRoot，可 <code>provider:</code> 前缀引用内存）；覆盖 <code>font</code> 枚举</td></tr>
 <tr><td><code>font-resource</code></td><td><code>kFontResource</code></td><td>String（只写）</td><td>内存字体资源 ID（MemoryResourceProvider 注册名）；优先级低于 font-file</td></tr>
@@ -210,7 +210,7 @@
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td><code>font {name,size,style}</code>（属性系统键）；未声明沿父链继承（v1.1.1 起支持）</td></tr>
-<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>14（继承或显式）</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>14（继承或显式）</td></tr>
 <tr><td><code>mode</code></td><td><code>kMode</code></td><td>Enum</td><td><code>kModeMulti</code>（multi / <code>kModeSingle</code>）</td></tr>
 <tr><td><code>multi-select</code></td><td><code>kMultiSelect</code></td><td>Bool</td><td>true</td></tr>
 <tr><td><code>selected-index</code></td><td><code>kSelectedIndex</code></td><td>Int</td><td>-1</td></tr>
@@ -245,7 +245,7 @@
 <tr><td><code>checked</code></td><td><code>kChecked</code></td><td>Bool</td><td>MenuItem 勾选</td></tr>
 <tr><td><code>click</code></td><td><code>kEventClick</code></td><td>callback</td><td>MenuItem 点击</td></tr>
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>菜单字体（默认 MapleMono_NF_CN_Regular）</td></tr>
-<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
+<tr><td><code>value</code></td><td><code>kValue</code></td><td>Float</td><td>MenuBar 字号</td></tr>
 <tr><td><code>bar-height</code></td><td><code>kBarHeight</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
 <tr><td><code>item-height-ratio</code></td><td><code>kItemHeightRatio</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
 <tr><td><code>manual-position</code></td><td><code>kManualPosition</code></td><td>Bool</td><td>MenuBar 手动定位（跳过全宽布局，setRect 自由生效）</td></tr>
@@ -368,7 +368,7 @@
 <h3>StatusBar（类型 <code>status-bar</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>13 / rect 高</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>13 / rect 高</td></tr>
 <tr><td><code>item-height</code></td><td><code>kItemHeight</code></td><td>Float</td><td>13 / rect 高</td></tr>
 </table>
 <p>段数据经 JSON <code>items[]</code>（id / text / align / icon / menu / onClick）；C ABI 专用函数 <code>StatusBarAddItem</code> 等见 8.3.1。</p>
@@ -377,15 +377,15 @@
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>position</code></td><td><code>kTabPosition</code></td><td>Enum</td><td>top（top / bottom / left / right）</td></tr>
 <tr><td><code>currentIndex</code></td><td><code>kTabCurrentIndex</code></td><td>Int</td><td>0（首页自动选中）</td></tr>
-<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>13</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>13</td></tr>
 </table>
 <p>页数据经 JSON <code>tabs[]</code>（title / icon / page）；C ABI 专用函数 <code>TabAddPage / TabSetPage</code> 等见 8.3.1。</p>
 <h3>TextArea（类型 <code>text-area</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int / Enum / Enum</td><td>16 / HarmonyOS / <code>kAlignLowerMidLeft</code></td></tr>
-<tr><td><code>font</code></td><td><code>kFont</code></td><td>Int / Enum / Enum</td><td>16 / HarmonyOS / <code>kAlignLowerMidLeft</code></td></tr>
-<tr><td><code>align</code></td><td><code>kAlign</code></td><td>Int / Enum / Enum</td><td>16 / HarmonyOS / <code>kAlignLowerMidLeft</code></td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular</td></tr>
+<tr><td><code>align</code></td><td><code>kAlign</code></td><td>Enum</td><td><code>kAlignLowerMidLeft</code></td></tr>
 <tr><td><code>line-height</code></td><td><code>kLineHeight</code></td><td>Int</td><td>—</td></tr>
 <tr><td><code>scroll-x</code></td><td><code>kScrollX</code></td><td>Int</td><td>0</td></tr>
 <tr><td><code>scroll-y</code></td><td><code>kScrollY</code></td><td>Int</td><td>0</td></tr>

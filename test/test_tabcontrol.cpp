@@ -156,9 +156,11 @@ static void runCabiChecks() {
     // 通用属性：position / current-index / font-size
     CHECK(UICornerstone_SetEnum(g_uiInstance, t, PropertyNames::kJsonPosition, "left") == 1, "SetEnum position=left");
     CHECK(UICornerstone_SetInt(g_uiInstance, t, PropertyNames::kJsonCurrentIndex, 1) == 1, "SetInt current-index=1");
-    CHECK(UICornerstone_SetFloat(g_uiInstance, t, PropertyNames::kFontSize, 15.f) == 1, "SetFloat font-size=15");
+    CHECK(UICornerstone_SetInt(g_uiInstance, t, PropertyNames::kFontSize, 15) == 1, "SetInt font-size=15");
     int cur = -1;
     CHECK(UICornerstone_GetInt(g_uiInstance, t, PropertyNames::kJsonCurrentIndex, &cur) == 1 && cur == 1, "GetInt current-index reads back");
+    int fs = -1;
+    CHECK(UICornerstone_GetInt(g_uiInstance, t, PropertyNames::kFontSize, &fs) == 1 && fs == 15, "GetInt font-size reads back 15");
 
     TestUtil::log("---- CABI checks done: pass=%d fail=%d ----", g_pass, g_fail);
 }

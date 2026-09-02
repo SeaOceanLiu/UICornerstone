@@ -270,13 +270,19 @@ void StatusBar::setRect(SRect rect) {
 }
 
 // ── 属性系统 override ──
+int StatusBar::setIntProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)      { setFontSize((float)value); return 1; }
+    return ControlImpl::setIntProperty(prop, value);
+}
+int StatusBar::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)  { out = (int)m_fontSize;  return 1; }
+    return ControlImpl::getIntProperty(prop, out);
+}
 int StatusBar::setFloatProperty(const char* prop, float value) {
-    if (strcmp(prop, PropertyNames::kFontSize) == 0)      { setFontSize(value); return 1; }
     if (strcmp(prop, PropertyNames::kItemHeight) == 0)     { setItemHeight(value); return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int StatusBar::getFloatProperty(const char* prop, float& out) {
-    if (strcmp(prop, PropertyNames::kFontSize) == 0)  { out = m_fontSize;  return 1; }
     if (strcmp(prop, PropertyNames::kItemHeight) == 0) { out = m_itemHeight; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }

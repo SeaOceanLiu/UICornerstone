@@ -61,10 +61,11 @@ static void runAssertions() {
     CHECK(g_probe->getPopupPanel() == nullptr, "popup panel null initially");
 
     // 属性回环
-    g_probe->setFloatProperty("font-size", 14.f);
-    float f = 0.f;
-    CHECK(g_probe->getFloatProperty("font-size", f) == 1 && f == 14.f, "font-size roundtrip");
+    g_probe->setIntProperty("font-size", 14);
+    int fsz = 0;
+    CHECK(g_probe->getIntProperty("font-size", fsz) == 1 && fsz == 14, "font-size roundtrip");
     g_probe->setFloatProperty("item-height", 28.f);
+    float f = 0.f;
     CHECK(g_probe->getFloatProperty("item-height", f) == 1 && f == 28.f, "item-height roundtrip");
 
     // 图标控件绑定（API 接受）
