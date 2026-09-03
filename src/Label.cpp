@@ -8,7 +8,7 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     ControlImpl(parent, xScale, yScale)
     , m_font(nullptr)
     , m_shadowOffset({2, 2})
-    , m_AlignmentMode(AlignmentMode::AM_TOP_LEFT)
+    , m_AlignmentMode(AlignmentMode::AM_MID_LEFT)   // 文档/schema 声明默认 mid-left（垂直中线+水平左）
     , m_fontSize(16)
     , m_caption("")
     , m_shadowEnabled(false)

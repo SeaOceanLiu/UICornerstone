@@ -330,6 +330,12 @@ void testBenchInitialize(shared_ptr<Bench>) {
             if (clabel2) CHECK(clabel2->GetFontStyle() == 2, "font.style \"italic\" (string) -> style 2");
         }
 
+        // 默认对齐：文档/schema 声明 Label 默认 mid-left（垂直中线+水平左），
+        // 与右侧 EditBox/NUD 文字中线对齐（v1.1.1 修复构造默认 AM_TOP_LEFT → AM_MID_LEFT）
+        auto defLabel = LabelBuilder(nullptr, SRect(820, 780, 120, 30)).setCaption(u8"默认对齐").build();
+        CHECK(defLabel->getAlignmentMode() == AlignmentMode::AM_MID_LEFT,
+              "default alignment = mid-left (schema/document agreement)");
+
         TestUtil::log("---- font-style assertions: pass=%d fail=%d ----", g_pass, g_fail);
 #undef CHECK
     }
