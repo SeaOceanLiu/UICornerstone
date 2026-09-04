@@ -77,7 +77,7 @@ while (!ui-&gt;IsQuitRequested()) {
 }
 ui-&gt;Shutdown();</code></pre>
 
-<p>事件路由要点：窗口输入按<strong>窗口绝对坐标</strong>路由到命中的子视口；未命中任何子视口 → owner 树；键盘事件先做 Ctrl+Tab 跨视口智能路由，再投递到活动视口。</p>
+<p>事件路由要点：窗口输入按<strong>窗口绝对坐标</strong>路由到命中的子视口；未命中任何子视口 → owner 树；键盘事件先做 Ctrl+Tab 跨视口智能路由，再投递到活动视口。<strong>回退（v1.1.1）</strong>：子视口内<b>未被消费</b>的事件（空白区点击 / 未命中任何控件的 MouseDown 等）经其事件循环回退给 owner 树——覆盖画布的子视口不再吞掉 owner 的 splitter 拖拽等交互。</p>
 
 <h2>5.2.3 多实例双窗口（C++ Binding）</h2>
 

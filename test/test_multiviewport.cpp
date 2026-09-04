@@ -5,6 +5,8 @@
 // "直接销毁活动视口 → activeViewport 清空"验证 cur==nullptr 分支。
 #include "UICornerstoneAPI.h"
 #include "EventTypes.h"
+#include "Label.h"
+#include <memory>
 #include <cstdio>
 #include <cassert>
 #include <cstring>
@@ -29,11 +31,66 @@ static void injectKey(UIInstance inst, KeyCode code, KeyMod mod, bool down) {
     UICornerstone_Update(inst, 0.016);   // 事件入队后经 eventLoopEntry 分发
 }
 
+static void injectMouse(UIInstance inst, UIInstance routeTarget, EventType type, float x, float y) {
+    UIEvent ev; memset(&ev, 0, sizeof(ev));
+    ev.type = (UIEventType)type;
+    UI_EVENT_MOUSE_X(&ev) = x;
+    UI_EVENT_MOUSE_Y(&ev) = y;
+    UI_EVENT_BUTTON(&ev) = 1;   // MouseButton::Left
+    // 注入通路：dispatchToBench(inst)。测试直接 push 到子视口实例，
+    // 使事件进 vp bench 队列 → vp eventLoopEntry 未消费 → 回退 owner 树。
+    UICornerstone_PushUIEvent(routeTarget, &ev);
+    UICornerstone_ProcessEvents(routeTarget);
+    UICornerstone_Update(routeTarget, 0.016);   // eventLoopEntry：未消费 → 回退 owner
+    (void)inst;
+}
+
+// F1：子视口事件回退——视口覆盖 owner clickable Label，视口空白区点击
+//     经 eventLoopEntry 回退 owner 树，Label onClick 触发（splitter 场景根修）
+
 static void frame(UIInstance win, UIInstance vp1, UIInstance vp2) {
     UICornerstone_ProcessEvents(win);
     if (vp1) { UICornerstone_Update(vp1, 0.016); UICornerstone_Render(vp1); }
     if (vp2) { UICornerstone_Update(vp2, 0.016); UICornerstone_Render(vp2); }
 }
+
+static void testF1() {
+    UIBackendCallbacks* cb = GetUIBackendCallbacks();
+    UIInstance win = UICornerstone_CreateInstance(cb, NULL);
+    assert(win);
+
+    // owner：clickable Label 置于 (100,100)（随后被子视口区域覆盖）
+    UIControlHandle lbl = UICornerstone_CreateLabel(win, u8"owner-btn", 12.f, 100, 100, 120, 30, 1.f, 1.f);
+    assert(lbl);
+    static int g_ownerClicks = 0;
+    g_ownerClicks = 0;
+    auto* l = reinterpret_cast<Control*>(lbl);
+    if (auto impl = dynamic_cast<Label*>(l)) {
+        impl->setClickable(true);
+        impl->setOnClick([](shared_ptr<Control>) { ++g_ownerClicks; });
+    }
+
+    // 子视口覆盖 (0,0,640,480)（含 Label 区域）；视口内无任何控件（空白 bench）
+    UIInstance vp = UICornerstone_CreateViewport(win, UIRect{0, 0, 640, 480});
+    assert(vp);
+    frame(win, vp, nullptr);
+
+    // 向视口区域内 Label 位置注入点击：路由到视口（未消费）→ 回退 owner 树
+    // 注：Update 间会用真实鼠标位置做 hover 刷新，需同步注入鼠标坐标维持 Pressed 链
+    UICornerstone_Debug_SetMousePosition(win, 110.f, 110.f);
+    injectMouse(win, vp, EventType::MouseDown, 110.f, 110.f);
+    UICornerstone_Debug_SetMousePosition(win, 110.f, 110.f);
+    injectMouse(win, vp, EventType::MouseUp,   110.f, 110.f);
+
+    if (g_ownerClicks == 1) {
+        printf("PASS: F1 viewport-unconsumed event falls back to owner tree\n");
+    } else {
+        printf("FAIL: F1 owner clicks=%d (expect 1)\n", g_ownerClicks);
+    }
+
+    UICornerstone_DestroyInstance(win);   // 子视口随 owner 级联销毁
+}
+
 
 // ── 每用例独立窗口，避免状态纠缠 ──
 static void testK1() {
@@ -232,12 +289,15 @@ int main() {
     assert(cb);
     (void)cb;
 
+    testF1();
     testK1();
     testK2();
     testK3K4K5();
     testK6();
     testK7();
     testK8();
+    testF1();
+    testF1();
 
     assert(UICornerstone_Debug_GetAliveCount() == 0);
     printf("ALL PASS: multiviewport + keyboard navigation\n");

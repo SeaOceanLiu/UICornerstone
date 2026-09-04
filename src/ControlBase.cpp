@@ -4,6 +4,7 @@
 #include "PlatformUtils.h"
 #include "MainWindow.h"
 #include "PropertyNames.h"
+#include "Bench.h"
 #include <cstring>
 ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     // m_weakThis(this),
@@ -1123,4 +1124,28 @@ int ControlImpl::getEnumProperty(const char* prop, const char*& out) {
         return 0;
     }
     return 0;
+}
+
+// ── TopControl::eventLoopEntry（事件循环 + 子视口回退）──
+// 子视口内未消费的事件（空白区/未命中的 MouseDown 等）转发 owner 树处理：
+// 覆盖画布的子视口下，owner 的 splitter 等控件仍可拖拽（CornerstoneDesigner 场景）。
+// 直调 owner bench->handleEvent（不入 owner 队列，天然无重入/死循环）；
+// before-watchers 已在循环内跑过，转发不再重复。
+void TopControl::eventLoopEntry(void){
+    if (!m_eventQueueInstance) return;
+    int evCount = 0;
+    shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
+    while(eventInQueue != nullptr){
+        evCount++;
+        bool consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
+        if (!consumed) {
+            consumed = handleEvent(eventInQueue);
+        }
+        m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
+        if (!consumed && m_context && m_context->owner
+            && m_context->owner->bench) {
+            m_context->owner->bench->handleEvent(eventInQueue);
+        }
+        eventInQueue = m_eventQueueInstance->popEventFromQueue();
+    }
 }

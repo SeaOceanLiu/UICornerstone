@@ -584,21 +584,7 @@ public:
     TopControl(UIContext* ctx = nullptr): Control(ctx){
         m_eventQueueInstance = ctx ? ctx->eventQueue : nullptr;
     }
-    void eventLoopEntry(void){
-        if (!m_eventQueueInstance) return;
-        int evCount = 0;
-        shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
-        while(eventInQueue != nullptr){
-            evCount++;
-            bool consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
-            if (!consumed) {
-                handleEvent(eventInQueue);
-            }
-            m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
-
-            eventInQueue = m_eventQueueInstance->popEventFromQueue();
-        }
-    }
+    void eventLoopEntry(void);
 };
 
 // ============================================================
