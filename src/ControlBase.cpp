@@ -1129,8 +1129,9 @@ int ControlImpl::getEnumProperty(const char* prop, const char*& out) {
 // ── TopControl::eventLoopEntry（事件循环 + 子视口回退）──
 // 子视口内未消费的事件（空白区/未命中的 MouseDown 等）转发 owner 树处理：
 // 覆盖画布的子视口下，owner 的 splitter 等控件仍可拖拽（CornerstoneDesigner 场景）。
-// 直调 owner bench->handleEvent（不入 owner 队列，天然无重入/死循环）；
-// before-watchers 已在循环内跑过，转发不再重复。
+// 回退须先补跑 owner 队列的 before/after watchers——Splitter 的续拖（updateDrag/
+// endDrag）注册在 owner 队列的 watcher 上；视口队列的 watcher 跑过 ≠ owner 队列
+// 的跑过。owner 消费（watcher 或 handleEvent）后不再二次分发。
 void TopControl::eventLoopEntry(void){
     if (!m_eventQueueInstance) return;
     int evCount = 0;
@@ -1144,7 +1145,15 @@ void TopControl::eventLoopEntry(void){
         m_eventQueueInstance->notifyAfterEventHandlingWatchers(eventInQueue);
         if (!consumed && m_context && m_context->owner
             && m_context->owner->bench) {
-            m_context->owner->bench->handleEvent(eventInQueue);
+            EventQueue* ownerQueue = m_context->owner->eventQueue;
+            bool ownerConsumed = ownerQueue
+                && ownerQueue->notifyBeforeEventHandlingWatchers(eventInQueue);
+            if (!ownerConsumed) {
+                m_context->owner->bench->handleEvent(eventInQueue);
+            }
+            if (ownerQueue) {
+                ownerQueue->notifyAfterEventHandlingWatchers(eventInQueue);
+            }
         }
         eventInQueue = m_eventQueueInstance->popEventFromQueue();
     }

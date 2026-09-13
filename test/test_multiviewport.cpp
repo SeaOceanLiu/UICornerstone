@@ -6,6 +6,8 @@
 #include "UICornerstoneAPI.h"
 #include "EventTypes.h"
 #include "Label.h"
+#include "Splitter.h"
+#include "Panel.h"
 #include <memory>
 #include <cstdio>
 #include <cassert>
@@ -91,6 +93,51 @@ static void testF1() {
     UICornerstone_DestroyInstance(win);   // 子视口随 owner 级联销毁
 }
 
+
+
+// F2：跨视口 splitter 续拖——owner splitter 拖拽中指针进入视口覆盖区，
+//     Move/Up 走视口回退并补跑 owner 队列 watcher（updateDrag/endDrag）
+static void testF2() {
+    UIBackendCallbacks* cb = GetUIBackendCallbacks();
+    UIInstance win = UICornerstone_CreateInstance(cb, NULL);
+    assert(win);
+
+    UIControlHandle sp = UICornerstone_CreateSplitter(win, 200.f, 200.f, 8.f, 300.f, 0, 1.f, 1.f);
+    assert(sp);
+    auto* s = reinterpret_cast<Control*>(sp);
+    auto split = s ? dynamic_cast<Splitter*>(s) : nullptr;
+    assert(split);
+    auto p1 = make_shared<Panel>(nullptr, SRect(0, 200, 200, 300));
+    auto p2 = make_shared<Panel>(nullptr, SRect(208, 200, 400, 300));
+    split->setLinkedControls(p1, p2);
+    split->setSplitRatio(0.5f);
+
+    SRect dr = split->getDrawRect();
+    // 视口覆盖 splitter 右侧区域（含 Move 目标点），对齐实际绘制位置
+    UIInstance vp = UICornerstone_CreateViewport(win,
+        UIRect{dr.left + dr.width, dr.top, 400, dr.height});
+    assert(vp);
+    frame(win, vp, nullptr);
+
+    dr = split->getDrawRect();
+    float hitX = dr.left + dr.width / 2.f;
+    float hitY = dr.top + dr.height / 2.f;
+    float beforeT = split->getRect().top;
+    injectMouse(win, win, EventType::MouseDown, hitX, hitY);
+    UICornerstone_Debug_SetMousePosition(win, hitX, hitY + 100.f);
+    injectMouse(win, vp, EventType::MouseMove, hitX, hitY + 100.f);
+    UICornerstone_Debug_SetMousePosition(win, hitX, hitY + 100.f);
+    injectMouse(win, vp, EventType::MouseUp, hitX, hitY + 100.f);
+
+    float afterT = split->getRect().top;
+    if (afterT > beforeT) {
+        printf("PASS: F2 splitter drag continues across viewport (top %.1f -> %.1f)\n", beforeT, afterT);
+    } else {
+        printf("FAIL: F2 splitter top %.1f -> %.1f (expect increase)\n", beforeT, afterT);
+    }
+
+    UICornerstone_DestroyInstance(win);
+}
 
 // ── 每用例独立窗口，避免状态纠缠 ──
 static void testK1() {
@@ -290,6 +337,7 @@ int main() {
     (void)cb;
 
     testF1();
+    testF2();
     testK1();
     testK2();
     testK3K4K5();
