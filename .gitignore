@@ -440,3 +440,4 @@ Temp/
 
 # 测试运行时输出的动画时间线（运行目录=仓库根时产生）
 tl_*.jsonc
+capture_ctl.bmp

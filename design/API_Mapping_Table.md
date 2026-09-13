@@ -44,7 +44,8 @@
 |---|---|---|---|---|---|---|
 | loadFromFile/Resource | image/imageResource | image/image-resource | SetString | SetString | ✅ |  |
 | loadTextureFromSurface/setTexture | — | — | — | — | ⚠️对象注入 | CABI/Binding |
-| setScaleType | scaleType | scale-type | SetEnum | SetEnum | ✅ |  |
+| setScaleType | scaleType | scale-type | SetEnum（stretch/fit-center/center-crop/none/**tile** v1.1.1） | SetEnum | ✅ |  |
+| setSourceRect/clearSourceRect | sourceRect（后续） | — | ActorSetSourceRect（清除 x<0/w≤0/h≤0） | ImageSetSourceRect（v1.1.1） | ✅专用 |  |
 | setMatchParentRect | matchParentRect | match-parent-rect | SetBool | SetBool | ✅ |  |
 | setAlpha | — | alpha | SetInt | SetInt | ✅ | JSON |
 | setAnchorPoint(枚举) | anchor | anchor | SetEnum | SetEnum | ✅方向锚 |  |
@@ -374,7 +375,7 @@
 | setLineWidth/setRadius/setRingWidth | lineWidth/radius/ring-width | line-width/radius/ring-width | SetFloat | SetFloat | ✅ |  |
 | setPoints | points | — | ShapeSetPoints | — | 🔧 |  |
 | mapToDrawPoint/getDrawPoint | — | — | ShapeMapToDrawPoint | — | ⛔查询 |  |
-| 多图元 addPrimitive/setPrimitive* | primitives | — | ShapeAddPrimitive/ShapeSetPrimitiveColor/ShapeSetPrimitiveFloat/ShapeSetPrimitivePoints/ShapeClearPrimitives | ShapeBuilder.addPrimitive/setPrimitive* | ✅Builder |  |
+| 多图元 addPrimitive/setPrimitive* | primitives | — | ShapeAddPrimitive/ShapeSetPrimitiveColor/ShapeSetPrimitiveFloat/ShapeSetPrimitivePoints/ShapeClearPrimitives | ShapeBuilder.addPrimitive/setPrimitive* + UICornerstone::ShapeAddPrimitive 等五方法（v1.1.1 Binding 全链） | ✅Builder |  |
 | setBackgroundStateColor | colors.background | background | SetStateColor | SetStateColor | ✅ |  |
 
 ## 25. StatusBar(VSCode 风格状态栏)

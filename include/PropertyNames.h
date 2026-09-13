@@ -861,6 +861,7 @@ PROP_CONSTEXPR const char* kScaleTypeStretch       = "stretch";
 PROP_CONSTEXPR const char* kScaleTypeFitCenter     = "fit-center";
 PROP_CONSTEXPR const char* kScaleTypeCenterCrop    = "center-crop";
 PROP_CONSTEXPR const char* kScaleTypeNone          = "none";
+PROP_CONSTEXPR const char* kScaleTypeTile          = "tile";
 
 // 对齐值（小写风格，AlignmentMode/Actor 锚点 CABI 属性字符串值）
 PROP_CONSTEXPR const char* kAlignLowerTopLeft     = "top-left";

@@ -43,7 +43,7 @@ UIControlHandle img = UICornerstone_CreateImage(g_inst, "assets/img/icon.png", 2
 <tr><td><code>image</code></td><td><code>kImage</code></td><td>String</td><td>—</td><td>图片文件路径（只写不读）</td></tr>
 <tr><td><code>image-resource</code></td><td><code>kImageResource</code></td><td>String</td><td>—</td><td>资源 ID（只写不读）</td></tr>
 <tr><td><code>match-parent-rect</code></td><td><code>kMatchParentRect</code></td><td>Bool</td><td>false</td><td>强制使用目标矩形</td></tr>
-<tr><td><code>scale-type</code></td><td><code>kScaleType</code></td><td>Enum</td><td><code>kScaleTypeStretch</code></td><td><code>kScaleTypeStretch</code> / <code>kScaleTypeFitCenter</code> / <code>kScaleTypeCenterCrop</code> / <code>kScaleTypeNone</code></td></tr>
+<tr><td><code>scale-type</code></td><td><code>kScaleType</code></td><td>Enum</td><td><code>kScaleTypeStretch</code></td><td><code>kScaleTypeStretch</code> / <code>kScaleTypeFitCenter</code> / <code>kScaleTypeCenterCrop</code> / <code>kScaleTypeNone</code> / <code>kScaleTypeTile</code>（平铺，末行/末列边缘裁剪）</td></tr>
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 
@@ -61,7 +61,7 @@ UIControlHandle img = UICornerstone_CreateImage(g_inst, "assets/img/icon.png", 2
 
 // 支持键：image / imageResource / providerName / matchParentRect / scaleType /
 //          rect / scale / visible / enabled / margin / colors / styles / events / id
-// scaleType：stretch（默认）/ fit-center / center-crop / none</code></pre>
+// scaleType：stretch（默认）/ fit-center / center-crop / none / tile</code></pre>
 
 
 <h2>4.1.5 JSON 语法（Button 的 actors）</h2>

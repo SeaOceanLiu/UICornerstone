@@ -116,6 +116,12 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(StatusBarRemoveItem);
     RESOLVE(ShapeSetPoints);
     RESOLVE(ShapeMapToDrawPoint);
+    RESOLVE(ShapeAddPrimitive);
+    RESOLVE(ShapeSetPrimitiveColor);
+    RESOLVE(ShapeSetPrimitiveFloat);
+    RESOLVE(ShapeSetPrimitivePoints);
+    RESOLVE(ShapeClearPrimitives);
+    RESOLVE(ActorSetSourceRect);
     RESOLVE(TreeViewAddNode);
     RESOLVE(TreeViewRemoveNode);
     RESOLVE(TreeViewSetNodeLabel);

@@ -40,7 +40,7 @@
         "playing": { "type": "boolean", "description": "内嵌动画挂树即播" },
         "providerName": { "type": "string" },
         "resourceId": { "type": "string" },
-        "scaleType": { "enum": ["stretch", "fit-center", "center-crop", "none"] },
+        "scaleType": { "enum": ["stretch", "fit-center", "center-crop", "none", "tile"] },
         "text": { "type": "string" }
       },
       "required": ["type"],
@@ -230,7 +230,7 @@
         "matchParentRect": { "type": "boolean", "x-default": "false" },
         "providerName": { "type": "string" },
         "resourceId": { "type": "string" },
-        "scaleType": { "enum": ["stretch", "fit-center", "center-crop", "none"] }
+        "scaleType": { "enum": ["stretch", "fit-center", "center-crop", "none", "tile"] }
       },
       "required": ["type"],
       "additionalProperties": false

@@ -38,6 +38,7 @@ typedef int        (*UISetViewportBgFn)(UIInstance, uint8_t, uint8_t, uint8_t, u
 typedef void*      (*UICreatePanelFn)(UIInstance, float, float, float, float, float, float);
 typedef void*      (*UICreateImageFn)(UIInstance, const char*, float, float, float, float, float, float);
 typedef int        (*UISetEnumFn)(UIInstance, void*, const char*, const char*);
+typedef int        (*UIActorSetSourceRectFn)(UIInstance, void*, float, float, float, float);
 typedef int        (*UISetColorFn)(UIInstance, void*, const char*, UIColor);
 typedef uint32_t   (*UIGetBackendCapsFn)(UIInstance);
 typedef int        (*UICaptureRectFn)(UIInstance, float, float, float, float, uint8_t*, int*, int*);
@@ -58,6 +59,7 @@ static UISetViewportBgFn        uiSetViewportBackgroundColor= nullptr;
 static UICreatePanelFn          uiCreatePanel               = nullptr;
 static UICreateImageFn          uiCreateImage               = nullptr;
 static UISetEnumFn              uiSetEnum                   = nullptr;
+static UIActorSetSourceRectFn   uiActorSetSourceRect        = nullptr;
 static UISetColorFn             uiSetColor                  = nullptr;
 static UIGetBackendCapsFn       uiGetBackendCapabilities    = nullptr;
 static UICaptureRectFn          uiCaptureRect               = nullptr;
@@ -84,6 +86,7 @@ static bool loadAllProcs() {
     RESOLVE(CreatePanel)
     RESOLVE(CreateImage)
     RESOLVE(SetEnum)
+    RESOLVE(ActorSetSourceRect)
     RESOLVE(SetColor)
     RESOLVE(GetBackendCapabilities)
     RESOLVE(CaptureRect)
@@ -170,6 +173,18 @@ int main(int argc, char** argv) {
                                         320.0f, 200.0f, 240.0f, 24.0f, 1.0f, 1.0f);
     assert(i0Disp);
     assert(uiSetEnum(inst, i0Disp, "scale-type", "center-crop") == 1);
+    // I0b：tile 平铺（纹理整图含顶部绿行 → 目标顶缘=绿）
+    static void* i0bTile = uiCreateImage(inst, "assets/images/srcrect_split.bmp",
+                                         60.0f, 240.0f, 240.0f, 24.0f, 1.0f, 1.0f);
+    assert(i0bTile);
+    assert(uiSetEnum(inst, i0bTile, "scale-type", "tile") == 1);
+    // I0c：tile + source-rect（瓦片=垂直居中蓝带 y10..12 → 目标顶缘=蓝）
+    static void* i0cTileSrc = uiCreateImage(inst, "assets/images/srcrect_split.bmp",
+                                            320.0f, 240.0f, 240.0f, 24.0f, 1.0f, 1.0f);
+    assert(i0cTileSrc);
+    assert(uiSetEnum(inst, i0cTileSrc, "scale-type", "tile") == 1);
+    // 瓦片 = source-rect 子区域（y 10..12 蓝带）→ 目标顶缘应为蓝
+    assert(uiActorSetSourceRect(inst, i0cTileSrc, 0.f, 10.f, 24.f, 2.f) == 1);
 
     uint32_t caps = uiGetBackendCapabilities(inst);
     printf("backend capabilities: 0x%08X (READBACK=%s)\n", caps,
@@ -230,6 +245,26 @@ int main(int argc, char** argv) {
                     printf("PASS: I0 center-crop top edge is blue (srcRect honored)\n");
                 } else {
                     printf("FAIL: I0 center-crop top edge not blue (srcRect ignored?)\n");
+                    allPass = false;
+                }
+
+                // I0b：tile 平铺——每瓦片含纹理顶部绿行 → 目标顶缘=绿(0,255,0)
+                int bw = 0, bh = 0;
+                assert(uiCaptureControl(inst, i0bTile, ctlPixels, &bw, &bh) == 1);
+                assert(bw == 240 && bh == 24);
+                if (pxEq(ctlPixels + (0 * 240 + 120) * 4, 0, 255, 0)) {
+                    printf("PASS: I0b tile top edge is green (tiled full texture)\n");
+                } else {
+                    printf("FAIL: I0b tile top edge not green\n");
+                    allPass = false;
+                }
+
+                // I0c：tile + source-rect——瓦片=纯蓝带 → 目标顶缘=蓝(0,0,255)
+                assert(uiCaptureControl(inst, i0cTileSrc, ctlPixels, &bw, &bh) == 1);
+                if (pxEq(ctlPixels + (0 * 240 + 120) * 4, 0, 0, 255)) {
+                    printf("PASS: I0c tile+source-rect top edge is blue (sub-region tiled)\n");
+                } else {
+                    printf("FAIL: I0c tile+source-rect top edge not blue\n");
                     allPass = false;
                 }
             }

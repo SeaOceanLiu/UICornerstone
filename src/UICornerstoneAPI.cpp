@@ -1262,10 +1262,32 @@ UIControlHandle UICornerstone_CreateActor(UIInstance instance,
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(actor.get()));
 }
 
+static Actor* actorOf(UIInstance instance, UIControlHandle handle) {
+    if (!instance || !handle) return nullptr;
+    Control* ctl = validateControl(instance, handle);
+    if (!ctl) return nullptr;
+    return dynamic_cast<Actor*>(ctl);
+}
+
 UIControlHandle UICornerstone_CreateImage(UIInstance instance,
     const char* image, float x, float y, float w, float h, float xScale, float yScale)
 {
     return UICornerstone_CreateActor(instance, image, x, y, w, h, xScale, yScale);
+}
+
+// Actor 源矩形（纹理子区域；对 STRETCH 与 TILE 生效）。
+// 清除语义：x < 0 或 w ≤ 0 或 h ≤ 0 → 恢复整图。返回 1 成功 / 0 无效句柄。
+int UICornerstone_ActorSetSourceRect(UIInstance instance, UIControlHandle ctl,
+    float x, float y, float w, float h)
+{
+    auto* actor = actorOf(instance, ctl);
+    if (!actor) return 0;
+    if (x < 0.0f || w <= 0.0f || h <= 0.0f) {
+        actor->clearSourceRect();
+        return 1;
+    }
+    actor->setSourceRect(SRect(x, y, w, h));
+    return 1;
 }
 
 UIControlHandle UICornerstone_CreateAnimation(UIInstance instance,

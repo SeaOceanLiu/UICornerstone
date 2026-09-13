@@ -39,6 +39,7 @@ typedef int        (*UIGetBoolFn)(UIInstance, void*, const char*, int*);
 typedef int        (*UISetIntFn)(UIInstance, void*, const char*, int);
 typedef int        (*UIGetIntFn)(UIInstance, void*, const char*, int*);
 typedef int        (*UISetStringFn)(UIInstance, void*, const char*, const char*);
+typedef int        (*UIActorSetSourceRectFn)(UIInstance, void*, float, float, float, float);
 typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
 typedef int        (*UIDebugGetAliveCountFn)(void);
 
@@ -64,6 +65,7 @@ static UIGetBoolFn              uiGetBool                  = nullptr;
 static UISetIntFn               uiSetInt                   = nullptr;
 static UIGetIntFn               uiGetInt                   = nullptr;
 static UISetStringFn            uiSetString                = nullptr;
+static UIActorSetSourceRectFn   uiActorSetSourceRect       = nullptr;
 static UIGetStringFn            uiGetString                = nullptr;
 static UIDebugGetAliveCountFn   uiDebug_GetAliveCount      = nullptr;
 
@@ -95,6 +97,7 @@ static bool loadAllProcs() {
     RESOLVE(SetInt)
     RESOLVE(GetInt)
     RESOLVE(SetString)
+    RESOLVE(ActorSetSourceRect)
     RESOLVE(GetString)
     RESOLVE(Debug_GetAliveCount)
 #undef RESOLVE
@@ -212,6 +215,37 @@ int main(int argc, char* argv[]) {
         assert(uiGetString(inst, img, "image", buf, sizeof(buf)) == 0);
         assert(uiSetString(inst, img, "image", "assets/images/cross_down.png") == 1);
         printf("PASS: T3 property round-trip + write-only image\n");
+        uiDestroyControl(inst, img);
+    }
+
+    // ── T8 scale-type=tile 枚举回环（v1.1.1 平铺）──
+    {
+        UIControlHandle img = uiCreateImage(inst, "assets/images/cross_up.png",
+                                            0, 0, 64, 64, 1.0f, 1.0f);
+        assert(img);
+        char buf[64];
+        assert(uiSetEnum(inst, img, "scale-type", "tile") == 1);
+        assert(uiGetEnum(inst, img, "scale-type", buf, sizeof(buf)) == 1);
+        assert(strcmp(buf, "tile") == 0);
+        // 非法枚举仍拒绝
+        assert(uiSetEnum(inst, img, "scale-type", "mosaic") == 0);
+        printf("PASS: T8 scale-type tile round-trip + invalid rejected\n");
+        uiDestroyControl(inst, img);
+    }
+
+    // ── T9 ActorSetSourceRect：设置/清除语义 + 无效句柄拒绝 ──
+    {
+        UIControlHandle img = uiCreateImage(inst, "assets/images/cross_up.png",
+                                            0, 0, 64, 64, 1.0f, 1.0f);
+        assert(img);
+        assert(uiActorSetSourceRect(inst, img, 10.f, 10.f, 20.f, 20.f) == 1);   // 设置
+        assert(uiActorSetSourceRect(inst, img, -1.f, 0.f, 20.f, 20.f) == 1);    // x<0 清除
+        assert(uiActorSetSourceRect(inst, img, 0.f, 0.f, 0.f, 20.f) == 1);      // w<=0 清除
+        assert(uiActorSetSourceRect(inst, img, 0.f, 0.f, 20.f, 0.f) == 1);      // h<=0 清除
+        assert(uiActorSetSourceRect(inst, img, 5.f, 5.f, 16.f, 16.f) == 1);     // 重设
+        assert(uiActorSetSourceRect(inst, img, -1.f, -1.f, 0.f, 0.f) == 1);     // 清除
+        assert(uiActorSetSourceRect(inst, NULL, 0.f, 0.f, 10.f, 10.f) == 0);    // 无效句柄
+        printf("PASS: T9 ActorSetSourceRect set/clear/invalid-handle\n");
         uiDestroyControl(inst, img);
     }
 

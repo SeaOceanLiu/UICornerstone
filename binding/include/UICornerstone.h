@@ -154,6 +154,14 @@ public:
     Control CreateShape(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     void ShapeSetPoints(Control& sh, const std::vector<std::pair<float, float>>& pts); // 本地像素
     std::pair<float, float> ShapeMapToDrawPoint(Control& sh, float lx, float ly);      // 本地 → 全局
+    // 多图元（组合图形）：与 C ABI 一一对应（覆盖层：选中框/控点/对齐线，动态改点集）
+    int  ShapeAddPrimitive(Control& sh, const std::string& type, float x, float y, float w, float h);
+    void ShapeClearPrimitives(Control& sh);
+    void ShapeSetPrimitiveColor(Control& sh, int idx, const char* prop, UIColor value);   // prop: "fill"/"stroke"
+    void ShapeSetPrimitiveFloat(Control& sh, int idx, const char* prop, float value);     // "line-width"/"radius"/"ring-width"
+    void ShapeSetPrimitivePoints(Control& sh, int idx, const std::vector<std::pair<float,float>>& pts);
+    // Image/Actor 源矩形（纹理子区域；对 stretch 与 tile 生效；清除传 x<0）
+    void ImageSetSourceRect(Control& img, float x, float y, float w, float h);
 
     // ── TreeView 节点操作 ──
     // parentId 空串 = 插入为根节点；返回 true 成功 / false 失败

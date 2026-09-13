@@ -110,6 +110,12 @@ struct Api {
     int (*fnListViewSetCellLeadingControl)(UIInstance, UIControlHandle, int, int, void*) = nullptr;
     int (*fnShapeSetPoints)(UIInstance, UIControlHandle, int, const float*, const float*) = nullptr;
     int (*fnShapeMapToDrawPoint)(UIInstance, UIControlHandle, float, float, float*, float*) = nullptr;
+    int (*fnShapeAddPrimitive)(UIInstance, UIControlHandle, const char*, float, float, float, float) = nullptr;
+    int (*fnShapeSetPrimitiveColor)(UIInstance, UIControlHandle, int, const char*, UIColor) = nullptr;
+    int (*fnShapeSetPrimitiveFloat)(UIInstance, UIControlHandle, int, const char*, float) = nullptr;
+    int (*fnShapeSetPrimitivePoints)(UIInstance, UIControlHandle, int, int, const float*, const float*) = nullptr;
+    int (*fnShapeClearPrimitives)(UIInstance, UIControlHandle) = nullptr;
+    int (*fnActorSetSourceRect)(UIInstance, UIControlHandle, float, float, float, float) = nullptr;
     int  (*fnTreeViewAddNode)(UIInstance, UIControlHandle, const char*, const char*, const char*, int) = nullptr;
     int  (*fnTreeViewRemoveNode)(UIInstance, UIControlHandle, const char*) = nullptr;
     int  (*fnTreeViewSetNodeLabel)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;

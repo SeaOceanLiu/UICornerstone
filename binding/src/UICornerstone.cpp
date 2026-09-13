@@ -398,6 +398,40 @@ std::pair<float, float> UICornerstone::ShapeMapToDrawPoint(Control& sh, float lx
     return {0.f, 0.f};
 }
 
+// ── Shape 多图元（组合图形）──
+int UICornerstone::ShapeAddPrimitive(Control& sh, const std::string& type,
+                                     float x, float y, float w, float h) {
+    if (!m_impl->instance || !sh.Handle()) return -1;
+    return Dyn::API().fnShapeAddPrimitive(m_impl->instance, sh.Handle(),
+                                          type.c_str(), x, y, w, h);
+}
+void UICornerstone::ShapeClearPrimitives(Control& sh) {
+    if (!m_impl->instance || !sh.Handle()) return;
+    Dyn::API().fnShapeClearPrimitives(m_impl->instance, sh.Handle());
+}
+void UICornerstone::ShapeSetPrimitiveColor(Control& sh, int idx, const char* prop, UIColor value) {
+    if (!m_impl->instance || !sh.Handle() || !prop) return;
+    Dyn::API().fnShapeSetPrimitiveColor(m_impl->instance, sh.Handle(), idx, prop, value);
+}
+void UICornerstone::ShapeSetPrimitiveFloat(Control& sh, int idx, const char* prop, float value) {
+    if (!m_impl->instance || !sh.Handle() || !prop) return;
+    Dyn::API().fnShapeSetPrimitiveFloat(m_impl->instance, sh.Handle(), idx, prop, value);
+}
+void UICornerstone::ShapeSetPrimitivePoints(Control& sh, int idx,
+                                            const std::vector<std::pair<float,float>>& pts) {
+    if (!m_impl->instance || !sh.Handle() || pts.empty()) return;
+    std::vector<float> xs(pts.size()), ys(pts.size());
+    for (size_t i = 0; i < pts.size(); ++i) { xs[i] = pts[i].first; ys[i] = pts[i].second; }
+    Dyn::API().fnShapeSetPrimitivePoints(m_impl->instance, sh.Handle(), idx,
+                                         static_cast<int>(pts.size()), xs.data(), ys.data());
+}
+
+// ── Image/Actor 源矩形 ──
+void UICornerstone::ImageSetSourceRect(Control& img, float x, float y, float w, float h) {
+    if (!m_impl->instance || !img.Handle()) return;
+    Dyn::API().fnActorSetSourceRect(m_impl->instance, img.Handle(), x, y, w, h);
+}
+
 Control UICornerstone::CreateMenuPanel(float xScale, float yScale) {
     if (!m_impl->instance) return Control();
     return MakeControl(Dyn::API().fnCreateMenuPanel(m_impl->instance, xScale, yScale));

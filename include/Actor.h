@@ -8,7 +8,8 @@ enum class ScaleType {
     STRETCH,      // 拉伸填满整个矩形（默认，可能变形）
     FIT_CENTER,   // 保持宽高比居中适配，不裁剪
     CENTER_CROP,  // 保持宽高比填满矩形，裁剪溢出部分
-    NONE          // 保持原始尺寸，居中显示
+    NONE,         // 保持原始尺寸，居中显示
+    TILE          // 按纹理原尺寸平铺填满目标矩形（末行/末列边缘裁剪；v1.1.1）
 };
 
 class Actor: public Material{
@@ -19,6 +20,7 @@ private:
 protected:
     bool m_matchParentRect; //是否强制使用目标矩形
     ScaleType m_scaleType;
+    SRect m_sourceRect{0, 0, 0, 0};   // 源矩形（纹理子区域，空=整图）
     fs::path m_filePath;        // 延迟加载（两阶段创建）：挂树前保存加载参数
     string m_resourceId;
 public:
@@ -42,6 +44,12 @@ public:
 
     void setScaleType(ScaleType type) { m_scaleType = type; }
     ScaleType getScaleType() const { return m_scaleType; }
+
+    // 源矩形（纹理子区域；空 = 整图）。对 STRETCH 与 TILE 生效
+    // （FIT_CENTER/CENTER_CROP/NONE 忽略，v1.1.1）
+    void setSourceRect(SRect src) { m_sourceRect = src; }
+    SRect getSourceRect() const { return m_sourceRect; }
+    void clearSourceRect() { m_sourceRect = {}; }
 
     void setMatchParentRect(bool match) { m_matchParentRect = match; }
     void setAlpha(uint8_t alpha) { m_alpha = alpha; }

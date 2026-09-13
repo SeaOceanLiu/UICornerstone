@@ -186,7 +186,9 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
     if (texW <= 0 || texH <= 0) return;
 
     if (m_scaleType == ScaleType::STRETCH) {
-        getRenderDevice()->drawTexture(m_texture.get(), nullptr, &drawRect);
+        const bool useSrc = m_sourceRect.width > 0 && m_sourceRect.height > 0;
+        getRenderDevice()->drawTexture(m_texture.get(),
+            useSrc ? &m_sourceRect : nullptr, &drawRect);
         return;
     }
 
@@ -222,6 +224,47 @@ void Actor::draw(float posx, float posy, Uint8 alpha) {
                 texW, texH
             );
             getRenderDevice()->drawTexture(m_texture.get(), nullptr, &naturalRect);
+            break;
+        }
+        case ScaleType::TILE: {
+            // 按纹理原尺寸平铺：分块尺寸 = 瓦片逻辑尺寸 × 控件复合缩放（取整，
+            // 步进用同一取整值，避免逐块取整产生 1px 缝隙/重叠）。
+            // 瓦片 = source-rect 子区域（有效时）或整图。
+            const bool useSrc = m_sourceRect.width > 0 && m_sourceRect.height > 0;
+            const float srcW = useSrc ? m_sourceRect.width  : texW;
+            const float srcH = useSrc ? m_sourceRect.height : texH;
+            float sx = getScaleXX() != 0.f ? getScaleXX() : 1.f;
+            float sy = getScaleYY() != 0.f ? getScaleYY() : 1.f;
+            const int tileW = (int)roundf(srcW * sx);
+            const int tileH = (int)roundf(srcH * sy);
+            if (tileW <= 0 || tileH <= 0) break;
+            const int x0 = (int)drawRect.left, y0 = (int)drawRect.top;
+            const int right = (int)(drawRect.left + drawRect.width);
+            const int bottom = (int)(drawRect.top + drawRect.height);
+            for (int y = y0; y < bottom; y += tileH) {
+                for (int x = x0; x < right; x += tileW) {
+                    const bool lastCol = (x + tileW > right);
+                    const bool lastRow = (y + tileH > bottom);
+                    const int dstW = lastCol ? (right - x) : tileW;
+                    const int dstH = lastRow ? (bottom - y) : tileH;
+                    if (dstW <= 0 || dstH <= 0) continue;
+                    SRect dst{ (float)x, (float)y, (float)dstW, (float)dstH };
+                    // 末行/末列部分瓦片：srcRect 按 dst/tile 比例裁剪并 clamp
+                    // （SDL3 对越界 src 行为不稳定，钳制到有效范围）
+                    float sliceW = srcW, sliceH = srcH;
+                    if (lastCol && dstW < tileW) sliceW = min((float)dstW / tileW * srcW, srcW);
+                    if (lastRow && dstH < tileH) sliceH = min((float)dstH / tileH * srcH, srcH);
+                    const bool partial = (sliceW < srcW || sliceH < srcH);
+                    if (useSrc || partial) {
+                        SRect src{ useSrc ? m_sourceRect.left : 0.f,
+                                   useSrc ? m_sourceRect.top  : 0.f,
+                                   sliceW, sliceH };
+                        getRenderDevice()->drawTexture(m_texture.get(), &src, &dst);
+                    } else {
+                        getRenderDevice()->drawTexture(m_texture.get(), nullptr, &dst);
+                    }
+                }
+            }
             break;
         }
         default:
@@ -285,6 +328,7 @@ int Actor::setEnumProperty(const char* prop, const char* value) {
         if (_stricmp(value, PropertyNames::kScaleTypeFitCenter) == 0)  { setScaleType(ScaleType::FIT_CENTER);  return 1; }
         if (_stricmp(value, PropertyNames::kScaleTypeCenterCrop) == 0) { setScaleType(ScaleType::CENTER_CROP); return 1; }
         if (_stricmp(value, PropertyNames::kScaleTypeNone) == 0)        { setScaleType(ScaleType::NONE);        return 1; }
+        if (_stricmp(value, PropertyNames::kScaleTypeTile) == 0)        { setScaleType(ScaleType::TILE);        return 1; }
         return 0;
     }
     if (strcmp(prop, PropertyNames::kAnchor) == 0) {
@@ -309,6 +353,7 @@ int Actor::getEnumProperty(const char* prop, const char*& out) {
             case ScaleType::FIT_CENTER:  out = PropertyNames::kScaleTypeFitCenter;  break;
             case ScaleType::CENTER_CROP: out = PropertyNames::kScaleTypeCenterCrop; break;
             case ScaleType::NONE:        out = PropertyNames::kScaleTypeNone;        break;
+            case ScaleType::TILE:        out = PropertyNames::kScaleTypeTile;        break;
             default:                     out = PropertyNames::kScaleTypeStretch;     break;
         }
         return 1;

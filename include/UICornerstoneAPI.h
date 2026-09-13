@@ -456,6 +456,11 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateImage(
     const char* image,
     float x, float y, float w, float h, float xScale, float yScale);
 
+// Actor 源矩形（纹理子区域；对 scale-type=stretch 与 tile 生效）。
+// 清除语义：x<0 或 w≤0 或 h≤0 → 恢复整图。返回 1 成功 / 0 无效句柄。
+UICORNERSTONE_API int UICornerstone_ActorSetSourceRect(UIInstance instance,
+    UIControlHandle ctl, float x, float y, float w, float h);
+
 // 直接创建独立 Actor（图片显示控件），与 CreateImage 等价——图片按钮等组合控件
 // 不需要专用工厂：经 UICornerstone_CreateButton 创建后，用字符串属性
 // "normal-image"/"hover-image"/"pressed-image"/"disabled-image" 设置三态图片即可。
