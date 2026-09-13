@@ -248,7 +248,14 @@ public:
         if (!m_renderer || !texture || !dstRect) return;
         SDL3Texture* sdlTex = static_cast<SDL3Texture*>(texture);
         SDL_FRect sdlDst = { dstRect->left, dstRect->top, dstRect->width, dstRect->height };
-        SDL_RenderTexture(m_renderer, sdlTex->native(), nullptr, &sdlDst);
+        SDL_FRect sdlSrc{};
+        // srcRect 有效时按纹理像素坐标截取子区域（与 SFML/raylib 语义对齐；
+        // 越界区域由调用方负责 clamp 到有效范围）
+        if (srcRect) {
+            sdlSrc = { srcRect->left, srcRect->top, srcRect->width, srcRect->height };
+        }
+        SDL_RenderTexture(m_renderer, sdlTex->native(),
+            srcRect ? &sdlSrc : nullptr, &sdlDst);
     }
 
     void setTextureFilter(Texture* texture, bool bilinear) override {

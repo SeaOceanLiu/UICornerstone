@@ -36,6 +36,8 @@ typedef void       (*UIPresentFn)(UIInstance);
 typedef int        (*UIIsQuitRequestedFn)(UIInstance);
 typedef int        (*UISetViewportBgFn)(UIInstance, uint8_t, uint8_t, uint8_t, uint8_t);
 typedef void*      (*UICreatePanelFn)(UIInstance, float, float, float, float, float, float);
+typedef void*      (*UICreateImageFn)(UIInstance, const char*, float, float, float, float, float, float);
+typedef int        (*UISetEnumFn)(UIInstance, void*, const char*, const char*);
 typedef int        (*UISetColorFn)(UIInstance, void*, const char*, UIColor);
 typedef uint32_t   (*UIGetBackendCapsFn)(UIInstance);
 typedef int        (*UICaptureRectFn)(UIInstance, float, float, float, float, uint8_t*, int*, int*);
@@ -54,6 +56,8 @@ static UIPresentFn              uiPresent                   = nullptr;
 static UIIsQuitRequestedFn      uiIsQuitRequested           = nullptr;
 static UISetViewportBgFn        uiSetViewportBackgroundColor= nullptr;
 static UICreatePanelFn          uiCreatePanel               = nullptr;
+static UICreateImageFn          uiCreateImage               = nullptr;
+static UISetEnumFn              uiSetEnum                   = nullptr;
 static UISetColorFn             uiSetColor                  = nullptr;
 static UIGetBackendCapsFn       uiGetBackendCapabilities    = nullptr;
 static UICaptureRectFn          uiCaptureRect               = nullptr;
@@ -78,6 +82,8 @@ static bool loadAllProcs() {
     RESOLVE(IsQuitRequested)
     RESOLVE(SetViewportBackgroundColor)
     RESOLVE(CreatePanel)
+    RESOLVE(CreateImage)
+    RESOLVE(SetEnum)
     RESOLVE(SetColor)
     RESOLVE(GetBackendCapabilities)
     RESOLVE(CaptureRect)
@@ -152,6 +158,19 @@ int main(int argc, char** argv) {
     assert(panel);
     assert(uiSetColor(inst, panel, "background", UIColor{kPnlR, kPnlG, kPnlB, 255}) == 1);
 
+    // I0 用例对象（渲染循环前创建，首帧即可被绘制/捕获）
+    // 纹理 srcrect_split.bmp（24x24：顶部 2 行绿、其余蓝），目标 240x24（10:1）。
+    // center-crop：scale=max(10,1)=10 → srcRect=(0,10.8,24,2.4) 取垂直居中蓝带。
+    // 顶缘应蓝（srcRect 生效）；旧 SDL3 忽略 srcRect=整图拉伸 → 顶缘露纹理绿行。
+    static void* i0Img = uiCreateImage(inst, "assets/images/srcrect_split.bmp",
+                                       60.0f, 200.0f, 240.0f, 24.0f, 1.0f, 1.0f);
+    assert(i0Img);
+    assert(uiSetEnum(inst, i0Img, "scale-type", "center-crop") == 1);
+    static void* i0Disp = uiCreateImage(inst, "assets/images/srcrect_split.bmp",
+                                        320.0f, 200.0f, 240.0f, 24.0f, 1.0f, 1.0f);
+    assert(i0Disp);
+    assert(uiSetEnum(inst, i0Disp, "scale-type", "center-crop") == 1);
+
     uint32_t caps = uiGetBackendCapabilities(inst);
     printf("backend capabilities: 0x%08X (READBACK=%s)\n", caps,
            (caps & UICORN_BACKEND_CAP_READBACK) ? "yes" : "no");
@@ -198,6 +217,22 @@ int main(int argc, char** argv) {
             assert(uiCaptureControl(inst, panel, ctlPixels, &w, &h) == 1);
             assert(uiSavePixelsToFile(ctlPixels, w, h, "capture_ctl.bmp") == 1);
             allPass = readBmpPixelsAllEq("capture_ctl.bmp", w, h, kPnlB, kPnlG, kPnlR) && allPass;
+
+            // 7. I0：SDL3 drawTexture srcRect 恢复——center-crop 像素回归
+            static bool i0Checked = false;
+            if (!i0Checked) {
+                i0Checked = true;
+                int iw = 0, ih = 0;
+                assert(uiCaptureControl(inst, i0Img, ctlPixels, &iw, &ih) == 1);
+                assert(iw == 240 && ih == 24);
+                // 顶缘中心像素：crop=蓝(0,0,255)；拉伸=绿(0,255,0)/背景灰(23,23,24)
+                if (pxEq(ctlPixels + (0 * 240 + 120) * 4, 0, 0, 255)) {
+                    printf("PASS: I0 center-crop top edge is blue (srcRect honored)\n");
+                } else {
+                    printf("FAIL: I0 center-crop top edge not blue (srcRect ignored?)\n");
+                    allPass = false;
+                }
+            }
         } else {
             // 人工模式：首次渲染后落盘整窗截图供对照
             if (!savedManual) {

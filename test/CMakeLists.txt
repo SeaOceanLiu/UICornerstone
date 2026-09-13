@@ -171,6 +171,13 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${ASSETS_DIR}"
                     $<TARGET_FILE_DIR:${test_name}>/assets)
+            # 测试专用资源（不入 subModules 子模块）：合并进测试输出 assets/
+            if(EXISTS "${CMAKE_SOURCE_DIR}/test/assets")
+                add_custom_command(TARGET ${test_name} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${CMAKE_SOURCE_DIR}/test/assets"
+                        $<TARGET_FILE_DIR:${test_name}>/assets)
+            endif()
             if(${test_name} STREQUAL "test_layout" OR ${test_name} STREQUAL "test_layout_advanced")
                 add_custom_command(TARGET ${test_name} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
