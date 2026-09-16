@@ -51,11 +51,18 @@ public:
     SRect getDrawRect(void) override;
     void setScaleX(float xScale=1.0f) override;
     void setScaleY(float yScale=1.0f) override;
+    // 幂等合并入口（一次整树 refresh；相等快速返回）；setScaleX/Y 委托本方法
+    void setScale(float xScale, float yScale);
+    // 手动缩放（画布语义）：置 override 标志后 setScale——off 分支 recompute
+    // 不再重置为 1（设计器画布 SetInstanceScale 语义，v1.1.1）
+    void setManualScale(float xScale, float yScale);
+    bool getManualScaleOverride(void) const { return m_scaleOverride; }
     int setEnumProperty(const char* prop, const char* value) override;
 
 private:
     ViewportScaleMode m_vpMode = ViewportScaleMode::Off;
     float m_anchorX = 0.0f;
     float m_anchorY = 0.0f;
+    bool m_scaleOverride = false;   // 手动缩放标志（off 分支尊重，fit/stretch 切换清除）
 };
 #endif // BenchH

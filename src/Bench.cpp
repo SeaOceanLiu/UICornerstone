@@ -155,23 +155,22 @@ void Bench::recomputeViewportTransform(void) {
         float sx = vp.width / canvasW;
         float sy = vp.height / canvasH;
         float f = (sx < sy) ? sx : sy;
-        setScaleX(f);
-        setScaleY(f);
+        m_scaleOverride = false;   // 引擎自动缩放接管（清除手动标志）
+        setScale(f, f);
         setRect(SRect(0, 0, canvasW, canvasH));
         m_anchorX = vp.left + (vp.width - canvasW * f) / 2.0f;
         m_anchorY = vp.top + (vp.height - canvasH * f) / 2.0f;
     } else if (m_vpMode == ViewportScaleMode::Stretch) {
         // 拉伸填满视口，锚点贴视口原点
-        setScaleX(vp.width / canvasW);
-        setScaleY(vp.height / canvasH);
+        m_scaleOverride = false;   // 引擎自动缩放接管
+        setScale(vp.width / canvasW, vp.height / canvasH);
         setRect(SRect(0, 0, canvasW, canvasH));
         m_anchorX = vp.left;
         m_anchorY = vp.top;
     } else {
-        // off：无缩放（sx=sy=1），anchor 指向视口原点——视口偏移由
-        // anchor 携带（主窗口 vp=(0,0) 时 anchor=(0,0)，兼容既有测试）
-        setScaleX(1.0f);
-        setScaleY(1.0f);
+        // off：无自动缩放（默认 sx=sy=1）；手动缩放（SetInstanceScale）时尊重
+        // override 标志，不再强制重置——anchor 指向视口原点
+        if (!m_scaleOverride) setScale(1.0f, 1.0f);
         setRect(SRect(0, 0, canvasW, canvasH));
         m_anchorX = vp.left;
         m_anchorY = vp.top;
@@ -210,19 +209,28 @@ void Bench::setViewportAnchor(float ax, float ay) {
 
 // 根：布局缩放 = 复合缩放（无父级），且必须保持 m_rect 不变（画布语义）
 void Bench::setScaleX(float xScale) {
+    setScale(xScale, m_yScale);
+}
+
+void Bench::setScaleY(float yScale) {
+    setScale(m_xScale, yScale);
+}
+
+void Bench::setScale(float xScale, float yScale) {
+    // 幂等：与当前值均相等时快速返回（不触发整树 refresh）
+    if (xScale == m_xScale && yScale == m_yScale) return;
     m_xScale = xScale;
+    m_yScale = yScale;
     m_xxScale = xScale;
+    m_yyScale = yScale;
     for (auto& child : m_children) {
         child->refreshScaleWith(m_xxScale, m_yyScale);
     }
 }
 
-void Bench::setScaleY(float yScale) {
-    m_yScale = yScale;
-    m_yyScale = yScale;
-    for (auto& child : m_children) {
-        child->refreshScaleWith(m_xxScale, m_yyScale);
-    }
+void Bench::setManualScale(float xScale, float yScale) {
+    m_scaleOverride = true;
+    setScale(xScale, yScale);
 }
 
 SRect Bench::getDrawRect(void) {

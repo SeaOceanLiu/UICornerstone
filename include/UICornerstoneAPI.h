@@ -274,6 +274,12 @@ UICORNERSTONE_API int UICornerstone_GetViewportScaleMode(UIInstance instance, in
 UICORNERSTONE_API int UICornerstone_SetCanvasSize(UIInstance instance, float w, float h);
 /* 当前复合缩放（含画布比例链） */
 UICORNERSTONE_API int UICornerstone_GetViewportScale(UIInstance instance, float* sx, float* sy);
+
+// 实例缩放（画布语义）：控件逻辑 rect 不变，视觉 rect/字号按比例复合缩放；
+// 置手动 override（off 分支 recompute 尊重）；fit/stretch 切换时引擎接管。
+// x/y ≤ 0 拒绝。返回 1 成功 / 0 参数无效。
+UICORNERSTONE_API int UICornerstone_SetInstanceScale(UIInstance instance, float xScale, float yScale);
+UICORNERSTONE_API int UICornerstone_GetInstanceScale(UIInstance instance, float* outX, float* outY);
 /* 手动锚点偏移（增量叠加，off 模式手动平移用） */
 UICORNERSTONE_API int UICornerstone_SetViewportAnchor(UIInstance instance, float ax, float ay);
 

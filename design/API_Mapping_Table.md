@@ -409,6 +409,7 @@
 | 子视口 | viewport | — | CreateViewport/SetViewport/GetViewport | 同 | 🔧 |  |
 | 视口背景色 | — | — | SetViewportBackgroundColor | 同 | 🔧 |  |
 | 视口缩放 | scale-mode | — | SetViewportScaleMode/GetViewportScaleMode/SetCanvasSize/GetViewportScale/SetViewportAnchor | 同 | 🔧 |  |
+| 实例缩放（画布语义） | — | — | SetInstanceScale/GetInstanceScale（v1.1.1，off 分支尊重手动值） | SetInstanceScale/GetInstanceScaleX/Y | ✅ |  |
 | 帧循环 | — | — | ProcessEvents/Update/Render/Clear/Present/IsQuitRequested | 同+Run | 🔧 |  |
 | 事件注入 | — | — | PushUIEvent | PushEvent/PushMouse*/PushKey/PushTextInput | 🔧 |  |
 | 布局加载 | 布局JSON | — | LoadLayout/LoadLayoutFromFile/FindControl | 同 | 🔧 |  |

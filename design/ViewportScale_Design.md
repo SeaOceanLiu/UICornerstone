@@ -61,7 +61,9 @@ mode = off:     sx = sy = 1, anchor = (0,0)          // 根变换完全退化为
 
 ### 3.3 手动 vs 自动
 
-- `mode = off`：scale 由 `setScaleX/Y`（已有）、位置由 `m_rect`（现状链路）＋ `SetViewportAnchor`（增量，新增）决定——三模式中唯一允许手动覆盖的模式，适合"自己计算适配"的进阶用户；
+- `mode = off`：scale 由 `setScaleX/Y`（已有）或 **`setManualScale`/`SetInstanceScale`（v1.1.1 手动缩放 override）**、位置由 `m_rect`（现状链路）＋ `SetViewportAnchor`（增量，新增）决定——三模式中唯一允许手动覆盖的模式，适合"自己计算适配"的进阶用户；
+- **手动缩放 override（v1.1.1）**：`SetInstanceScale` 置 `m_scaleOverride` 标志——off 分支 recompute **不再强制重置 scale=1**（画布语义：resize/splitter 后手动 zoom 保持）；`SetInstanceScale(1,1)` 即等价默认（override 保持 true、值=1，无副作用）；**fit/stretch 切换时清除 override**（引擎自动接管，覆盖手动值）。
+- **recompute 触发时机约束（v1.1.1 复核确认）**：仅 `resized` / `SetViewport` / `CreateViewport` / `setViewportScaleMode` 触发；**放置/删除控件、`SetRect` 等内容变更不触发**。未来新增触发点须重新评估 override 语义。
 - `mode = fit/stretch`：scale/anchor 由自动计算器写入；用户仍可读回（`getScaleXX`、`GetViewportAnchor`）；
 - 属性系统接入后（§4.8），`viewport-scale-mode` 可运行时切换，三态互切换立即生效。
 

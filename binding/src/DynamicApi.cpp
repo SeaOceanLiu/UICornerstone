@@ -122,6 +122,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ShapeSetPrimitivePoints);
     RESOLVE(ShapeClearPrimitives);
     RESOLVE(ActorSetSourceRect);
+    RESOLVE(SetInstanceScale);
+    RESOLVE(GetInstanceScale);
     RESOLVE(TreeViewAddNode);
     RESOLVE(TreeViewRemoveNode);
     RESOLVE(TreeViewSetNodeLabel);

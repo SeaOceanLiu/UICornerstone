@@ -49,6 +49,9 @@
 
 <p>当前复合系数可用 <code>GetViewportScale(&amp;sx, &amp;sy)</code> 查询（off 模式恒 1.0）。</p>
 
+<h4>实例缩放（画布语义，v1.1.1）</h4>
+<p><code>SetInstanceScale(x, y)</code> 对实例（主实例或子视口）设置根缩放：控件<b>逻辑 rect 不变</b>，视觉 rect/字号按比例复合缩放（Label 等文本自动重建，非位图拉伸）。off 模式下 recompute（窗口/视口 resize）<b>尊重手动值不重置</b>——设计器画布 splitter 拖拽后 zoom 保持；切到 fit/stretch 时引擎自动接管（覆盖手动值）。x/y ≤ 0 拒绝。</p>
+
 <h2>5.6.3 声明基准画布</h2>
 
 <p>三种声明方式等价（JSON 布局加载即生效，见 <a href="../appendix/declarative-syntax.html">9.1 语法速查</a>）：</p>

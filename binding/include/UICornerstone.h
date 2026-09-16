@@ -233,6 +233,10 @@ public:
     int GetViewportScaleMode() const;
     bool SetCanvasSize(float w, float h);   // 显式基准画布（fit/stretch 适配基准）
     bool GetViewportScale(float& sx, float& sy) const;
+    // 实例缩放（画布语义）：逻辑 rect 不变，视觉/字号按比例缩放；off 分支尊重
+    bool SetInstanceScale(float xScale, float yScale);
+    float GetInstanceScaleX() const;
+    float GetInstanceScaleY() const;
     bool SetViewportAnchor(float ax, float ay);
 
     // ── 事件注入 ──

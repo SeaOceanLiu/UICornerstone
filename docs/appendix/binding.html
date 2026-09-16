@@ -264,6 +264,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.GetThis());</code></pre>
 <tr><th>方法</th><th>说明</th></tr>
 <tr><td><code>CreateViewport(x, y, w, h)</code></td><td>在当前窗口内创建子视口（单窗口多视口，见 5.2）</td></tr>
 <tr><td><code>GetViewportScale(float&amp; sx, float&amp; sy)</code></td><td>当前复合缩放系数</td></tr>
+<tr><td><code>SetInstanceScale(x, y)</code> / <code>GetInstanceScaleX()</code> / <code>GetInstanceScaleY()</code></td><td>实例缩放（画布语义，v1.1.1）：逻辑 rect 不变；off 分支尊重手动值</td></tr>
 <tr><td><code>PushEvent(const UIEvent&amp;)</code></td><td>注入任意事件（UIEventFactory 构造）</td></tr>
 <tr><td><code>PushMouseButton / PushMouseMove / PushMouseWheel / PushKey / PushTextInput</code></td><td>输入注入（模拟输入/测试）</td></tr>
 <tr><td><code>RegisterAction(name, ActionCallback)</code></td><td>注册 JSON 布局动作处理器</td></tr>

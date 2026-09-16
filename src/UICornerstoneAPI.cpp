@@ -607,6 +607,23 @@ int UICornerstone_GetViewportScale(UIInstance instance, float* sx, float* sy) {
     return 1;
 }
 
+// 实例缩放（画布语义）：置手动缩放 override 后 setScale——off 分支 recompute
+// 尊重手动值（不重置 1）；fit/stretch 切换时引擎接管（清除 override）。
+// x/y ≤ 0 拒绝。返回 1 成功 / 0 参数无效。
+int UICornerstone_SetInstanceScale(UIInstance instance, float xScale, float yScale) {
+    if (!instance || instance->destroying || !instance->bench) return 0;
+    if (xScale <= 0.0f || yScale <= 0.0f) return 0;
+    instance->bench->setManualScale(xScale, yScale);
+    return 1;
+}
+
+int UICornerstone_GetInstanceScale(UIInstance instance, float* outX, float* outY) {
+    if (!instance || !instance->bench) return 0;
+    if (outX) *outX = instance->bench->getScaleXX();
+    if (outY) *outY = instance->bench->getScaleYY();
+    return 1;
+}
+
 int UICornerstone_SetViewportAnchor(UIInstance instance, float ax, float ay) {
     if (!instance || instance->destroying || !instance->bench) return 0;
     instance->bench->setViewportAnchor(ax, ay);

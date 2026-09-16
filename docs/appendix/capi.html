@@ -32,6 +32,8 @@
 <tr><td><code>UICornerstone_SetWindowResizeCallback(inst, cb, ud)</code></td><td>窗口尺寸变化回调 (w,h,ud)，替代帧内轮询（v1.1.1 增）</td></tr>
 <tr><td><code>UICornerstone_GetViewport(inst, &amp;x, &amp;y, &amp;w, &amp;h)</code></td><td>查询当前视口</td></tr>
 <tr><td><code>UICornerstone_GetViewportScale(inst, &amp;sx, &amp;sy)</code></td><td>当前复合缩放系数</td></tr>
+<tr><td><code>UICornerstone_SetInstanceScale(inst, x, y)</code></td><td>实例缩放（画布语义）：逻辑 rect 不变、视觉/字号×比例；x/y≤0 拒绝；off 分支 recompute 尊重手动值，fit/stretch 切换引擎接管（v1.1.1）</td></tr>
+<tr><td><code>UICornerstone_GetInstanceScale(inst, &amp;x, &amp;y)</code></td><td>读取实例缩放（复合快照）</td></tr>
 <tr><td><code>UICornerstone_GetViewportScaleMode(inst, &amp;mode)</code></td><td>查询当前缩放模式</td></tr>
 <tr><td><code>UICornerstone_IsQuitRequested(inst)</code></td><td>窗口关闭请求查询</td></tr>
 <tr><td><code>UICornerstone_ProcessEvents / Update / Clear / Render / Present</code></td><td>主循环五步</td></tr>

@@ -18,6 +18,7 @@
 #include <cmath>
 #include <memory>
 #include "Button.h"
+#include "UICornerstoneAPI.h"
 #include "Actor.h"
 #include "Panel.h"
 #include "Dialog.h"
@@ -400,6 +401,50 @@ static void runChecks() {
               bench->getViewportScaleMode() == Bench::ViewportScaleMode::Fit &&
               feq(sx, 0.64f) && feq(sy, 0.64f) &&
               feq(g_uiInstance->canvasWidth, 1600.0f) && feq(g_uiInstance->canvasHeight, 1080.0f));
+    }
+
+    // ── T12：实例缩放（画布语义，C ABI SetInstanceScale）──
+    {
+        // 环境：off、rect 1024x768、scale=1
+        UICornerstone_SetViewportScaleMode(g_uiInstance, 0);
+        bench->setRect(SRect{0, 0, 1024.0f, 768.0f});
+        float ix = 0, iy = 0;
+        check("T12 初始 GetInstanceScale=1,1",
+              UICornerstone_GetInstanceScale(g_uiInstance, &ix, &iy) == 1 &&
+              feq(ix, 1.0f) && feq(iy, 1.0f));
+        // 参数拒绝：x≤0
+        check("T12 非法 scale 拒绝", UICornerstone_SetInstanceScale(g_uiInstance, 0.0f, 1.0f) == 0 &&
+              UICornerstone_SetInstanceScale(g_uiInstance, 1.0f, -1.0f) == 0);
+        // 设置 1.5：bench 复合=1.5；子控件（g_panelA 复合 1 → 1.5）drawRect×1.5
+        SRect ra0 = g_panelA->getRect();
+        check("T12 SetInstanceScale(1.5,1.5) 成功", UICornerstone_SetInstanceScale(g_uiInstance, 1.5f, 1.5f) == 1);
+        check("T12 GetInstanceScale=1.5,1.5", UICornerstone_GetInstanceScale(g_uiInstance, &ix, &iy) == 1 &&
+              feq(ix, 1.5f) && feq(iy, 1.5f));
+        check("T12 A 复合=1.5", feq(g_panelA->getScaleXX(), 1.5f) && feq(g_panelA->getScaleYY(), 1.5f));
+        SRect ra1 = g_panelA->getDrawRect();
+        check("T12 A drawRect×1.5", feq(ra1.width, ra0.width * 1.5f) && feq(ra1.height, ra0.height * 1.5f));
+        // 逻辑 rect 不变（drawRect 变、rect 不变）
+        SRect rlog = g_panelA->getRect();
+        check("T12 逻辑 rect 不变", seq(rlog, ra0));
+        // 幂等：重复调用相同值 → 快速返回、scale 不变
+        check("T12 幂等重复调用成功且不变", UICornerstone_SetInstanceScale(g_uiInstance, 1.5f, 1.5f) == 1 &&
+              feq(g_panelA->getScaleXX(), 1.5f));
+        // resize 保持 override（off 分支尊重手动缩放，不重置 1）
+        g_uiInstance->viewport = SRect{0, 0, 800, 600};
+        bench->resized(SRect{0, 0, 800.0f, 600.0f});
+        check("T12 resize 后手动缩放保持 1.5", feq(bench->getScaleXX(), 1.5f) && feq(bench->getScaleYY(), 1.5f));
+        g_uiInstance->viewport = SRect{0, 0, 1024, 768};
+        bench->resized(SRect{0, 0, 1024.0f, 768.0f});
+        // 切 fit 引擎接管（清除 override），scale=视口/画布比（清显式画布 → 用 rect）
+        g_uiInstance->canvasWidth = 0; g_uiInstance->canvasHeight = 0;
+        bench->setRect(SRect{0, 0, 1024.0f, 768.0f});
+        bench->setViewportScaleMode(Bench::ViewportScaleMode::Fit);
+        check("T12 fit 接管 override 清除", bench->getViewportScaleMode() == Bench::ViewportScaleMode::Fit &&
+              !bench->getManualScaleOverride() && feq(bench->getScaleXX(), 1.0f) && feq(bench->getScaleYY(), 1.0f));
+        // 还原
+        UICornerstone_SetViewportScaleMode(g_uiInstance, 0);
+        bench->setScaleX(1.0f);
+        bench->setScaleY(1.0f);
     }
 
     // ── 最终还原：off、scale=1、anchor 清、canvas 归零 ──

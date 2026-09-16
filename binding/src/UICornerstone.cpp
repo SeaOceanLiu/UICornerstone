@@ -705,6 +705,22 @@ bool UICornerstone::SetViewportAnchor(float ax, float ay) {
     if (!m_impl->instance || !Dyn::API().fnSetViewportAnchor) return false;
     return Dyn::API().fnSetViewportAnchor(m_impl->instance, ax, ay) != 0;
 }
+bool UICornerstone::SetInstanceScale(float xScale, float yScale) {
+    if (!m_impl->instance || !Dyn::API().fnSetInstanceScale) return false;
+    return Dyn::API().fnSetInstanceScale(m_impl->instance, xScale, yScale) != 0;
+}
+float UICornerstone::GetInstanceScaleX() const {
+    float x = 1.0f, y = 1.0f;
+    if (m_impl->instance && Dyn::API().fnGetInstanceScale)
+        Dyn::API().fnGetInstanceScale(m_impl->instance, &x, &y);
+    return x;
+}
+float UICornerstone::GetInstanceScaleY() const {
+    float x = 1.0f, y = 1.0f;
+    if (m_impl->instance && Dyn::API().fnGetInstanceScale)
+        Dyn::API().fnGetInstanceScale(m_impl->instance, &x, &y);
+    return y;
+}
 
 // ============================================================
 // 事件注入
