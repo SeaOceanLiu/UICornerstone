@@ -1,135 +1,719 @@
 {
   "controls": [
-    { "type": "label", "id": "lbl", "rect": { "x": 20, "y": 20, "w": 200, "h": 30 },
-      "text": "标签样例", "size": 18, "alignment": "center",
-      "shadow": { "enabled": true, "offset": { "x": 2, "y": 2 } } },
-    { "type": "button", "id": "btn", "rect": { "x": 240, "y": 20, "w": 140, "h": 40 },
-      "caption": "按钮", "captionSize": 16, "enableTextShadow": false,
-      "events": { "onClick": "onDemoClick" } },
-    { "type": "check-box", "id": "chk", "rect": { "x": 400, "y": 24, "w": 160, "h": 30 },
-      "caption": "复选框", "checkState": "checked", "style": "classic",
-      "layout": "text-right", "verticalAlign": "center", "triState": true },
-    { "type": "edit-box", "id": "edit", "rect": { "x": 580, "y": 22, "w": 200, "h": 34 },
-      "text": "输入", "placeholder": "请输入...", "size": 16,
-      "alignment": "mid-left", "passwordMode": false },
-    { "type": "combo-box", "id": "combo", "rect": { "x": 800, "y": 22, "w": 180, "h": 34 },
+    {
+      "type": "label",
+      "id": "lbl",
+      "rect": {
+        "x": 20,
+        "y": 20,
+        "w": 200,
+        "h": 30
+      },
+      "text": "标签样例",
+      "size": 18,
+      "alignment": "center",
+      "shadow": {
+        "enabled": true,
+        "offset": {
+          "x": 2,
+          "y": 2
+        }
+      }
+    },
+    {
+      "type": "button",
+      "id": "btn",
+      "rect": {
+        "x": 240,
+        "y": 20,
+        "w": 140,
+        "h": 40
+      },
+      "caption": "按钮",
+      "captionSize": 16,
+      "enableTextShadow": false,
+      "events": {
+        "onClick": "onDemoClick"
+      }
+    },
+    {
+      "type": "check-box",
+      "id": "chk",
+      "rect": {
+        "x": 400,
+        "y": 24,
+        "w": 160,
+        "h": 30
+      },
+      "caption": "复选框",
+      "checkState": "checked",
+      "style": "classic",
+      "layout": "text-right",
+      "verticalAlign": "center",
+      "triState": true
+    },
+    {
+      "type": "edit-box",
+      "id": "edit",
+      "rect": {
+        "x": 580,
+        "y": 22,
+        "w": 200,
+        "h": 34
+      },
+      "text": "输入",
+      "placeholder": "请输入...",
+      "size": 16,
+      "alignment": "mid-left",
+      "passwordMode": false
+    },
+    {
+      "type": "combo-box",
+      "id": "combo",
+      "rect": {
+        "x": 800,
+        "y": 22,
+        "w": 180,
+        "h": 34
+      },
       "items": [
-        { "label": "选项 A", "value": "a" },
-        { "label": "选项 B", "value": "b", "disabled": true }
+        {
+          "label": "选项 A",
+          "value": "a"
+        },
+        {
+          "label": "选项 B",
+          "value": "b",
+          "disabled": true
+        }
       ],
-      "selectedIndex": 0, "maxVisibleItems": 6, "editable": false, "cycleEnabled": true },
-    { "type": "text-area", "id": "ta", "rect": { "x": 1000, "y": 20, "w": 260, "h": 120 },
-      "text": "多行文本", "wordWrap": true, "size": 14 },
-    { "type": "progress-bar", "id": "pb", "rect": { "x": 20, "y": 80, "w": 240, "h": 22 },
-      "value": 60, "range": { "min": 0, "max": 100 }, "style": "horizontal",
-      "textMode": "percent", "animationSpeed": 0.2 },
-    { "type": "slider", "id": "sl", "rect": { "x": 280, "y": 80, "w": 220, "h": 36 },
-      "value": 25, "range": { "min": 0, "max": 100 }, "step": 1,
-      "showValueLabel": true, "tick": "#888888", "interval": 10 },
-    { "type": "scroll-bar", "id": "sb", "rect": { "x": 520, "y": 80, "w": 16, "h": 140 },
-      "orientation": "vertical", "value": 0, "range": { "min": 0, "max": 100 },
-      "pageSize": 30, "stepSize": 5, "thickness": 16 },
-    { "type": "panel", "id": "pnl", "rect": { "x": 560, "y": 90, "w": 300, "h": 130 },
-      "layout": { "type": "v-flow", "gap": 8 },
+      "selectedIndex": 0,
+      "maxVisibleItems": 6,
+      "editable": false,
+      "cycleEnabled": true
+    },
+    {
+      "type": "text-area",
+      "id": "ta",
+      "rect": {
+        "x": 1000,
+        "y": 20,
+        "w": 260,
+        "h": 120
+      },
+      "text": "多行文本",
+      "wordWrap": true,
+      "size": 14
+    },
+    {
+      "type": "progress-bar",
+      "id": "pb",
+      "rect": {
+        "x": 20,
+        "y": 80,
+        "w": 240,
+        "h": 22
+      },
+      "value": 60,
+      "range": {
+        "min": 0,
+        "max": 100
+      },
+      "style": "horizontal",
+      "textMode": "percent",
+      "animationSpeed": 0.2
+    },
+    {
+      "type": "slider",
+      "id": "sl",
+      "rect": {
+        "x": 280,
+        "y": 80,
+        "w": 220,
+        "h": 36
+      },
+      "value": 25,
+      "range": {
+        "min": 0,
+        "max": 100
+      },
+      "step": 1,
+      "showValueLabel": true,
+      "tick": "#888888",
+      "interval": 10
+    },
+    {
+      "type": "scroll-bar",
+      "id": "sb",
+      "rect": {
+        "x": 520,
+        "y": 80,
+        "w": 16,
+        "h": 140
+      },
+      "orientation": "vertical",
+      "value": 0,
+      "range": {
+        "min": 0,
+        "max": 100
+      },
+      "pageSize": 30,
+      "stepSize": 5,
+      "thickness": 16
+    },
+    {
+      "type": "panel",
+      "id": "pnl",
+      "rect": {
+        "x": 560,
+        "y": 90,
+        "w": 300,
+        "h": 130
+      },
+      "layout": {
+        "type": "v-flow",
+        "gap": 8
+      },
       "children": [
-        { "type": "button", "id": "pnlBtnA", "rect": { "x": 0, "y": 0, "w": 120, "h": 32 }, "caption": "流式A", "flowWeight": 1.0 },
-        { "type": "button", "id": "pnlBtnB", "rect": { "x": 0, "y": 0, "w": 120, "h": 32 }, "caption": "流式B", "flowWeight": 2.0 }
-      ] },
-    { "type": "color-picker", "id": "cp", "rect": { "x": 880, "y": 96, "w": 200, "h": 36 },
-      "color": "#4CAF50FF", "presetLayout": { "cols": 5, "rows": 4 } },
-    { "type": "numeric-up-down", "id": "nud", "rect": { "x": 1100, "y": 96, "w": 150, "h": 34 },
-      "value": 5, "range": { "min": 0, "max": 10 }, "step": 1, "decimals": 0 },
-    { "type": "splitter", "id": "sp", "rect": { "x": 20, "y": 170, "w": 8, "h": 150 },
-      "firstPanel": "spLeft", "secondPanel": "spRight", "ratio": 0.5, "thickness": 6 },
-    { "type": "image", "id": "img", "rect": { "x": 60, "y": 180, "w": 96, "h": 96 },
-      "imageResource": "logo_256", "scaleType": "fit-center", "alpha": 255 },
-    { "type": "list-view", "id": "lvDemo", "rect": { "x": 900, "y": 190, "w": 380, "h": 160 },
-      "mode": "multi", "selectedIndex": 0, "rowHeight": 28,
+        {
+          "type": "button",
+          "id": "pnlBtnA",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 120,
+            "h": 32
+          },
+          "caption": "流式A",
+          "flowWeight": 1.0
+        },
+        {
+          "type": "button",
+          "id": "pnlBtnB",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 120,
+            "h": 32
+          },
+          "caption": "流式B",
+          "flowWeight": 2.0
+        }
+      ]
+    },
+    {
+      "type": "color-picker",
+      "id": "cp",
+      "rect": {
+        "x": 880,
+        "y": 96,
+        "w": 200,
+        "h": 36
+      },
+      "color": "#4CAF50FF",
+      "presetLayout": {
+        "cols": 5,
+        "rows": 4
+      }
+    },
+    {
+      "type": "numeric-up-down",
+      "id": "nud",
+      "rect": {
+        "x": 1100,
+        "y": 96,
+        "w": 150,
+        "h": 34
+      },
+      "value": 5,
+      "range": {
+        "min": 0,
+        "max": 10
+      },
+      "step": 1,
+      "decimals": 0
+    },
+    {
+      "type": "splitter",
+      "id": "sp",
+      "rect": {
+        "x": 20,
+        "y": 170,
+        "w": 8,
+        "h": 150
+      },
+      "firstPanel": "spLeft",
+      "secondPanel": "spRight",
+      "ratio": 0.5,
+      "thickness": 6
+    },
+    {
+      "type": "image",
+      "id": "img",
+      "rect": {
+        "x": 60,
+        "y": 180,
+        "w": 96,
+        "h": 96
+      },
+      "imageResource": "logo_256",
+      "scaleType": "fit-center",
+      "alpha": 255
+    },
+    {
+      "type": "list-view",
+      "id": "lvDemo",
+      "rect": {
+        "x": 900,
+        "y": 190,
+        "w": 380,
+        "h": 160
+      },
+      "mode": "multi",
+      "selectedIndex": 0,
+      "rowHeight": 28,
       "columns": [
-        { "title": "名称", "width": 180, "sortable": true },
-        { "title": "类型", "width": 100 },
-        { "title": "大小", "width": 80, "sortable": true }
+        {
+          "title": "名称",
+          "width": 180,
+          "sortable": true
+        },
+        {
+          "title": "类型",
+          "width": 100
+        },
+        {
+          "title": "大小",
+          "width": 80,
+          "sortable": true
+        }
       ],
       "rows": [
-        { "id": "f1", "cells": ["main.cpp", "C++ 源文件", "2.1 KB"] },
-        { "id": "f2", "cells": ["build.bat", "批处理", "512 B"] },
-        { "id": "f3", "cells": ["logo.svg", "矢量图", "8 KB"] }
-      ] },
-    { "type": "list-view", "id": "lvSingle", "rect": { "x": 900, "y": 370, "w": 260, "h": 120 },
+        {
+          "id": "f1",
+          "cells": [
+            "main.cpp",
+            "C++ 源文件",
+            "2.1 KB"
+          ]
+        },
+        {
+          "id": "f2",
+          "cells": [
+            "build.bat",
+            "批处理",
+            "512 B"
+          ]
+        },
+        {
+          "id": "f3",
+          "cells": [
+            "logo.svg",
+            "矢量图",
+            "8 KB"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "list-view",
+      "id": "lvSingle",
+      "rect": {
+        "x": 900,
+        "y": 370,
+        "w": 260,
+        "h": 120
+      },
       "mode": "single",
       "rows": [
-        { "id": "opt1", "cells": ["选项 一"] },
-        { "id": "opt2", "cells": ["选项 二"] },
-        { "id": "opt3", "cells": ["选项 三"] }
-      ] },
-    { "type": "shape", "id": "shpRing", "rect": { "x": 480, "y": 190, "w": 80, "h": 80 },
-      "shape": "circle", "fill": "#3B82F6", "stroke": "#1E293B", "lineWidth": 2, "ringWidth": 14 },
-    { "type": "shape", "id": "shpArrow", "rect": { "x": 590, "y": 190, "w": 120, "h": 70 },
-      "shape": "polygon", "fill": "#F59E0B", "stroke": "#7C2D12", "lineWidth": 2,
+        {
+          "id": "opt1",
+          "cells": [
+            "选项 一"
+          ]
+        },
+        {
+          "id": "opt2",
+          "cells": [
+            "选项 二"
+          ]
+        },
+        {
+          "id": "opt3",
+          "cells": [
+            "选项 三"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "shape",
+      "id": "shpRing",
+      "rect": {
+        "x": 480,
+        "y": 190,
+        "w": 80,
+        "h": 80
+      },
+      "shape": "circle",
+      "fill": "#3B82F6",
+      "stroke": "#1E293B",
+      "lineWidth": 2,
+      "ringWidth": 14
+    },
+    {
+      "type": "shape",
+      "id": "shpArrow",
+      "rect": {
+        "x": 590,
+        "y": 190,
+        "w": 120,
+        "h": 70
+      },
+      "shape": "polygon",
+      "fill": "#F59E0B",
+      "stroke": "#7C2D12",
+      "lineWidth": 2,
       "points": [
-        { "x": 0, "y": 0 }, { "x": 70, "y": 0 }, { "x": 70, "y": 24 },
-        { "x": 110, "y": 35 }, { "x": 70, "y": 46 }, { "x": 70, "y": 70 }, { "x": 0, "y": 70 }
-      ] },
-    { "type": "shape", "id": "shpRound", "rect": { "x": 740, "y": 196, "w": 140, "h": 56 },
-      "shape": "round-rect", "fill": "#10B981", "stroke": "#064E3B", "lineWidth": 3, "radius": 16 },
-    { "type": "shape", "id": "shpHouse", "rect": { "x": 480, "y": 300, "w": 150, "h": 130 },
-      "colors": { "background": "#324057FF" },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 70,
+          "y": 0
+        },
+        {
+          "x": 70,
+          "y": 24
+        },
+        {
+          "x": 110,
+          "y": 35
+        },
+        {
+          "x": 70,
+          "y": 46
+        },
+        {
+          "x": 70,
+          "y": 70
+        },
+        {
+          "x": 0,
+          "y": 70
+        }
+      ]
+    },
+    {
+      "type": "shape",
+      "id": "shpRound",
+      "rect": {
+        "x": 740,
+        "y": 196,
+        "w": 140,
+        "h": 56
+      },
+      "shape": "round-rect",
+      "fill": "#10B981",
+      "stroke": "#064E3B",
+      "lineWidth": 3,
+      "radius": 16
+    },
+    {
+      "type": "shape",
+      "id": "shpHouse",
+      "rect": {
+        "x": 480,
+        "y": 300,
+        "w": 150,
+        "h": 130
+      },
+      "colors": {
+        "background": "#324057FF"
+      },
       "primitives": [
-        { "shape": "round-rect", "rect": [10, 50, 130, 75], "radius": 6, "fill": "#34D399" },
-        { "shape": "polygon", "rect": [0, 0, 0, 0], "fill": "#EF4444",
-          "points": [ { "x": 0, "y": 52 }, { "x": 75, "y": 0 }, { "x": 150, "y": 52 } ] },
-        { "shape": "circle", "rect": [28, 68, 30, 30], "fill": "#3B82F6" },
-        { "shape": "filled-rect", "rect": [92, 85, 30, 40], "fill": "#F59E0B" }
-      ] },
-    { "type": "status-bar", "id": "sb", "rect": { "x": 0, "y": 876, "w": 1400, "h": 24 },
+        {
+          "shape": "round-rect",
+          "rect": [
+            10,
+            50,
+            130,
+            75
+          ],
+          "radius": 6,
+          "fill": "#34D399"
+        },
+        {
+          "shape": "polygon",
+          "rect": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "fill": "#EF4444",
+          "points": [
+            {
+              "x": 0,
+              "y": 52
+            },
+            {
+              "x": 75,
+              "y": 0
+            },
+            {
+              "x": 150,
+              "y": 52
+            }
+          ]
+        },
+        {
+          "shape": "circle",
+          "rect": [
+            28,
+            68,
+            30,
+            30
+          ],
+          "fill": "#3B82F6"
+        },
+        {
+          "shape": "filled-rect",
+          "rect": [
+            92,
+            85,
+            30,
+            40
+          ],
+          "fill": "#F59E0B"
+        }
+      ]
+    },
+    {
+      "type": "status-bar",
+      "id": "sb",
+      "rect": {
+        "x": 0,
+        "y": 876,
+        "w": 1400,
+        "h": 24
+      },
       "fontSize": 13,
       "items": [
-        { "id": "branch", "text": "main" },
-        { "id": "problems", "text": "0 问题 0 警告" },
-        { "id": "encoding", "text": "UTF-8", "align": "right" },
-        { "id": "eol", "text": "LF", "align": "right" }
-      ] },
-    { "type": "tab-control", "id": "tabs", "rect": { "x": 20, "y": 380, "w": 560, "h": 240 },
-      "position": "top", "fontSize": 13, "currentIndex": 0,
+        {
+          "id": "branch",
+          "text": "main"
+        },
+        {
+          "id": "problems",
+          "text": "0 问题 0 警告"
+        },
+        {
+          "id": "encoding",
+          "text": "UTF-8",
+          "align": "right"
+        },
+        {
+          "id": "eol",
+          "text": "LF",
+          "align": "right"
+        }
+      ]
+    },
+    {
+      "type": "tab-control",
+      "id": "tabs",
+      "rect": {
+        "x": 20,
+        "y": 380,
+        "w": 560,
+        "h": 240
+      },
+      "position": "top",
+      "fontSize": 13,
+      "currentIndex": 0,
       "tabs": [
-        { "title": "主页", "page": { "type": "panel" } },
-        { "title": "设置", "page": { "type": "panel" } },
-        { "title": "关于", "page": { "type": "panel" } }
-      ] },
-    { "type": "tree-view", "id": "tree", "rect": { "x": 200, "y": 180, "w": 280, "h": 200 },
-      "indentWidth": 18, "defaultExpand": true,
+        {
+          "title": "主页",
+          "page": {
+            "type": "panel"
+          }
+        },
+        {
+          "title": "设置",
+          "page": {
+            "type": "panel"
+          }
+        },
+        {
+          "title": "关于",
+          "page": {
+            "type": "panel"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tree-view",
+      "id": "tree",
+      "rect": {
+        "x": 200,
+        "y": 180,
+        "w": 280,
+        "h": 200
+      },
+      "indentWidth": 18,
+      "defaultExpand": true,
       "items": [
-        { "id": "n1", "label": "节点 1", "expanded": true,
-          "children": [ { "id": "n1a", "label": "子节点" } ] },
-        { "id": "n2", "label": "节点 2" }
-      ] },
-    { "type": "win-frame", "id": "frame", "rect": { "x": 520, "y": 250, "w": 360, "h": 220 },
-      "title": "窗口样例", "resizable": true,
+        {
+          "id": "n1",
+          "label": "节点 1",
+          "expanded": true,
+          "children": [
+            {
+              "id": "n1a",
+              "label": "子节点"
+            }
+          ]
+        },
+        {
+          "id": "n2",
+          "label": "节点 2"
+        }
+      ]
+    },
+    {
+      "type": "win-frame",
+      "id": "frame",
+      "rect": {
+        "x": 520,
+        "y": 250,
+        "w": 360,
+        "h": 220
+      },
+      "title": "窗口样例",
+      "resizable": true,
       "children": [
-        { "type": "label", "id": "frameLbl", "rect": { "x": 12, "y": 44, "w": 200, "h": 26 }, "text": "客户区" }
-      ] },
-    { "type": "menu-bar", "id": "menubar", "x": 20, "y": 400, "w": 500, "h": 30,
-      "manualPosition": true, "barHeight": 30,
+        {
+          "type": "label",
+          "id": "frameLbl",
+          "rect": {
+            "x": 12,
+            "y": 44,
+            "w": 200,
+            "h": 26
+          },
+          "text": "客户区"
+        }
+      ]
+    },
+    {
+      "type": "menu-bar",
+      "id": "menubar",
+      "x": 20,
+      "y": 400,
+      "w": 500,
+      "h": 30,
+      "manualPosition": true,
+      "barHeight": 30,
       "menus": [
-        { "caption": "文件", "items": [
-          { "caption": "打开", "shortcut": "Ctrl+O" },
-          { "caption": "最近文件", "items": [ { "caption": "demo.json" } ] },
-          { "type": "separator" },
-          { "caption": "退出" }
-        ] },
-        { "caption": "帮助", "items": [ { "caption": "关于" } ] }
-      ] },
-    { "type": "popup", "id": "pop", "rect": { "x": 900, "y": 400, "w": 260, "h": 140 },
-      "centered": false, "visible": false, "closeOnEsc": true },
-    { "type": "confirm-popup", "id": "confirm", "rect": { "x": 900, "y": 420, "w": 280, "h": 160 },
-      "centered": false, "visible": false,
-      "confirmButton": { "text": "确定" }, "buttonHeight": 28, "padding": 10 },
-    { "type": "dialog", "id": "dlg", "rect": { "x": 900, "y": 440, "w": 320, "h": 180 },
-      "centered": false, "visible": false, "closeOnEsc": true,
-      "confirmButton": { "text": "确定" }, "cancelButton": { "text": "取消" } }
+        {
+          "caption": "文件",
+          "items": [
+            {
+              "caption": "打开",
+              "shortcut": "Ctrl+O"
+            },
+            {
+              "caption": "最近文件",
+              "items": [
+                {
+                  "caption": "demo.json"
+                }
+              ]
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "caption": "退出"
+            }
+          ]
+        },
+        {
+          "caption": "帮助",
+          "items": [
+            {
+              "caption": "关于"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "popup",
+      "id": "pop",
+      "rect": {
+        "x": 900,
+        "y": 400,
+        "w": 260,
+        "h": 140
+      },
+      "centered": false,
+      "visible": false,
+      "closeOnEsc": true
+    },
+    {
+      "type": "confirm-popup",
+      "id": "confirm",
+      "rect": {
+        "x": 900,
+        "y": 420,
+        "w": 280,
+        "h": 160
+      },
+      "centered": false,
+      "visible": false,
+      "confirmButton": {
+        "text": "确定"
+      },
+      "buttonHeight": 28,
+      "padding": 10
+    },
+    {
+      "type": "dialog",
+      "id": "dlg",
+      "rect": {
+        "x": 900,
+        "y": 440,
+        "w": 320,
+        "h": 180
+      },
+      "centered": false,
+      "visible": false,
+      "closeOnEsc": true,
+      "confirmButton": {
+        "text": "确定"
+      },
+      "cancelButton": {
+        "text": "取消"
+      }
+    }
   ],
   "dialogs": [
-    { "type": "dialog", "id": "dlgDecl", "rect": { "x": 100, "y": 450, "w": 300, "h": 160 },
-      "centered": true, "visible": false, "text": "声明式对话框" }
+    {
+      "type": "dialog",
+      "id": "dlgDecl",
+      "rect": {
+        "x": 100,
+        "y": 450,
+        "w": 300,
+        "h": 160
+      },
+      "centered": true,
+      "visible": false,
+      "text": "声明式对话框"
+    }
   ]
 }

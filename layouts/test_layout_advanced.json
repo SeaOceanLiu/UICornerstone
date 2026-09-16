@@ -1,670 +1,1294 @@
-﻿{
-    "version": "1.0",
-    "viewport": { "width": 800, "height": 1000 },
-
-    "components": {
-        "greeter": {
-            "props": {
-                "name": { "type": "string", "default": "World" },
-                "buttonText": { "type": "string", "default": "Click" }
-            },
-            "template": {
-                "type": "panel",
-                "rect": { "x": 0, "y": 0, "w": 200, "h": 60 },
-                "children": [
-                    {
-                        "type": "label",
-                        "id": "greeting",
-                        "rect": { "x": 10, "y": 5, "w": 180, "h": 24 },
-                        "caption": "Hello, {{name}}!",
-                        "font": { "size": 14 },
-                        "alignment": "center"
-                    },
-                    {
-                        "type": "button",
-                        "id": "btn",
-                        "rect": { "x": 50, "y": 32, "w": 100, "h": 24 },
-                        "caption": "{{buttonText}}",
-                        "events": { "onClick": "_comp_onGreet" }
-                    }
-                ]
-            }
+{
+  "version": "1.0",
+  "viewport": {
+    "width": 800,
+    "height": 1000
+  },
+  "components": {
+    "greeter": {
+      "props": {
+        "name": {
+          "type": "string",
+          "default": "World"
         },
-        "framed-greeter": {
-            "props": {
-                "name": { "type": "string", "default": "World" },
-                "buttonText": { "type": "string", "default": "Click" }
-            },
-            "template": {
-                "type": "panel",
-                "rect": { "x": 0, "y": 0, "w": 220, "h": 80 },
-                "bgColor": "#3A3A3AFF",
-                "borderColor": "#808080FF",
-                "children": [
-                    {
-                        "type": "greeter",
-                        "id": "nestedgreeter",
-                        "rect": { "x": 10, "y": 10, "w": 200, "h": 60 },
-                        "name": "{{name}}",
-                        "buttonText": "{{buttonText}}",
-                        "events": { "onGreet": "_comp_onGreet" }
-                    }
-                ]
-            }
-        },
-        "self-ref": {
-            "template": {
-                "type": "panel",
-                "rect": { "x": 0, "y": 0, "w": 200, "h": 100 },
-                "bgColor": "#3A3A3AFF",
-                "children": [
-                    {
-                        "type": "self-ref",
-                        "id": "child",
-                        "rect": { "x": 10, "y": 10, "w": 180, "h": 80 }
-                    }
-                ]
-            }
+        "buttonText": {
+          "type": "string",
+          "default": "Click"
         }
-    },
-
-    "theme": {
-        "colors": {
-            "window": {
-                "bg": { "normal": "#282828FF" }
-            },
-            "panel": {
-                "bg": { "normal": "#282828FF" },
-                "border": { "normal": "#505050FF" }
-            },
-            "label": {
-                "bg": { "normal": "#282828FF" },
-                "text": { "normal": "#DDDDDDFF" }
-            },
-            "button": {
-                "bg": { "normal": "#3C3C3CFF", "hover": "#4C4C4CFF", "pressed": "#2C2C2CFF", "disabled": "#282828FF" },
-                "border": { "normal": "#505050FF" },
-                "text": { "normal": "#FFFFFFFF" }
-            },
-            "editbox": {
-                "bg": { "normal": "#1E1E1EFF" },
-                "border": { "normal": "#505050FF" },
-                "text": { "normal": "#FFFFFFFF" }
-            },
-            "checkbox": {
-                "text": { "normal": "#DDDDDDFF" },
-                "check": { "normal": "#00C853FF" },
-                "cross": { "normal": "#FF5252FF" },
-                "indeterminate": { "normal": "#9E9E9EFF" },
-                "boxBorder": { "normal": "#757575FF" }
-            },
-            "progressbar": {
-                "bg": { "normal": "#424242FF" },
-                "text": { "normal": "#FFFFFFFF" },
-                "border": { "normal": "#616161FF" },
-                "progress": "#66BB6AFF",
-                "track": "#333333FF"
-            },
-            "menubar": {
-                "bg": { "normal": "#1E1E1EFF" },
-                "text": { "normal": "#DDDDDDFF" },
-                "border": { "normal": "#424242FF" }
-            }
+      },
+      "template": {
+        "type": "panel",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 60
         },
-        "fonts": {
-            "default": { "name": "HarmonyOS_Sans_SC_Regular", "size": 16 },
-            "button": { "size": 16 },
-            "label": { "size": 16 },
-            "editbox": { "size": 16 },
-            "progressbar": { "size": 16 }
-        }
+        "children": [
+          {
+            "type": "label",
+            "id": "greeting",
+            "rect": {
+              "x": 10,
+              "y": 5,
+              "w": 180,
+              "h": 24
+            },
+            "caption": "Hello, {{name}}!",
+            "font": {
+              "size": 14
+            },
+            "alignment": "center"
+          },
+          {
+            "type": "button",
+            "id": "btn",
+            "rect": {
+              "x": 50,
+              "y": 32,
+              "w": 100,
+              "h": 24
+            },
+            "caption": "{{buttonText}}",
+            "events": {
+              "onClick": "_comp_onGreet"
+            }
+          }
+        ]
+      }
     },
-    "controls": [
+    "framed-greeter": {
+      "props": {
+        "name": {
+          "type": "string",
+          "default": "World"
+        },
+        "buttonText": {
+          "type": "string",
+          "default": "Click"
+        }
+      },
+      "template": {
+        "type": "panel",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 220,
+          "h": 80
+        },
+        "bgColor": "#3A3A3AFF",
+        "borderColor": "#808080FF",
+        "children": [
+          {
+            "type": "greeter",
+            "id": "nestedgreeter",
+            "rect": {
+              "x": 10,
+              "y": 10,
+              "w": 200,
+              "h": 60
+            },
+            "name": "{{name}}",
+            "buttonText": "{{buttonText}}",
+            "events": {
+              "onGreet": "_comp_onGreet"
+            }
+          }
+        ]
+      }
+    },
+    "self-ref": {
+      "template": {
+        "type": "panel",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "bgColor": "#3A3A3AFF",
+        "children": [
+          {
+            "type": "self-ref",
+            "id": "child",
+            "rect": {
+              "x": 10,
+              "y": 10,
+              "w": 180,
+              "h": 80
+            }
+          }
+        ]
+      }
+    }
+  },
+  "theme": {
+    "colors": {
+      "window": {
+        "bg": {
+          "normal": "#282828FF"
+        }
+      },
+      "panel": {
+        "bg": {
+          "normal": "#282828FF"
+        },
+        "border": {
+          "normal": "#505050FF"
+        }
+      },
+      "label": {
+        "bg": {
+          "normal": "#282828FF"
+        },
+        "text": {
+          "normal": "#DDDDDDFF"
+        }
+      },
+      "button": {
+        "bg": {
+          "normal": "#3C3C3CFF",
+          "hover": "#4C4C4CFF",
+          "pressed": "#2C2C2CFF",
+          "disabled": "#282828FF"
+        },
+        "border": {
+          "normal": "#505050FF"
+        },
+        "text": {
+          "normal": "#FFFFFFFF"
+        }
+      },
+      "editbox": {
+        "bg": {
+          "normal": "#1E1E1EFF"
+        },
+        "border": {
+          "normal": "#505050FF"
+        },
+        "text": {
+          "normal": "#FFFFFFFF"
+        }
+      },
+      "checkbox": {
+        "text": {
+          "normal": "#DDDDDDFF"
+        },
+        "check-color": {
+          "normal": "#00C853FF"
+        },
+        "cross-color": {
+          "normal": "#FF5252FF"
+        },
+        "indeterminate-color": {
+          "normal": "#9E9E9EFF"
+        },
+        "boxBorder": {
+          "normal": "#757575FF"
+        }
+      },
+      "progressbar": {
+        "bg": {
+          "normal": "#424242FF"
+        },
+        "text": {
+          "normal": "#FFFFFFFF"
+        },
+        "border": {
+          "normal": "#616161FF"
+        },
+        "progress": "#66BB6AFF",
+        "track": "#333333FF"
+      },
+      "menubar": {
+        "bg": {
+          "normal": "#1E1E1EFF"
+        },
+        "text": {
+          "normal": "#DDDDDDFF"
+        },
+        "border": {
+          "normal": "#424242FF"
+        }
+      }
+    },
+    "fonts": {
+      "default": {
+        "name": "HarmonyOS_Sans_SC_Regular",
+        "size": 16
+      },
+      "button": {
+        "size": 16
+      },
+      "label": {
+        "size": 16
+      },
+      "editbox": {
+        "size": 16
+      },
+      "progressbar": {
+        "size": 16
+      }
+    }
+  },
+  "controls": [
+    {
+      "type": "panel",
+      "id": "rootPanel",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": "100%",
+        "h": "100%"
+      },
+      "colors": {
+        "background": {
+          "normal": "#282828FF"
+        }
+      },
+      "children": [
         {
-            "type": "panel",
-            "id": "rootPanel",
-            "rect": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
-            "colors": {
-                "background": { "normal": "#282828FF" }
+          "type": "greeter",
+          "id": "greeter1",
+          "rect": {
+            "x": 10,
+            "y": 1180,
+            "w": 200,
+            "h": 60
+          },
+          "name": "组件系统",
+          "buttonText": "问候",
+          "events": {
+            "onGreet": "ongreeterClick"
+          }
+        },
+        {
+          "type": "label",
+          "id": "titleLabel",
+          "rect": {
+            "x": 10,
+            "y": 10,
+            "w": 780,
+            "h": 30
+          },
+          "caption": "Advanced Layout Features Test",
+          "font": {
+            "size": 20,
+            "style": "bold"
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "label",
+          "id": "scaleTypeTitle",
+          "rect": {
+            "x": 10,
+            "y": 50,
+            "w": 780,
+            "h": 24
+          },
+          "caption": "--- ScaleType (Actor缩放模式) ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "button",
+          "id": "stretchBtn",
+          "rect": {
+            "x": 10,
+            "y": 80,
+            "w": 240,
+            "h": 60
+          },
+          "caption": "STRETCH (default)",
+          "captionSize": 14,
+          "actors": {
+            "normal": {
+              "file": "assets/images/cross_up.png",
+              "scaleType": "stretch"
+            }
+          },
+          "colors": {
+            "background": {
+              "normal": "#505050FF",
+              "hover": "#606060FF",
+              "pressed": "#404040FF"
             },
-            "children": [
-                {
-                    "type": "greeter",
-                    "id": "greeter1",
-                    "rect": { "x": 10, "y": 1180, "w": 200, "h": 60 },
-                    "name": "组件系统",
-                    "buttonText": "问候",
-                    "events": { "onGreet": "ongreeterClick" }
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "fitCenterBtn",
+          "rect": {
+            "x": 270,
+            "y": 80,
+            "w": 240,
+            "h": 60
+          },
+          "caption": "FIT_CENTER",
+          "captionSize": 14,
+          "actors": {
+            "normal": {
+              "file": "assets/images/cross_up.png",
+              "scaleType": "fit-center"
+            }
+          },
+          "colors": {
+            "background": {
+              "normal": "#505050FF",
+              "hover": "#606060FF",
+              "pressed": "#404040FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "centerCropBtn",
+          "rect": {
+            "x": 530,
+            "y": 80,
+            "w": 240,
+            "h": 60
+          },
+          "caption": "CENTER_CROP",
+          "captionSize": 14,
+          "actors": {
+            "normal": {
+              "file": "assets/images/cross_up.png",
+              "scaleType": "center-crop"
+            }
+          },
+          "colors": {
+            "background": {
+              "normal": "#505050FF",
+              "hover": "#606060FF",
+              "pressed": "#404040FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "hflowTitle",
+          "rect": {
+            "x": 10,
+            "y": 160,
+            "w": 780,
+            "h": 24
+          },
+          "caption": "--- HFlow (水平流式布局: 权重1:2:1) ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "panel",
+          "id": "hflowPanel",
+          "rect": {
+            "x": 10,
+            "y": 190,
+            "w": 780,
+            "h": 50
+          },
+          "bgColor": "#353535FF",
+          "borderColor": "#606060FF",
+          "layout": {
+            "type": "h-flow",
+            "gap": 4,
+            "padding": {
+              "left": 4,
+              "top": 4,
+              "right": 4,
+              "bottom": 4
+            }
+          },
+          "children": [
+            {
+              "type": "button",
+              "id": "hflowBtn1",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 42
+              },
+              "flowWeight": 1,
+              "caption": "Flex1",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#E06060FF",
+                  "hover": "#F07070FF",
+                  "pressed": "#D05050FF"
                 },
-                {
-                    "type": "label",
-                    "id": "titleLabel",
-                    "rect": { "x": 10, "y": 10, "w": 780, "h": 30 },
-                    "caption": "Advanced Layout Features Test",
-                    "font": { "size": 20, "style": "bold" },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "label",
-                    "id": "scaleTypeTitle",
-                    "rect": { "x": 10, "y": 50, "w": 780, "h": 24 },
-                    "caption": "--- ScaleType (Actor缩放模式) ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "button",
-                    "id": "stretchBtn",
-                    "rect": { "x": 10, "y": 80, "w": 240, "h": 60 },
-                    "caption": "STRETCH (default)",
-                    "captionSize": 14,
-                    "actors": {
-                        "normal": {
-                            "file": "assets/images/cross_up.png",
-                            "scaleType": "stretch"
-                        }
-                    },
-                    "colors": {
-                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "button",
-                    "id": "fitCenterBtn",
-                    "rect": { "x": 270, "y": 80, "w": 240, "h": 60 },
-                    "caption": "FIT_CENTER",
-                    "captionSize": 14,
-                    "actors": {
-                        "normal": {
-                            "file": "assets/images/cross_up.png",
-                            "scaleType": "fit-center"
-                        }
-                    },
-                    "colors": {
-                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "button",
-                    "id": "centerCropBtn",
-                    "rect": { "x": 530, "y": 80, "w": 240, "h": 60 },
-                    "caption": "CENTER_CROP",
-                    "captionSize": 14,
-                    "actors": {
-                        "normal": {
-                            "file": "assets/images/cross_up.png",
-                            "scaleType": "center-crop"
-                        }
-                    },
-                    "colors": {
-                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "hflowTitle",
-                    "rect": { "x": 10, "y": 160, "w": 780, "h": 24 },
-                    "caption": "--- HFlow (水平流式布局: 权重1:2:1) ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "panel",
-                    "id": "hflowPanel",
-                    "rect": { "x": 10, "y": 190, "w": 780, "h": 50 },
-                    "bgColor": "#353535FF",
-                    "borderColor": "#606060FF",
-                    "layout": {
-                        "type": "h-flow",
-                        "gap": 4,
-                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
-                    },
-                    "children": [
-                        {
-                            "type": "button",
-                            "id": "hflowBtn1",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
-                            "flowWeight": 1,
-                            "caption": "Flex1",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "hflowBtn2",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
-                            "flowWeight": 2,
-                            "caption": "Flex2 (x2)",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "hflowBtn3",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 42 },
-                            "flowWeight": 1,
-                            "caption": "Flex3",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "vflowTitle",
-                    "rect": { "x": 10, "y": 260, "w": 780, "h": 24 },
-                    "caption": "--- VFlow (垂直流式布局: 固定+flex混合) ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "panel",
-                    "id": "vflowPanel",
-                    "rect": { "x": 10, "y": 290, "w": 200, "h": 200 },
-                    "bgColor": "#353535FF",
-                    "borderColor": "#606060FF",
-                    "layout": {
-                        "type": "v-flow",
-                        "gap": 4,
-                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
-                    },
-                    "children": [
-                        {
-                            "type": "button",
-                            "id": "vflowBtn1",
-                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
-                            "caption": "Fixed 40px",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "vflowBtn2",
-                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
-                            "flowWeight": 1,
-                            "caption": "Flex1 (fills rest)",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "vflowBtn3",
-                            "rect": { "x": 0, "y": 0, "w": 192, "h": 40 },
-                            "caption": "Fixed 40px",
-                            "captionSize": 13,
-                            "colors": {
-                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "anchorTitle",
-                    "rect": { "x": 10, "y": 510, "w": 780, "h": 24 },
-                    "caption": "--- Anchor (锚点布局: TL/TR/BL/BR/CENTER) ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "panel",
-                    "id": "anchorPanel",
-                    "rect": { "x": 10, "y": 540, "w": 780, "h": 90 },
-                    "bgColor": "#353535FF",
-                    "borderColor": "#606060FF",
-                    "layout": {
-                        "type": "anchor",
-                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
-                    },
-                    "children": [
-                        {
-                            "type": "button",
-                            "id": "anchorTL",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
-                            "anchor": "top-left",
-                            "caption": "TL",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#E06060FF", "hover": "#F07070FF", "pressed": "#D05050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "anchorTR",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
-                            "anchor": "top-right",
-                            "anchorOffset": { "left": 0, "top": 0, "right": 4, "bottom": 0 },
-                            "caption": "TR",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#60A060FF", "hover": "#70B070FF", "pressed": "#509050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "anchorBL",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
-                            "anchor": "bottom-left",
-                            "anchorOffset": { "left": 0, "top": 0, "right": 0, "bottom": 4 },
-                            "caption": "BL",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#6080C0FF", "hover": "#7090D0FF", "pressed": "#5070B0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "anchorBR",
-                            "rect": { "x": 0, "y": 0, "w": 80, "h": 30 },
-                            "anchor": "bottom-right",
-                            "anchorOffset": { "left": 0, "top": 0, "right": 4, "bottom": 4 },
-                            "caption": "BR",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#C0A060FF", "hover": "#D0B070FF", "pressed": "#B09050FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "anchorCenter",
-                            "rect": { "x": 0, "y": 0, "w": 100, "h": 30 },
-                            "anchor": "center",
-                            "caption": "CENTER",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#A060C0FF", "hover": "#B070D0FF", "pressed": "#9050B0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "anchorFill",
-                            "rect": { "x": 0, "y": 0, "w": 100, "h": 30 },
-                            "anchor": "fill",
-                            "anchorOffset": { "left": 90, "top": 32, "right": 90, "bottom": 4 },
-                            "caption": "FILL bar",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#60A0A0FF", "hover": "#70B0B0FF", "pressed": "#509090FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "gridTitle",
-                    "rect": { "x": 10, "y": 640, "w": 780, "h": 24 },
-                    "caption": "--- Grid (网格布局: 列[1fr,2fr,100px] 行[30px,1fr,30px]) ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "panel",
-                    "id": "gridPanel",
-                    "rect": { "x": 10, "y": 670, "w": 780, "h": 200 },
-                    "bgColor": "#353535FF",
-                    "borderColor": "#606060FF",
-                    "layout": {
-                        "type": "grid",
-                        "columns": ["1fr", "2fr", "100px"],
-                        "rows": ["30px", "1fr", "30px"],
-                        "gap": 4,
-                        "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 }
-                    },
-                    "children": [
-                        {
-                            "type": "button",
-                            "id": "grid0_0",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 0, "col": 0 },
-                            "caption": "(0,0)",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#E06060FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "gridSpan",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 0, "col": 1, "colSpan": 2 },
-                            "caption": "(0,1) span2",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#60A060FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "grid1_0",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 1, "col": 0 },
-                            "caption": "(1,0)",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#6080C0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "grid1_1",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 1, "col": 1 },
-                            "caption": "(1,1) mid",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#C0A060FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "gridSpan2",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 1, "col": 2, "rowSpan": 2 },
-                            "caption": "(1,2)\nrowSpan2",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#A060C0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "grid2_0",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 2, "col": 0 },
-                            "caption": "(2,0)",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#60A0A0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "grid2_1",
-                            "rect": { "x": 0, "y": 0, "w": 0, "h": 0 },
-                            "grid": { "row": 2, "col": 1 },
-                            "caption": "(2,1)",
-                            "captionSize": 12,
-                            "colors": {
-                                "background": { "normal": "#C06080FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "pctTitle",
-                    "rect": { "x": "2%", "y": 870, "w": "46%", "h": 20 },
-                    "caption": "--- 百分比尺寸: (x:2%, w:46%) 窗口拉宽后自动变宽 ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "button",
-                    "id": "pctBtn",
-                    "rect": { "x": "2%", "y": 894, "w": "46%", "h": 32 },
-                    "caption": "宽度=46% × 父容器宽，拉宽窗口试试",
-                    "captionSize": 14,
-                    "colors": {
-                        "background": { "normal": "#E06060FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "bindingTitle",
-                    "rect": { "x": "52%", "y": 870, "w": "46%", "h": 16 },
-                    "caption": "数据绑定: 输入→同步",
-                    "font": { "size": 12 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "edit-box",
-                    "id": "bindingEdit",
-                    "rect": { "x": "52%", "y": 890, "w": "46%", "h": 26 },
-                    "placeholder": "输入同步到右侧 Label...",
-                    "bind": { "text": { "source": "sharedText", "mode": "twoway" } }
-                },
-                {
-                    "type": "label",
-                    "id": "bindingLabel",
-                    "rect": { "x": "52%", "y": 920, "w": "46%", "h": 26 },
-                    "alignment": "mid-left",
-                    "font": { "size": 14 },
-                    "bind": { "caption": "sharedText" }
-                },
-                {
-                    "type": "label",
-                    "id": "bindingProgressTitle",
-                    "rect": { "x": "52%", "y": 954, "w": "30%", "h": 14 },
-                    "caption": "DataContext Value ⇢ ProgressBar",
-                    "font": { "size": 11 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "progress-bar",
-                    "id": "bindingProgress",
-                    "rect": { "x": "52%", "y": 970, "w": "30%", "h": 18 },
-                    "range": { "min": 0, "max": 100 },
-                    "textMode": "percent",
-                    "bind": { "value": "progressValue" }
-                },
-                {
-                    "type": "button",
-                    "id": "btnDec",
-                    "rect": { "x": "83%", "y": 970, "w": "7%", "h": 18 },
-                    "caption": "-10",
-                    "captionSize": 11,
-                    "events": { "onClick": "onDecProgress" },
-                    "colors": {
-                        "background": { "normal": "#CC5050FF", "hover": "#DD6060FF", "pressed": "#BB4040FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "button",
-                    "id": "btnInc",
-                    "rect": { "x": "91%", "y": 970, "w": "7%", "h": 18 },
-                    "caption": "+10",
-                    "captionSize": 11,
-                    "events": { "onClick": "onIncProgress" },
-                    "colors": {
-                        "background": { "normal": "#50AA50FF", "hover": "#60BB60FF", "pressed": "#409940FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "themeTitle",
-                    "rect": { "x": "2%", "y": 940, "w": "46%", "h": 16 },
-                    "caption": "主题默认色 (无显式颜色配置)",
-                    "font": { "size": 12 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "button",
-                    "id": "themeBtn1",
-                    "rect": { "x": "2%", "y": 960, "w": "46%", "h": 26 },
-                    "caption": "主题按钮 A"
-                },
-                {
-                    "type": "button",
-                    "id": "themeBtn2",
-                    "rect": { "x": "2%", "y": 990, "w": "46%", "h": 26 },
-                    "caption": "主题按钮 B"
-                },
-                {
-                    "type": "button",
-                    "id": "themeBtn3",
-                    "rect": { "x": "2%", "y": 1020, "w": "46%", "h": 26 },
-                    "caption": "主题按钮 C"
-                },
-                {
-                    "type": "label",
-                    "id": "compTitle",
-                    "rect": { "x": "2%", "y": 1060, "w": "96%", "h": 20 },
-                    "caption": "--- 组件(V1): 嵌套 / Props默认值 / 循环引用 ---",
-                    "font": { "size": 14 },
-                    "alignment": "mid-left"
-                },
-                {
-                    "type": "framed-greeter",
-                    "id": "framedgreeter1",
-                    "rect": { "x": 10, "y": 1090, "w": 220, "h": 80 },
-                    "name": "嵌套组件",
-                    "buttonText": "点我",
-                    "events": { "onGreet": "onFramedGreet" }
-                },
-                {
-                    "type": "greeter",
-                    "id": "greeterDefaults",
-                    "rect": { "x": 250, "y": 1090, "w": 200, "h": 60 },
-                    "name": "默认按钮"
-                },
-                {
-                    "type": "self-ref",
-                    "id": "selfRef1",
-                    "rect": { "x": 470, "y": 1090, "w": 200, "h": 100 }
-                },
-                {
-                    "type": "image",
-                    "id": "heroImage",
-                    "rect": { "x": 1100, "y": 700, "w": 120, "h": 60 },
-                    "image": "assets/images/cross_down.png",
-                    "scaleType": "fit-center"
+                "text": {
+                  "normal": "#FFFFFFFF"
                 }
-            ]
+              }
+            },
+            {
+              "type": "button",
+              "id": "hflowBtn2",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 42
+              },
+              "flowWeight": 2,
+              "caption": "Flex2 (x2)",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#60A060FF",
+                  "hover": "#70B070FF",
+                  "pressed": "#509050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "hflowBtn3",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 42
+              },
+              "flowWeight": 1,
+              "caption": "Flex3",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#6080C0FF",
+                  "hover": "#7090D0FF",
+                  "pressed": "#5070B0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "vflowTitle",
+          "rect": {
+            "x": 10,
+            "y": 260,
+            "w": 780,
+            "h": 24
+          },
+          "caption": "--- VFlow (垂直流式布局: 固定+flex混合) ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "panel",
+          "id": "vflowPanel",
+          "rect": {
+            "x": 10,
+            "y": 290,
+            "w": 200,
+            "h": 200
+          },
+          "bgColor": "#353535FF",
+          "borderColor": "#606060FF",
+          "layout": {
+            "type": "v-flow",
+            "gap": 4,
+            "padding": {
+              "left": 4,
+              "top": 4,
+              "right": 4,
+              "bottom": 4
+            }
+          },
+          "children": [
+            {
+              "type": "button",
+              "id": "vflowBtn1",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 192,
+                "h": 40
+              },
+              "caption": "Fixed 40px",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#E06060FF",
+                  "hover": "#F07070FF",
+                  "pressed": "#D05050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "vflowBtn2",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 192,
+                "h": 40
+              },
+              "flowWeight": 1,
+              "caption": "Flex1 (fills rest)",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#60A060FF",
+                  "hover": "#70B070FF",
+                  "pressed": "#509050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "vflowBtn3",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 192,
+                "h": 40
+              },
+              "caption": "Fixed 40px",
+              "captionSize": 13,
+              "colors": {
+                "background": {
+                  "normal": "#6080C0FF",
+                  "hover": "#7090D0FF",
+                  "pressed": "#5070B0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "anchorTitle",
+          "rect": {
+            "x": 10,
+            "y": 510,
+            "w": 780,
+            "h": 24
+          },
+          "caption": "--- Anchor (锚点布局: TL/TR/BL/BR/CENTER) ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "panel",
+          "id": "anchorPanel",
+          "rect": {
+            "x": 10,
+            "y": 540,
+            "w": 780,
+            "h": 90
+          },
+          "bgColor": "#353535FF",
+          "borderColor": "#606060FF",
+          "layout": {
+            "type": "anchor",
+            "padding": {
+              "left": 4,
+              "top": 4,
+              "right": 4,
+              "bottom": 4
+            }
+          },
+          "children": [
+            {
+              "type": "button",
+              "id": "anchorTL",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 30
+              },
+              "anchor": "top-left",
+              "caption": "TL",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#E06060FF",
+                  "hover": "#F07070FF",
+                  "pressed": "#D05050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "anchorTR",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 30
+              },
+              "anchor": "top-right",
+              "anchorOffset": {
+                "left": 0,
+                "top": 0,
+                "right": 4,
+                "bottom": 0
+              },
+              "caption": "TR",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#60A060FF",
+                  "hover": "#70B070FF",
+                  "pressed": "#509050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "anchorBL",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 30
+              },
+              "anchor": "bottom-left",
+              "anchorOffset": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 4
+              },
+              "caption": "BL",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#6080C0FF",
+                  "hover": "#7090D0FF",
+                  "pressed": "#5070B0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "anchorBR",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 80,
+                "h": 30
+              },
+              "anchor": "bottom-right",
+              "anchorOffset": {
+                "left": 0,
+                "top": 0,
+                "right": 4,
+                "bottom": 4
+              },
+              "caption": "BR",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#C0A060FF",
+                  "hover": "#D0B070FF",
+                  "pressed": "#B09050FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "anchorCenter",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 100,
+                "h": 30
+              },
+              "anchor": "center",
+              "caption": "CENTER",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#A060C0FF",
+                  "hover": "#B070D0FF",
+                  "pressed": "#9050B0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "anchorFill",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 100,
+                "h": 30
+              },
+              "anchor": "fill",
+              "anchorOffset": {
+                "left": 90,
+                "top": 32,
+                "right": 90,
+                "bottom": 4
+              },
+              "caption": "FILL bar",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#60A0A0FF",
+                  "hover": "#70B0B0FF",
+                  "pressed": "#509090FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "gridTitle",
+          "rect": {
+            "x": 10,
+            "y": 640,
+            "w": 780,
+            "h": 24
+          },
+          "caption": "--- Grid (网格布局: 列[1fr,2fr,100px] 行[30px,1fr,30px]) ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "panel",
+          "id": "gridPanel",
+          "rect": {
+            "x": 10,
+            "y": 670,
+            "w": 780,
+            "h": 200
+          },
+          "bgColor": "#353535FF",
+          "borderColor": "#606060FF",
+          "layout": {
+            "type": "grid",
+            "columns": [
+              "1fr",
+              "2fr",
+              "100px"
+            ],
+            "rows": [
+              "30px",
+              "1fr",
+              "30px"
+            ],
+            "gap": 4,
+            "padding": {
+              "left": 4,
+              "top": 4,
+              "right": 4,
+              "bottom": 4
+            }
+          },
+          "children": [
+            {
+              "type": "button",
+              "id": "grid0_0",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 0,
+                "col": 0
+              },
+              "caption": "(0,0)",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#E06060FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "gridSpan",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 0,
+                "col": 1,
+                "colSpan": 2
+              },
+              "caption": "(0,1) span2",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#60A060FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "grid1_0",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 1,
+                "col": 0
+              },
+              "caption": "(1,0)",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#6080C0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "grid1_1",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 1,
+                "col": 1
+              },
+              "caption": "(1,1) mid",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#C0A060FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "gridSpan2",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 1,
+                "col": 2,
+                "rowSpan": 2
+              },
+              "caption": "(1,2)\nrowSpan2",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#A060C0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "grid2_0",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 2,
+                "col": 0
+              },
+              "caption": "(2,0)",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#60A0A0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "grid2_1",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "grid": {
+                "row": 2,
+                "col": 1
+              },
+              "caption": "(2,1)",
+              "captionSize": 12,
+              "colors": {
+                "background": {
+                  "normal": "#C06080FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "pctTitle",
+          "rect": {
+            "x": "2%",
+            "y": 870,
+            "w": "46%",
+            "h": 20
+          },
+          "caption": "--- 百分比尺寸: (x:2%, w:46%) 窗口拉宽后自动变宽 ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "button",
+          "id": "pctBtn",
+          "rect": {
+            "x": "2%",
+            "y": 894,
+            "w": "46%",
+            "h": 32
+          },
+          "caption": "宽度=46% × 父容器宽，拉宽窗口试试",
+          "captionSize": 14,
+          "colors": {
+            "background": {
+              "normal": "#E06060FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "bindingTitle",
+          "rect": {
+            "x": "52%",
+            "y": 870,
+            "w": "46%",
+            "h": 16
+          },
+          "caption": "数据绑定: 输入→同步",
+          "font": {
+            "size": 12
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "edit-box",
+          "id": "bindingEdit",
+          "rect": {
+            "x": "52%",
+            "y": 890,
+            "w": "46%",
+            "h": 26
+          },
+          "placeholder": "输入同步到右侧 Label...",
+          "bind": {
+            "text": {
+              "source": "sharedText",
+              "mode": "twoway"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "bindingLabel",
+          "rect": {
+            "x": "52%",
+            "y": 920,
+            "w": "46%",
+            "h": 26
+          },
+          "alignment": "mid-left",
+          "font": {
+            "size": 14
+          },
+          "bind": {
+            "caption": "sharedText"
+          }
+        },
+        {
+          "type": "label",
+          "id": "bindingProgressTitle",
+          "rect": {
+            "x": "52%",
+            "y": 954,
+            "w": "30%",
+            "h": 14
+          },
+          "caption": "DataContext Value ⇢ ProgressBar",
+          "font": {
+            "size": 11
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "progress-bar",
+          "id": "bindingProgress",
+          "rect": {
+            "x": "52%",
+            "y": 970,
+            "w": "30%",
+            "h": 18
+          },
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "textMode": "percent",
+          "bind": {
+            "value": "progressValue"
+          }
+        },
+        {
+          "type": "button",
+          "id": "btnDec",
+          "rect": {
+            "x": "83%",
+            "y": 970,
+            "w": "7%",
+            "h": 18
+          },
+          "caption": "-10",
+          "captionSize": 11,
+          "events": {
+            "onClick": "onDecProgress"
+          },
+          "colors": {
+            "background": {
+              "normal": "#CC5050FF",
+              "hover": "#DD6060FF",
+              "pressed": "#BB4040FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "btnInc",
+          "rect": {
+            "x": "91%",
+            "y": 970,
+            "w": "7%",
+            "h": 18
+          },
+          "caption": "+10",
+          "captionSize": 11,
+          "events": {
+            "onClick": "onIncProgress"
+          },
+          "colors": {
+            "background": {
+              "normal": "#50AA50FF",
+              "hover": "#60BB60FF",
+              "pressed": "#409940FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "themeTitle",
+          "rect": {
+            "x": "2%",
+            "y": 940,
+            "w": "46%",
+            "h": 16
+          },
+          "caption": "主题默认色 (无显式颜色配置)",
+          "font": {
+            "size": 12
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "button",
+          "id": "themeBtn1",
+          "rect": {
+            "x": "2%",
+            "y": 960,
+            "w": "46%",
+            "h": 26
+          },
+          "caption": "主题按钮 A"
+        },
+        {
+          "type": "button",
+          "id": "themeBtn2",
+          "rect": {
+            "x": "2%",
+            "y": 990,
+            "w": "46%",
+            "h": 26
+          },
+          "caption": "主题按钮 B"
+        },
+        {
+          "type": "button",
+          "id": "themeBtn3",
+          "rect": {
+            "x": "2%",
+            "y": 1020,
+            "w": "46%",
+            "h": 26
+          },
+          "caption": "主题按钮 C"
+        },
+        {
+          "type": "label",
+          "id": "compTitle",
+          "rect": {
+            "x": "2%",
+            "y": 1060,
+            "w": "96%",
+            "h": 20
+          },
+          "caption": "--- 组件(V1): 嵌套 / Props默认值 / 循环引用 ---",
+          "font": {
+            "size": 14
+          },
+          "alignment": "mid-left"
+        },
+        {
+          "type": "framed-greeter",
+          "id": "framedgreeter1",
+          "rect": {
+            "x": 10,
+            "y": 1090,
+            "w": 220,
+            "h": 80
+          },
+          "name": "嵌套组件",
+          "buttonText": "点我",
+          "events": {
+            "onGreet": "onFramedGreet"
+          }
+        },
+        {
+          "type": "greeter",
+          "id": "greeterDefaults",
+          "rect": {
+            "x": 250,
+            "y": 1090,
+            "w": 200,
+            "h": 60
+          },
+          "name": "默认按钮"
+        },
+        {
+          "type": "self-ref",
+          "id": "selfRef1",
+          "rect": {
+            "x": 470,
+            "y": 1090,
+            "w": 200,
+            "h": 100
+          }
+        },
+        {
+          "type": "image",
+          "id": "heroImage",
+          "rect": {
+            "x": 1100,
+            "y": 700,
+            "w": 120,
+            "h": 60
+          },
+          "image": "assets/images/cross_down.png",
+          "scaleType": "fit-center"
         }
-    ]
+      ]
+    }
+  ]
 }

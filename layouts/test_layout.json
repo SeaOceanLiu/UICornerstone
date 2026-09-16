@@ -1,401 +1,719 @@
 {
-    "version": "1.0",
-    "controls": [
-        {
-            "type": "panel",
-            "id": "mainPanel",
-            "rect": { "x": 0, "y": 0, "w": 800, "h": 640 },
-            "colors": {
-                "background": { "normal": "#282828FF" }
-            },
-            "children": [
-                {
-                    "type": "menu-bar",
-                    "id": "mainMenuBar",
-                    "font": { "size": 16 },
-                    "menus": [
-                        {
-                            "caption": "文件(F)",
-                            "items": [
-                                { "caption": "新建", "shortcut": "Ctrl+N", "events": { "onClick": "onMenuNew" } },
-                                { "caption": "打开", "shortcut": "Ctrl+O", "events": { "onClick": "onMenuOpen" } },
-                                { "type": "separator" },
-                                {
-                                    "caption": "最近文件",
-                                    "items": [
-                                        { "caption": "file1.txt", "events": { "onClick": "onMenuRecent" } },
-                                        { "caption": "file2.txt", "events": { "onClick": "onMenuRecent" } }
-                                    ]
-                                },
-                                { "type": "separator" },
-                                { "caption": "退出", "shortcut": "Alt+F4", "events": { "onClick": "onMenuExit" } }
-                            ]
-                        },
-                        {
-                            "caption": "编辑(E)",
-                            "items": [
-                                { "caption": "撤销", "shortcut": "Ctrl+Z", "events": { "onClick": "onMenuUndo" } },
-                                { "caption": "重做", "shortcut": "Ctrl+Y", "events": { "onClick": "onMenuRedo" } }
-                            ]
-                        },
-                        {
-                            "caption": "帮助(H)",
-                            "items": [
-                                { "caption": "关于", "events": { "onClick": "onMenuAbout" } }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "titleLabel",
-                    "rect": { "x": 0, "y": 52, "w": 800, "h": 40 },
-                    "caption": "Layout Configuration Test",
-                    "alignment": "center",
-                    "font": {
-                        "name": "HarmonyOS_Sans_SC_Regular",
-                        "size": 28
-                    },
-                    "colors": {
-                        "text": { "normal": "#FFFFFFFF" }
-                    },
-                    "shadow": {
-                        "enabled": true,
-                        "offset": { "x": 2, "y": 2 }
-                    }
-                },
-                {
-                    "type": "panel",
-                    "id": "formPanel",
-                    "rect": { "x": 50, "y": 112, "w": 400, "h": 200 },
-                    "colors": {
-                        "border": { "normal": "#808080FF" }
-                    },
-                    "children": [
-                        {
-                            "type": "label",
-                            "id": "nameLabel",
-                            "rect": { "x": 20, "y": 20, "w": 80, "h": 30 },
-                            "caption": "Name:",
-                            "alignment": "mid-left",
-                            "font": { "size": 16 },
-                            "colors": {
-                                "text": { "normal": "#FFFFFFFF" }
-                            }
-                        },
-                        {
-                            "type": "edit-box",
-                            "id": "nameEdit",
-                            "rect": { "x": 110, "y": 20, "w": 250, "h": 30 },
-                            "placeholder": "Please input your name",
-                            "font": { "size": 16 },
-                            "colors": {
-                                "background": { "normal": "#404040FF" },
-                                "border": { "normal": "#606060FF" }
-                            }
-                        },
-                        {
-                            "type": "label",
-                            "id": "descLabel",
-                            "rect": { "x": 20, "y": 70, "w": 360, "h": 20 },
-                            "caption": "Type in the edit box above and click Submit",
-                            "alignment": "top-left",
-                            "font": { "size": 12 },
-                            "colors": {
-                                "text": { "normal": "#A0A0A0FF" }
-                            }
-                        },
-                        {
-                            "type": "button",
-                            "id": "submitBtn",
-                            "rect": { "x": 280, "y": 140, "w": 100, "h": 35 },
-                            "caption": "Submit",
-                            "captionSize": 16,
-                            "colors": {
-                                "background": {
-                                    "normal": "#4060A0FF",
-                                    "hover": "#5080C0FF",
-                                    "pressed": "#305090FF"
-                                },
-                                "border": { "normal": "#6080C0FF" },
-                                "text": { "normal": "#FFFFFFFF" }
-                            },
-                            "events": {
-                                "onClick": "onSubmitClick"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "panel",
-                    "id": "previewPanel",
-                    "rect": { "x": 500, "y": 112, "w": 250, "h": 200 },
-                    "colors": {
-                        "border": { "normal": "#808080FF" }
-                    },
-                    "children": [
-                        {
-                            "type": "label",
-                            "id": "previewTitle",
-                            "rect": { "x": 10, "y": 10, "w": 230, "h": 25 },
-                            "caption": "Preview Panel",
-                            "alignment": "center",
-                            "font": { "size": 14 },
-                            "colors": {
-                                "text": { "normal": "#FFFFFFFF" },
-                                "border": { "normal": "#606060FF" }
-                            },
-                            "shadow": { "enabled": false }
-                        },
-                        {
-                            "type": "label",
-                            "id": "previewContent",
-                            "rect": { "x": 10, "y": 45, "w": 230, "h": 140 },
-                            "caption": "Name:\nAge:\nNotes:",
-                            "alignment": "top-left",
-                            "font": { "size": 14 },
-                            "colors": {
-                                "text": { "normal": "#C0C0C0FF" }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "type": "label",
-                    "id": "statusLabel",
-                    "rect": { "x": 0, "y": 592, "w": 800, "h": 25 },
-                    "caption": "Status: Ready",
-                    "alignment": "top-left",
-                    "font": { "size": 14 },
-                    "colors": {
-                        "text": { "normal": "#808080FF" }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "colorTestLabel",
-                    "rect": { "x": 50, "y": 352, "w": 200, "h": 30 },
-                    "caption": "Object format color",
-                    "alignment": "mid-left",
-                    "font": { "size": 14 },
-                    "colors": {
-                        "text": { "normal": { "r": 255, "g": 255, "b": 0, "a": 255 } },
-                        "border": { "normal": { "r": 0, "g": 255, "b": 255, "a": 255 } }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "scaledLabel",
-                    "rect": { "x": 400, "y": 352, "w": 100, "h": 30 },
-                    "scale": { "x": 2.0, "y": 2.0 },
-                    "caption": "2x Scaled",
-                    "alignment": "center",
-                    "font": { "size": 14 },
-                    "colors": {
-                        "text": { "normal": "#FF8800FF" }
-                    },
-                    "shadow": {
-                        "enabled": true,
-                        "offset": { "x": 1, "y": 1 }
-                    }
-                },
-                {
-                    "type": "label",
-                    "id": "phase2Title",
-                    "rect": { "x": 0, "y": 402, "w": 800, "h": 25 },
-                    "caption": "--- Phase 2 Controls ---",
-                    "alignment": "center",
-                    "font": { "size": 14, "style": "bold" },
-                    "colors": {
-                        "text": { "normal": "#AAAAAAFF" }
-                    }
-                },
-                {
-                    "type": "text-area",
-                    "id": "notesTextArea",
-                    "rect": { "x": 20, "y": 432, "w": 200, "h": 80 },
-                    "placeholder": "Multi-line notes...",
-                    "wordWrap": true,
-                    "font": { "size": 12 },
-                    "colors": {
-                        "background": { "normal": "#353535FF" },
-                        "border": { "normal": "#606060FF" }
-                    },
-                    "events": {
-                        "onTextChanged": "onNotesChanged"
-                    }
-                },
-                {
-                    "type": "check-box",
-                    "id": "agreeCheck",
-                    "rect": { "x": 240, "y": 432, "w": 180, "h": 30 },
-                    "caption": "I agree",
-                    "captionSize": 14,
-                    "checkState": "unchecked",
-                    "style": "classic",
-                    "layout": "text-right",
-                    "events": {
-                        "onCheckChanged": "onAgreeChanged"
-                    }
-                },
-                {
-                    "type": "check-box",
-                    "id": "optionCheck",
-                    "rect": { "x": 240, "y": 462, "w": 180, "h": 30 },
-                    "caption": "Enable option",
-                    "captionSize": 14,
-                    "checkState": "checked",
-                    "style": "cross",
-                    "layout": "text-right"
-                },
-                {
-                    "type": "progress-bar",
-                    "id": "loadProgress",
-                    "rect": { "x": 440, "y": 432, "w": 200, "h": 25 },
-                    "value": 65,
-                    "range": { "min": 0, "max": 100 },
-                    "style": "horizontal",
-                    "textMode": "percent",
-                    "colors": {
-                        "progressColor": "#4080C0FF",
-                        "backgroundColor": "#303030FF"
-                    }
-                },
-                {
-                    "type": "progress-bar",
-                    "id": "vertProgress",
-                    "rect": { "x": 660, "y": 432, "w": 20, "h": 80 },
-                    "value": 75,
-                    "range": { "min": 0, "max": 100 },
-                    "style": "vertical",
-                    "textMode": "none",
-                    "colors": {
-                        "progressColor": "#60C060FF",
-                        "backgroundColor": "#303030FF"
-                    }
-                },
-                {
-                    "type": "color-picker",
-                    "id": "testColorPicker",
-                    "rect": { "x": 240, "y": 498, "w": 96, "h": 24 },
-                    "color": "#FF6600",
-                    "presets": ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF"],
-                    "presetLayout": { "cols": 5, "rows": 1 },
-                    "events": {
-                        "onColorChanged": "onColorChanged"
-                    }
-                },
-                {
-                    "type": "scroll-bar",
-                    "id": "hScroll",
-                    "rect": { "x": 440, "y": 472, "w": 200, "h": 16 },
-                    "orientation": "horizontal",
-                    "value": 30,
-                    "range": { "min": 0, "max": 100 },
-                    "pageSize": 20,
-                    "stepSize": 5
-                },
-                {
-                    "type": "scroll-bar",
-                    "id": "vScroll",
-                    "rect": { "x": 700, "y": 402, "w": 16, "h": 110 },
-                    "orientation": "vertical",
-                    "value": 50,
-                    "range": { "min": 0, "max": 200 },
-                    "pageSize": 30,
-                    "stepSize": 10
-                },
-                {
-                    "type": "button",
-                    "id": "imageBtn",
-                    "rect": { "x": 20, "y": 532, "w": 160, "h": 40 },
-                    "caption": "Image Button",
-                    "captionSize": 14,
-                    "actors": {
-                        "normal": "assets/images/cross_up.png",
-                        "hover": "assets/images/cross_over.png",
-                        "pressed": "assets/images/cross_down.png"
-                    },
-                    "colors": {
-                        "background": { "normal": "#505050FF", "hover": "#606060FF", "pressed": "#404040FF" },
-                        "text": { "normal": "#FFFFFFFF" }
-                    },
-                    "events": {
-                        "onClick": "onImageBtnClick"
-                    }
-                },
-                {
-                    "type": "button",
-                    "id": "aniBtn",
-                    "rect": { "x": 200, "y": 532, "w": 100, "h": 40 },
-                    "caption": "Animated",
-                    "captionSize": 14,
-                    "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
-                    "playing": true,
-                    "colors": {
-                        "background": {
-                            "normal": "#505050FF",
-                            "hover": "#606060FF",
-                            "pressed": "#404040FF"
-                        },
-                        "text": { "normal": "#FFFFFFFF" }
-                    },
-                    "events": {
-                        "onClick": "onAniBtnClick"
-                    }
-                },
-                {
-                    "type": "button",
-                    "id": "captionLabelBtn",
-                    "rect": { "x": 320, "y": 532, "w": 120, "h": 40 },
-                    "captionLabel": {
-                        "caption": "Styled",
-                        "font": { "size": 18, "style": "bold" },
-                        "alignment": "center",
-                        "shadow": {
-                            "enabled": true,
-                            "offset": { "x": 1, "y": 1 }
-                        },
-                        "colors": {
-                            "text": { "normal": "#FFD700FF", "hover": "#FFA500FF", "pressed": "#FF8C00FF" },
-                            "textShadow": { "normal": "#00000080" }
-                        }
-                    },
-                    "colors": {
-                        "background": {
-                            "normal": "#404040FF",
-                            "hover": "#505050FF",
-                            "pressed": "#303030FF"
-                        },
-                        "border": { "normal": "#808080FF" }
-                    },
-                    "events": {
-                        "onClick": "onCaptionLabelBtnClick"
-                    }
-                },
-                {
-                    "type": "win-frame",
-                    "id": "resultWinFrame",
-                    "rect": { "x": 200, "y": 100, "w": 400, "h": 300 },
-                    "title": "Submitted",
-                    "edgeMargin": 4.0,
-                    "children": [
-                        {
-                            "type": "label",
-                            "rect": { "x": 10, "y": 10, "w": 380, "h": 140 },
-                            "caption": "Form submitted successfully!\n\nThis is a WinFrame with ClientPanel.\n\nYou can add any controls to the client area.\n\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10",
-                            "font": { "size": 14 }
-                        }
-                    ]
-                },
-                {
-                    "type": "image",
-                    "id": "heroImage",
-                    "rect": { "x": 730, "y": 100, "w": 60, "h": 60 },
-                    "image": "assets/images/cross_down.png",
-                    "scaleType": "fit-center"
-                }
-            ]
+  "version": "1.0",
+  "controls": [
+    {
+      "type": "panel",
+      "id": "mainPanel",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 800,
+        "h": 640
+      },
+      "colors": {
+        "background": {
+          "normal": "#282828FF"
         }
-    ]
+      },
+      "children": [
+        {
+          "type": "menu-bar",
+          "id": "mainMenuBar",
+          "font": {
+            "size": 16
+          },
+          "menus": [
+            {
+              "caption": "文件(F)",
+              "items": [
+                {
+                  "caption": "新建",
+                  "shortcut": "Ctrl+N",
+                  "events": {
+                    "onClick": "onMenuNew"
+                  }
+                },
+                {
+                  "caption": "打开",
+                  "shortcut": "Ctrl+O",
+                  "events": {
+                    "onClick": "onMenuOpen"
+                  }
+                },
+                {
+                  "type": "separator"
+                },
+                {
+                  "caption": "最近文件",
+                  "items": [
+                    {
+                      "caption": "file1.txt",
+                      "events": {
+                        "onClick": "onMenuRecent"
+                      }
+                    },
+                    {
+                      "caption": "file2.txt",
+                      "events": {
+                        "onClick": "onMenuRecent"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "separator"
+                },
+                {
+                  "caption": "退出",
+                  "shortcut": "Alt+F4",
+                  "events": {
+                    "onClick": "onMenuExit"
+                  }
+                }
+              ]
+            },
+            {
+              "caption": "编辑(E)",
+              "items": [
+                {
+                  "caption": "撤销",
+                  "shortcut": "Ctrl+Z",
+                  "events": {
+                    "onClick": "onMenuUndo"
+                  }
+                },
+                {
+                  "caption": "重做",
+                  "shortcut": "Ctrl+Y",
+                  "events": {
+                    "onClick": "onMenuRedo"
+                  }
+                }
+              ]
+            },
+            {
+              "caption": "帮助(H)",
+              "items": [
+                {
+                  "caption": "关于",
+                  "events": {
+                    "onClick": "onMenuAbout"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "titleLabel",
+          "rect": {
+            "x": 0,
+            "y": 52,
+            "w": 800,
+            "h": 40
+          },
+          "caption": "Layout Configuration Test",
+          "alignment": "center",
+          "font": {
+            "name": "HarmonyOS_Sans_SC_Regular",
+            "size": 28
+          },
+          "colors": {
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          },
+          "shadow": {
+            "enabled": true,
+            "offset": {
+              "x": 2,
+              "y": 2
+            }
+          }
+        },
+        {
+          "type": "panel",
+          "id": "formPanel",
+          "rect": {
+            "x": 50,
+            "y": 112,
+            "w": 400,
+            "h": 200
+          },
+          "colors": {
+            "border": {
+              "normal": "#808080FF"
+            }
+          },
+          "children": [
+            {
+              "type": "label",
+              "id": "nameLabel",
+              "rect": {
+                "x": 20,
+                "y": 20,
+                "w": 80,
+                "h": 30
+              },
+              "caption": "Name:",
+              "alignment": "mid-left",
+              "font": {
+                "size": 16
+              },
+              "colors": {
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              }
+            },
+            {
+              "type": "edit-box",
+              "id": "nameEdit",
+              "rect": {
+                "x": 110,
+                "y": 20,
+                "w": 250,
+                "h": 30
+              },
+              "placeholder": "Please input your name",
+              "font": {
+                "size": 16
+              },
+              "colors": {
+                "background": {
+                  "normal": "#404040FF"
+                },
+                "border": {
+                  "normal": "#606060FF"
+                }
+              }
+            },
+            {
+              "type": "label",
+              "id": "descLabel",
+              "rect": {
+                "x": 20,
+                "y": 70,
+                "w": 360,
+                "h": 20
+              },
+              "caption": "Type in the edit box above and click Submit",
+              "alignment": "top-left",
+              "font": {
+                "size": 12
+              },
+              "colors": {
+                "text": {
+                  "normal": "#A0A0A0FF"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "submitBtn",
+              "rect": {
+                "x": 280,
+                "y": 140,
+                "w": 100,
+                "h": 35
+              },
+              "caption": "Submit",
+              "captionSize": 16,
+              "colors": {
+                "background": {
+                  "normal": "#4060A0FF",
+                  "hover": "#5080C0FF",
+                  "pressed": "#305090FF"
+                },
+                "border": {
+                  "normal": "#6080C0FF"
+                },
+                "text": {
+                  "normal": "#FFFFFFFF"
+                }
+              },
+              "events": {
+                "onClick": "onSubmitClick"
+              }
+            }
+          ]
+        },
+        {
+          "type": "panel",
+          "id": "previewPanel",
+          "rect": {
+            "x": 500,
+            "y": 112,
+            "w": 250,
+            "h": 200
+          },
+          "colors": {
+            "border": {
+              "normal": "#808080FF"
+            }
+          },
+          "children": [
+            {
+              "type": "label",
+              "id": "previewTitle",
+              "rect": {
+                "x": 10,
+                "y": 10,
+                "w": 230,
+                "h": 25
+              },
+              "caption": "Preview Panel",
+              "alignment": "center",
+              "font": {
+                "size": 14
+              },
+              "colors": {
+                "text": {
+                  "normal": "#FFFFFFFF"
+                },
+                "border": {
+                  "normal": "#606060FF"
+                }
+              },
+              "shadow": {
+                "enabled": false
+              }
+            },
+            {
+              "type": "label",
+              "id": "previewContent",
+              "rect": {
+                "x": 10,
+                "y": 45,
+                "w": 230,
+                "h": 140
+              },
+              "caption": "Name:\nAge:\nNotes:",
+              "alignment": "top-left",
+              "font": {
+                "size": 14
+              },
+              "colors": {
+                "text": {
+                  "normal": "#C0C0C0FF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "statusLabel",
+          "rect": {
+            "x": 0,
+            "y": 592,
+            "w": 800,
+            "h": 25
+          },
+          "caption": "Status: Ready",
+          "alignment": "top-left",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#808080FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "colorTestLabel",
+          "rect": {
+            "x": 50,
+            "y": 352,
+            "w": 200,
+            "h": 30
+          },
+          "caption": "Object format color",
+          "alignment": "mid-left",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": {
+                "r": 255,
+                "g": 255,
+                "b": 0,
+                "a": 255
+              }
+            },
+            "border": {
+              "normal": {
+                "r": 0,
+                "g": 255,
+                "b": 255,
+                "a": 255
+              }
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "scaledLabel",
+          "rect": {
+            "x": 400,
+            "y": 352,
+            "w": 100,
+            "h": 30
+          },
+          "scale": {
+            "x": 2.0,
+            "y": 2.0
+          },
+          "caption": "2x Scaled",
+          "alignment": "center",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#FF8800FF"
+            }
+          },
+          "shadow": {
+            "enabled": true,
+            "offset": {
+              "x": 1,
+              "y": 1
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "phase2Title",
+          "rect": {
+            "x": 0,
+            "y": 402,
+            "w": 800,
+            "h": 25
+          },
+          "caption": "--- Phase 2 Controls ---",
+          "alignment": "center",
+          "font": {
+            "size": 14,
+            "style": "bold"
+          },
+          "colors": {
+            "text": {
+              "normal": "#AAAAAAFF"
+            }
+          }
+        },
+        {
+          "type": "text-area",
+          "id": "notesTextArea",
+          "rect": {
+            "x": 20,
+            "y": 432,
+            "w": 200,
+            "h": 80
+          },
+          "placeholder": "Multi-line notes...",
+          "wordWrap": true,
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "background": {
+              "normal": "#353535FF"
+            },
+            "border": {
+              "normal": "#606060FF"
+            }
+          },
+          "events": {
+            "onTextChanged": "onNotesChanged"
+          }
+        },
+        {
+          "type": "check-box",
+          "id": "agreeCheck",
+          "rect": {
+            "x": 240,
+            "y": 432,
+            "w": 180,
+            "h": 30
+          },
+          "caption": "I agree",
+          "captionSize": 14,
+          "checkState": "unchecked",
+          "style": "classic",
+          "layout": "text-right",
+          "events": {
+            "onCheckChanged": "onAgreeChanged"
+          }
+        },
+        {
+          "type": "check-box",
+          "id": "optionCheck",
+          "rect": {
+            "x": 240,
+            "y": 462,
+            "w": 180,
+            "h": 30
+          },
+          "caption": "Enable option",
+          "captionSize": 14,
+          "checkState": "checked",
+          "style": "cross",
+          "layout": "text-right"
+        },
+        {
+          "type": "progress-bar",
+          "id": "loadProgress",
+          "rect": {
+            "x": 440,
+            "y": 432,
+            "w": 200,
+            "h": 25
+          },
+          "value": 65,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "style": "horizontal",
+          "textMode": "percent",
+          "colors": {
+            "progressColor": "#4080C0FF",
+            "backgroundColor": "#303030FF"
+          }
+        },
+        {
+          "type": "progress-bar",
+          "id": "vertProgress",
+          "rect": {
+            "x": 660,
+            "y": 432,
+            "w": 20,
+            "h": 80
+          },
+          "value": 75,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "style": "vertical",
+          "textMode": "none",
+          "colors": {
+            "progressColor": "#60C060FF",
+            "backgroundColor": "#303030FF"
+          }
+        },
+        {
+          "type": "color-picker",
+          "id": "testColorPicker",
+          "rect": {
+            "x": 240,
+            "y": 498,
+            "w": 96,
+            "h": 24
+          },
+          "color": "#FF6600",
+          "presets": [
+            "#FF0000",
+            "#00FF00",
+            "#0000FF",
+            "#FFFF00",
+            "#FF00FF"
+          ],
+          "presetLayout": {
+            "cols": 5,
+            "rows": 1
+          },
+          "events": {
+            "onColorChanged": "onColorChanged"
+          }
+        },
+        {
+          "type": "scroll-bar",
+          "id": "hScroll",
+          "rect": {
+            "x": 440,
+            "y": 472,
+            "w": 200,
+            "h": 16
+          },
+          "orientation": "horizontal",
+          "value": 30,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "pageSize": 20,
+          "stepSize": 5
+        },
+        {
+          "type": "scroll-bar",
+          "id": "vScroll",
+          "rect": {
+            "x": 700,
+            "y": 402,
+            "w": 16,
+            "h": 110
+          },
+          "orientation": "vertical",
+          "value": 50,
+          "range": {
+            "min": 0,
+            "max": 200
+          },
+          "pageSize": 30,
+          "stepSize": 10
+        },
+        {
+          "type": "button",
+          "id": "imageBtn",
+          "rect": {
+            "x": 20,
+            "y": 532,
+            "w": 160,
+            "h": 40
+          },
+          "caption": "Image Button",
+          "captionSize": 14,
+          "actors": {
+            "normal": "assets/images/cross_up.png",
+            "hover": "assets/images/cross_over.png",
+            "pressed": "assets/images/cross_down.png"
+          },
+          "colors": {
+            "background": {
+              "normal": "#505050FF",
+              "hover": "#606060FF",
+              "pressed": "#404040FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          },
+          "events": {
+            "onClick": "onImageBtnClick"
+          }
+        },
+        {
+          "type": "button",
+          "id": "aniBtn",
+          "rect": {
+            "x": 200,
+            "y": 532,
+            "w": 100,
+            "h": 40
+          },
+          "caption": "Animated",
+          "captionSize": 14,
+          "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
+          "playing": true,
+          "colors": {
+            "background": {
+              "normal": "#505050FF",
+              "hover": "#606060FF",
+              "pressed": "#404040FF"
+            },
+            "text": {
+              "normal": "#FFFFFFFF"
+            }
+          },
+          "events": {
+            "onClick": "onAniBtnClick"
+          }
+        },
+        {
+          "type": "button",
+          "id": "captionLabelBtn",
+          "rect": {
+            "x": 320,
+            "y": 532,
+            "w": 120,
+            "h": 40
+          },
+          "captionLabel": {
+            "caption": "Styled",
+            "font": {
+              "size": 18,
+              "style": "bold"
+            },
+            "alignment": "center",
+            "shadow": {
+              "enabled": true,
+              "offset": {
+                "x": 1,
+                "y": 1
+              }
+            },
+            "colors": {
+              "text": {
+                "normal": "#FFD700FF",
+                "hover": "#FFA500FF",
+                "pressed": "#FF8C00FF"
+              },
+              "textShadow": {
+                "normal": "#00000080"
+              }
+            }
+          },
+          "colors": {
+            "background": {
+              "normal": "#404040FF",
+              "hover": "#505050FF",
+              "pressed": "#303030FF"
+            },
+            "border": {
+              "normal": "#808080FF"
+            }
+          },
+          "events": {
+            "onClick": "onCaptionLabelBtnClick"
+          }
+        },
+        {
+          "type": "win-frame",
+          "id": "resultWinFrame",
+          "rect": {
+            "x": 200,
+            "y": 100,
+            "w": 400,
+            "h": 300
+          },
+          "title": "Submitted",
+          "edgeMargin": 4.0,
+          "children": [
+            {
+              "type": "label",
+              "rect": {
+                "x": 10,
+                "y": 10,
+                "w": 380,
+                "h": 140
+              },
+              "caption": "Form submitted successfully!\n\nThis is a WinFrame with ClientPanel.\n\nYou can add any controls to the client area.\n\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10",
+              "font": {
+                "size": 14
+              }
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "id": "heroImage",
+          "rect": {
+            "x": 730,
+            "y": 100,
+            "w": 60,
+            "h": 60
+          },
+          "image": "assets/images/cross_down.png",
+          "scaleType": "fit-center"
+        }
+      ]
+    }
+  ]
 }

@@ -566,6 +566,8 @@ int Splitter::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kRangeMax) == 0) { out = m_minSecond;  return 1; }
     if (strcmp(prop, PropertyNames::kFirstMin) == 0) { out = m_minFirst;   return 1; }
     if (strcmp(prop, PropertyNames::kSecondMin) == 0){ out = m_minSecond;  return 1; }
+    if (strcmp(prop, PropertyNames::kThickness) == 0){ out = m_thickness;  return 1; }
+    if (strcmp(prop, PropertyNames::kEdgeMargin) == 0){ out = m_minFirst;  return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 
@@ -598,6 +600,18 @@ int Splitter::setPtrProperty(const char* prop, void* value) {
         return 1;
     }
     return ControlImpl::setPtrProperty(prop, value);
+}
+
+int Splitter::getPtrProperty(const char* prop, void*& out) {
+    if (strcmp(prop, PropertyNames::kFirstLinked) == 0) {
+        out = static_cast<void*>(m_first);
+        return m_first ? 1 : 0;
+    }
+    if (strcmp(prop, PropertyNames::kSecondLinked) == 0) {
+        out = static_cast<void*>(m_second);
+        return m_second ? 1 : 0;
+    }
+    return ControlImpl::getPtrProperty(prop, out);
 }
 
 // ── Builder ──

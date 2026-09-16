@@ -67,6 +67,22 @@ void testBenchInitialize(shared_ptr<Bench>) {
     g_button1->create();
     BENCH->addControl(g_button1);
 
+    // 属性读回：caption-size 写 24 → 读 24（P0 getter 补齐验证）
+    g_button1->setFloatProperty("caption-size", 24.f);
+    float cbFs = 0.f;
+    if (g_button1->getFloatProperty("caption-size", cbFs) == 1 && cbFs == 24.f) {
+        printf("PASS: Button caption-size roundtrip = 24\n");
+    } else {
+        printf("FAIL: Button caption-size readback = %.1f\n", cbFs);
+    }
+    g_button1->setStringProperty("caption", "readback");
+    const char* cbCap = nullptr;
+    if (g_button1->getStringProperty("caption", cbCap) == 1 && cbCap && strcmp(cbCap, "readback") == 0) {
+        printf("PASS: Button caption readback\n");
+    } else {
+        printf("FAIL: Button caption readback (%s)\n", cbCap ? cbCap : "null");
+    }
+
     g_button2 = ButtonBuilder(nullptr, SRect(200, 50, 150, 50))
         .setCaption(u8"带文字的按钮")
         .setTextStateColor(StateColor::Type::Text)

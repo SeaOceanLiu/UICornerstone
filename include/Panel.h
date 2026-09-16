@@ -21,6 +21,7 @@ private:
     unordered_map<Control*, AnchorInfo> m_anchorItemProps;
     unordered_map<Control*, GridItemProps> m_gridItemProps;
     string m_childTargetId;
+    bool m_clipChildren = false;   // 子项裁剪（默认关；滚动容器/裁剪面板用，v1.1.1）
 public:
     Panel(Control *parent, SRect rect, float xScale=1.0f, float yScale=1.0f);
     void update(void) override;
@@ -28,10 +29,16 @@ public:
     bool handleEvent(shared_ptr<Event> event) override;
 
     void addControl(shared_ptr<Control> control) override;
+    void removeControl(shared_ptr<Control> child) override;
     void removeAllControls();
 
     void setLayoutEngine(shared_ptr<LayoutEngine> engine) { m_layoutEngine = engine; }
     shared_ptr<LayoutEngine> getLayoutEngine() const { return m_layoutEngine; }
+    void setClipChildren(bool clip) { m_clipChildren = clip; }
+    bool getClipChildren() const { return m_clipChildren; }
+    // ── Property system overrides ──
+    int setBoolProperty(const char* prop, int value) override;
+    int getBoolProperty(const char* prop, int& out) override;
     void setChildFlowProps(Control* child, FlowItemProps props) { m_flowItemProps[child] = props; }
     // 读取子项流权重（Splitter 引擎模式拖拽权重换算用；未设置 = 0 = 固定）
     float getChildFlowWeight(const Control* child) const {

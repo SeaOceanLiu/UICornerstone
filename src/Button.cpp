@@ -342,8 +342,8 @@ void Button::setCaptionSize(float size){
         m_caption->setFontSize((int)m_captionSize);
     }
 }
-uint32_t Button::getCaptionSize(float size) const{
-    return static_cast<uint32_t>(m_captionSize);
+float Button::getCaptionSize() const{
+    return m_captionSize;
 }
 SRect Button::getCaptionRect(void) const{
     return m_caption != nullptr ? m_caption->getHotRect() : SRect(0, 0, 0, 0);
@@ -421,6 +421,16 @@ int Button::setStringProperty(const char* prop, const char* value) {
         return 1;
     }
     return ControlImpl::setStringProperty(prop, value);
+}
+
+int Button::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { out = getCaptionSize(); return 1; }
+    return ControlImpl::getFloatProperty(prop, out);
+}
+
+int Button::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kCaption) == 0) { out = m_captionText.c_str(); return 1; }
+    return ControlImpl::getStringProperty(prop, out);
 }
 
 ButtonBuilder::ButtonBuilder(Control *parent, SRect rect, float xScale, float yScale):

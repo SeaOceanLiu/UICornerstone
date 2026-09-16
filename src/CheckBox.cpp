@@ -705,6 +705,7 @@ int CheckBox::getBoolProperty(const char* prop, int& out) {
 
 int CheckBox::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kSizeRatio) == 0) { out = m_sizeRatio; return 1; }
+    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { out = getCaptionSize(); return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 

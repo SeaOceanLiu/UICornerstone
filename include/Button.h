@@ -55,7 +55,7 @@ public:
     shared_ptr<Label> getCaptionLabel(void) const;
     string getCaption(void) const;
     void setCaptionSize(float size);
-    uint32_t getCaptionSize(float size) const;
+    float getCaptionSize() const;
     SRect getCaptionRect(void) const;
 
     void setLuotiAni(shared_ptr<LuotiAni>luotiAni);
@@ -69,7 +69,8 @@ public:
     int setPtrProperty(const char* prop, void* value) override;
     int setFloatProperty(const char* prop, float value) override;
     int getBoolProperty(const char* prop, int& out) override { return ControlImpl::getBoolProperty(prop, out); }
-    int getStringProperty(const char* prop, const char*& out) override { return ControlImpl::getStringProperty(prop, out); }
+    int getFloatProperty(const char* prop, float& out) override;
+    int getStringProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override { return ControlImpl::setCallbackProperty(event, cb, userData); }
 };
 

@@ -92,6 +92,7 @@ public:
     int getColorProperty(const char* prop, SColor& out) override;
     int getBoolProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
+    int getPtrProperty(const char* prop, void*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
 
 private:

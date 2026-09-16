@@ -18,8 +18,26 @@ void Panel::draw(void){
     if (!getVisible()) return;
 
     ControlImpl::beforeDraw();
-    ControlImpl::draw();
+    if (m_clipChildren) {
+        // 子项裁剪：内容 rect = 控件绘制区（含缩放/锚点，与 EditBox 同口径），
+        // 子控件递归绘制在其内，超出即裁（clipStack 支持嵌套 Panel）
+        getRenderDevice()->pushClipRect(getDrawRect());
+        ControlImpl::draw();
+        getRenderDevice()->popClipRect();
+    } else {
+        ControlImpl::draw();
+    }
     afterDraw();
+}
+
+int Panel::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kClipChildren) == 0) { setClipChildren(value != 0); return 1; }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+
+int Panel::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kClipChildren) == 0) { out = m_clipChildren ? 1 : 0; return 1; }
+    return ControlImpl::getBoolProperty(prop, out);
 }
 
 bool Panel::handleEvent(shared_ptr<Event> event){
@@ -28,6 +46,12 @@ bool Panel::handleEvent(shared_ptr<Event> event){
 }
 void Panel::addControl(shared_ptr<Control> control){
     ControlImpl::addControl(control);
+    if (m_layoutEngine) reflowChildren();   // 编程式挂入即排（v1.1.1，Bench 同语义）
+}
+
+void Panel::removeControl(shared_ptr<Control> child){
+    ControlImpl::removeControl(child);
+    if (m_layoutEngine) reflowChildren();   // 移除后重排余下项（无布局残留）
 }
 
 void Panel::removeAllControls() {
