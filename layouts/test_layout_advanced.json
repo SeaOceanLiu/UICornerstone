@@ -76,8 +76,8 @@
           "w": 220,
           "h": 80
         },
-        "bgColor": "#3A3A3AFF",
-        "borderColor": "#808080FF",
+        "background": "#3A3A3AFF",
+        "border": "#808080FF",
         "children": [
           {
             "type": "greeter",
@@ -106,7 +106,7 @@
           "w": 200,
           "h": 100
         },
-        "bgColor": "#3A3A3AFF",
+        "background": "#3A3A3AFF",
         "children": [
           {
             "type": "self-ref",
@@ -303,11 +303,11 @@
             "h": 60
           },
           "caption": "STRETCH (default)",
-          "captionSize": 14,
+          "caption-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
-              "scaleType": "stretch"
+              "scale-type": "stretch"
             }
           },
           "colors": {
@@ -331,11 +331,11 @@
             "h": 60
           },
           "caption": "FIT_CENTER",
-          "captionSize": 14,
+          "caption-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
-              "scaleType": "fit-center"
+              "scale-type": "fit-center"
             }
           },
           "colors": {
@@ -359,11 +359,11 @@
             "h": 60
           },
           "caption": "CENTER_CROP",
-          "captionSize": 14,
+          "caption-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
-              "scaleType": "center-crop"
+              "scale-type": "center-crop"
             }
           },
           "colors": {
@@ -401,8 +401,8 @@
             "w": 780,
             "h": 50
           },
-          "bgColor": "#353535FF",
-          "borderColor": "#606060FF",
+          "background": "#353535FF",
+          "border": "#606060FF",
           "layout": {
             "type": "h-flow",
             "gap": 4,
@@ -423,9 +423,9 @@
                 "w": 80,
                 "h": 42
               },
-              "flowWeight": 1,
+              "flow-weight": 1,
               "caption": "Flex1",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -446,9 +446,9 @@
                 "w": 80,
                 "h": 42
               },
-              "flowWeight": 2,
+              "flow-weight": 2,
               "caption": "Flex2 (x2)",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -469,9 +469,9 @@
                 "w": 80,
                 "h": 42
               },
-              "flowWeight": 1,
+              "flow-weight": 1,
               "caption": "Flex3",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -509,8 +509,8 @@
             "w": 200,
             "h": 200
           },
-          "bgColor": "#353535FF",
-          "borderColor": "#606060FF",
+          "background": "#353535FF",
+          "border": "#606060FF",
           "layout": {
             "type": "v-flow",
             "gap": 4,
@@ -532,7 +532,7 @@
                 "h": 40
               },
               "caption": "Fixed 40px",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -553,9 +553,9 @@
                 "w": 192,
                 "h": 40
               },
-              "flowWeight": 1,
+              "flow-weight": 1,
               "caption": "Flex1 (fills rest)",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -577,7 +577,7 @@
                 "h": 40
               },
               "caption": "Fixed 40px",
-              "captionSize": 13,
+              "caption-size": 13,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -615,8 +615,8 @@
             "w": 780,
             "h": 90
           },
-          "bgColor": "#353535FF",
-          "borderColor": "#606060FF",
+          "background": "#353535FF",
+          "border": "#606060FF",
           "layout": {
             "type": "anchor",
             "padding": {
@@ -638,7 +638,7 @@
               },
               "anchor": "top-left",
               "caption": "TL",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -667,7 +667,7 @@
                 "bottom": 0
               },
               "caption": "TR",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -696,7 +696,7 @@
                 "bottom": 4
               },
               "caption": "BL",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -725,7 +725,7 @@
                 "bottom": 4
               },
               "caption": "BR",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C0A060FF",
@@ -748,7 +748,7 @@
               },
               "anchor": "center",
               "caption": "CENTER",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#A060C0FF",
@@ -777,7 +777,7 @@
                 "bottom": 4
               },
               "caption": "FILL bar",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A0A0FF",
@@ -815,8 +815,8 @@
             "w": 780,
             "h": 200
           },
-          "bgColor": "#353535FF",
-          "borderColor": "#606060FF",
+          "background": "#353535FF",
+          "border": "#606060FF",
           "layout": {
             "type": "grid",
             "columns": [
@@ -852,7 +852,7 @@
                 "col": 0
               },
               "caption": "(0,0)",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#E06060FF"
@@ -877,7 +877,7 @@
                 "colSpan": 2
               },
               "caption": "(0,1) span2",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A060FF"
@@ -901,7 +901,7 @@
                 "col": 0
               },
               "caption": "(1,0)",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF"
@@ -925,7 +925,7 @@
                 "col": 1
               },
               "caption": "(1,1) mid",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C0A060FF"
@@ -950,7 +950,7 @@
                 "rowSpan": 2
               },
               "caption": "(1,2)\nrowSpan2",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#A060C0FF"
@@ -974,7 +974,7 @@
                 "col": 0
               },
               "caption": "(2,0)",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A0A0FF"
@@ -998,7 +998,7 @@
                 "col": 1
               },
               "caption": "(2,1)",
-              "captionSize": 12,
+              "caption-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C06080FF"
@@ -1035,7 +1035,7 @@
             "h": 32
           },
           "caption": "宽度=46% × 父容器宽，拉宽窗口试试",
-          "captionSize": 14,
+          "caption-size": 14,
           "colors": {
             "background": {
               "normal": "#E06060FF"
@@ -1122,7 +1122,7 @@
             "min": 0,
             "max": 100
           },
-          "textMode": "percent",
+          "text-mode": "percent",
           "bind": {
             "value": "progressValue"
           }
@@ -1137,7 +1137,7 @@
             "h": 18
           },
           "caption": "-10",
-          "captionSize": 11,
+          "caption-size": 11,
           "events": {
             "onClick": "onDecProgress"
           },
@@ -1162,7 +1162,7 @@
             "h": 18
           },
           "caption": "+10",
-          "captionSize": 11,
+          "caption-size": 11,
           "events": {
             "onClick": "onIncProgress"
           },
@@ -1286,7 +1286,7 @@
             "h": 60
           },
           "image": "assets/images/cross_down.png",
-          "scaleType": "fit-center"
+          "scale-type": "fit-center"
         }
       ]
     }

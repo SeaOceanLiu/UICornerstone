@@ -34,7 +34,7 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
 // JSON
 { "id": "tree", "type": "tree-view",
   "rect": { "x": 20, "y": 20, "w": 240, "h": 300 },
-  "font": { "size": 16, "name": "harmonyos-sans-sc-regular" },   // v1.1.1 通用字体键（亦可 "fontSize":16）
+  "font": { "size": 16, "name": "harmonyos-sans-sc-regular" },   // v1.1.1 通用字体键（亦可 "font-size":16）
   "items": [ { "id": "root", "label": "Root", "expanded": true,
                "children": [ { "id": "child1", "label": "Child 1" } ] } ],
   "events": { "onSelect": "onTreeSelect" } }</code></pre>
@@ -103,8 +103,8 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
   "id": "tree",
   "type": "tree-view",
   "rect": { "x": 20, "y": 20, "w": 240, "h": 300 },
-  "indentWidth": 16, "rowHeight": 22,
-  "cycleNavigation": false, "defaultExpand": true,
+  "indent-width": 16, "row-height": 22,
+  "cycle-navigation": false, "default-expand": true,
   "items": [ { "id": "root", "label": "Root", "expanded": true, "userData": "extra",
                "children": [ { "id": "child1", "label": "Child 1" } ] } ],
   "colors": { "background": { "normal": "#2A2A2AFF" },
@@ -119,7 +119,7 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
 
 <pre><code>"items": [
   { "id": "cb1", "label": "带勾选框的行",
-    "leadingControl": { "type": "check-box", "checkState": "checked", "id": "cb_n2" },
+    "leadingControl": { "type": "check-box", "check-state": "checked", "id": "cb_n2" },
     "leadingGap": 10 },
   { "id": "img1", "label": "带图标的行",
     "leadingControl": { "type": "image", "image": "assets/images/cross_down.png" },

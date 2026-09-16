@@ -33,8 +33,8 @@ UIControlHandle sp = UICornerstone_CreateSplitter(g_inst, 244, 60, 6, 200, 1 /*o
 { "id": "mySplitter", "type": "splitter",
   "rect": { "x": 244, "y": 60, "w": 6, "h": 200 },
   "orientation": "vertical",
-  "firstPanel": "panelFirst", "secondPanel": "panelSecond",
-  "thickness": 6, "ratio": 0.4, "minFirst": 50, "minSecond": 50,
+  "first-linked": "panelFirst", "second-linked": "panelSecond",
+  "thickness": 6, "ratio": 0.4, "first-min": 50, "second-min": 50,
   "events": { "onSplitterMoved": "onSplitterMoved" } }</code></pre>
 
 <div class="note">JSON 中 <code>orientation: "vertical"</code> → 垂直分割（左右分栏），其余为水平；rect 可省略，由 first/second 控件边界自动推导。<strong>Splitter 节点必须排在关联面板之后</strong>。</div>
@@ -74,12 +74,12 @@ UIControlHandle sp = UICornerstone_CreateSplitter(g_inst, 244, 60, 6, 200, 1 /*o
   "type": "splitter",
   "rect": { "x": 244, "y": 60, "w": 6, "h": 200 },
   "orientation": "vertical",
-  "firstPanel": "panelFirst",
-  "secondPanel": "panelSecond",
+  "first-linked": "panelFirst",
+  "second-linked": "panelSecond",
   "thickness": 6,
   "ratio": 0.4,
-  "minFirst": 50,
-  "minSecond": 50,
+  "first-min": 50,
+  "second-min": 50,
   "events": { "onSplitterMoved": "onSplitterMoved" }
 }</code></pre>
 
@@ -117,7 +117,7 @@ UICornerstone_SetCallback(g_inst, sp, "moved", onMoved, NULL);</code></pre>
   "children": [
     { "type": "panel", "id": "left",   "rect": {"w": 240, "h": 300} },
     { "type": "splitter", "id": "spl", "orientation": "vertical", "thickness": 8 },
-    { "type": "panel", "id": "canvas", "rect": {"w": 0, "h": 300}, "flowWeight": 1 },
+    { "type": "panel", "id": "canvas", "rect": {"w": 0, "h": 300}, "flow-weight": 1 },
     { "type": "splitter", "id": "spr", "orientation": "vertical", "thickness": 8 },
     { "type": "panel", "id": "right",  "rect": {"w": 240, "h": 300} }
   ] }</code></pre>

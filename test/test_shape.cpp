@@ -244,9 +244,9 @@ static void testShapeVisualize(Bench* bench) {
             "type":"shape","id":"comp","rect":[600,40,120,120],
             "colors":{"background":"#324057FF"},
             "primitives":[
-              {"shape":"round-rect","rect":[0,0,120,120],"radius":12,"fill":"#1E293B","stroke":"#0F172A","lineWidth":2},
+              {"shape":"round-rect","rect":[0,0,120,120],"radius":12,"fill":"#1E293B","stroke":"#0F172A","line-width":2},
               {"shape":"circle","rect":[10,10,40,40],"fill":"#EF4444"},
-              {"shape":"polyline","points":[{"x":0,"y":100},{"x":60,"y":60},{"x":120,"y":100}],"stroke":"#F59E0B","lineWidth":3}
+              {"shape":"polyline","points":[{"x":0,"y":100},{"x":60,"y":60},{"x":120,"y":100}],"stroke":"#F59E0B","line-width":3}
             ]
           }]
         })";

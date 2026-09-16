@@ -363,7 +363,7 @@ static const char* ENH_JSON = R"({
       "rect": { "x": 10, "y": 10, "w": 150, "h": 160 },
       "items": [
         { "id": "j1", "label": "JSON CB row",
-          "leadingControl": { "type": "check-box", "checkState": "checked" },
+          "leadingControl": { "type": "check-box", "check-state": "checked" },
           "leadingGap": 10 },
         { "id": "j2", "label": "JSON img row",
           "leadingControl": { "type": "image", "image": "assets/images/cross_down.png" },

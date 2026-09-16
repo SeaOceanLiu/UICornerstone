@@ -30,8 +30,8 @@
         "h": 40
       },
       "caption": "按钮",
-      "captionSize": 16,
-      "enableTextShadow": false,
+      "caption-size": 16,
+      "text-shadow-enable": false,
       "events": {
         "onClick": "onDemoClick"
       }
@@ -46,11 +46,11 @@
         "h": 30
       },
       "caption": "复选框",
-      "checkState": "checked",
+      "check-state": "checked",
       "style": "classic",
       "layout": "text-right",
-      "verticalAlign": "center",
-      "triState": true
+      "vertical-align": "center",
+      "tri-state": true
     },
     {
       "type": "edit-box",
@@ -65,7 +65,7 @@
       "placeholder": "请输入...",
       "size": 16,
       "alignment": "mid-left",
-      "passwordMode": false
+      "password-mode": false
     },
     {
       "type": "combo-box",
@@ -87,10 +87,10 @@
           "disabled": true
         }
       ],
-      "selectedIndex": 0,
-      "maxVisibleItems": 6,
+      "selected-index": 0,
+      "max-visible-items": 6,
       "editable": false,
-      "cycleEnabled": true
+      "cycle-enabled": true
     },
     {
       "type": "text-area",
@@ -102,7 +102,7 @@
         "h": 120
       },
       "text": "多行文本",
-      "wordWrap": true,
+      "word-wrap": true,
       "size": 14
     },
     {
@@ -120,8 +120,8 @@
         "max": 100
       },
       "style": "horizontal",
-      "textMode": "percent",
-      "animationSpeed": 0.2
+      "text-mode": "percent",
+      "animation-speed": 0.2
     },
     {
       "type": "slider",
@@ -138,7 +138,7 @@
         "max": 100
       },
       "step": 1,
-      "showValueLabel": true,
+      "show-value-label": true,
       "tick": "#888888",
       "interval": 10
     },
@@ -157,8 +157,8 @@
         "min": 0,
         "max": 100
       },
-      "pageSize": 30,
-      "stepSize": 5,
+      "page-size": 30,
+      "step-size": 5,
       "thickness": 16
     },
     {
@@ -185,7 +185,7 @@
             "h": 32
           },
           "caption": "流式A",
-          "flowWeight": 1.0
+          "flow-weight": 1.0
         },
         {
           "type": "button",
@@ -197,7 +197,7 @@
             "h": 32
           },
           "caption": "流式B",
-          "flowWeight": 2.0
+          "flow-weight": 2.0
         }
       ]
     },
@@ -242,8 +242,8 @@
         "w": 8,
         "h": 150
       },
-      "firstPanel": "spLeft",
-      "secondPanel": "spRight",
+      "first-linked": "spLeft",
+      "second-linked": "spRight",
       "ratio": 0.5,
       "thickness": 6
     },
@@ -256,8 +256,8 @@
         "w": 96,
         "h": 96
       },
-      "imageResource": "logo_256",
-      "scaleType": "fit-center",
+      "image-resource": "logo_256",
+      "scale-type": "fit-center",
       "alpha": 255
     },
     {
@@ -270,8 +270,8 @@
         "h": 160
       },
       "mode": "multi",
-      "selectedIndex": 0,
-      "rowHeight": 28,
+      "selected-index": 0,
+      "row-height": 28,
       "columns": [
         {
           "title": "名称",
@@ -358,8 +358,8 @@
       "shape": "circle",
       "fill": "#3B82F6",
       "stroke": "#1E293B",
-      "lineWidth": 2,
-      "ringWidth": 14
+      "line-width": 2,
+      "ring-width": 14
     },
     {
       "type": "shape",
@@ -373,7 +373,7 @@
       "shape": "polygon",
       "fill": "#F59E0B",
       "stroke": "#7C2D12",
-      "lineWidth": 2,
+      "line-width": 2,
       "points": [
         {
           "x": 0,
@@ -417,7 +417,7 @@
       "shape": "round-rect",
       "fill": "#10B981",
       "stroke": "#064E3B",
-      "lineWidth": 3,
+      "line-width": 3,
       "radius": 16
     },
     {
@@ -499,7 +499,7 @@
         "w": 1400,
         "h": 24
       },
-      "fontSize": 13,
+      "font-size": 13,
       "items": [
         {
           "id": "branch",
@@ -531,7 +531,7 @@
         "h": 240
       },
       "position": "top",
-      "fontSize": 13,
+      "font-size": 13,
       "currentIndex": 0,
       "tabs": [
         {
@@ -563,8 +563,8 @@
         "w": 280,
         "h": 200
       },
-      "indentWidth": 18,
-      "defaultExpand": true,
+      "indent-width": 18,
+      "default-expand": true,
       "items": [
         {
           "id": "n1",
@@ -615,8 +615,8 @@
       "y": 400,
       "w": 500,
       "h": 30,
-      "manualPosition": true,
-      "barHeight": 30,
+      "manual-position": true,
+      "bar-height": 30,
       "menus": [
         {
           "caption": "文件",
@@ -662,7 +662,7 @@
       },
       "centered": false,
       "visible": false,
-      "closeOnEsc": true
+      "close-on-esc": true
     },
     {
       "type": "confirm-popup",
@@ -675,10 +675,10 @@
       },
       "centered": false,
       "visible": false,
-      "confirmButton": {
+      "confirm-button": {
         "text": "确定"
       },
-      "buttonHeight": 28,
+      "button-height": 28,
       "padding": 10
     },
     {
@@ -692,11 +692,11 @@
       },
       "centered": false,
       "visible": false,
-      "closeOnEsc": true,
-      "confirmButton": {
+      "close-on-esc": true,
+      "confirm-button": {
         "text": "确定"
       },
-      "cancelButton": {
+      "cancel-button": {
         "text": "取消"
       }
     }

@@ -141,7 +141,7 @@ static void testFontInheritance() {
     const string jsonc = R"({
       "controls": [
         { "type": "tab-control", "id": "tcFont", "rect": { "x": 10, "y": 10, "w": 300, "h": 200 },
-          "fontSize": 18, "currentIndex": 0,
+          "font-size": 18, "current-index": 0,
           "tabs": [
             { "title": "A", "page": {
                 "type": "list-view", "id": "lvFont",
@@ -181,10 +181,10 @@ static void testFontInheritance() {
     const string jsonc2 = R"({
       "controls": [
         { "type": "tab-control", "id": "tc2", "rect": { "x": 10, "y": 10, "w": 300, "h": 200 },
-          "fontSize": 18, "currentIndex": 0,
+          "font-size": 18, "current-index": 0,
           "tabs": [
             { "title": "A", "page": {
-                "type": "list-view", "id": "lv2", "fontSize": 12,
+                "type": "list-view", "id": "lv2", "font-size": 12,
                 "columns": [ { "title": "Name", "width": 100 } ],
                 "rows": [ { "id": "r1", "cells": ["x"] } ]
             } }
@@ -204,7 +204,7 @@ static void testFontInheritance() {
     const string jsonc3 = R"({
       "controls": [
         { "type": "tab-control", "id": "tc3", "rect": { "x": 10, "y": 10, "w": 300, "h": 200 },
-          "font": { "name": "HarmonyOS_Sans_SC_Regular", "size": 20 }, "currentIndex": 0,
+          "font": { "name": "HarmonyOS_Sans_SC_Regular", "size": 20 }, "current-index": 0,
           "tabs": [
             { "title": "A", "page": {
                 "type": "list-view", "id": "lv3",
@@ -234,7 +234,7 @@ static void testFontInheritance() {
     const string jsonc4 = R"({
       "controls": [
         { "type": "panel", "id": "pFont", "rect": { "x": 10, "y": 10, "w": 400, "h": 300 },
-          "fontSize": 16,
+          "font-size": 16,
           "children": [
             { "type": "button", "id": "btnFont", "rect": { "x": 10, "y": 10, "w": 100, "h": 30 }, "caption": "OK" },
             { "type": "check-box", "id": "cbFont", "rect": { "x": 10, "y": 50, "w": 120, "h": 24 }, "caption": "Check" },

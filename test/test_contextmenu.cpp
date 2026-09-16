@@ -128,11 +128,11 @@ static void testContextMenuVisualize(Bench* bench) {
 
     g_menu->show(140.f, 160.f);   // 重新展开，供帧内截图
 
-    // JSON "contextMenu" 键解析（决策点 2-C）
+    // JSON "context-menu" 键解析（决策点 2-C）
     const string json = R"({
       "controls":[{
         "type":"label","id":"lbl","rect":[10,10,120,24],"caption":"t",
-        "contextMenu":{"items":[
+        "context-menu":{"items":[
           {"caption":"Open","shortcut":"Ctrl+O"},
           {"type":"separator"},
           {"caption":"Delete"}

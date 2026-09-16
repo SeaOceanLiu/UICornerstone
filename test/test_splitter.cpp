@@ -217,7 +217,7 @@ static void testJsonEngineSplitter() {
        "colors": {"background": {"normal": "#2864B4FF"}}},
       {"type": "splitter", "id": "jSp1", "orientation": "vertical", "thickness": 8,
        "rect": {"x": 0, "y": 0, "w": 8, "h": 300}},
-      {"type": "panel", "id": "jB", "rect": {"x": 0, "y": 0, "w": 0, "h": 300}, "flowWeight": 1,
+      {"type": "panel", "id": "jB", "rect": {"x": 0, "y": 0, "w": 0, "h": 300}, "flow-weight": 1,
        "colors": {"background": {"normal": "#32964CFF"}}},
       {"type": "splitter", "id": "jSp2", "orientation": "vertical", "thickness": 8,
        "rect": {"x": 0, "y": 0, "w": 8, "h": 300}},

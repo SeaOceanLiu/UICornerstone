@@ -184,16 +184,16 @@ static int runTest(const char* shortName, const char* displayName) {
                     "id": "lbl",
                     "rect": { "x": 20, "y": 20, "w": 760, "h": 32 },
                     "caption": "Memory font label",
-                    "fontSize": 20,
-                    "fontResource": "maple-font"
+                    "font-size": 20,
+                    "font-resource": "maple-font"
                 },
                 {
                     "type": "label",
                     "id": "lblFile",
                     "rect": { "x": 20, "y": 56, "w": 760, "h": 32 },
                     "caption": "Font-file label",
-                    "fontSize": 16,
-                    "fontFile": "provider:maple-font"
+                    "font-size": 16,
+                    "font-file": "provider:maple-font"
                 },
                 {
                     "type": "image-button",

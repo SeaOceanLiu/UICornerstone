@@ -60,13 +60,13 @@
 
 <h3>button / image-button</h3>
 <pre><code>{ "type":"button", "id":"submit",
-  "rect":{"x":280,"y":140,"w":100,"h":35}, "caption":"Submit", "captionSize":16,
-  "enableTextShadow":false,
+  "rect":{"x":280,"y":140,"w":100,"h":35}, "caption":"Submit", "caption-size":16,
+  "text-shadow-enable":false,
   "colors":{"background":{"normal":"#4060A0FF","hover":"#5080C0FF","pressed":"#305090FF"},
             "border":{"normal":"#6080C0FF"},"text":{"normal":"#FFFFFFFF"}},
   "actors":{                                               // 状态图（image-button 必填）
-    "matchParentRect":true,
-    "normal":"assets/images/normal.png",                   // 或 {"file":..., "scaleType":"fit-center"}
+    "match-parent-rect":true,
+    "normal":"assets/images/normal.png",                   // 或 {"file":..., "scale-type":"fit-center"}
     "hover":"assets/images/hover.png", "pressed":"assets/images/pressed.png" },
   "luotiAni":"assets/animations/rotateBtn/rotateBtn.jsonc", // 内嵌动画：延迟 prepare；"playing":true 挂树后自动播放，缺省 SetBool("playing") 启动
   "playing":true,
@@ -74,11 +74,11 @@
 
 <h3>check-box</h3>
 <pre><code>{ "type":"check-box", "id":"agree",
-  "rect":{"x":240,"y":432,"w":180,"h":30}, "caption":"I agree", "captionSize":14,
-  "checkState":"unchecked",                                 // unchecked/checked/indeterminate
+  "rect":{"x":240,"y":432,"w":180,"h":30}, "caption":"I agree", "caption-size":14,
+  "check-state":"unchecked",                                 // unchecked/checked/indeterminate
   "style":"classic",                                        // classic/cross/circle
   "layout":"text-right",                                    // text-right/text-left
-  "triState":true, "sizeRatio":1.0,
+  "tri-state":true, "size-ratio":1.0,
   "colors":{"check":{"normal":"#66BB6AFF"},"cross":{"normal":"#FF5722FF"},"boxBorder":{"normal":"#53535AFF"}},
   "events":{"onCheckChanged":"onAgreeChanged"} }</code></pre>
 
@@ -86,22 +86,22 @@
 <pre><code>{ "type":"color-picker", "id":"cp",
   "rect":{"x":240,"y":498,"w":96,"h":24}, "color":"#FF6600",
   "presets":["#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF"],
-  "presetLayout":{"cols":5,"rows":1}, "swatchSize":16.0,
-  "closedFontSize":12, "closedTextColor":"#DBDBDB",
-  "popupBGColor":"#3C3C41",
+  "presetLayout":{"cols":5,"rows":1}, "closed-swatch-size":16.0,
+  "closed-font-size":12, "closed-text-color":"#DBDBDB",
+  "popup-bg":"#3C3C41",
   "events":{"onColorChanged":"onColor"} }</code></pre>
 
 <h3>combo-box</h3>
 <pre><code>{ "type":"combo-box", "id":"comboMain",
-  "rect":{"x":20,"y":56,"w":300,"h":32}, "fontSize":16, "editable":false,
-  "placeholder":"Select a city...", "selectedIndex":0,
-  "arrowWidth":20, "itemHeight":24, "maxVisibleItems":6, "cycleEnabled":true,
+  "rect":{"x":20,"y":56,"w":300,"h":32}, "font-size":16, "editable":false,
+  "placeholder":"Select a city...", "selected-index":0,
+  "arrow-width":20, "item-height":24, "max-visible-items":6, "cycle-enabled":true,
   "items":[ { "label":"Beijing","value":"beijing" },
             { "label":"Wuhan","value":"wuhan","disabled":true } ] }</code></pre>
 
 <h3>context-menu（右键菜单，控件级 contextMenu 键）</h3>
 <pre><code>{ "type":"label", "id":"lbl", "rect":[10,10,120,24], "caption":"t",
-  "contextMenu": { "items": [
+  "context-menu": { "items": [
     { "caption":"Open", "shortcut":"Ctrl+O" }, { "type":"separator" },
     { "caption":"Delete" } ] } }</code></pre>
 <p>控件级 <code>contextMenu</code> 键：<code>items[]</code> 字段复用 MenuPanel 解析（caption / shortcut / type:separator / icon / leading 等）。</p>
@@ -110,16 +110,16 @@
 <pre><code>{ "type":"edit-box", "id":"nameEdit",
   "rect":{"x":110,"y":20,"w":250,"h":30},
   "placeholder":"Please input your name", "text":"", "editable":true,
-  "passwordMode":false, "passwordChar":"●",
+  "password-mode":false, "password-char":"●",
   "font":{"size":16},
   "events":{"onTextChanged":"onNameChanged","onEnter":"onNameEnter"} }</code></pre>
 
 <h3>image（独立 Actor 图片控件）</h3>
 <pre><code>{ "type":"image", "id":"hero", "rect":{"x":20,"y":20,"w":128,"h":128},
   "image":"assets/images/cross_up.png",          // 文件路径（相对 resourceRoot）
-  // 或内存资源："imageResource":"cross-down" / "providerName":"cross-down" / "resourceId":"cross-down"
-  "scaleType":"fit-center",                      // stretch(默认) / fit-center / center-crop / none
-  "matchParentRect":false }                      // 强制使用父矩形</code></pre>
+  // 或内存资源："image-resource":"cross-down" / "providerName":"cross-down" / "resourceId":"cross-down"
+  "scale-type":"fit-center",                      // stretch(默认) / fit-center / center-crop / none
+  "match-parent-rect":false }                      // 强制使用父矩形</code></pre>
 
 <h3>label</h3>
 <pre><code>{ "type":"label", "id":"title", "rect":{"x":0,"y":52,"w":800,"h":40},
@@ -129,13 +129,13 @@
   "colors":{"text":{"normal":"#FFFFFFFF"}},
   "shadow":{"enabled":true,"offset":{"x":2,"y":2}},
   "clickable":false,                                        // 可点击（onClick）
-  "lineHeight":28, "lineSpacingRatio":1.2 }</code></pre>
+  "line-height":28, "line-spacing-ratio":1.2 }</code></pre>
 
 <h3>list-view（含单列 ListBox 模式）</h3>
 <pre><code>{ "type":"list-view", "id":"lv", "rect":[30,60,420,240], "mode":"multi",
-  "multiSelect":true, "selectedIndex":0, "rowHeight":28, "headerHeight":28,
-  "gridlines":true, "hover":true, "minColumnWidth":20, "cycleNavigation":true,
-  "sortColumn":0, "sortAscending":true,
+  "multi-select":true, "selected-index":0, "row-height":28, "header-height":28,
+  "gridlines":true, "hover":true, "min-column-width":20, "cycle-navigation":true,
+  "sort-column":0, "sort-ascending":true,
   "columns": [ { "title":"名称", "width":180, "sortable":true, "icon":"provider:icons/name" } ],
   "rows": [ { "id":"f1", "cells":["main.cpp","2.1 KB"], "icon":"provider:icons/file",
               "cellControls":[ { "col":1, "control":{ "type":"check-box" } } ] } ],
@@ -145,7 +145,7 @@
 <h3>menu-bar（默认顶层独立；v1.1.1 起支持挂入布局容器作为普通子项）</h3>
 <p>顶层用法（缺省）：菜单栏全宽贴顶（挂到 Bench 时自动布置）。容器内用法（v1.1.1）：作为 panel / v-flow 子项时挂入即自动切换手动定位、参与引擎重排，无需 <code>manual-position</code>。</p>
 <pre><code>{ "type":"menu-bar", "id":"mainMenu",
-  "font":{"size":16}, "barHeight":32,
+  "font":{"size":16}, "bar-height":32,
   "menus":[ { "caption":"文件(F)",
       "items":[ { "caption":"新建","shortcut":"Ctrl+N","events":{"onClick":"onMenuNew"} },
                 { "caption":"另存为","checked":false },
@@ -155,23 +155,23 @@
 <h3>numeric-up-down</h3>
 <pre><code>{ "type":"numeric-up-down", "id":"nud",
   "rect":{"x":20,"y":78,"w":180,"h":32},
-  "value":50, "range":{"min":0,"max":100}, "step":1, "pageStep":10, "decimals":0,
-  "placeholder":"0", "readOnly":false }</code></pre>
+  "value":50, "range":{"min":0,"max":100}, "step":1, "page-step":10, "decimals":0,
+  "placeholder":"0", "read-only":false }</code></pre>
 
 <h3>panel（容器 + 布局引擎）</h3>
 <pre><code>{ "type":"panel", "id":"formPanel",
   "rect":{"x":50,"y":112,"w":400,"h":200},
   "layout":{"type":"h-flow","gap":4,"padding":{"left":4,"top":4,"right":4,"bottom":4}},  // h-flow/v-flow/anchor/grid，见 6.5
   "colors":{"border":{"normal":"#808080FF"}},
-  "children":[ { "type":"edit-box","id":"nameEdit","flowWeight":1,"rect":{"w":0,"h":30} },
+  "children":[ { "type":"edit-box","id":"nameEdit","flow-weight":1,"rect":{"w":0,"h":30} },
                { "type":"button","id":"submitBtn","caption":"OK","rect":{"w":100,"h":35} } ] }</code></pre>
 
 <h3>popup / confirm-popup / dialog（弹窗族）</h3>
 <pre><code>{ "type":"dialog", "id":"colorDlg",
   "centered":true,                                        // 居中；rect 相对窗口/父容器
   "rect":{"x":0,"y":0,"w":296,"h":440},
-  "confirmButton":{"text":"OK"},                          // 确认按钮文字
-  "cancelButton":{"text":"Cancel"},                       // 取消按钮文字（confirm-popup/dialog）
+  "confirm-button":{"text":"OK"},                          // 确认按钮文字
+  "cancel-button":{"text":"Cancel"},                       // 取消按钮文字（confirm-popup/dialog）
   "events":{"onConfirm":"onDlgConfirm","onCancel":"onDlgCancel","onClose":"onDlgClose"} }</code></pre>
 
 <h3>progress-bar</h3>
@@ -179,16 +179,16 @@
   "rect":{"x":440,"y":432,"w":200,"h":25},
   "value":65, "range":{"min":0,"max":100},
   "style":"horizontal",                                    // horizontal/vertical
-  "textMode":"percent",                                    // none/percent/custom
-  "animationSpeed":0.1,
-  "colors":{"progressColor":{"normal":"#4080C0FF"},"backgroundColor":{"normal":"#303030FF"}} }</code></pre>
+  "text-mode":"percent",                                    // none/percent/custom
+  "animation-speed":0.1,
+  "colors":{"progress":{"normal":"#4080C0FF"},"background":{"normal":"#303030FF"}} }</code></pre>
 
 <h3>scroll-bar</h3>
 <pre><code>{ "type":"scroll-bar", "id":"hScroll",
   "rect":{"x":440,"y":472,"w":200,"h":16},
   "orientation":"horizontal",                              // horizontal/vertical
   "value":30, "range":{"min":0,"max":100},
-  "pageSize":20, "stepSize":5, "thickness":16 }</code></pre>
+  "page-size":20, "step-size":5, "thickness":16 }</code></pre>
 
 <h3>shape（七种图元 + 多图元组合）</h3>
 <pre><code>{ "type":"shape", "id":"house", "rect":[40,300,150,130],
@@ -204,22 +204,22 @@
   "rect":{"x":29,"y":224,"w":257,"h":20},
   "range":{"min":0,"max":255}, "value":255, "step":1,
   "style":"Horizontal",                                    // Horizontal/Vertical
-  "reverse":false, "showValueLabel":true,
+  "reverse":false, "show-value-label":true,
   "colors":{"track":{"normal":"#3C3C3CFF"},"thumb":{"normal":"#888888FF"}} }</code></pre>
 
 <h3>splitter</h3>
 <pre><code>{ "type":"splitter", "id":"spl",
   "rect":{"x":244,"y":60,"w":6,"h":200},
   "orientation":"vertical",                                // horizontal/vertical
-  "firstPanel":"panelFirst", "secondPanel":"panelSecond",  // 两侧面板 id（引擎模式可省略）
-  "thickness":6, "ratio":0.4, "minFirst":50, "minSecond":50,
+  "first-linked":"panelFirst", "second-linked":"panelSecond",  // 两侧面板 id（引擎模式可省略）
+  "thickness":6, "ratio":0.4, "first-min":50, "second-min":50,
   "colors":{"line":{"normal":"#808080FF"}} }</code></pre>
 <p>引擎模式（v1.1.1）：splitter 置于 flow 容器（v-flow/h-flow）children 内即自动分段布局——
 两侧面板为前后邻居、任意数量链式累计、拖拽两式（固定前段/后段改宽、引擎重排）、
 无面板即"手柄模式"（拖自身+上报 ratio）。详见 <a href="../controls/splitter.html#4-21-7">4.21.7</a>。</p>
 
 <h3>status-bar（VSCode 风格状态栏）</h3>
-<pre><code>{ "type":"status-bar", "id":"sb", "rect":[0,876,1400,24], "fontSize":13,
+<pre><code>{ "type":"status-bar", "id":"sb", "rect":[0,876,1400,24], "font-size":13,
   "items":[ { "id":"branch","text":"main","icon":"provider:icons/git","menu":"#branchMenu" },
             { "id":"enc","text":"UTF-8","align":"right" } ] }</code></pre>
 <p>属性键：<code>fontSize</code> / <code>itemHeight</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
@@ -235,7 +235,7 @@
 
 <h3>tab-control（四方向选项卡）</h3>
 <pre><code>{ "type":"tab-control", "id":"tabs", "rect":[120,80,560,240], "position":"top",
-  "fontSize":13, "currentIndex":0,
+  "font-size":13, "currentIndex":0,
   "tabs":[ { "title":"主页", "icon":"provider:icons/home", "page":{ "type":"panel" } } ],
   "events": { "onTabChange":"onTab" } }</code></pre>
 <p>属性键：<code>position</code>（top/bottom/left/right）/ <code>fontSize</code> / <code>currentIndex</code>；<code>tabs[]</code>：<code>title</code> / <code>icon</code> / <code>page</code>（任意控件 JSON，递归解析，缺 rect 铺满内容区）。</p>
@@ -243,14 +243,14 @@
 <h3>text-area</h3>
 <pre><code>{ "type":"text-area", "id":"notes",
   "rect":{"x":20,"y":432,"w":200,"h":80},
-  "placeholder":"Multi-line...", "text":"", "wordWrap":true,
+  "placeholder":"Multi-line...", "text":"", "word-wrap":true,
   "font":{"size":12},
   "events":{"onTextChanged":"onNotesChanged"} }</code></pre>
 
 <h3>tree-view</h3>
 <pre><code>{ "type":"tree-view", "id":"tree",
   "rect":{"x":20,"y":20,"w":240,"h":300},
-  "indentWidth":16, "rowHeight":22, "cycleNavigation":false, "defaultExpand":true,
+  "indent-width":16, "row-height":22, "cycle-navigation":false, "default-expand":true,
   "items":[ { "id":"root","label":"Root","expanded":true,"userData":"extra",
               "children":[ { "id":"child1","label":"Child 1" } ] } ],
   "events":{"onSelect":"onTreeSelect","onExpand":"onTreeExpand","onCollapse":"onTreeCollapse"} }</code></pre>
@@ -258,7 +258,7 @@
 <h4>tree-view item 增强（二期）</h4>
 <pre><code>"items":[ {
   "id":"cb1","label":"带勾选框的行",
-  "leadingControl":{ "type":"check-box", "checkState":"checked" },
+  "leadingControl":{ "type":"check-box", "check-state":"checked" },
   "leadingGap":10
 }, {
   "id":"img1","label":"带图标的行",
@@ -280,8 +280,8 @@
 <h3>win-frame</h3>
 <pre><code>{ "type":"win-frame", "id":"win",
   "rect":{"x":200,"y":100,"w":400,"h":300}, "title":"Submitted",
-  "edgeMargin":4.0, "resizable":true,
-  "colors":{"titleBar":{"bg":{"normal":"#2A2A50FF"}},"titleText":{"normal":"#FFFFFFFF"}},
+  "edge-margin":4.0, "resizable":true,
+  "colors":{"title-bar":{"bg":{"normal":"#2A2A50FF"}},"title-text":{"normal":"#FFFFFFFF"}},
   "children":[ { "type":"label","caption":"Form submitted!" } ] }</code></pre>
 
 <h2>6.4 颜色格式</h2>
@@ -293,7 +293,7 @@
 <h3>h-flow / v-flow</h3>
 <pre><code>"layout": { "type": "h-flow", "gap": 4,
              "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 } }
-// 子控件：{ ..., "flowWeight": 1 }  弹性分配；0/缺省=固定</code></pre>
+// 子控件：{ ..., "flow-weight": 1 }  弹性分配；0/缺省=固定</code></pre>
 
 <h3>anchor</h3>
 <pre><code>"layout": { "type": "anchor" }

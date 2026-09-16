@@ -135,7 +135,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 16, "w": 560, "h": 28 },
                         "caption": "NumericUpDown C ABI Test",
-                        "fontSize": 20,
+                        "font-size": 20,
                         "textColor": [220, 220, 220]
                     },
                     {
@@ -143,7 +143,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 56, "w": 200, "h": 20 },
                         "caption": "nudInteger (step=1, range 0~100)",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "textColor": [180, 180, 180]
                     },
                     {
@@ -159,7 +159,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 120, "w": 200, "h": 20 },
                         "caption": "nudFloat (step=0.2, decimals=2)",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "textColor": [180, 180, 180]
                     },
                     {
@@ -176,7 +176,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 184, "w": 200, "h": 20 },
                         "caption": "nudReadOnly (42)",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "textColor": [180, 180, 180]
                     },
                     {
@@ -185,14 +185,14 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 20, "y": 206, "w": 180, "h": 32 },
                         "value": 42,
                         "range": { "min": 0, "max": 100 },
-                        "readOnly": true
+                        "read-only": true
                     },
                     {
                         "id": "lblHint4",
                         "type": "label",
                         "rect": { "x": 20, "y": 248, "w": 200, "h": 20 },
                         "caption": "nudBigStep (step=50, range 0~1000)",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "textColor": [180, 180, 180]
                     },
                     {
@@ -208,7 +208,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 312, "w": 200, "h": 20 },
                         "caption": "nudPageStep (pageStep=25)",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "textColor": [180, 180, 180]
                     },
                     {
@@ -218,14 +218,14 @@ static int runTest(const char* shortName, const char* displayName) {
                         "value": 50,
                         "range": { "min": 0, "max": 1000 },
                         "step": 1,
-                        "pageStep": 25
+                        "page-step": 25
                     },
                     {
                         "id": "lblStatus",
                         "type": "label",
                         "rect": { "x": 20, "y": 390, "w": 560, "h": 24 },
                         "caption": "C ABI test: interact with NumericUpDown controls",
-                        "fontSize": 14,
+                        "font-size": 14,
                         "textColor": [180, 200, 220]
                     }
                 ]

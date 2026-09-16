@@ -30,7 +30,7 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 
 // JSON
 { "type": "check-box", "id": "agreeCheck", "rect": { "x": 240, "y": 432, "w": 180, "h": 30 },
-  "caption": "I agree", "checkState": "unchecked", "style": "classic",
+  "caption": "I agree", "check-state": "unchecked", "style": "classic",
   "events": { "onCheckChanged": "onAgreeChanged" } }</code></pre>
 
 
@@ -68,8 +68,8 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 <pre><code>{
   "type": "check-box", "id": "agreeCheck",
   "rect": { "x": 240, "y": 432, "w": 180, "h": 30 },
-  "caption": "I agree", "captionSize": 14,
-  "checkState": "unchecked",
+  "caption": "I agree", "caption-size": 14,
+  "check-state": "unchecked",
   "style": "classic", "layout": "text-right",
   "events": { "onCheckChanged": "onAgreeChanged" }
 }</code></pre>

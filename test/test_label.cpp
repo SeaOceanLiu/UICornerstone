@@ -226,7 +226,7 @@ void testBenchInitialize(shared_ptr<Bench>) {
         "rect": {"x": 200, "y": 0, "w": 200, "h": 30},
         "font": {"size": 24} },
       { "type": "label", "id": "fontDirect", "caption": "direct",
-        "rect": {"x": 0, "y": 40, "w": 200, "h": 30}, "fontSize": 16 }
+        "rect": {"x": 0, "y": 40, "w": 200, "h": 30}, "font-size": 16 }
     ]
   }]
 })";

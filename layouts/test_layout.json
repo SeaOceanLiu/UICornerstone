@@ -219,7 +219,7 @@
                 "h": 35
               },
               "caption": "Submit",
-              "captionSize": 16,
+              "caption-size": 16,
               "colors": {
                 "background": {
                   "normal": "#4060A0FF",
@@ -417,7 +417,7 @@
             "h": 80
           },
           "placeholder": "Multi-line notes...",
-          "wordWrap": true,
+          "word-wrap": true,
           "font": {
             "size": 12
           },
@@ -443,8 +443,8 @@
             "h": 30
           },
           "caption": "I agree",
-          "captionSize": 14,
-          "checkState": "unchecked",
+          "caption-size": 14,
+          "check-state": "unchecked",
           "style": "classic",
           "layout": "text-right",
           "events": {
@@ -461,8 +461,8 @@
             "h": 30
           },
           "caption": "Enable option",
-          "captionSize": 14,
-          "checkState": "checked",
+          "caption-size": 14,
+          "check-state": "checked",
           "style": "cross",
           "layout": "text-right"
         },
@@ -481,10 +481,10 @@
             "max": 100
           },
           "style": "horizontal",
-          "textMode": "percent",
+          "text-mode": "percent",
           "colors": {
-            "progressColor": "#4080C0FF",
-            "backgroundColor": "#303030FF"
+            "progress": "#4080C0FF",
+            "background": "#303030FF"
           }
         },
         {
@@ -502,10 +502,10 @@
             "max": 100
           },
           "style": "vertical",
-          "textMode": "none",
+          "text-mode": "none",
           "colors": {
-            "progressColor": "#60C060FF",
-            "backgroundColor": "#303030FF"
+            "progress": "#60C060FF",
+            "background": "#303030FF"
           }
         },
         {
@@ -548,8 +548,8 @@
             "min": 0,
             "max": 100
           },
-          "pageSize": 20,
-          "stepSize": 5
+          "page-size": 20,
+          "step-size": 5
         },
         {
           "type": "scroll-bar",
@@ -566,8 +566,8 @@
             "min": 0,
             "max": 200
           },
-          "pageSize": 30,
-          "stepSize": 10
+          "page-size": 30,
+          "step-size": 10
         },
         {
           "type": "button",
@@ -579,7 +579,7 @@
             "h": 40
           },
           "caption": "Image Button",
-          "captionSize": 14,
+          "caption-size": 14,
           "actors": {
             "normal": "assets/images/cross_up.png",
             "hover": "assets/images/cross_over.png",
@@ -609,7 +609,7 @@
             "h": 40
           },
           "caption": "Animated",
-          "captionSize": 14,
+          "caption-size": 14,
           "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
           "playing": true,
           "colors": {
@@ -635,7 +635,7 @@
             "w": 120,
             "h": 40
           },
-          "captionLabel": {
+          "caption-label": {
             "caption": "Styled",
             "font": {
               "size": 18,
@@ -655,7 +655,7 @@
                 "hover": "#FFA500FF",
                 "pressed": "#FF8C00FF"
               },
-              "textShadow": {
+              "text-shadow": {
                 "normal": "#00000080"
               }
             }
@@ -684,7 +684,7 @@
             "h": 300
           },
           "title": "Submitted",
-          "edgeMargin": 4.0,
+          "edge-margin": 4.0,
           "children": [
             {
               "type": "label",
@@ -711,7 +711,7 @@
             "h": 60
           },
           "image": "assets/images/cross_down.png",
-          "scaleType": "fit-center"
+          "scale-type": "fit-center"
         }
       ]
     }

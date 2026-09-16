@@ -86,7 +86,7 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
   "type": "menu-bar",
   "id": "mainMenu",
   "font": { "size": 16 },
-  "barHeight": 32,
+  "bar-height": 32,
   "menus": [
     {
       "caption": "文件(F)",
@@ -96,7 +96,7 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
         { "id": "mRecent", "caption": "最近打开",
           "items": [ { "caption": "file1.txt", "events": { "onClick": "onOpenRecent" } } ] },
         { "id": "mToggle", "caption": "已启用开关", "checked": true,
-          "leadingControl": { "type": "check-box", "checkState": "checked" } },
+          "leadingControl": { "type": "check-box", "check-state": "checked" } },
         { "id": "mBig", "caption": "大字号项", "font": { "size": 24 } },
         { "caption": "退出", "checked": false, "events": { "onClick": "onMenuExit" } }
       ]
@@ -107,7 +107,7 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
 <p>示例为<strong>顶层模式</strong>（缺省菜单栏放顶层即全宽贴顶）。容器内用法：把 <code>menu-bar</code> 作为布局容器（如 v-flow）的普通子项，<strong>无需</strong> <code>manual-position</code>——挂入容器时自动切换，参与引擎重排：</p>
 <pre><code>{ "type": "panel", "layout": { "type": "v-flow", "gap": 8 },
   "children": [
-    { "type": "menu-bar", "id": "flowMenu", "barHeight": 28,
+    { "type": "menu-bar", "id": "flowMenu", "bar-height": 28,
       "menus": [ { "caption": "文件(F)", "items": [ { "caption": "新建" } ] } ] },
     { "type": "button", "id": "belowBtn", "caption": "OK", "rect": { "w": 0, "h": 32 } }
   ] }</code></pre>

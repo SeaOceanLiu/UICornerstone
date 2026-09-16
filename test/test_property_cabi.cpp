@@ -351,7 +351,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 12, "w": 500, "h": 28 },
                         "caption": "Property System C ABI Test",
-                        "fontSize": 20,
+                        "font-size": 20,
                         "textColor": [220, 220, 220]
                     },
                     {

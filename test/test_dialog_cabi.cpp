@@ -296,7 +296,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "button",
                         "rect": { "x": 30, "y": 40, "w": 60, "h": 32 },
                         "colors": { "background": { "normal": "#FF6600FF" } },
-                        "borderVisible": false,
+                        "border-visible": false,
                         "events": { "onClick": "showColorDlg" }
                     },
                     {
@@ -304,7 +304,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 100, "y": 44, "w": 240, "h": 24 },
                         "caption": "#FF6600FF",
-                        "fontSize": 14,
+                        "font-size": 14,
                         "textColor": [200, 200, 200]
                     }
                 ]
@@ -317,47 +317,47 @@ static int runTest(const char* shortName, const char* displayName) {
                 "centered": true,
                 "rect": { "x": 0, "y": 0, "w": 296, "h": 440 },
                 "colors": { "background": { "normal": "#E0E0E0FF" } },
-                "borderVisible": true,
-                "confirmButton": { "text": "OK" },
-                "cancelButton": { "text": "Cancel" },
+                "border-visible": true,
+                "confirm-button": { "text": "OK" },
+                "cancel-button": { "text": "Cancel" },
                 "events": {
                     "onConfirm": "onColorConfirmed",
                     "onCancel": "onColorCancelled",
                     "onClose": "onColorClose"
                 },
                 "children": [
-                    {"id":"cp_00","type":"button","rect":{"x":10,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FF0000FF","hover":"#FF0000FF","pressed":"#FF0000FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_01","type":"button","rect":{"x":66,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#00FF00FF","hover":"#00FF00FF","pressed":"#00FF00FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_02","type":"button","rect":{"x":122,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#0000FFFF","hover":"#0000FFFF","pressed":"#0000FFFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_03","type":"button","rect":{"x":178,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FFFF00FF","hover":"#FFFF00FF","pressed":"#FFFF00FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_04","type":"button","rect":{"x":234,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FF00FFFF","hover":"#FF00FFFF","pressed":"#FF00FFFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_05","type":"button","rect":{"x":10,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#00FFFFFF","hover":"#00FFFFFF","pressed":"#00FFFFFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_06","type":"button","rect":{"x":66,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#FFFFFFFF","hover":"#FFFFFFFF","pressed":"#FFFFFFFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_07","type":"button","rect":{"x":122,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#000000FF","hover":"#000000FF","pressed":"#000000FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_08","type":"button","rect":{"x":178,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#808080FF","hover":"#808080FF","pressed":"#808080FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_09","type":"button","rect":{"x":234,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#FFA500FF","hover":"#FFA500FF","pressed":"#FFA500FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_10","type":"button","rect":{"x":10,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#800000FF","hover":"#800000FF","pressed":"#800000FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_11","type":"button","rect":{"x":66,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#008000FF","hover":"#008000FF","pressed":"#008000FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_12","type":"button","rect":{"x":122,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#000080FF","hover":"#000080FF","pressed":"#000080FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_13","type":"button","rect":{"x":178,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#808000FF","hover":"#808000FF","pressed":"#808000FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_14","type":"button","rect":{"x":234,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#800080FF","hover":"#800080FF","pressed":"#800080FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_15","type":"button","rect":{"x":10,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#008080FF","hover":"#008080FF","pressed":"#008080FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_16","type":"button","rect":{"x":66,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#C0C0C0FF","hover":"#C0C0C0FF","pressed":"#C0C0C0FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_17","type":"button","rect":{"x":122,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#E0E0E0FF","hover":"#E0E0E0FF","pressed":"#E0E0E0FF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_18","type":"button","rect":{"x":178,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#FFC0CBFF","hover":"#FFC0CBFF","pressed":"#FFC0CBFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
-                    {"id":"cp_19","type":"button","rect":{"x":234,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#A52A2AFF","hover":"#A52A2AFF","pressed":"#A52A2AFF"}},"borderVisible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_00","type":"button","rect":{"x":10,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FF0000FF","hover":"#FF0000FF","pressed":"#FF0000FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_01","type":"button","rect":{"x":66,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#00FF00FF","hover":"#00FF00FF","pressed":"#00FF00FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_02","type":"button","rect":{"x":122,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#0000FFFF","hover":"#0000FFFF","pressed":"#0000FFFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_03","type":"button","rect":{"x":178,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FFFF00FF","hover":"#FFFF00FF","pressed":"#FFFF00FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_04","type":"button","rect":{"x":234,"y":10,"w":52,"h":32},"colors":{"background":{"normal":"#FF00FFFF","hover":"#FF00FFFF","pressed":"#FF00FFFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_05","type":"button","rect":{"x":10,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#00FFFFFF","hover":"#00FFFFFF","pressed":"#00FFFFFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_06","type":"button","rect":{"x":66,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#FFFFFFFF","hover":"#FFFFFFFF","pressed":"#FFFFFFFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_07","type":"button","rect":{"x":122,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#000000FF","hover":"#000000FF","pressed":"#000000FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_08","type":"button","rect":{"x":178,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#808080FF","hover":"#808080FF","pressed":"#808080FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_09","type":"button","rect":{"x":234,"y":48,"w":52,"h":32},"colors":{"background":{"normal":"#FFA500FF","hover":"#FFA500FF","pressed":"#FFA500FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_10","type":"button","rect":{"x":10,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#800000FF","hover":"#800000FF","pressed":"#800000FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_11","type":"button","rect":{"x":66,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#008000FF","hover":"#008000FF","pressed":"#008000FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_12","type":"button","rect":{"x":122,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#000080FF","hover":"#000080FF","pressed":"#000080FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_13","type":"button","rect":{"x":178,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#808000FF","hover":"#808000FF","pressed":"#808000FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_14","type":"button","rect":{"x":234,"y":86,"w":52,"h":32},"colors":{"background":{"normal":"#800080FF","hover":"#800080FF","pressed":"#800080FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_15","type":"button","rect":{"x":10,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#008080FF","hover":"#008080FF","pressed":"#008080FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_16","type":"button","rect":{"x":66,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#C0C0C0FF","hover":"#C0C0C0FF","pressed":"#C0C0C0FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_17","type":"button","rect":{"x":122,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#E0E0E0FF","hover":"#E0E0E0FF","pressed":"#E0E0E0FF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_18","type":"button","rect":{"x":178,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#FFC0CBFF","hover":"#FFC0CBFF","pressed":"#FFC0CBFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
+                    {"id":"cp_19","type":"button","rect":{"x":234,"y":124,"w":52,"h":32},"colors":{"background":{"normal":"#A52A2AFF","hover":"#A52A2AFF","pressed":"#A52A2AFF"}},"border-visible":false,"events":{"onClick":"onPreset"}},
                     {
                         "id": "dlgSwatch",
                         "type": "button",
                         "rect": { "x": 10, "y": 166, "w": 52, "h": 32 },
                         "colors": { "background": { "normal": "#FF6600FF", "hover": "#FF6600FF", "pressed": "#FF6600FF" } },
-                        "borderVisible": false
+                        "border-visible": false
                     },
                     {
                         "id": "hexInput",
                         "type": "edit-box",
                         "rect": { "x": 72, "y": 168, "w": 130, "h": 28 },
-                        "fontSize": 14,
+                        "font-size": 14,
                         "text": "#FF6600FF",
                         "textColor": [200, 200, 200],
                         "events": { "onTextChanged": "onHexChanged" }
@@ -367,7 +367,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 10, "y": 226, "w": 14, "h": 16 },
                         "caption": "R",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "colors": { "text": { "normal": "#C8C8C8FF" } }
                     },
                     {
@@ -376,8 +376,8 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 29, "y": 224, "w": 257, "h": 20 },
                         "range": { "min": 0, "max": 255 },
                         "value": 255,
-                        "showValueLabel": true,
-                        "labelGap": -8,
+                        "show-value-label": true,
+                        "label-gap": -8,
                         "events": { "onValueChanged": "onColorChange" }
                     },
                     {
@@ -385,7 +385,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 10, "y": 268, "w": 14, "h": 16 },
                         "caption": "G",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "colors": { "text": { "normal": "#C8C8C8FF" } }
                     },
                     {
@@ -394,8 +394,8 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 29, "y": 266, "w": 257, "h": 20 },
                         "range": { "min": 0, "max": 255 },
                         "value": 102,
-                        "showValueLabel": true,
-                        "labelGap": -8,
+                        "show-value-label": true,
+                        "label-gap": -8,
                         "events": { "onValueChanged": "onColorChange" }
                     },
                     {
@@ -403,7 +403,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 10, "y": 310, "w": 14, "h": 16 },
                         "caption": "B",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "colors": { "text": { "normal": "#C8C8C8FF" } }
                     },
                     {
@@ -412,8 +412,8 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 29, "y": 308, "w": 257, "h": 20 },
                         "range": { "min": 0, "max": 255 },
                         "value": 0,
-                        "showValueLabel": true,
-                        "labelGap": -8,
+                        "show-value-label": true,
+                        "label-gap": -8,
                         "events": { "onValueChanged": "onColorChange" }
                     },
                     {
@@ -421,7 +421,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 10, "y": 352, "w": 14, "h": 16 },
                         "caption": "A",
-                        "fontSize": 12,
+                        "font-size": 12,
                         "colors": { "text": { "normal": "#C8C8C8FF" } }
                     },
                     {
@@ -430,8 +430,8 @@ static int runTest(const char* shortName, const char* displayName) {
                         "rect": { "x": 29, "y": 350, "w": 257, "h": 20 },
                         "range": { "min": 0, "max": 255 },
                         "value": 255,
-                        "showValueLabel": true,
-                        "labelGap": -8,
+                        "show-value-label": true,
+                        "label-gap": -8,
                         "events": { "onValueChanged": "onColorChange" }
                     }
                 ]

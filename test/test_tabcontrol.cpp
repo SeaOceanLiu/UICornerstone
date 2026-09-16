@@ -267,7 +267,7 @@ static void testTabVisualize(Bench* bench) {
     const string json = R"({
       "controls":[{
         "type":"tab-control","id":"tabs","rect":[0,0,480,320],
-        "position":"top","fontSize":13,"currentIndex":1,
+        "position":"top","font-size":13,"currentIndex":1,
         "tabs":[
           {"title":"Home","page":{"type":"panel"}},
           {"title":"Settings","page":{"type":"panel"}},

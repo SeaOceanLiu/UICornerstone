@@ -123,7 +123,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 16, "w": 560, "h": 28 },
                         "caption": "Splitter C ABI Test",
-                        "fontSize": 20,
+                        "font-size": 20,
                         "textColor": [220, 220, 220]
                     },
                     {
@@ -137,7 +137,7 @@ static int runTest(const char* shortName, const char* displayName) {
                                 "type": "label",
                                 "rect": { "x": 10, "y": 10, "w": 200, "h": 24 },
                                 "caption": "Left Panel",
-                                "fontSize": 14,
+                                "font-size": 14,
                                 "textColor": [200, 200, 200]
                             }
                         ]
@@ -153,7 +153,7 @@ static int runTest(const char* shortName, const char* displayName) {
                                 "type": "label",
                                 "rect": { "x": 10, "y": 10, "w": 300, "h": 24 },
                                 "caption": "Right Panel",
-                                "fontSize": 14,
+                                "font-size": 14,
                                 "textColor": [200, 200, 200]
                             }
                         ]
@@ -163,12 +163,12 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "splitter",
                         "rect": { "x": 244, "y": 60, "w": 6, "h": 200 },
                         "orientation": "vertical",
-                        "firstPanel": "panelFirst",
-                        "secondPanel": "panelSecond",
+                        "first-linked": "panelFirst",
+                        "second-linked": "panelSecond",
                         "thickness": 6,
                         "ratio": 0.4,
-                        "minFirst": 50,
-                        "minSecond": 50,
+                        "first-min": 50,
+                        "second-min": 50,
                         "events": { "onSplitterMoved": "onSplitterMoved" }
                     },
                     {
@@ -176,7 +176,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 280, "w": 560, "h": 24 },
                         "caption": "Ratio: 0.400",
-                        "fontSize": 14,
+                        "font-size": 14,
                         "textColor": [180, 200, 220]
                     },
                     {
@@ -184,7 +184,7 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "label",
                         "rect": { "x": 20, "y": 300, "w": 560, "h": 20 },
                         "caption": "Drag the splitter bar to resize panels. Press close button to exit.",
-                        "fontSize": 11,
+                        "font-size": 11,
                         "textColor": [140, 140, 160]
                     }
                 ]

@@ -29,7 +29,7 @@ UIControlHandle bar = UICornerstone_CreateStatusBar(g_inst, 0, 876, 1400, 24, 1,
 UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 
 // JSON
-{ "type": "status-bar", "rect": [0, 876, 1400, 24], "fontSize": 13,
+{ "type": "status-bar", "rect": [0, 876, 1400, 24], "font-size": 13,
   "items": [ {"id": "branch", "text": "main"},
              {"id": "enc", "text": "UTF-8", "align": "right"} ] }</code></pre>
 
@@ -59,7 +59,7 @@ UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 
 <pre><code>{
   "type": "status-bar", "id": "sb", "rect": { "x": 0, "y": 876, "w": 1400, "h": 24 },
-  "fontSize": 13, "itemHeight": 24,
+  "font-size": 13, "item-height": 24,
   "items": [
     { "id": "branch", "text": "main", "icon": "provider:icons/git",
       "menu": "#branchMenu" },
