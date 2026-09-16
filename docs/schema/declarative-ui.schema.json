@@ -64,7 +64,8 @@
         },
         "caption": {
           "type": "string",
-          "x-default": ""
+          "x-default": "",
+          "description": "文本内容（对齐运行时属性名 caption）"
         },
         "caption-label": {
           "type": "object",
@@ -116,9 +117,6 @@
             "none",
             "tile"
           ]
-        },
-        "text": {
-          "type": "string"
         }
       },
       "required": [
@@ -749,7 +747,7 @@
         },
         "caption": {
           "type": "string",
-          "description": "text 别名"
+          "description": "文本内容（对齐运行时属性名 caption）"
         },
         "debug-draw": {
           "type": "boolean",
@@ -812,10 +810,6 @@
         "style": {
           "type": "string",
           "description": "字体样式"
-        },
-        "text": {
-          "type": "string",
-          "x-default": ""
         }
       },
       "required": [
@@ -1745,5 +1739,6 @@
       ],
       "additionalProperties": false
     }
-  }
+  },
+  "version": "1.1.0"
 }
