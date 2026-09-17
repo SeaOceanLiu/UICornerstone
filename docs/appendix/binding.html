@@ -90,6 +90,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>CreateScrollBar(x, y, w, h, orientation, xScale, yScale)</code></td><td>ScrollBar</td></tr>
 <tr><td><code>CreateShape(x, y, w, h, xScale, yScale)</code></td><td>Shape（图元经 UICornerstone::Shape* 专用）</td></tr>
 <tr><td><code>ShapeAddPrimitive(sh, type, x, y, w, h)</code> / <code>ShapeSetPrimitiveColor(sh, idx, prop, color)</code> / <code>ShapeSetPrimitiveFloat(sh, idx, prop, v)</code> / <code>ShapeSetPrimitivePoints(sh, idx, pts)</code> / <code>ShapeClearPrimitives(sh)</code></td><td>Shape 多图元（组合图形/覆盖层，逐帧改点集；v1.1.1）</td></tr>
+<tr><td><code>SetBool("clip-children", true)</code></td><td>Panel 子项裁剪（滚动容器，v1.1.1）</td></tr>
 <tr><td><code>ImageSetSourceRect(img, x, y, w, h)</code></td><td>Image/Actor 源矩形（对 stretch/tile 生效；x&lt;0 清除恢复整图；v1.1.1）</td></tr>
 <tr><td><code>CreateSlider(x, y, w, h, min, max, value, xScale, yScale)</code></td><td>Slider</td></tr>
 
