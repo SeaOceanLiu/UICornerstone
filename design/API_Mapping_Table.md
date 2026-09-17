@@ -24,7 +24,7 @@
 | setVisible | visible | visible | SetBool | SetBool | ✅ |  |
 | setEnable | enabled | enabled | SetBool | SetBool | ✅ |  |
 | setTransparent | transparent | transparent | SetBool | SetBool | ✅ |  |
-| setBorderVisible | borderVisible | border-visible | SetBool | SetBool | ✅ |  |
+| setBorderVisible | border-visible | border-visible | SetBool | SetBool | ✅ |  |
 | setBg/Border/Text/TextShadowStateColor | colors.4态 | background/border/text/text-shadow(+子键) | SetStateColor | SetStateColor | ✅ |  |
 | 16个逐状态颜色setter | 同上 | 同上(子键) | SetStateColor | SetStateColor | ✅可替代 |  |
 | setAlwaysOnTop | — | always-on-top | SetBool | SetBool | ✅ | 属性 |
@@ -44,9 +44,9 @@
 |---|---|---|---|---|---|---|
 | loadFromFile/Resource | image/imageResource | image/image-resource | SetString | SetString | ✅ |  |
 | loadTextureFromSurface/setTexture | — | — | — | — | ⚠️对象注入 | CABI/Binding |
-| setScaleType | scaleType | scale-type | SetEnum（stretch/fit-center/center-crop/none/**tile** v1.1.1） | SetEnum | ✅ |  |
+| setScaleType | scale-type | scale-type | SetEnum（stretch/fit-center/center-crop/none/**tile** v1.1.1） | SetEnum | ✅ |  |
 | setSourceRect/clearSourceRect | sourceRect（后续） | — | ActorSetSourceRect（清除 x<0/w≤0/h≤0） | ImageSetSourceRect（v1.1.1） | ✅专用 |  |
-| setMatchParentRect | matchParentRect | match-parent-rect | SetBool | SetBool | ✅ |  |
+| setMatchParentRect | match-parent-rect | match-parent-rect | SetBool | SetBool | ✅ |  |
 | setAlpha | — | alpha | SetInt | SetInt | ✅ | JSON |
 | setAnchorPoint(枚举) | anchor | anchor | SetEnum | SetEnum | ✅方向锚 |  |
 | setAnchorPoint(x,y) | — | anchor-x/anchor-y | SetFloat("anchor-x"/"anchor-y") | SetFloat(...) | ✅ | 属性 |
@@ -57,9 +57,9 @@
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
 | setCaption | caption | caption | SetString | SetString | ✅ |  |
-| setCaptionSize | captionSize | caption-size | SetFloat | SetFloat | ✅ |  |
-| setCaptionLabel | captionLabel | — | — | — | ⚠️对象注入 | 属性 |
-| setTextShadowEnable | enableTextShadow | text-shadow-enable | SetBool | SetBool | ✅ |  |
+| setCaptionSize | caption-size | caption-size | SetFloat | SetFloat | ✅ |  |
+| setCaptionLabel | caption-label | — | — | — | ⚠️对象注入 | 属性 |
+| setTextShadowEnable | text-shadow-enable | text-shadow-enable | SetBool | SetBool | ✅ |  |
 | setTextStateColor | colors.text | text | SetStateColor | SetStateColor | ✅ |  |
 | 4个状态Actor | actors.* | normal/hover/pressed/disabled-image | SetString | SetString | ✅路径式 |  |
 | setLuotiAni | luotiAni | animation | SetString | SetString | ✅路径式 |  |
@@ -72,13 +72,13 @@
 
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
-| setCheckState | checkState | check-state | SetEnum | SetEnum | ✅ |  |
-| setTriStateEnabled | triState | tri-state | SetBool | SetBool | ✅ |  |
+| setCheckState | check-state | check-state | SetEnum | SetEnum | ✅ |  |
+| setTriStateEnabled | tri-state | tri-state | SetBool | SetBool | ✅ |  |
 | setStyle | style | style | SetEnum | SetEnum | ✅ |  |
 | setLayout | layout | layout | SetEnum | SetEnum | ✅ |  |
-| setVerticalAlign | verticalAlign | vertical-align | SetEnum | SetEnum | ✅ |  |
-| setSizeRatio | sizeRatio | size-ratio | SetFloat | SetFloat | ✅ |  |
-| setCaptionSize | captionSize | caption-size | SetFloat | SetFloat | ✅ |  |
+| setVerticalAlign | vertical-align | vertical-align | SetEnum | SetEnum | ✅ |  |
+| setSizeRatio | size-ratio | size-ratio | SetFloat | SetFloat | ✅ |  |
+| setCaptionSize | caption-size | caption-size | SetFloat | SetFloat | ✅ |  |
 | 4个标记颜色 | checkColor/crossColor/indeterminateColor/boxBorderColor | check/cross/indeterminate/box-border | SetColor | SetColor | ✅ |  |
 | setOnCheckChanged | onCheckChanged | check-changed | SetCallback | SetCallback | ✅ |  |
 
@@ -89,10 +89,10 @@
 | setColor | color | color | SetString | SetString | ✅ |  |
 | setPresetColors | presets | — | — | — | ✅JSON静态 |  |
 | setPresetLayout | presetLayout | preset-cols/preset-rows | SetInt | SetInt | ✅ |  |
-| setClosedSwatchSize | swatchSize | closed-swatch-size | SetFloat | SetFloat | ✅ |  |
-| setClosedFontSize | closedFontSize | closed-font-size | SetInt | SetInt | ✅ |  |
-| setClosedTextColor | closedTextColor | closed-text | SetColor | SetColor | ✅ |  |
-| setPopupBGColor | popupBGColor | popup-bg | SetColor | SetColor | ✅ |  |
+| setClosedSwatchSize | closed-swatch-size | closed-swatch-size | SetFloat | SetFloat | ✅ |  |
+| setClosedFontSize | closed-font-size | closed-font-size | SetInt | SetInt | ✅ |  |
+| setClosedTextColor | closed-text-color | closed-text | SetColor | SetColor | ✅ |  |
+| setPopupBGColor | popup-bg | popup-bg | SetColor | SetColor | ✅ |  |
 | openPopup(私有) | — | — | — | — | ⛔交互驱动 | 暂不需要 |
 | isPopupVisible | — | popup-visible | GetBool("popup-visible") | GetBool("popup-visible") | ✅ | 属性 |
 | setOnColorChanged | onColorChanged | color-changed | SetCallback | SetCallback | ✅ |  |
@@ -103,12 +103,12 @@
 |---|---|---|---|---|---|---|
 | setItems | items | — | — | — | ✅JSON静态 | CABI/Binding |
 | addItem/removeItem/clearItems | — | — | ComboBoxAddItem/ComboBoxRemoveItem/ComboBoxClearItems | 同 | 🔧专用CABI | CABI/Binding |
-| setSelectedIndex | selectedIndex | selected-index | SetInt | SetInt | ✅ |  |
+| setSelectedIndex | selected-index | selected-index | SetInt | SetInt | ✅ |  |
 | setSelectedValue | — | selected-value | SetString | SetString | ✅ |  |
 | setPlaceholder | placeholder | placeholder | SetString | SetString | ✅ |  |
 | setEditable | editable | editable | SetBool | SetBool | ✅ |  |
-| setCycleEnabled | cycleEnabled | cycle-enabled | SetBool | SetBool | ✅ |  |
-| 箭头/项/列表尺寸 | arrowWidth/itemHeight/maxVisibleItems | arrow-width/item-height/max-visible-items | SetFloat×2/SetInt | 同 | ✅ |  |
+| setCycleEnabled | cycle-enabled | cycle-enabled | SetBool | SetBool | ✅ |  |
+| 箭头/项/列表尺寸 | arrow-width / item-height / max-visible-items | arrow-width/item-height/max-visible-items | SetFloat×2/SetInt | 同 | ✅ |  |
 | 7个颜色 | arrow/item-*… | arrow/arrow-hover/item-selected/item-hover/item-disabled/list-bg/list-border | SetColor | SetColor | ✅ |  |
 | openPopup(私有) | — | — | — | — | ⛔交互驱动 | 暂不需要 |
 | getSelectedLabel/getItems/… | — | selected-label | GetString("selected-label") | GetString("selected-label") | ✅ | 属性 |
@@ -126,9 +126,9 @@
 | recreateButtons | — | — | — | — | ⛔内部 | 暂不需要 |
 | setCentered/Anchored/Absolute | centered | centered-mode | SetEnum | SetEnum | ✅(offset需JSON) |  |
 | setContent | content | content | SetPtr | SetPtr | ✅ |  |
-| setCloseOnClickOutside/Esc | closeOnClickOutside/closeOnEsc | close-on-click-outside/close-on-esc | SetBool | SetBool | ✅ |  |
-| ConfirmBtn可见/文本/尺寸 | confirmButton/buttonHeight/buttonGap | confirm-visible/confirm-text/button-height/button-gap | SetBool/SetString/SetFloat×2 | 同 | ✅ |  |
-| setCancelButtonText | cancelButton | cancel-text | SetString | SetString | ✅ |  |
+| setCloseOnClickOutside/Esc | close-on-click-outside / close-on-esc | close-on-click-outside/close-on-esc | SetBool | SetBool | ✅ |  |
+| ConfirmBtn可见/文本/尺寸 | confirm-button / button-height / button-gap | confirm-visible/confirm-text/button-height/button-gap | SetBool/SetString/SetFloat×2 | 同 | ✅ |  |
+| setCancelButtonText | cancel-button | cancel-text | SetString | SetString | ✅ |  |
 | 按钮矩形/setPadding | — | — | — | — | ⚠️ | 属性 |
 | setOnClose/Confirm/Cancel | onClose/onConfirm/onCancel | close/confirm/cancel | SetCallback | SetCallback | ✅ |  |
 
@@ -138,8 +138,8 @@
 |---|---|---|---|---|---|---|
 | setText | text | text | SetString | SetString | ✅ |  |
 | setPlaceholder | placeholder | placeholder | SetString | SetString | ✅ |  |
-| setPasswordMode | passwordMode | password-mode | SetBool | SetBool | ✅ |  |
-| setPasswordChar | passwordChar | password-char | SetInt("password-char") | SetInt("password-char") | ✅ | 属性 |
+| setPasswordMode | password-mode | password-mode | SetBool | SetBool | ✅ |  |
+| setPasswordChar | password-char | password-char | SetInt("password-char") | SetInt("password-char") | ✅ | 属性 |
 | setFont/fontSize/alignment | font/size/alignment | font/font-size/align | SetEnum/SetInt/SetEnum | 同 | ✅ |  |
 | setMargin | margin | margin-left/top/right/bottom | SetFloat("margin-*") | SetFloat("margin-*") | ✅ | 属性 |
 | selectAll/setSelection/… | — | — | EditBoxSelectAll/EditBoxSetSelection/… | EditBoxSetSelection等 | 🔧专用CABI | CABI/Binding |
@@ -166,14 +166,14 @@
 | setAlignmentMode | alignment | align | SetEnum | SetEnum | ✅ |  |
 | setShadow | shadow | shadow | SetBool | SetBool | ✅ |  |
 | setShadowOffset | — | shadow-offset-x/shadow-offset-y | SetFloat | SetFloat | ✅ | JSON/属性 |
-| setLineHeight | lineHeight | line-height | SetInt | SetInt | ✅ |  |
-| setLineSpacingRatio | lineSpacingRatio | line-spacing-ratio | SetFloat | SetFloat | ✅ |  |
-| setEnableExpand | enableExpand | expand | SetBool | SetBool | ✅ |  |
+| setLineHeight | line-height | line-height | SetInt | SetInt | ✅ |  |
+| setLineSpacingRatio | line-spacing-ratio | line-spacing-ratio | SetFloat | SetFloat | ✅ |  |
+| setEnableExpand | expand | expand | SetBool | SetBool | ✅ |  |
 | setClickable | — | clickable | SetBool | SetBool | ✅ |  |
-| setDebugDraw | debugDraw | debug-draw | SetBool("debug-draw") | SetBool("debug-draw") | ✅ | 属性 |
+| setDebugDraw | debug-draw | debug-draw | SetBool("debug-draw") | SetBool("debug-draw") | ✅ | 属性 |
 | setOnClick | onClick | click | SetCallback | SetCallback | ✅ |  |
 | setOnPropertyChanged | — | property-changed | SetCallback | SetCallback | ✅ | JSON |
-| loadFromFile(字体) | fontFile/fontResource | font-file/font-resource | SetString | SetString | ✅ |  |
+| loadFromFile(字体) | font-file / font-resource | font-file/font-resource | SetString | SetString | ✅ |  |
 | getHotRect | — | — | — | — | ⛔查询 |  |
 
 ## 11. LuotiAni(Animation)
@@ -195,8 +195,8 @@
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
 | MenuBar::addMenu/removeMenu | menus | — | MenuBarAddMenu | MenuBarAddMenu | 🔧 |  |
-| setBarHeight | barHeight | bar-height | SetFloat | SetFloat | ✅ |  |
-| setManualPosition | manualPosition | manual-position | SetBool | SetBool | ✅ |  |
+| setBarHeight | bar-height | bar-height | SetFloat | SetFloat | ✅ |  |
+| setManualPosition | manual-position | manual-position | SetBool | SetBool | ✅ |  |
 | setItemHeightRatio/fontSize | — | item-height-ratio/label-font-size | SetFloat | SetFloat | ✅ |  |
 | enterMenuMode/…/closeAllMenus | — | — | — | — | ⚠️命令式 | 暂不需要 |
 | MenuPanel::addItem/addSeparator | menus内items | — | MenuPanelAddItem/AddSeparator | MenuPanelAddItem/AddSeparator | 🔧 |  |
@@ -217,10 +217,10 @@
 | setValue | value | value | SetFloat | SetFloat | ✅ |  |
 | setRange | range.min/max | range-min/range-max | SetFloat | SetFloat | ✅ |  |
 | setStep | step | step | SetFloat | SetFloat | ✅ |  |
-| setPageStep | pageStep | page-step | SetFloat | SetFloat | ✅ |  |
+| setPageStep | page-step | page-step | SetFloat | SetFloat | ✅ |  |
 | setDecimals | decimals | decimals | SetInt | SetInt | ✅ |  |
-| setReadOnly | readOnly | read-only | SetBool | SetBool | ✅ |  |
-| setButtonWidth | buttonWidth | button-width | SetFloat | SetFloat | ✅ |  |
+| setReadOnly | read-only | read-only | SetBool | SetBool | ✅ |  |
+| setButtonWidth | button-width | button-width | SetFloat | SetFloat | ✅ |  |
 | setArrowColor | arrow+… | arrow/arrow-hover/arrow-pressed | SetColor | SetColor | ✅ |  |
 | stepValue | — | — | NumericUpDownStep(dir) | NumericUpDownStep(dir) | 🔧专用CABI | CABI/Binding |
 | setOnValueChanged | onValueChanged | value-changed | SetCallback | SetCallback | ✅ |  |
@@ -242,10 +242,10 @@
 | setValue | value | value | SetFloat | SetFloat | ✅ |  |
 | setRange | range.min/max | range-min/range-max | SetFloat | SetFloat | ✅ |  |
 | setStyle | style | style | SetEnum | SetEnum | ✅ |  |
-| setTextMode | textMode | text-mode | SetEnum | SetEnum | ✅ |  |
-| setCustomText | customText | custom-text | SetString | SetString | ✅ |  |
+| setTextMode | text-mode | text-mode | SetEnum | SetEnum | ✅ |  |
+| setCustomText | custom-text | custom-text | SetString | SetString | ✅ |  |
 | 3个颜色 | progressColor/backgroundColor/text | progress/background/text | SetColor | SetColor | ✅ |  |
-| setAnimationSpeed | animationSpeed | animation-speed | SetFloat | SetFloat | ✅ |  |
+| setAnimationSpeed | animation-speed | animation-speed | SetFloat | SetFloat | ✅ |  |
 | setFont/Size/Align | font/size/alignment | font/font-size/align | SetEnum/SetInt/SetEnum | 同 | ✅ |  |
 | setOnValueChanged | onValueChanged | value-changed | SetCallback | SetCallback | ✅(基类接管,已可用) | 属性 |
 | getPercent/getTextLabel | — | percent | GetFloat("percent") | GetFloat("percent") | ✅ | 属性 |
@@ -256,8 +256,8 @@
 |---|---|---|---|---|---|---|
 | setValue | value | value | SetFloat | SetFloat | ✅ |  |
 | setRange | range.min/max | range-min/range-max | SetFloat | SetFloat | ✅ |  |
-| setPageSize | pageSize | page-size | SetFloat | SetFloat | ✅ |  |
-| setStepSize | stepSize | step-size | SetFloat | SetFloat | ✅ |  |
+| setPageSize | page-size | page-size | SetFloat | SetFloat | ✅ |  |
+| setStepSize | step-size | step-size | SetFloat | SetFloat | ✅ |  |
 | setOrientation | orientation | orientation | SetEnum | SetEnum | ✅ |  |
 | setThickness | thickness | thickness | SetFloat | SetFloat | ✅ |  |
 | 4个颜色 | track/thumb+… | track/thumb/thumb-hover/thumb-pressed | SetColor | SetColor | ✅ |  |
@@ -276,7 +276,7 @@
 | setTrackThickness/ThumbSize | thickness/thumb | track-thickness/thumb-size | SetFloat | SetFloat | ✅ |  |
 | 5个轨道/滑块颜色 | track/fillColor/thumb+… | track/track-fill/thumb/thumb-border/thumb-hover | SetColor | SetColor | ✅ |  |
 | 3个刻度 | interval/length/tick | tick-interval/tick-length/tick | SetFloat×2/SetColor | 同 | ✅ |  |
-| setShowValueLabel | showValueLabel | show-value-label | SetBool | SetBool | ✅ |  |
+| setShowValueLabel | show-value-label | show-value-label | SetBool | SetBool | ✅ |  |
 | 5个标签配置 | labelFormat/labelGap/label | label-font/label-font-size/label/label-format/label-gap | SetEnum/SetInt/SetColor/SetString/SetFloat | 同 | ✅(label-font-size已补) | 属性 |
 | setOnValueChanged | onValueChanged | value-changed | SetCallback | SetCallback | ✅ |  |
 
@@ -285,9 +285,9 @@
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
 | setOrientation | orientation | horizontal | SetBool | SetBool | ✅ |  |
-| setLinkedControls/… | firstPanel/secondPanel | first-linked/second-linked | SetPtr | SetPtr | ✅ |  |
+| setLinkedControls/… | first-linked / second-linked | first-linked/second-linked | SetPtr | SetPtr | ✅ |  |
 | setSplitRatio | ratio | ratio | SetFloat | SetFloat | ✅ |  |
-| setMinSize | minFirst/minSecond | first-min/second-min | SetFloat | SetFloat | ✅ |  |
+| setMinSize | first-min / second-min | first-min/second-min | SetFloat | SetFloat | ✅ |  |
 | setThickness | thickness | thickness | SetFloat | SetFloat | ✅ |  |
 | setColor | line+… | line/line-hover/line-drag | SetColor | SetColor | ✅ |  |
 | setOnSplitterMoved | onSplitterMoved | moved | SetCallback | SetCallback | ✅ |  |
@@ -300,9 +300,9 @@
 | insertTextAtCursor | — | — | — | — | ⚠️命令式 | 属性 |
 | setScrollX/Y | — | scroll-x/scroll-y | SetInt | SetInt | ✅ |  |
 | scrollToBottom | — | — | — | — | ⚠️命令式 | 属性 |
-| setWordWrap | wordWrap | word-wrap | SetBool | SetBool | ✅ |  |
-| setLineHeight | lineHeight | line-height | SetInt | SetInt | ✅ |  |
-| setScrollBarThickness | scrollBarThickness | scrollbar-thickness | SetFloat | SetFloat | ✅ |  |
+| setWordWrap | word-wrap | word-wrap | SetBool | SetBool | ✅ |  |
+| setLineHeight | line-height | line-height | SetInt | SetInt | ✅ |  |
+| setScrollBarThickness | scrollbar-thickness | scrollbar-thickness | SetFloat | SetFloat | ✅ |  |
 | setOnTextChanged | onTextChanged | text-changed | SetCallback | SetCallback | ✅ |  |
 
 ## 20. TreeView
@@ -320,7 +320,7 @@
 | expandNode/collapseNode | — | — | TreeViewExpandNode/TreeViewCollapseNode | 同 | 🔧按id |  |
 | expandAll/collapseAll | — | expand-all/collapse-all | TreeViewExpandAll/CollapseAll(亦SetBool) | 同 | 🔧 |  |
 | setIndentWidth/RowHeight/LineSpacing/ArrowGap | indentWidth/rowHeight/… | indent-width/row-height/line-spacing/arrow-gap | SetFloat | SetFloat | ✅ |  |
-| setCycleNavigation/DefaultExpand | cycleNavigation/defaultExpand | cycle-navigation/default-expand | SetBool | SetBool | ✅ |  |
+| setCycleNavigation/DefaultExpand | cycle-navigation / default-expand | cycle-navigation/default-expand | SetBool | SetBool | ✅ |  |
 | 5个颜色 | bg/border/hover/selected/text | background/border/hover/selected/text | SetColor | SetColor | ✅ |  |
 | setFont/Size | font/size | font/font-size | SetEnum/SetInt | 同 | ✅ |  |
 | item级5配置 | leadingGap/font/size/leadingControl | item-leading-gap/…/item-id定位 | SetString("item-id")+Set* | 同 | ✅ |  |
@@ -336,7 +336,7 @@
 |---|---|---|---|---|---|---|
 | setTitle | title | title | SetString | SetString | ✅ |  |
 | 4个颜色 | bg/border/titleBar.bg/titleText | win-frame-bg/win-frame-border/title-bar-bg/title-text | SetColor | SetColor | ✅ |  |
-| setEdgeMargin | edgeMargin | edge-margin | SetFloat | SetFloat | ✅ |  |
+| setEdgeMargin | edge-margin | edge-margin | SetFloat | SetFloat | ✅ |  |
 | setResizable | resizable | resizable | SetBool | SetBool | ✅ |  |
 | addToClient | children | — | AddChildControl | — | 🔧 | Binding似乎已经有了通用的AddChild |
 | show/hide | visible | visible | SetBool | SetBool | ✅ |  |
@@ -357,9 +357,9 @@
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
 | setMode/setMultiSelect/setSelectedRow/setCycleNavigation | mode/multiSelect/selectedIndex/cycleNavigation | mode/multi-select/selected-index/cycle-navigation | SetEnum/SetBool/SetInt | 同 | ✅ |  |
-| setRowHeight/setHeaderHeight/setMinColumnWidth | rowHeight/headerHeight/minColumnWidth | row-height/header-height/min-column-width | SetFloat | SetFloat | ✅ |  |
+| setRowHeight/setHeaderHeight/setMinColumnWidth | row-height / header-height / min-column-width | row-height/header-height/min-column-width | SetFloat | SetFloat | ✅ |  |
 | setGridlines/setHorizontalGridlines/setHoverHighlight | gridlines/horizontalGridlines/hover | gridlines/horizontal-gridlines/hover | SetBool | SetBool | ✅ |  |
-| setSortColumn/setSortAscending | sortColumn/sortAscending | sort-column/sort-ascending | SetInt/SetBool | 同 | ✅ |  |
+| setSortColumn/setSortAscending | sort-column / sort-ascending | sort-column/sort-ascending | SetInt/SetBool | 同 | ✅ |  |
 | addRow/insertRow/removeRow/setRowCells/setCell | rows/cells | — | ListViewAddRow/InsertRow/RemoveRow/SetRowCells/SetCellText/GetCellText | UICornerstone::ListView* | 🔧专用 |  |
 | addColumn/insertColumn/removeColumn/setColumnWidth | columns | — | ListViewAddColumn/InsertColumn/RemoveColumn/SetColumnWidth | 同 | 🔧专用 |  |
 | setRowLeadingControl/setColumnLeadingControl/setCellLeadingControl | icon/columns.icon/cellControls | — | ListViewSetRowLeadingControl/SetColumnIcon/SetCellLeadingControl | 同 | 🔧专用 |  |
@@ -382,7 +382,7 @@
 
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
-| setFontSize/setItemHeight | fontSize/itemHeight | font-size/item-height | SetFloat/GetFloat | SetFloat/GetFloat | ✅ |  |
+| setFontSize/setItemHeight | font-size / item-height | font-size/item-height | SetFloat/GetFloat | SetFloat/GetFloat | ✅ |  |
 | addStatusItem/updateStatusItemText/removeStatusItem | items[] | — | StatusBarAddItem/SetItemText/RemoveItem | StatusBarBuilder.addStatusItem | 🔧专用 |  |
 | setStatusItemMenu | items[].menu | — | StatusBarSetItemMenu | StatusBarBuilder.setStatusItemMenu | 🔧专用 |  |
 | setStatusItemLeadingControl | items[].icon | — | StatusBarSetItemIcon | StatusBarBuilder.setStatusItemLeadingControl | 🔧专用 |  |
@@ -394,7 +394,7 @@
 | 内部API | JSON | 属性 | CABI | Binding | 缺口 | 补 |
 |---|---|---|---|---|---|---|
 | setPosition | position | position | SetEnum/GetEnum | SetEnum | ✅ |  |
-| setFontSize | fontSize | font-size | SetFloat/GetFloat | SetFloat | ✅ |  |
+| setFontSize | font-size | font-size | SetFloat/GetFloat | SetFloat | ✅ |  |
 | setCurrentIndex/getCurrentIndex | currentIndex | current-index | SetInt/GetInt | SetInt | ✅ |  |
 | addTab/insertTab/removeTab | tabs[] | — | TabAddPage | TabControlBuilder.addTab | 🔧专用 |  |
 | setTabText/setTabPage | tabs[].title/page | — | TabSetTitle/TabSetPage | 同 | 🔧专用 |  |
