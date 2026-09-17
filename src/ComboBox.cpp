@@ -968,7 +968,7 @@ int ComboBox::setStringProperty(const char* prop, const char* value) {
             for (auto& jitem : j) {
                 ComboBoxItem item;
                 item.label = jitem.value(PropertyNames::kJsonLabel, "");
-                item.value = jitem.value(PropertyNames::kJsonValue, item.label);
+                item.value = jitem.value(PropertyNames::kValue, item.label);
                 item.disabled = jitem.value(PropertyNames::kJsonDisabled, false);
                 items.push_back(item);
             }

@@ -235,7 +235,7 @@ void LuotiAni::parseJsonDesc(){
     }
     m_frameMSDuration = 1000 / m_frameRate;
     m_totalFrames = overview[PropertyNames::kJsonTotalFrames].get<uint32_t>();
-    m_loop = overview.at(PropertyNames::kJsonLoop).get<bool>();
+    m_loop = overview.at(PropertyNames::kLoop).get<bool>();
 
     const auto& layersData = m_jsonAniDesc[PropertyNames::kJsonLayers];
     for (size_t l = 0; l < layersData.size(); l++) {
@@ -252,7 +252,7 @@ void LuotiAni::parseJsonDesc(){
         m_layerSegs.push_back(map<uint32_t, SegmentInfo>());
         for (const auto& keyFrameData : layerData[PropertyNames::kJsonKeyFrames]) {
             auto keyFrame = make_shared<KeyFrame>();
-            uint32_t frameNumber = keyFrameData.at(PropertyNames::kJsonFrame).get<uint32_t>();
+            uint32_t frameNumber = keyFrameData.at(PropertyNames::kFrame).get<uint32_t>();
 
             auto operationsData = keyFrameData.at(PropertyNames::kJsonOperation);
             SegmentInfo keyFrameSegInfo;
@@ -289,7 +289,7 @@ void LuotiAni::parseJsonDesc(){
                         operation = make_shared<Operation>(opType, operationData.at(PropertyNames::kJsonOpacity).get<float>());
                         break;
                     case Operation::OPERATION_TYPE::VISIBLE:
-                        operation = make_shared<Operation>(opType, operationData.at(PropertyNames::kJsonVisible).get<bool>() ? 1.0f : 0.0f);
+                        operation = make_shared<Operation>(opType, operationData.at(PropertyNames::kVisible).get<bool>() ? 1.0f : 0.0f);
                         break;
                     default:
                         printf("KeyFrame Operation: Unknown operation type: %s\n", type.c_str());

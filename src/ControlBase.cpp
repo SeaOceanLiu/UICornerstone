@@ -1051,7 +1051,7 @@ int ControlImpl::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kVisible) == 0)         { out = getVisible() ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kEnabled) == 0)         { out = getEnable()  ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kTransparent) == 0)     { out = getTransparent() ? 1 : 0; return 1; }
-    if (strcmp(prop, PropertyNames::kJsonBorderVisible) == 0)  { out = getBorderVisible() ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kBorderVisible) == 0)  { out = getBorderVisible() ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kFocusable) == 0)       { out = isFocusable() ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kShowFocusRing) == 0)   { out = getShowFocusRing() ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kFocusRingAlwaysVisible) == 0) { out = getFocusRingAlwaysVisible() ? 1 : 0; return 1; }
