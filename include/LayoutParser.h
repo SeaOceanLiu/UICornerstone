@@ -131,6 +131,7 @@ private:
     // 字体：JSON 字体键解析（font{name,size} / font-size / fontSize）→ 控件上下文 + 应用；
     // 未声明时由 resolveFontInheritance 沿父链继承最近显式字体
     void applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j);
+    void applyShadowDecl(std::shared_ptr<ControlImpl> ctl, const json& j);
     void resolveFontInheritance(Control* root);
     void parseEvents(shared_ptr<ControlImpl> ctrl, const json& j);
     void parseBindings(shared_ptr<ControlImpl> ctrl, const json& j);

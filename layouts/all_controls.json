@@ -1,4 +1,4 @@
-{
+﻿{
   "controls": [
     {
       "type": "label",
@@ -9,7 +9,6 @@
         "w": 200,
         "h": 30
       },
-      "text": "标签样例",
       "size": 18,
       "alignment": "center",
       "shadow": {
@@ -18,7 +17,8 @@
           "x": 2,
           "y": 2
         }
-      }
+      },
+      "caption": "标签样例"
     },
     {
       "type": "button",
@@ -30,8 +30,8 @@
         "h": 40
       },
       "caption": "按钮",
-      "caption-size": 16,
-      "text-shadow-enable": false,
+      "font-size": 16,
+      "shadow": { "enabled": false },
       "events": {
         "onClick": "onDemoClick"
       }
@@ -604,7 +604,7 @@
             "w": 200,
             "h": 26
           },
-          "text": "客户区"
+          "caption": "客户区"
         }
       ]
     },

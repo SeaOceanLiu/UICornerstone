@@ -776,6 +776,10 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
         if (!isContainsPoint(event->mouseWheel.x, event->mouseWheel.y)) {
             return false;
         }
+        // 内容未超视口（滚动条隐藏 = 无滚动余量）：透传给容器滚动，不空转消费
+        if (!m_vScrollBar || !m_vScrollBar->getVisible()) {
+            return false;
+        }
         int scrollAmount = (int)(event->mouseWheel.scrollY * m_lineHeight * 3);
         setScrollY(m_scrollY - scrollAmount);
         return true;

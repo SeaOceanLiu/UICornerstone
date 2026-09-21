@@ -336,12 +336,14 @@ public:
 
     void pushClipRect(const SRect& rect) override {
         flushBatches();
-        m_clipStack.push_back(rect);
+        // 嵌套裁剪：与栈顶相交（空相交 = 0 尺寸 scissor，天然无绘制）
+        SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
+        m_clipStack.push_back(r);
         if (!m_clipEnabled) {
             m_clipEnabled = true;
             glEnable(GL_SCISSOR_TEST);
         }
-        applyClipRect(rect);
+        applyClipRect(r);
     }
 
     void popClipRect() override {

@@ -41,10 +41,23 @@ CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
 
 void CheckBox::releaseCaption(void){
     if (m_caption != nullptr) {
-        m_caption.reset();
+        // #15：removeControl 须在 reset 前（旧实现先 reset 后传 nullptr → 无效调用 → 旧 Label 残留渲染树）
+        auto old = m_caption;
         m_caption = nullptr;
-        removeControl(m_caption);
+        removeControl(old);
     }
+}
+
+void CheckBox::captureCaptionState(void) {
+    // #15/§3：重建前快照（直控/属性/工厂/parser 任意路径设置的 caption 状态均持久）
+    if (!m_caption) return;
+    m_captionText = m_caption->getCaption();
+    if (m_caption->getFontSize() > 0) m_captionSize = (float)m_caption->getFontSize();
+    m_capTextColor = m_caption->getTextStateColor();
+    m_capTextShadowColor = m_caption->getTextShadowStateColor();
+    m_capColorsValid = true;
+    m_enableTextShadow = m_caption->isShadowEnabled();
+    m_shadowOffset = m_caption->getShadowOffset();
 }
 void CheckBox::createCaption(void){
     if (m_caption != nullptr) {
@@ -56,11 +69,12 @@ void CheckBox::createCaption(void){
         .setFont(FontName::HarmonyOS_Sans_SC_Regular)
         .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
         .setFontSize((int)effectiveCaptionSize())
-        .setCaption("")
-        .setTextStateColor(m_textColor)
+        .setCaption(m_captionText)                                   // #15：宿主文本（recreate 不丢）
+        .setTextStateColor(m_capColorsValid ? m_capTextColor : m_textColor)
+        .setTextShadowStateColor(m_capColorsValid ? m_capTextShadowColor : m_textShadowColor)
         // .setMargin({0, 0, 0, 0})
-        .setShadow(false)
-        .setShadowOffset({2, 2})
+        .setShadow(m_enableTextShadow)          // #12：宿主字段（重建/JSON 稳定）
+        .setShadowOffset(m_shadowOffset)
         .setEnableExpand(false)
         // .setDebugDraw(true)
         .setOnPropertyChanged([this](shared_ptr<Label> label){  // Label的属性改变时，通过回调来触发CheckBox调整布局
@@ -69,6 +83,7 @@ void CheckBox::createCaption(void){
             adjustBoxVerticalAlign();
         })
         .build();
+    if (m_caption) m_caption->setState(getState());   // (重)建时同步当前状态
 }
 
 shared_ptr<Label> CheckBox::getCaption(void) const {
@@ -139,6 +154,9 @@ void CheckBox::recreate(void) {
         create();
         return;
     }
+
+    // #15：释放前快照 caption 状态（文本/字号/各态色/shadow）→ 重建应用
+    captureCaptionState();
 
     // 释放子控件
     releaseCaption();
@@ -299,6 +317,41 @@ void CheckBox::onMouseEnter(float x, float y) {
 
 void CheckBox::onMouseLeave(float x, float y) {
     setState(ControlState::Normal);
+}
+
+void CheckBox::setState(ControlState state) {
+    ControlImpl::setState(state);
+    // 状态联动：caption 的 hover/pressed/disabled 各态色经此可达（Label::draw 按自身 state 取色）
+    if (m_caption) m_caption->setState(state);
+}
+
+int CheckBox::getPtrProperty(const char* prop, void*& out) {
+    // 暴露内部 caption Label 句柄（键与 Button 统一：caption-label）：
+    // 应用经句柄直控 Label 标准属性（颜色/字体/对齐），各态色随状态联动（setState 已同步）
+    if (strcmp(prop, PropertyNames::kCaptionLabel) == 0) {
+        // 句柄约定：Control* 基地址（ControlImpl 虚继承 Control，须经基类转换修正偏移）
+        out = m_caption ? static_cast<Control*>(m_caption.get()) : nullptr;
+        return m_caption ? 1 : 0;
+    }
+    return ControlImpl::getPtrProperty(prop, out);
+}
+
+int CheckBox::setStringProperty(const char* prop, const char* value) {
+    // #9：caption 文本运行时设置（与 Button 对齐）；Label onPropertyChanged → setBoxSize/adjustSpaceAssignment 自动刷新布局
+    if (strcmp(prop, PropertyNames::kCaption) == 0) {
+        m_captionText = value ? value : "";                          // #15：宿主持久化
+        if (m_caption) { m_caption->setCaption(m_captionText); return 1; }
+        return 0;
+    }
+    return ControlImpl::setStringProperty(prop, value);
+}
+
+int CheckBox::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kCaption) == 0) {
+        if (m_caption) { m_captionText = m_caption->getCaption(); out = m_captionText.c_str(); return 1; }
+        return 0;
+    }
+    return ControlImpl::getStringProperty(prop, out);
 }
 
 void CheckBox::setCheckState(CheckState state) {
@@ -590,7 +643,7 @@ CheckBoxBuilder& CheckBoxBuilder::setSizeRatio(float ratio) {
 }
 
 CheckBoxBuilder& CheckBoxBuilder::setCaptionText(string caption) {
-    m_checkBox->getCaption()->setCaption(caption);
+    m_checkBox->setStringProperty(PropertyNames::kCaption, caption.c_str());   // #15：经宿主字段
     return *this;
 }
 
@@ -657,13 +710,33 @@ int CheckBox::setColorProperty(const char* prop, SColor color) {
 int CheckBox::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kTriState) == 0) { setTriStateEnabled(value != 0); return 1; }
     if (strcmp(prop, PropertyNames::kChecked) == 0)  { setCheckState(value ? CheckState::Checked : CheckState::Unchecked); return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // #12：宿主字段存储 + 同步 caption（重建不丢失）
+        m_enableTextShadow = (value != 0);
+        if (m_caption) m_caption->setShadow(m_enableTextShadow);
+        return 1;
+    }
     return ControlImpl::setBoolProperty(prop, value);
 }
 
 int CheckBox::setFloatProperty(const char* prop, float value) {
-    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { setCaptionSize(value); return 1; }
     if (strcmp(prop, PropertyNames::kSizeRatio) == 0) { setSizeRatio(value); return 1; }
+    // #12：阴影偏移（宿主字段存储 + 同步 caption）
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+        m_shadowOffset.x = value;
+        if (m_caption) m_caption->setShadowOffset(m_shadowOffset);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        m_shadowOffset.y = value;
+        if (m_caption) m_caption->setShadowOffset(m_shadowOffset);
+        return 1;
+    }
     return ControlImpl::setFloatProperty(prop, value);
+}
+
+int CheckBox::setIntProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) { setCaptionSize((float)value); return 1; }
+    return ControlImpl::setIntProperty(prop, value);
 }
 
 int CheckBox::setEnumProperty(const char* prop, const char* value) {
@@ -700,13 +773,23 @@ int CheckBox::getColorProperty(const char* prop, SColor& out) {
 int CheckBox::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kTriState) == 0) { out = m_triStateEnabled ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kChecked) == 0)  { out = (m_checkState == CheckState::Checked) ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // #12：读宿主字段
+        out = m_enableTextShadow ? 1 : 0;
+        return 1;
+    }
     return ControlImpl::getBoolProperty(prop, out);
 }
 
 int CheckBox::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kSizeRatio) == 0) { out = m_sizeRatio; return 1; }
-    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { out = getCaptionSize(); return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
+}
+
+int CheckBox::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) { out = (int)getCaptionSize(); return 1; }
+    return ControlImpl::getIntProperty(prop, out);
 }
 
 int CheckBox::getEnumProperty(const char* prop, const char*& out) {

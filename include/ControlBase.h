@@ -547,6 +547,8 @@ public:
     // eventName: PropertyNames 中的事件常量
     // data: 指向数据的指针（int*/float*/SelectionPayload*）
     void fireCCallback(const char* eventName, CCallbackData data, const void* ptr);
+    // 回调订阅查询（滚轮等事件消费门控：无订阅者时应透传而非空转消费）
+    bool hasCallback(const char* eventName) const { return m_cCallbacks.count(eventName) > 0; }
 
     int getColorProperty(const char* prop, SColor& out) override;
     int getStateColorProperty(const char* prop, StateColor& out) override;

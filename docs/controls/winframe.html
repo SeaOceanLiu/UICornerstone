@@ -53,6 +53,8 @@ auto wf = ui->CreateWinFrame("Resizable WinFrame", 100, 100, 400, 300);
 <tr><td><code>title</code></td><td><code>kTitle</code></td><td>String</td><td>"WinFrame"</td><td>标题文字</td></tr>
 <tr><td><code>title-bar-bg</code></td><td><code>kTitleBarBG</code></td><td>Color</td><td>浅蓝(173,216,230)</td><td>标题栏背景</td></tr>
 <tr><td><code>title-text</code></td><td><code>kTitleText</code></td><td>Color</td><td>—</td><td>标题文字色</td></tr>
+<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Object</td><td>{enabled:false}</td><td>标题阴影 <code>{enabled, offset:{x,y}}</code>（#12 统一键；转发内部 title Label）</td></tr>
+<tr><td colspan="5" class="note">标题 Label 经既有 <code>title-label</code> 键 <code>GetPtr</code> 直控其标准属性（颜色/字体/对齐）；各态色随 WinFrame 状态自动生效（<code>disabled</code> 可达；<code>hover</code>/<code>pressed</code> 依赖控件交互态——WinFrame 当前不进入，属态不可达）</td></tr>
 <tr><td><code>win-frame-bg</code></td><td><code>kWinFrameBG</code></td><td>Color</td><td>—</td><td>整体背景色</td></tr>
 <tr><td><code>win-frame-border</code></td><td><code>kWinFrameBorder</code></td><td>Color</td><td>—</td><td>边框色</td></tr>
 </table>

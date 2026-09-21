@@ -24,6 +24,7 @@ private:
 
     shared_ptr<Label> m_caption;
     bool m_enableTextShadow;
+    SPoint m_shadowOffset{1.0f, 1.0f};   // 宿主存储：caption 重建/替换后仍生效（#12）
     shared_ptr<LuotiAni>m_luotiAni;
 
     string m_captionText;
@@ -67,8 +68,13 @@ public:
     int setBoolProperty(const char* prop, int value) override;
     int setStringProperty(const char* prop, const char* value) override;
     int setPtrProperty(const char* prop, void* value) override;
+    int getPtrProperty(const char* prop, void*& out) override;   // caption-label → 内部 caption Label 句柄
+    // 状态联动：Button 状态变化时同步内部 caption Label（Label::draw 按自身 state 取色）
+    void setState(ControlState state) override;
+    int setIntProperty(const char* prop, int value) override;
+    int getIntProperty(const char* prop, int& out) override;
     int setFloatProperty(const char* prop, float value) override;
-    int getBoolProperty(const char* prop, int& out) override { return ControlImpl::getBoolProperty(prop, out); }
+    int getBoolProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getStringProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override { return ControlImpl::setCallbackProperty(event, cb, userData); }

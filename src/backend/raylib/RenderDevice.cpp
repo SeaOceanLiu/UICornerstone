@@ -410,13 +410,15 @@ public:
     }
 
     void pushClipRect(const SRect& rect) override {
-        m_clipStack.push_back(rect);
+        // 嵌套裁剪：与栈顶相交（空相交 = 0 尺寸 scissor，天然无绘制）
+        SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
+        m_clipStack.push_back(r);
         if (m_scissorActive) EndScissorMode();
         BeginScissorMode(
-            static_cast<int>(rect.left),
-            static_cast<int>(rect.top),
-            static_cast<int>(rect.width),
-            static_cast<int>(rect.height));
+            static_cast<int>(r.left),
+            static_cast<int>(r.top),
+            static_cast<int>(r.width),
+            static_cast<int>(r.height));
         m_scissorActive = true;
     }
 

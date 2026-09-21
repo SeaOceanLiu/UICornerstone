@@ -280,6 +280,13 @@ Control UICornerstone::FindControl(const std::string& id) {
     return MakeControl(Dyn::API().fnFindControl(m_impl->instance, id.c_str()));
 }
 
+bool UICornerstone::SetControlId(Control ctl, const std::string& id) {
+    if (!m_impl->instance) return false;
+    UIControlHandle h = ctl.IsValid() ? ctl.Handle() : nullptr;
+    if (!h) return false;
+    return Dyn::API().fnSetControlId(m_impl->instance, h, id.c_str()) != 0;
+}
+
 Control UICornerstone::FromHandle(UIControlHandle handle) {
     if (!m_impl->instance) return Control();
     return MakeControl(handle);
@@ -381,6 +388,76 @@ UI_FACTORY(CreateShape,
     (float x, float y, float w, float h, float xScale, float yScale),
     x, y, w, h, xScale, yScale)
 
+UI_FACTORY(CreateContextMenu,
+    (float x, float y, float w, float h, float xScale, float yScale),
+    x, y, w, h, xScale, yScale)
+
+UI_FACTORY(CreateStatusBar,
+    (float x, float y, float w, float h, float xScale, float yScale),
+    x, y, w, h, xScale, yScale)
+
+UI_FACTORY(CreateTabControl,
+    (float x, float y, float w, float h, float xScale, float yScale),
+    x, y, w, h, xScale, yScale)
+
+// ── StatusBar 段操作 ──
+bool UICornerstone::StatusBarAddItem(Control& bar, const std::string& id, const std::string& text, bool rightAlign) {
+    if (!m_impl->instance || !bar.Handle()) return false;
+    return Dyn::API().fnStatusBarAddItem(m_impl->instance, bar.Handle(), id.c_str(), text.c_str(), rightAlign ? 1 : 0) != 0;
+}
+bool UICornerstone::StatusBarSetItemText(Control& bar, const std::string& id, const std::string& text) {
+    if (!m_impl->instance || !bar.Handle()) return false;
+    return Dyn::API().fnStatusBarSetItemText(m_impl->instance, bar.Handle(), id.c_str(), text.c_str()) != 0;
+}
+bool UICornerstone::StatusBarRemoveItem(Control& bar, const std::string& id) {
+    if (!m_impl->instance || !bar.Handle()) return false;
+    return Dyn::API().fnStatusBarRemoveItem(m_impl->instance, bar.Handle(), id.c_str()) != 0;
+}
+bool UICornerstone::StatusBarSetItemIcon(Control& bar, const std::string& id, Control& iconControl) {
+    if (!m_impl->instance || !bar.Handle()) return false;
+    return Dyn::API().fnStatusBarSetItemIcon(m_impl->instance, bar.Handle(), id.c_str(), iconControl.Handle()) != 0;
+}
+bool UICornerstone::StatusBarSetItemMenu(Control& bar, const std::string& id, Control& menuPanel) {
+    if (!m_impl->instance || !bar.Handle()) return false;
+    return Dyn::API().fnStatusBarSetItemMenu(m_impl->instance, bar.Handle(), id.c_str(), menuPanel.Handle()) != 0;
+}
+
+// ── ContextMenu 组装/显示 ──
+bool UICornerstone::ContextMenuAddItem(Control& menu, const std::string& caption, const std::string& shortcut) {
+    if (!m_impl->instance || !menu.Handle()) return false;
+    return Dyn::API().fnContextMenuAddItem(m_impl->instance, menu.Handle(), caption.c_str(), shortcut.c_str()) != 0;
+}
+bool UICornerstone::ContextMenuAddSeparator(Control& menu) {
+    if (!m_impl->instance || !menu.Handle()) return false;
+    return Dyn::API().fnContextMenuAddSeparator(m_impl->instance, menu.Handle()) != 0;
+}
+bool UICornerstone::ContextMenuShow(Control& menu, float x, float y) {
+    if (!m_impl->instance || !menu.Handle()) return false;
+    return Dyn::API().fnContextMenuShow(m_impl->instance, menu.Handle(), x, y) != 0;
+}
+bool UICornerstone::ContextMenuClose(Control& menu) {
+    if (!m_impl->instance || !menu.Handle()) return false;
+    return Dyn::API().fnContextMenuClose(m_impl->instance, menu.Handle()) != 0;
+}
+
+// ── TabControl 页操作 ──
+int UICornerstone::TabAddPage(Control& tab, const std::string& title) {
+    if (!m_impl->instance || !tab.Handle()) return -1;
+    return Dyn::API().fnTabAddPage(m_impl->instance, tab.Handle(), title.c_str());
+}
+bool UICornerstone::TabSetPage(Control& tab, int index, Control& page) {
+    if (!m_impl->instance || !tab.Handle()) return false;
+    return Dyn::API().fnTabSetPage(m_impl->instance, tab.Handle(), index, page.Handle()) != 0;
+}
+bool UICornerstone::TabSetTitle(Control& tab, int index, const std::string& title) {
+    if (!m_impl->instance || !tab.Handle()) return false;
+    return Dyn::API().fnTabSetTitle(m_impl->instance, tab.Handle(), index, title.c_str()) != 0;
+}
+bool UICornerstone::TabSetTabLeadingControl(Control& tab, int index, Control& ctl) {
+    if (!m_impl->instance || !tab.Handle()) return false;
+    return Dyn::API().fnTabSetTabLeadingControl(m_impl->instance, tab.Handle(), index, ctl.Handle()) != 0;
+}
+
 // ── Shape 专用（点集与坐标映射） ──
 void UICornerstone::ShapeSetPoints(Control& sh, const std::vector<std::pair<float, float>>& pts) {
     if (!m_impl->instance || !sh.Handle() || pts.empty()) return;
@@ -446,6 +523,26 @@ Control UICornerstone::CreateHandleControl(Control target, float x, float y, flo
     if (!m_impl->instance) return Control();
     return MakeControl(Dyn::API().fnCreateHandleControl(m_impl->instance,
         target.Handle(), x, y, w, h, xScale, yScale));
+}
+
+bool UICornerstone::SetHandleTarget(Control handle, Control target) {
+    if (!m_impl->instance) return false;
+    return Dyn::API().fnSetHandleTarget(m_impl->instance, handle.Handle(), target.Handle()) != 0;
+}
+
+bool UICornerstone::HandleHitTest(Control handle, float x, float y, int& outHandleType) {
+    if (!m_impl->instance) return false;
+    return Dyn::API().fnHandleHitTest(m_impl->instance, handle.Handle(), x, y, &outHandleType) != 0;
+}
+
+bool UICornerstone::SetHandleRectFilter(Control handle, UIHandleRectFilter filter, void* userData) {
+    if (!m_impl->instance) return false;
+    return Dyn::API().fnSetHandleRectFilter(m_impl->instance, handle.Handle(), filter, userData) != 0;
+}
+
+bool UICornerstone::SetHandleMoveVisible(Control handle, bool show) {
+    if (!m_impl->instance) return false;
+    return Dyn::API().fnSetHandleMoveVisible(m_impl->instance, handle.Handle(), show ? 1 : 0) != 0;
 }
 
 void UICornerstone::MenuBarAddMenu(Control& bar, const std::string& caption, Control& panel) {
@@ -614,6 +711,65 @@ int UICornerstone::ListViewAddColumn(Control& lv, const std::string& title, floa
 bool UICornerstone::ListViewSetColumnWidth(Control& lv, int index, float width) {
     if (!m_impl->instance || !lv.Handle()) return false;
     return Dyn::API().fnListViewSetColumnWidth(m_impl->instance, lv.Handle(), index, width) != 0;
+}
+bool UICornerstone::ListViewInsertRow(Control& lv, int index, const std::string& id,
+                                      const std::vector<std::string>& cells) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    std::vector<const char*> ptrs;
+    ptrs.reserve(cells.size());
+    for (auto& c : cells) ptrs.push_back(c.c_str());
+    return Dyn::API().fnListViewInsertRow(m_impl->instance, lv.Handle(), index, id.c_str(),
+        static_cast<int>(ptrs.size()), ptrs.data()) != 0;
+}
+bool UICornerstone::ListViewSetRowCells(Control& lv, int index, const std::vector<std::string>& cells) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    std::vector<const char*> ptrs;
+    ptrs.reserve(cells.size());
+    for (auto& c : cells) ptrs.push_back(c.c_str());
+    return Dyn::API().fnListViewSetRowCells(m_impl->instance, lv.Handle(), index,
+        static_cast<int>(ptrs.size()), ptrs.data()) != 0;
+}
+int UICornerstone::ListViewInsertColumn(Control& lv, int index, const std::string& title, float width, bool sortable) {
+    if (!m_impl->instance || !lv.Handle()) return -1;
+    return Dyn::API().fnListViewInsertColumn(m_impl->instance, lv.Handle(), index, title.c_str(), width, sortable ? 1 : 0);
+}
+bool UICornerstone::ListViewRemoveColumn(Control& lv, int index) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewRemoveColumn(m_impl->instance, lv.Handle(), index) != 0;
+}
+bool UICornerstone::ListViewSetRowLeadingControl(Control& lv, int index, Control& iconControl) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetRowLeadingControl(m_impl->instance, lv.Handle(), index, iconControl.Handle()) != 0;
+}
+bool UICornerstone::ListViewSetCellLeadingControl(Control& lv, int row, int col, Control& ctl) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetCellLeadingControl(m_impl->instance, lv.Handle(), row, col, ctl.Handle()) != 0;
+}
+bool UICornerstone::ListViewSetCellStyle(Control& lv, int row, int col, UIColor bg, int fontSize) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetCellStyle(m_impl->instance, lv.Handle(), row, col,
+        bg.r, bg.g, bg.b, bg.a, fontSize) != 0;
+}
+bool UICornerstone::ListViewSetColumnHeaderStyle(Control& lv, int colIndex, UIColor color, int fontSize) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetColumnHeaderStyle(m_impl->instance, lv.Handle(), colIndex,
+        color.r, color.g, color.b, color.a, fontSize) != 0;
+}
+bool UICornerstone::ListViewSetColumnIcon(Control& lv, int colIndex, Control& iconControl) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetColumnIcon(m_impl->instance, lv.Handle(), colIndex, iconControl.Handle()) != 0;
+}
+bool UICornerstone::ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetColumnSorter(m_impl->instance, lv.Handle(), colIndex, cmp, userData) != 0;
+}
+bool UICornerstone::ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    std::vector<const char*> ptrs;
+    ptrs.reserve(values.size());
+    for (auto& v : values) ptrs.push_back(v.c_str());
+    return Dyn::API().fnListViewSetColumnValues(m_impl->instance, lv.Handle(), colIndex,
+        static_cast<int>(ptrs.size()), ptrs.data()) != 0;
 }
 
 // ── LuotiAni 动画操作 ──

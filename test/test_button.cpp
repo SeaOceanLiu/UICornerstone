@@ -67,13 +67,13 @@ void testBenchInitialize(shared_ptr<Bench>) {
     g_button1->create();
     BENCH->addControl(g_button1);
 
-    // 属性读回：caption-size 写 24 → 读 24（P0 getter 补齐验证）
-    g_button1->setFloatProperty("caption-size", 24.f);
-    float cbFs = 0.f;
-    if (g_button1->getFloatProperty("caption-size", cbFs) == 1 && cbFs == 24.f) {
-        printf("PASS: Button caption-size roundtrip = 24\n");
+    // 属性读回：font-size 写 24 → 读 24（Button 标题字号统一 font-size）
+    g_button1->setIntProperty("font-size", 24);
+    int cbFs = 0;
+    if (g_button1->getIntProperty("font-size", cbFs) == 1 && cbFs == 24) {
+        printf("PASS: Button font-size roundtrip = 24\n");
     } else {
-        printf("FAIL: Button caption-size readback = %.1f\n", cbFs);
+        printf("FAIL: Button font-size readback = %.1f\n", cbFs);
     }
     g_button1->setStringProperty("caption", "readback");
     const char* cbCap = nullptr;

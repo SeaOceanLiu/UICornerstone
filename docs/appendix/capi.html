@@ -45,11 +45,26 @@
 <tr><td><code>UICornerstone_SetViewportScaleMode(inst, mode)</code></td><td>视口缩放模式：0=off（画布跟随窗口）1=fit（等比居中）2=stretch（拉伸铺满）</td></tr>
 </table>
 
+<h3>8.1.1 后端能力位宏</h3>
+<table>
+<tr><th>宏（<code>include/UICornerstoneAPI.h</code>）</th><th>位</th><th>语义</th></tr>
+<tr><td><code>UICORN_BACKEND_CAP_MULTI_WINDOW</code></td><td>1u &lt;&lt; 0</td><td>多实例独立窗口渲染（Raylib 单窗口架构不声明）</td></tr>
+<tr><td><code>UICORN_BACKEND_CAP_RENDER_TARGET</code></td><td>1u &lt;&lt; 1</td><td>渲染目标（RTT）</td></tr>
+<tr><td><code>UICORN_BACKEND_CAP_CLIP_RECT</code></td><td>1u &lt;&lt; 2</td><td>裁剪矩形</td></tr>
+<tr><td><code>UICORN_BACKEND_CAP_READBACK</code></td><td>1u &lt;&lt; 3</td><td>像素回读（readPixels）</td></tr>
+<tr><td><code>UICORN_BACKEND_CAP_WINDOW_SET_SIZE</code></td><td>1u &lt;&lt; 4</td><td>运行期 <code>SetWindowSize</code> 可用（v1.1.1 增；headless 实例返回 0）</td></tr>
+</table>
+
 <h2>8.2 布局加载</h2>
 
 <table>
 <tr><th>函数</th><th>说明</th></tr>
 <tr><td><code>UICornerstone_FindControl(inst, id)</code></td><td>按 id 查找控件句柄</td></tr>
+<tr><td><code>UICornerstone_SetControlId(inst, ctl, id)</code></td><td>给编程式创建的控件设置 id（注册到实例 id 表，供 FindControl 查询；<code>id</code> 空串移除该控件名下全部 id——空串移除幂等）</td></tr>
+<tr><td><code>UICornerstone_SetHandleTarget(inst, handle, target)</code></td><td>切换手柄附加目标（NULL = detach：移出容器+恢复光标）</td></tr>
+<tr><td><code>UICornerstone_HandleHitTest(inst, handle, x, y, &amp;type)</code></td><td>手柄命中查询（None=0、Move=1、NW=2…W=9；命中返回 1）</td></tr>
+<tr><td><code>UICornerstone_SetHandleRectFilter(inst, handle, filter, user)</code></td><td>拖拽几何过滤回调（局部坐标 io 修正，返回 1 用修正值；吸附/对齐线扩展点）</td></tr>
+<tr><td><code>UICornerstone_SetHandleMoveVisible(inst, handle, show)</code></td><td>Move 手柄可见性开关</td></tr>
 <tr><td><code>UICornerstone_LoadLayout(inst, json)</code></td><td>从内存 JSON 字符串加载布局</td></tr>
 <tr><td><code>UICornerstone_LoadLayoutFromFile(inst, path)</code></td><td>从文件加载布局</td></tr>
 <tr><td><code>UICornerstone_RegisterAction(inst, name, cb, user)</code></td><td>注册 JSON 事件处理器</td></tr>
@@ -99,7 +114,8 @@
 
 <table>
 <tr><th>函数</th><th>作用</th></tr>
-<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter</code></td><td>ListView 数据/列/样式/排序专用</td></tr>
+<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter / ListViewSetColumnHeaderStyle / ListViewSetColumnValues</code></td><td>ListView 数据/列/样式/排序专用</td></tr>
+<tr><td><code>TreeViewAddNode / TreeViewRemoveNode / TreeViewClearItems / TreeViewSelectNode / TreeViewGetSelectedId / TreeViewClearSelection / TreeViewExpandNode / TreeViewCollapseNode / TreeViewExpandAll / TreeViewCollapseAll / TreeViewSetNodeLabel / TreeViewSetNodeUserData</code></td><td>TreeView 节点操作（亦可走 8.4.1 item-id 属性模式）</td></tr>
 <tr><td><code>ContextMenuAddItem / ContextMenuAddSeparator / ContextMenuShow / ContextMenuClose</code> + <code>SetPtr("context-menu")</code></td><td>ContextMenu 组装与显示/绑定</td></tr>
 <tr><td><code>StatusBarAddItem / StatusBarSetItemText / StatusBarRemoveItem / StatusBarSetItemMenu / StatusBarSetItemIcon</code></td><td>StatusBar 段操作</td></tr>
 <tr><td><code>TabAddPage / TabSetTitle / TabSetPage / TabSetTabLeadingControl</code></td><td>TabControl 页操作</td></tr>
@@ -237,7 +253,7 @@ floatVal / doubleVal / intVal / strVal / ptrVal / selection{idx,val}
 } UIInstanceConfig;             /* UI_INSTANCE_CONFIG_DEFAULT */
 
 UICornerstone_SetBackendConfig(inst, key, value)      /* inst=NULL 为全局默认 */
-UICornerstone_SetBackendConfigInt / SetBackendConfigBool
+UICornerstone_SetBackendConfigInt / SetBackendConfigBool / GetBackendConfigInt / GetBackendConfigBool
 UICornerstone_GetBackendConfig(inst, key, char*, len) /* 只读查询 */</code></pre>
 
 <h2>8.8 内存资源（MemoryResourceProvider）</h2>
@@ -295,14 +311,6 @@ UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0);</code></pre>
 
 </div>
 
-<h3>8.1.1 后端能力位宏</h3>
-<table>
-<tr><th>宏（<code>include/UICornerstoneAPI.h</code>）</th><th>位</th><th>语义</th></tr>
-<tr><td><code>UICORN_BACKEND_CAP_MULTI_WINDOW</code></td><td>1u &lt;&lt; 0</td><td>多实例独立窗口渲染（Raylib 单窗口架构不声明）</td></tr>
-<tr><td><code>UICORN_BACKEND_CAP_RENDER_TARGET</code></td><td>1u &lt;&lt; 1</td><td>渲染目标（RTT）</td></tr>
-<tr><td><code>UICORN_BACKEND_CAP_CLIP_RECT</code></td><td>1u &lt;&lt; 2</td><td>裁剪矩形</td></tr>
-<tr><td><code>UICORN_BACKEND_CAP_READBACK</code></td><td>1u &lt;&lt; 3</td><td>像素回读（readPixels）</td></tr>
-<tr><td><code>UICORN_BACKEND_CAP_WINDOW_SET_SIZE</code></td><td>1u &lt;&lt; 4</td><td>运行期 <code>SetWindowSize</code> 可用（v1.1.1 增；headless 实例返回 0）</td></tr>
-</table>
-</div>>
+</div>
+</body>
 </html>

@@ -1040,6 +1040,22 @@ UIControlHandle UICornerstone_FindControl(UIInstance instance, const char* id) {
     return (it != instance->controlsById.end()) ? it->second : nullptr;
 }
 
+// 给控件设置 id（注册到实例 controlsById，供 FindControl 查询）。
+// 工厂创建（CreateButton 等）默认不注册——编程式创建后需按 id 定位时调用。
+// id 空 → 移除注册（返回 1）。返回 1 成功 / 0 无效参数。
+int UICornerstone_SetControlId(UIInstance instance, UIControlHandle ctl, const char* id) {
+    if (!instance || !ctl) return 0;
+    if (id && id[0]) {
+        instance->controlsById[id] = ctl;
+    } else {
+        // 移除该控件名下所有 id（找不到也无害）
+        for (auto it = instance->controlsById.begin(); it != instance->controlsById.end();) {
+            it = (it->second == ctl) ? instance->controlsById.erase(it) : std::next(it);
+        }
+    }
+    return 1;
+}
+
 void UICornerstone_RegisterAction(UIInstance instance, const char* name, UIActionCallback cb, void* userData) {
     if (instance && name) instance->actions[name] = {cb, userData};
 }
@@ -1082,7 +1098,7 @@ UIControlHandle UICornerstone_CreateCheckBox(UIInstance instance, const char* te
     if (!instance || !instance->initialized) return nullptr;
     auto ctl = std::make_shared<CheckBox>(instance->bench, SRect(x, y, w, h), xScale, yScale);
     ctl->createCaption();
-    if (text) ctl->getCaption()->setCaption(text);
+    if (text) ctl->setStringProperty(PropertyNames::kCaption, text);   // #15：经宿主字段（recreate 不丢）
     instance->bench->addControl(ctl);
     ctl->create();
     ctl->setVisible(true);
@@ -2317,7 +2333,56 @@ UIControlHandle UICornerstone_CreateHandleControl(UIInstance instance,
     hc->setScaleY(yScale);
     hc->create();
     hc->setTarget(targetV);
+    instance->handleControls.push_back(hc);   // 实例级保留：detach 不销毁，可重复 attach
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(hc.get()));
+}
+
+// ── HandleControl 集成扩展（第二批）──
+static HandleControl* asHandleControl(UIInstance instance, UIControlHandle handle) {
+    Control* c = validateControl(instance, handle);
+    return c ? dynamic_cast<HandleControl*>(c) : nullptr;
+}
+
+int UICornerstone_SetHandleTarget(UIInstance instance,
+    UIControlHandle handle, UIControlHandle target) {
+    if (!instance || !handle) return 0;
+    HandleControl* hc = asHandleControl(instance, handle);
+    if (!hc) return 0;
+    if (!target) { hc->detach(); return 1; }   // detach：自移出父容器 + 恢复光标
+    Control* targetV = validateControl(instance, target);
+    if (!targetV) return 0;
+    hc->setTarget(targetV);
+    return 1;
+}
+
+int UICornerstone_HandleHitTest(UIInstance instance,
+    UIControlHandle handle, float x, float y, int* outHandleType) {
+    if (!instance || !handle || !outHandleType) return 0;
+    HandleControl* hc = asHandleControl(instance, handle);
+    if (!hc) return 0;
+    *outHandleType = 0;
+    hc->updateHandleAreas();                       // 查询前强制刷新区域缓存（可能尚未 draw）
+    auto ht = hc->hitTestHandle(x, y);
+    *outHandleType = static_cast<int>(ht);
+    return (ht != HandleControl::HandleType::None) ? 1 : 0;
+}
+
+int UICornerstone_SetHandleRectFilter(UIInstance instance, UIControlHandle handle,
+    UIHandleRectFilter filter, void* userData) {
+    if (!instance || !handle) return 0;
+    HandleControl* hc = asHandleControl(instance, handle);
+    if (!hc) return 0;
+    // 核心层 RectFilter 与 UIHandleRectFilter 签名一致（target 均为 void*，值为 Control* 句柄）。
+    hc->setRectFilter(filter, userData);
+    return 1;
+}
+
+int UICornerstone_SetHandleMoveVisible(UIInstance instance, UIControlHandle handle, int show) {
+    if (!instance || !handle) return 0;
+    HandleControl* hc = asHandleControl(instance, handle);
+    if (!hc) return 0;
+    hc->setMoveHandleVisible(show != 0);
+    return 1;
 }
 
 // ============================================================

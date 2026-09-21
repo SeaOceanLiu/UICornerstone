@@ -38,6 +38,7 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Object</td><td>{enabled:false}</td><td>文字阴影 <code>{enabled, offset:{x,y}}</code>（#12 统一键；转发内部 caption，随控件状态）</td></tr>
 <tr><td><code>box-border-color</code></td><td><code>kBoxBorder</code></td><td>Color</td><td>RGB(83,83,90)</td><td>复选框边框颜色</td></tr>
 <tr><td><code>check-color</code></td><td><code>kCheck</code></td><td>Color</td><td>RGB(76,175,80)</td><td>勾选符号颜色</td></tr>
 <tr><td><code>check-state</code></td><td><code>kCheckState</code></td><td>Enum</td><td><code>kCheckUnchecked</code></td><td><code>kCheckUnchecked</code> / <code>kCheckChecked</code> / <code>kCheckIndeterminate</code></td></tr>
@@ -52,10 +53,14 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 
-<p>JSON 键：<code>caption</code>、<code>captionSize</code> 由布局解析器直接写入内部 Label。</p>
+<p>JSON 键：<code>caption</code>、<code>font-size</code>（标题字号）由布局解析器直接写入内部 Label。</p>
 
 
 <h2>4.4.3 控件的回调</h2>
+
+<p class="note">内部标题（caption）各态色经 <code>caption-label</code> 句柄设置（<code>GetPtr("caption-label")</code> → 直控 Label）；各态随 CheckBox 状态（hover/pressed/disabled）自动生效。</p>
+
+<p class="note">CheckBox <strong>不派发</strong> <code>click</code> / <code>kEventClick</code>——点击（含键盘触发）统一由 <code>check-changed</code> 表达状态变化。需要点击逻辑时请使用 <code>check-changed</code>。</p>
 
 <table>
 <tr><th>事件名</th><th>事件常量</th><th>触发时机</th><th>参数</th></tr>
@@ -68,7 +73,7 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 <pre><code>{
   "type": "check-box", "id": "agreeCheck",
   "rect": { "x": 240, "y": 432, "w": 180, "h": 30 },
-  "caption": "I agree", "caption-size": 14,
+  "caption": "I agree", "font-size": 14,
   "check-state": "unchecked",
   "style": "classic", "layout": "text-right",
   "events": { "onCheckChanged": "onAgreeChanged" }

@@ -43,13 +43,13 @@
 <table>
 <tr><th>键</th><th>说明</th></tr>
 <tr><td><code>children</code></td><td>子控件数组（容器类型）</td></tr>
-<tr><td><code>colors</code></td><td>状态色对象：<code>{"background":{"normal","hover","pressed","disabled"}}</code>，含 text / border / textShadow / 控件特有键</td></tr>
+<tr><td><code>colors</code></td><td>状态色对象：<code>{"background":{"normal","hover","pressed","disabled"}}</code>，含 text / border / text-shadow / 控件特有键</td></tr>
 <tr><td><code>events</code></td><td><code>{"onClick":"handlerName"}</code> 引用已注册处理器</td></tr>
 <tr><td><code>id</code></td><td>全局唯一标识，供 <code>FindControl</code> / <code>findControlById</code> 查找</td></tr>
 <tr><td><code>margin</code></td><td><code>{"left","top","right","bottom"}</code></td></tr>
 <tr><td><code>rect</code></td><td><code>{"x","y","w","h"}</code>；支持百分比字符串（<code>"50%"</code>）</td></tr>
 <tr><td><code>scale</code></td><td><code>{"x":1.0,"y":1.0}</code> 本地缩放</td></tr>
-<tr><td><code>type</code></td><td>控件类型（kebab 小写）：<code>label</code> / <code>button</code> / <code>image</code> / <code>image-button</code> / <code>animation</code> / <code>edit-box</code> / <code>check-box</code> / <code>combo-box</code> / <code>context-menu</code>（控件级 contextMenu 键）/ <code>list-view</code> / <code>numeric-up-down</code> / <code>progress-bar</code> / <code>scroll-bar</code> / <code>shape</code> / <code>status-bar</code> / <code>tab-control</code> / <code>color-picker</code> / <code>text-area</code> / <code>panel</code> / <code>menu-bar</code> / <code>win-frame</code> / <code>splitter</code> / <code>tree-view</code></td></tr>
+<tr><td><code>type</code></td><td>控件类型（kebab 小写）：<code>label</code> / <code>button</code> / <code>image</code> / <code>image-button</code> / <code>animation</code> / <code>edit-box</code> / <code>check-box</code> / <code>combo-box</code> / <code>context-menu</code>（控件级 context-menu 键）/ <code>list-view</code> / <code>numeric-up-down</code> / <code>progress-bar</code> / <code>scroll-bar</code> / <code>shape</code> / <code>status-bar</code> / <code>tab-control</code> / <code>color-picker</code> / <code>text-area</code> / <code>panel</code> / <code>menu-bar</code> / <code>win-frame</code> / <code>splitter</code> / <code>tree-view</code></td></tr>
 <tr><td><code>visible</code> / <code>enabled</code></td><td>可见 / 启用</td></tr>
 </table>
 
@@ -77,7 +77,7 @@ ui->LoadLayout(layoutJson);</code></pre>
 <pre><code>"layout": { "type": "h-flow", "gap": 4,
              "padding": { "left": 4, "top": 4, "right": 4, "bottom": 4 } }</code></pre>
 
-<p>子控件以 <code>flowWeight</code> 弹性分配剩余空间（&gt;0 弹性，0/缺省为固定尺寸）。</p>
+<p>子控件以 <code>flow-weight</code> 弹性分配剩余空间（&gt;0 弹性，0/缺省为固定尺寸）。</p>
 
 <pre><code>{
   "type": "panel", "id": "formPanel",
@@ -244,14 +244,14 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
 // ② 动画描述 path
 { "type": "animation", "path": "provider:bomb-ani" }
 
-// ③ 独立图片节点（Actor）：image 键（文件路径）或 imageResource / providerName（内存资源 ID）
+// ③ 独立图片节点（Actor）：image 键（文件路径）或 image-resource / providerName（内存资源 ID）
 { "type": "image", "id": "hero", "rect": { "x": 20, "y": 20, "w": 128, "h": 128 },
   "image": "assets/images/cross_up.png", "scale-type": "fit-center" }
 { "type": "image", "rect": { "x": 160, "y": 20, "w": 64, "h": 64 },
   "providerName": "cross-down", "match-parent-rect": false }</code></pre>
- <p><strong>通用字体键（v1.1.1）</strong>：任意控件均可在其 JSON 上声明 <code>font</code>（对象 <code>{name, size}</code>）或便捷键 <code>fontSize</code>：
+ <p><strong>通用字体键（v1.1.1）</strong>：任意控件均可在其 JSON 上声明 <code>font</code>（对象 <code>{name, size}</code>）或便捷键 <code>font-size</code>：
  未声明时沿<b>父控件链继承</b>最近一次显式字体（含字号），父控件自身未声明时沿用主题默认。示例：Panel 上 <code>font:{size:20}</code> → 其内 Label/EditBox/TreeView/ListView 等无字体声明的子控件自动 20；子级 <code>font:{size:24}</code> 覆盖。字串形式（<code>font-name</code> 枚举）用于部分控件的 <code>name</code> 子键。</p>
-  <p>继承细节：仅当祖先<b>显式声明 <code>font.name</code></b> 时才会把字体名传给子控件；父只声明 <code>fontSize</code>（未声明 name）时，子控件保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
+  <p>继承细节：仅当祖先<b>显式声明 <code>font.name</code></b> 时才会把字体名传给子控件；父只声明 <code>font-size</code>（未声明 name）时，子控件保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
 <table>
 <tr><th>控件</th><th>继承方式</th></tr>
@@ -262,7 +262,7 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
 </table>
 
 
-<p>Label 字体三形态（<code>font</code> 枚举、<code>fontResource</code> 内存资源、<code>fontFile</code> 任意路径）与字符串属性互斥覆盖，均可带 <code>provider:</code> 前缀：</p>
+<p>Label 字体三形态（<code>font</code> 枚举、<code>font-resource</code> 内存资源、<code>font-file</code> 任意路径）与字符串属性互斥覆盖，均可带 <code>provider:</code> 前缀：</p>
 
 <pre><code>{ "type": "label", "caption": "Hello",
   "font-resource": "maple-font", "font-size": 20 }        // 内存注册的字体 ID

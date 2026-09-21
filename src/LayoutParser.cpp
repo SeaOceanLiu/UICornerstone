@@ -845,11 +845,11 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
     m_theme.applyCommonColors(btn, PropertyNames::kThemeCatButton);
     parseCommonProperties(btn, j);
 
-    // captionLabel embedding (Phase 2): 使用完整 Label 配置
-    if (j.contains("captionLabel") && j[PropertyNames::kJsonCaptionLabel].is_object()) {
-        pushJsonPath(PropertyNames::kJsonCaptionLabel);
+    // caption-label embedding (Phase 2): 使用完整 Label 配置（键与运行时属性键同键同常量）
+    if (j.contains(PropertyNames::kCaptionLabel) && j[PropertyNames::kCaptionLabel].is_object()) {
+        pushJsonPath(PropertyNames::kCaptionLabel);
 
-        const json& cl = j[PropertyNames::kJsonCaptionLabel];
+        const json& cl = j[PropertyNames::kCaptionLabel];
 
         auto builder = LabelBuilder(btn.get(), SRect(0, 0, rect.width, rect.height));
 
@@ -914,13 +914,10 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             btn->setCaption(j[PropertyNames::kCaption].get<string>());
         }
 
-        if (j.contains(PropertyNames::kCaptionSize) && j[PropertyNames::kCaptionSize].is_number()) {
-            btn->setCaptionSize(j[PropertyNames::kCaptionSize].get<float>());
+        if (j.contains(PropertyNames::kFontSize) && j[PropertyNames::kFontSize].is_number()) {
+            btn->setCaptionSize(j[PropertyNames::kFontSize].get<float>());
         }
 
-        if (j.contains("enableTextShadow") && j[PropertyNames::kJsonEnableTextShadow].is_boolean()) {
-            btn->setTextShadowEnable(j[PropertyNames::kJsonEnableTextShadow].get<bool>());
-        }
     }
 
     // Actors (state images)
@@ -1537,6 +1534,7 @@ shared_ptr<WinFrame> LayoutParser::parseWinFrame(const json& j, Control* parent)
     }
 
     // Events
+    applyShadowDecl(std::static_pointer_cast<ControlImpl>(winFrame), j);   // #12：win-frame 不走 common，显式应用 shadow
     parseEvents(static_pointer_cast<ControlImpl>(winFrame), j);
 
     winFrame->create();
@@ -1837,14 +1835,14 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
     parseCommonProperties(checkBox, j);
 
     if (j.contains(PropertyNames::kCaption) && j[PropertyNames::kCaption].is_string()) {
-        checkBox->getCaption()->setCaption(j[PropertyNames::kCaption].get<string>());
+        checkBox->setStringProperty(PropertyNames::kCaption, j[PropertyNames::kCaption].get<string>().c_str());   // #15：经宿主字段
     }
 
     int cbFontSize = m_theme.getFontSize(PropertyNames::kThemeCatCheckBox);
-    checkBox->getCaption()->setFontSize(cbFontSize);
+    checkBox->setCaptionSize((float)cbFontSize);   // #15：经宿主字段（recreate 不回落）
 
-    if (j.contains(PropertyNames::kCaptionSize) && j[PropertyNames::kCaptionSize].is_number()) {
-        checkBox->getCaption()->setFontSize(j[PropertyNames::kCaptionSize].get<int>());
+    if (j.contains(PropertyNames::kFontSize) && j[PropertyNames::kFontSize].is_number()) {
+        checkBox->setCaptionSize(j[PropertyNames::kFontSize].get<float>());   // #15：经宿主字段
     }
 
     if (j.contains(PropertyNames::kCheckState) && j[PropertyNames::kCheckState].is_string()) {
@@ -2564,6 +2562,24 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
 
     // 字体键（font{name,size} / font-size / fontSize）统一解析（显式声明）
     applyFontDecl(ctrl, j);
+
+    applyShadowDecl(ctrl, j);
+}
+
+// #12：通用 shadow 对象解析（{enabled, offset:{x,y}}；经属性系统转发内部 Label）
+void LayoutParser::applyShadowDecl(std::shared_ptr<ControlImpl> ctl, const json& j) {
+    if (!ctl) return;
+    if (!(j.contains(PropertyNames::kShadow) && j[PropertyNames::kShadow].is_object())) return;
+    const json& sh = j[PropertyNames::kShadow];
+    if (sh.contains(PropertyNames::kEnabled) && sh[PropertyNames::kEnabled].is_boolean())
+        ctl->setBoolProperty(PropertyNames::kShadow, sh[PropertyNames::kEnabled].get<bool>() ? 1 : 0);
+    if (sh.contains(PropertyNames::kJsonOffset) && sh[PropertyNames::kJsonOffset].is_object()) {
+        const json& off = sh[PropertyNames::kJsonOffset];
+        if (off.contains(PropertyNames::kJsonX) && off[PropertyNames::kJsonX].is_number())
+            ctl->setFloatProperty(PropertyNames::kShadowOffsetX, off[PropertyNames::kJsonX].get<float>());
+        if (off.contains(PropertyNames::kJsonY) && off[PropertyNames::kJsonY].is_number())
+            ctl->setFloatProperty(PropertyNames::kShadowOffsetY, off[PropertyNames::kJsonY].get<float>());
+    }
 }
 
 // 应用字体到支持的控件（继承/显式共用；仅设置，不写 context）

@@ -114,6 +114,9 @@ public:
     int getFontSize(void) const { return m_fontSize; }
     void setShadow(bool enabled);
     void setShadowOffset(SPoint offset);
+    // 阴影状态读取（#12：宿主属性转发读；单一事实来源 = Label 自身）
+    bool isShadowEnabled() const { return m_shadowEnabled; }
+    SPoint getShadowOffset() const { return m_shadowOffset; }
     void setOnClick(OnClickHandler handler);
     void setOnPropertyChanged(OnPropertyChangedHandler handler);
 

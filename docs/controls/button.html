@@ -41,9 +41,9 @@ UIControlHandle btn = UICornerstone_CreateButton(g_inst, "OK", 20, 20, 120, 36, 
 <tr><td><code>text</code></td><td><code>kText</code></td><td>StateColor</td><td>主题</td><td>通用状态色（JSON 中支持 .hover/.pressed/.disabled 子键）</td></tr>
 <tr><td><code>text-shadow</code></td><td><code>kTextShadow</code></td><td>StateColor</td><td>主题</td><td>通用状态色（JSON 中支持 .hover/.pressed/.disabled 子键）</td></tr>
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>空</td><td>标题文本</td></tr>
-<tr><td><code>caption-size</code></td><td><code>kCaptionSize</code></td><td>Float</td><td>16</td><td>标题字号（仅布局 JSON 生效）</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td><td>标题字号（Button 的 caption 由 font-size 统一）</td></tr>
 <tr><td><code>luotiAni</code></td><td><code>kLuotiAni</code></td><td>String / {file}</td><td>—</td><td>JSON 布局键 / 属性系统 <code>SetPtr("luotiAni", ctl)</code>：内嵌动画：挂树后自动延迟 prepare，默认<strong>不自动播放</strong>——<code>SetBool("playing")=1</code> 启动；JSON 可声明 <code>"playing": true</code> 挂树后自动播放（prepare 前设置的播放请求不丢失，<code>animation</code> 属性则立即播放）</td></tr>
-<tr><td><code>text-shadow-enable</code></td><td><code>kTextShadowEnable</code></td><td>Bool</td><td>false</td><td>文字阴影开关</td></tr>
+<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Object</td><td>{enabled:false}</td><td>文字阴影 <code>{enabled, offset:{x,y}}</code>（#12 统一键；经属性系统转发内部 caption）</td></tr>
 <tr><td><code>visible</code></td><td><code>kVisible</code></td><td>Bool</td><td>—</td><td>通用属性</td></tr>
 <tr><td><code>enabled</code></td><td><code>kEnabled</code></td><td>Bool</td><td>—</td><td>通用属性</td></tr>
 <tr><td><code>transparent</code></td><td><code>kTransparent</code></td><td>Bool</td><td>—</td><td>通用属性</td></tr>
@@ -65,7 +65,7 @@ UIControlHandle btn = UICornerstone_CreateButton(g_inst, "OK", 20, 20, 120, 36, 
 <pre><code>{
   "type": "button", "id": "submitBtn",
   "rect": { "x": 280, "y": 140, "w": 100, "h": 35 },
-  "caption": "Submit", "caption-size": 16,
+  "caption": "Submit", "font-size": 16,
   "colors": {
     "background": { "normal": "#4060A0FF", "hover": "#5080C0FF", "pressed": "#305090FF" },
     "border": { "normal": "#6080C0FF" },
@@ -133,6 +133,25 @@ UICornerstone_DestroyControl(g_inst, btn);   // 不再需要时销毁</code></pr
 
 
 
+
+<h2>内部 caption Label 的直控（caption-label）</h2>
+
+<p>Button 的文本由内部 caption Label 绘制；通用单色 <code>SetColor("text" / "text-shadow")</code> 作用于 Button 自身字段，不改变 caption 显示。需要控制 caption 的颜色/字体/对齐时，经 <code>caption-label</code> 句柄直控其标准属性：</p>
+
+<pre><code>// C ABI：读内部 Label 句柄 → 直控标准属性
+void* cap = NULL;
+UICornerstone_GetPtr(inst, btn, "caption-label", &amp;cap);
+UIColor red = { 255, 0, 0, 255 };
+UICornerstone_SetColor(inst, cap, "text", red);            // 单色
+UICornerstone_SetStateColor(inst, cap, "text", stateColor);// 或 4 态
+
+// C++ Binding
+Control cap = ui-&gt;FromHandle(btn.GetPtr("caption-label"));
+cap.SetColor(PropertyNames::kText, color);
+cap.SetInt(PropertyNames::kFontSize, 18);
+</code></pre>
+
+<p class="note">各态色（<code>text.hover</code>/<code>.pressed</code>/<code>.disabled</code>、<code>text-shadow.*</code>）随 Button 状态自动生效（hover/按下/禁用时 caption 跟随取色）。句柄约定：<code>GetPtr</code> 返回控件句柄（可直接用于任一控件属性 API）；非 Button 控件无此键（返回 0）。JSON 布局键 <code>caption-label</code> 与运行时属性键同键（同常量 <code>kCaptionLabel</code>），<code>"caption-label": { caption, font, alignment }</code> 自定义配置随 LoadLayout 生效。</p>
 
 <div class="chapter-nav">
   <a href="bench.html">← 4.2 Bench（测试台/根）</a>

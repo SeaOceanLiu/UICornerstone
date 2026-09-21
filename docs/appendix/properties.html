@@ -37,7 +37,7 @@
 <tr><td><code>focus-ring-style</code></td><td><code>kFocusRingStyle</code></td><td>Enum</td><td>焦点环样式（<code>solid</code> / <code>dashed</code>）</td></tr>
 <tr><td><code>focus-boundary</code></td><td><code>kFocusBoundary</code></td><td>Bool</td><td>焦点边界</td></tr>
 <tr><td><code>tab-index</code></td><td><code>kTabIndex</code></td><td>Int</td><td>Tab 键顺序</td></tr>
-<tr><td><code>state</code></td><td><code>kState</code></td><td>Enum</td><td>控件状态（<code>kFontStyleNormal</code> / <code>hover</code> / <code>pressed</code> / <code>disabled</code>）</td></tr>
+<tr><td><code>state</code></td><td><code>kState</code></td><td>Enum</td><td>控件状态（<code>kStateKeyNormal</code> / <code>hover</code> / <code>pressed</code> / <code>disabled</code>）</td></tr>
 <tr><td><code>always-on-top</code></td><td><code>kAlwaysOnTop</code></td><td>Bool</td><td>始终置顶</td></tr>
 <tr><td><code>control-type</code></td><td><code>kControlType</code></td><td>String</td><td>控件类型（只读，如 <code>kControlTypeButton</code> / <code>kControlTypeLabel</code>）</td></tr>
 <tr><td><code>debug-draw</code></td><td><code>kDebugDraw</code></td><td>Bool</td><td>调试绘制（Label 等）</td></tr>
@@ -46,6 +46,7 @@
 <tr><td><code>margin-right</code></td><td><code>kMarginRight</code></td><td>Float</td><td>外边距分量</td></tr>
 <tr><td><code>margin-bottom</code></td><td><code>kMarginBottom</code></td><td>Float</td><td>外边距分量</td></tr>
 </table>
+<p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。</p>
 
 <h2>7.2 按控件速查（字母序）</h2>
 
@@ -78,23 +79,25 @@
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>animation</code></td><td><code>kAnimation</code></td><td>String</td><td>—（LuotiAni 路径，加载即播放）</td></tr>
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>空</td></tr>
-<tr><td><code>caption-size</code></td><td><code>kCaptionSize</code></td><td>Float</td><td>16（JSON 键 <code>captionSize</code>；<strong>仅布局 JSON 生效</strong>）</td></tr>
+<tr><td><code>caption-label</code></td><td><code>kCaptionLabel</code></td><td>Object / 句柄</td><td>—</td><td>内部标题 Label：JSON 对象配置（caption/font/alignment）；运行时 <code>GetPtr</code> 读句柄直控其标准属性（颜色/字体/对齐，各态色随控件状态生效）</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td><td>标题字号（Button 标题，与通用 font-size 统一）</td></tr>
 <tr><td><code>normal-image</code></td><td><code>kNormalImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
 <tr><td><code>hover-image</code></td><td><code>kHoverImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
 <tr><td><code>pressed-image</code></td><td><code>kPressedImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
 <tr><td><code>disabled-image</code></td><td><code>kDisabledImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
-<tr><td><code>text-shadow-enable</code></td><td><code>kTextShadowEnable</code></td><td>Bool</td><td>false</td></tr>
+<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Object</td><td>{enabled:false}</td></tr>
 </table>
 
 <h3>CheckBox（类型 <code>check-box</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>check</code></td><td><code>kCheck</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
-<tr><td><code>cross</code></td><td><code>kCross</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
-<tr><td><code>indeterminate</code></td><td><code>kIndeterminate</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
-<tr><td><code>box-border</code></td><td><code>kBoxBorder</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
+<tr><td><code>check-color</code></td><td><code>kCheck</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
+<tr><td><code>cross-color</code></td><td><code>kCross</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
+<tr><td><code>indeterminate-color</code></td><td><code>kIndeterminate</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
+<tr><td><code>box-border-color</code></td><td><code>kBoxBorder</code></td><td>Color</td><td>绿 / 红 / 灰 / 深灰</td></tr>
 <tr><td><code>check-state</code></td><td><code>kCheckState</code></td><td>Enum</td><td><code>kCheckUnchecked</code> / <code>kCheckChecked</code> / <code>kCheckIndeterminate</code></td></tr>
 <tr><td><code>checked</code></td><td><code>kChecked</code></td><td>Bool</td><td>false</td></tr>
+<tr><td><code>caption-label</code></td><td><code>kCaptionLabel</code></td><td>Ptr（只读）</td><td>内部 caption Label 句柄（<code>GetPtr</code> 直控；各态色随控件状态生效）</td></tr>
 <tr><td><code>layout</code></td><td><code>kLayout</code></td><td>Enum</td><td><code>kLayoutTextRight</code> / <code>kLayoutTextLeft</code></td></tr>
 <tr><td><code>size-ratio</code></td><td><code>kSizeRatio</code></td><td>Float</td><td>1.0</td></tr>
 <tr><td><code>style</code></td><td><code>kCheckBoxStyle</code></td><td>Enum</td><td><code>kStyleClassic</code> / <code>kStyleCross</code> / <code>kStyleCircle</code></td></tr>
@@ -105,7 +108,7 @@
 <h3>ColorPicker（类型 <code>color-picker</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>closed-font-size</code></td><td><code>kClosedFontSize</code></td><td>Int</td><td>12</td></tr>
+<tr><td><code>closed-font-size</code></td><td><code>kClosedFontSize</code></td><td>Float</td><td>12</td></tr>
 <tr><td><code>closed-swatch-size</code></td><td><code>kClosedSwatchSize</code></td><td>Float</td><td>16</td></tr>
 <tr><td><code>closed-text</code></td><td><code>kClosedText</code></td><td>Color</td><td>#DBDBDB / #3C3C41</td></tr>
 <tr><td><code>popup-bg</code></td><td><code>kPopupBG</code></td><td>Color</td><td>#DBDBDB / #3C3C41</td></tr>
@@ -138,12 +141,12 @@
 <tr><td><code>text</code></td><td><code>kTextContent</code></td><td>String</td><td>空</td></tr>
 </table>
 
-<h3>ContextMenu（右键菜单，绑定在任意控件的 <code>contextMenu</code> 键上）</h3>
+<h3>ContextMenu（右键菜单，绑定在任意控件的 <code>context-menu</code> 键上）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>context-menu</code></td><td><code>kPropContextMenu</code></td><td>Ptr</td><td>绑定在任意控件上的右键菜单（属性系统键）</td></tr>
 </table>
-<p>ContextMenu 为行为型浮层无独立属性系统键；菜单项内容/样式由 MenuPanel/MenuItem 体系承载（JSON <code>contextMenu.items[]</code>：<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
+<p>ContextMenu 为行为型浮层无独立属性系统键；菜单项内容/样式由 MenuPanel/MenuItem 体系承载（JSON <code>context-menu.items[]</code>：<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
 <h3>Dialog / Popup / ConfirmPopup（类型 <code>dialog</code> / <code>popup</code> / <code>confirm-popup</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
@@ -431,7 +434,7 @@ item 增强：<code>leadingControl</code>（行前置控件容器，复用控件
 <tr><td><code>resizable</code></td><td><code>kResizable</code></td><td>Bool</td><td>true</td></tr>
 <tr><td><code>title</code></td><td><code>kTitle</code></td><td>String</td><td>"WinFrame"</td></tr>
 <tr><td><code>title-bar</code></td><td><code>kTitleBar</code></td><td>Ptr（只读）</td><td>子控件句柄</td></tr>
-<tr><td><code>title-label</code></td><td><code>kTitleLabel</code></td><td>Ptr（只读）</td><td>子控件句柄</td></tr>
+<tr><td><code>title-label</code></td><td><code>kTitleLabel</code></td><td>Ptr（只读）</td><td>标题 Label 句柄（<code>GetPtr</code> 直控其标准属性；各态色随控件状态生效）</td></tr>
 <tr><td><code>close-button</code></td><td><code>kCloseButton</code></td><td>Ptr（只读）</td><td>子控件句柄</td></tr>
 <tr><td><code>client-panel</code></td><td><code>kClientPanel</code></td><td>Ptr（只读）</td><td>子控件句柄</td></tr>
 <tr><td><code>win-frame-bg</code></td><td><code>kWinFrameBG</code></td><td>Color</td><td>见 4.20 属性表</td></tr>
@@ -534,5 +537,6 @@ item 增强：<code>leadingControl</code>（行前置控件容器，复用控件
 </div>
 
 
-</div>>
+</div>
+</body>
 </html>

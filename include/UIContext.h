@@ -73,6 +73,9 @@ struct UIContext {
 
     // ── 动作与控件查找 ──
     std::unordered_map<std::string, std::pair<UIActionCallback, void*>> actions;
+    // HandleControl 实例级保留：C ABI 裸句柄场景下对象所有权在引擎（detach 移出容器不销毁，
+    // 设计器可对同一句柄反复 attach/detach）。随实例销毁级联释放。
+    std::vector<std::shared_ptr<class Control>> handleControls;
     std::unordered_map<std::string, UIControlHandle> controlsById;
 
     // ── 窗口 resize 用户回调（运行期窗口 API，§21）──

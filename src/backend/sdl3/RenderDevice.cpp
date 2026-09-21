@@ -103,8 +103,16 @@ public:
     }
 
     void pushClipRect(const SRect& rect) override {
-        m_clipStack.push_back(rect);
-        applyClipRect(rect);
+        // 嵌套裁剪：与栈顶相交（此前为替换语义——子控件自内容裁剪会覆盖祖先容器裁剪，导致滚动溢出）
+        SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
+        m_clipStack.push_back(r);
+        if (r.width <= 0.0f || r.height <= 0.0f) {
+            // 空相交：SDL 对 0 尺寸 rect 会【禁用裁剪】——改用渲染目标外 1x1 等价“什么都不绘制”
+            SDL_Rect sdlRect = { -1, -1, 1, 1 };
+            SDL_SetRenderClipRect(m_renderer, &sdlRect);
+        } else {
+            applyClipRect(r);
+        }
     }
 
     void popClipRect() override {

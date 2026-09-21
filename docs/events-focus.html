@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -49,11 +49,25 @@ UI_EVENT_WINDOW_RESIZE, UI_EVENT_WINDOW_CLOSE, UI_EVENT_FOCUS_GAINED, UI_EVENT_F
 <tr><td><code>enter</code></td><td>输入框回车</td><td>—</td></tr>
 <tr><td><code>moved</code></td><td>分割条拖拽结束</td><td><code>GetMovedPosition()</code></td></tr>
 <tr><td><code>position-changed</code></td><td>滚动条位置变化</td><td><code>GetPositionChanged()</code></td></tr>
+<tr><td><code>mouse-wheel</code></td><td>Panel 容器级滚轮（面板内且子控件未消费；载荷 Float=scrollY，+1 向上 / -1 向下）</td><td><code>GetValueChanged()</code></td></tr>
 <tr><td><code>select</code> / <code>expand</code> / <code>collapse</code></td><td>树视图选中/展开/折叠</td><td><code>GetNodeId()</code> / <code>GetNodeUserData()</code></td></tr>
 <tr><td><code>selection-changed</code></td><td>下拉框选中变化</td><td><code>GetSelectedIndex()</code> / <code>GetSelectedValue()</code></td></tr>
 <tr><td><code>text-changed</code></td><td>文本变化</td><td><code>GetTextChanged()</code></td></tr>
 <tr><td><code>value-changed</code></td><td>滑块/进度条/数值框值变化</td><td><code>GetValueChanged()</code></td></tr>
 </table>
+
+<h2>坐标参照系约定（事件 / 控件矩形）</h2>
+
+<p>引擎存在三套坐标域，混用是集成常见坑，明确如下：</p>
+
+<table>
+<tr><th>域</th><th>取得方式</th><th>说明</th></tr>
+<tr><td><b>父局部域</b></td><td><code>UICornerstone_GetRect</code> / 控件 <code>getRect()</code></td><td>控件矩形相对<b>直接父容器</b>的原值（即 JSON <code>rect</code> 语义）；布局设置（SetRect）亦用此域。</td></tr>
+<tr><td><b>窗口全局域</b></td><td><code>getDrawRect()</code>（引擎内部）/ <code>UICornerstone_HandleHitTest</code> 入参 / 手柄区域</td><td>父链递归累加后的屏幕坐标（视口根 rect 已含窗口位置）；<b>子视口场景不要再减视口偏移</b>。</td></tr>
+<tr><td><b>事件坐标</b></td><td><code>UIEvent</code> 的 <code>mousePos</code> / <code>mouseButton.x,y</code> / <code>mouseWheel.x,y</code></td><td>与<b>窗口全局域</b>一致（直接与 <code>getDrawRect</code> 比较命中，无需换算）。</td></tr>
+</table>
+
+<p class="note"><code>mouse-wheel</code> 回调载荷仅 <code>scrollY</code>（Float，+1 向上 / -1 向下），不含坐标；事件坐标域由引擎分发保证（命中判定用窗口全局域）。</p>
 
 <h2>3.5.4 Event 类通用访问器</h2>
 

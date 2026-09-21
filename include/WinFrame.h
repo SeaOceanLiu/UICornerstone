@@ -90,6 +90,8 @@ public:
     float getEdgeMargin() const { return m_edgeMargin; }
 
     void setTitle(const string& title);
+    // 状态联动：WinFrame 状态变化时同步内部标题 Label（Label::draw 按自身 state 取色；disabled 生效）
+    void setState(ControlState state) override;
     string getTitle() const { return m_title; }
     void addToClient(shared_ptr<Control> control);
 

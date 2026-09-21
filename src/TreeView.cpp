@@ -438,6 +438,11 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
         if (!isContainsPoint(event->mouseWheel.x, event->mouseWheel.y))
             return false;
 
+        // 无滚动余量（纵向与横向均无）：透传给容器，不空转消费
+        float vMax = (m_scrollBar && m_scrollBar->getVisible()) ? m_scrollBar->getMaxValue() : 0.f;
+        float hMax = (m_hScrollBar && m_hScrollBar->getVisible()) ? m_hScrollBar->getMaxValue() : 0.f;
+        if (vMax <= 0.f && hMax <= 0.f) return false;
+
         if (event->mouseWheel.scrollY != 0 && m_scrollBar) {
             float step = getStride() * ConstDef::TREEVIEW_SCROLL_STEP_LINES;
             float newOffset = m_scrollOffset - event->mouseWheel.scrollY * step;

@@ -807,21 +807,22 @@ bool ListView::handleEvent(shared_ptr<Event> event) {
         }
     }
 
-    // ── MouseWheel：滚动 ──
+    // ── MouseWheel：滚动（无滚动余量时透传，不空转消费）──
     if (event->m_type == EventType::MouseWheel && inside) {
+        const float vMax = max(0.f, getRowCount() * m_rowHeight -
+            (m_rect.height - ((m_viewMode == Mode::Multi) ? m_headerHeight : 0.f)));
+        const float hMax = max(0.f, totalContentWidth() - m_rect.width);
+        if (vMax <= 0.f && hMax <= 0.f) return false;
         if (event->mouseWheel.scrollY != 0.f && m_scrollBarV) {
             const float nv = std::clamp(
-                static_cast<float>(m_scrollOffsetV) - event->mouseWheel.scrollY * m_rowHeight * 3.f, 0.f,
-                max(0.f, getRowCount() * m_rowHeight -
-                    (m_rect.height - ((m_viewMode == Mode::Multi) ? m_headerHeight : 0.f))));
+                static_cast<float>(m_scrollOffsetV) - event->mouseWheel.scrollY * m_rowHeight * 3.f, 0.f, vMax);
             m_scrollOffsetV = static_cast<int>(nv);
             m_scrollBarV->setValue(nv);
             syncChildControls();
         }
         if (event->mouseWheel.scrollX != 0.f && m_scrollBarH) {
             const float nh = std::clamp(
-                m_hScrollOffset - event->mouseWheel.scrollX * 40.f, 0.f,
-                max(0.f, totalContentWidth() - m_rect.width));
+                m_hScrollOffset - event->mouseWheel.scrollX * 40.f, 0.f, hMax);
             m_hScrollOffset = nh;
             m_scrollBarH->setValue(nh);
             syncChildControls();

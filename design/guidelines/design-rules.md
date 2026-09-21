@@ -1,4 +1,4 @@
-# 设计规则
+﻿# 设计规则
 
 ## 1. 所有位置数据存储规则
 
@@ -28,3 +28,16 @@
   - 频繁 clip rect 切换（~50 控件 × 60fps = 6000 次/秒）虽性能可接受，但可能导致 GPU 批次刷新，降低绘制合并效率。
 - 仅当控件明确需要裁剪自身内容（如 EditBox 文本区、TextArea 滚动区、TreeView 行区域、ComboBox 下拉项文字）时才使用 push/popClipRect。
 
+## 5. 滚轮（MouseWheel）消费通则
+
+控件消费滚轮必须满足"用户意图指向本控件"；否则**透传**（return false）给容器/外层，严禁空转消费（无视觉效果/无订阅也 return true）。参照实现与测试：`Wheel_Fix2_Design.md`、`test/test_wheel_cabi.cpp`、`test/test_wheel_nested_cabi.cpp`。
+
+| 控件类 | 消费条件 | 说明 |
+|---|---|---|
+| 可滚容器（TextArea/ListView/TreeView） | 有滚动余量（滚动条可见 / 内容超视口） | 无余量透传；滚动到底后不回滚透传（保持简单，链式滚动为 backlog） |
+| 数值/选择输入（NumericUpDown/Slider） | 聚焦 | 仅聚焦消费；未聚焦透传 |
+| ScrollBar | 命中滚动条 | 步进 value ± step-size，方向：向上滚 scrollY=+1 → value 减 |
+| Panel（容器级） | **存在 `mouse-wheel` 订阅者** 且坐标在面板内 | 无订阅者透传（最近的有订阅者 Panel 消费）；`hasCallback(kEventMouseWheel)` 门控 |
+| 其余控件 | 不消费 | 一律透传 |
+
+坐标域：`mouseWheel.x/y` 为**窗口全局坐标**（与 `mousePos`/`getDrawRect` 同域——父链递归累加，子视口根 rect 已含窗口位置，不额外减偏移）。

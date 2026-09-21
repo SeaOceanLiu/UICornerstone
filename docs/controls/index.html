@@ -128,7 +128,7 @@ std::string s = c.GetString(PropertyNames::kCaption);</code></pre>
 <tr><td>销毁</td><td>—（引用计数释放）</td><td><code>UICornerstone_DestroyControl(inst, ctl)</code></td><td><code>Control.Destroy()</code></td></tr>
 </table>
 
-<p>因此：<strong>只使用 C ABI / C++ Binding 的用户请以「控件的属性」表的键名 + 「控件的回调」表的事件名通过泛型 <code>Set*/Get*</code> / <code>SetCallback</code> 操作控件</strong>；属性键名（如 <code>caption</code>、<code>text-shadow-enable</code>）在 <a href="../appendix/properties.html">附录 9 属性总表</a> 与 <code>include/PropertyNames.h</code> 中列出。</p>
+<p>因此：<strong>只使用 C ABI / C++ Binding 的用户请以「控件的属性」表的键名 + 「控件的回调」表的事件名通过泛型 <code>Set*/Get*</code> / <code>SetCallback</code> 操作控件</strong>；属性键名（如 <code>caption</code>、<code>shadow</code>）在 <a href="../appendix/properties.html">附录 9 属性总表</a> 与 <code>include/PropertyNames.h</code> 中列出。</p>
 
 <div class="note">「控件的方法」一节仅供源码级集成（直接使用核心类）的开发者参考；方法表中部分高级方法（如挂载 Actor / LuotiAni 对象、自定义 CaptionLabel）在 C ABI / Binding 中不一定有等价属性键，属核心类专属能力。</div>
 

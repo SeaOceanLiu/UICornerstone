@@ -47,7 +47,7 @@ UIControlHandle panel = UICornerstone_CreatePanel(g_inst, 50, 112, 400, 200, 1.0
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 
-<p>JSON 键（<code>design/LayoutSystem_Design.md</code> §4.16）：<code>bgColor</code>（单色）、<code>borderColor</code>（单色）、<code>transparent</code>、<code>borderVisible</code>、<code>layout</code>（引擎配置）、<code>children</code>、<code>scale</code>、<code>margin</code>、<code>colors</code>。</p>
+<p>JSON 键（<code>design/LayoutSystem_Design.md</code> §4.16）：<code>colors</code>（含 <code>background</code>/<code>border</code>）、<code>transparent</code>、<code>border-visible</code>、<code>layout</code>（引擎配置）、<code>children</code>、<code>scale</code>、<code>margin</code>。</p>
 
 
 <h2>4.16.3 控件的回调</h2>
@@ -57,7 +57,7 @@ UIControlHandle panel = UICornerstone_CreatePanel(g_inst, 50, 112, 400, 200, 1.0
 
 <h2>4.16.4 JSON 语法（含布局引擎）</h2>
 
-<pre><code>// h-flow / v-flow（子控件用 flowWeight 弹性分配）
+<pre><code>// h-flow / v-flow（子控件用 flow-weight 弹性分配）
 { "type": "panel", "id": "formPanel",
   "rect": { "x": 50, "y": 112, "w": 400, "h": 200 },
   "colors": { "border": { "normal": "#808080FF" } },
@@ -111,7 +111,7 @@ UICornerstone_SetBool(g_inst, panel, "transparent", 1);</code></pre>
 <tr><td><code>removeAllControls()</code></td><td>移除全部子控件</td></tr>
 <tr><td><code>resolveChildPercentages()</code></td><td>解析子控件百分比尺寸（"50%" 形式）</td></tr>
 <tr><td><code>setChildAnchorProps(Control*, AnchorInfo)</code></td><td>子控件锚点布局属性</td></tr>
-<tr><td><code>setChildFlowProps(Control*, FlowItemProps)</code></td><td>子控件流式布局属性（flowWeight 等）</td></tr>
+<tr><td><code>setChildFlowProps(Control*, FlowItemProps)</code></td><td>子控件流式布局属性（flow-weight 等）</td></tr>
 <tr><td><code>setChildGridProps(Control*, GridItemProps)</code></td><td>子控件网格布局属性</td></tr>
 <tr><td><code>setLayoutEngine(shared_ptr&lt;LayoutEngine&gt;)</code> / <code>getLayoutEngine()</code></td><td>挂载 / 获取布局引擎（HFlow / VFlow / Anchor / Grid）</td></tr>
 <tr><td><code>setRect(SRect)</code> / <code>resized(SRect)</code></td><td>尺寸变更（resized 触发 reflow）</td></tr>
@@ -122,6 +122,14 @@ UICornerstone_SetBool(g_inst, panel, "transparent", 1);</code></pre>
 
 
 
+
+<h2>容器级滚轮事件（mouse-wheel）</h2>
+
+<p>滚轮落在 Panel 内且<strong>子控件未消费</strong>时，Panel 触发 <code>mouse-wheel</code> 回调（<code>kEventMouseWheel</code>）。载荷为 Float（<code>GetValueChanged()</code>）：<strong>+1 向上滚 / -1 向下滚</strong>（SDL 原生符号透传）。坐标在面板外不触发；子控件（如 ScrollBar/TextArea）已消费的滚轮不会重复回调。</p>
+
+<pre><code>panel.SetCallback("mouse-wheel", [](const Event&amp; e) {
+    float dy = e.GetValueChanged();   // +1 上 / -1 下
+});</code></pre>
 
 <div class="chapter-nav">
   <a href="numericupdown.html">← 4.15 NumericUpDown</a>

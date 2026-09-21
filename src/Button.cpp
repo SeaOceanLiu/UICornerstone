@@ -286,6 +286,14 @@ void Button::setTextShadowStateColor(StateColor stateColor){
     }
 }
 
+void Button::setState(ControlState state){
+    ControlImpl::setState(state);
+    // 状态联动：caption 的 hover/pressed/disabled 各态色经此可达（Label::draw 按自身 state 取色）
+    if (m_caption != nullptr){
+        m_caption->setState(state);
+    }
+}
+
 void Button::setTextShadowEnable(bool enable){
     m_enableTextShadow = enable;
     if (m_caption != nullptr){
@@ -310,9 +318,11 @@ void Button::setCaption(string caption){
                             .setTextStateColor(m_textColor)
                             .setTextShadowStateColor(m_textShadowColor)
                             .setShadow(m_enableTextShadow)
+                            .setShadowOffset(m_shadowOffset)
                             .build();
         m_caption->setTransparent(true);
         addControl(m_caption);
+        m_caption->setState(getState());   // (重)建时同步当前状态
     }
 }
 
@@ -327,6 +337,10 @@ void Button::setCaptionLabel(shared_ptr<Label> label){
         m_caption->setRect({0, 0, m_rect.width, m_rect.height});
         m_captionText = m_caption->getCaption();
         addControl(m_caption);
+        m_caption->setState(getState());   // 替换时同步当前状态
+        // #12：宿主 shadow 状态应用到新 caption（button 级配置优先于 caption-label 内嵌配置）
+        m_caption->setShadow(m_enableTextShadow);
+        m_caption->setShadowOffset(m_shadowOffset);
     }
 }
 
@@ -366,13 +380,43 @@ void Button::setOnClick(OnClickHandler onClick){
 
 // ── Property system overrides ──
 int Button::setBoolProperty(const char* prop, int value) {
-    if (strcmp(prop, PropertyNames::kTextShadowEnable) == 0) { setTextShadowEnable(value != 0); return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { setTextShadowEnable(value != 0); return 1; }
     if (strcmp(prop, PropertyNames::kPlaying) == 0 && m_luotiAni) return m_luotiAni->setBoolProperty(prop, value);
     return ControlImpl::setBoolProperty(prop, value);
 }
+int Button::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { out = m_enableTextShadow ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kPlaying) == 0 && m_luotiAni) return m_luotiAni->getBoolProperty(prop, out);
+    return ControlImpl::getBoolProperty(prop, out);
+}
+int Button::setIntProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) { setCaptionSize((float)value); return 1; }
+    return ControlImpl::setIntProperty(prop, value);
+}
 int Button::setFloatProperty(const char* prop, float value) {
-    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { setCaptionSize(value); return 1; }
+    // #12：阴影偏移（宿主字段存储 + 同步内部 caption；caption 重建/替换后不丢失）
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+        m_shadowOffset.x = value;
+        if (m_caption) m_caption->setShadowOffset(m_shadowOffset);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        m_shadowOffset.y = value;
+        if (m_caption) m_caption->setShadowOffset(m_shadowOffset);
+        return 1;
+    }
     return ControlImpl::setFloatProperty(prop, value);
+}
+
+int Button::getPtrProperty(const char* prop, void*& out) {
+    // 暴露内部 caption Label 句柄：应用经句柄直控 Label 标准属性（颜色/字体/对齐）。
+    // 键与 JSON 布局键同键同常量（kCaptionLabel）；句柄归属校验经 Button 子树通过。
+    if (strcmp(prop, PropertyNames::kCaptionLabel) == 0) {
+        // 句柄约定：存 Control* 基地址（ControlImpl 虚继承 Control，须经基类转换修正偏移）
+        out = m_caption ? static_cast<Control*>(m_caption.get()) : nullptr;
+        return m_caption ? 1 : 0;
+    }
+    return ControlImpl::getPtrProperty(prop, out);
 }
 
 int Button::setPtrProperty(const char* prop, void* value) {
@@ -423,8 +467,13 @@ int Button::setStringProperty(const char* prop, const char* value) {
     return ControlImpl::setStringProperty(prop, value);
 }
 
+int Button::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) { out = (int)getCaptionSize(); return 1; }
+    return ControlImpl::getIntProperty(prop, out);
+}
 int Button::getFloatProperty(const char* prop, float& out) {
-    if (strcmp(prop, PropertyNames::kCaptionSize) == 0) { out = getCaptionSize(); return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 

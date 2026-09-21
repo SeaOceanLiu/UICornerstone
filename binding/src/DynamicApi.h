@@ -66,6 +66,7 @@ struct Api {
     int             (*fnLoadLayout)(UIInstance, const char*) = nullptr;
     int             (*fnLoadLayoutFromFile)(UIInstance, const char*) = nullptr;
     UIControlHandle (*fnFindControl)(UIInstance, const char*) = nullptr;
+    int             (*fnSetControlId)(UIInstance, UIControlHandle, const char*) = nullptr;
     void            (*fnRegisterAction)(UIInstance, const char*, UIActionCallback, void*) = nullptr;
 
     // 编程式控件创建
@@ -98,6 +99,8 @@ struct Api {
     UIControlHandle (*fnCreateListView)(UIInstance, float, float, float, float, float, float) = nullptr;
     // StatusBar 状态栏控件
     UIControlHandle (*fnCreateStatusBar)(UIInstance, float, float, float, float, float, float) = nullptr;
+    UIControlHandle (*fnCreateContextMenu)(UIInstance, float, float, float, float, float, float) = nullptr;
+    UIControlHandle (*fnCreateTabControl)(UIInstance, float, float, float, float, float, float) = nullptr;
     int (*fnStatusBarAddItem)(UIInstance, UIControlHandle, const char*, const char*, int) = nullptr;
     int (*fnStatusBarSetItemText)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
     int (*fnStatusBarRemoveItem)(UIInstance, UIControlHandle, const char*) = nullptr;
@@ -108,6 +111,26 @@ struct Api {
     int (*fnListViewAddColumn)(UIInstance, UIControlHandle, const char*, float, int) = nullptr;
     int (*fnListViewSetColumnWidth)(UIInstance, UIControlHandle, int, float) = nullptr;
     int (*fnListViewSetCellLeadingControl)(UIInstance, UIControlHandle, int, int, void*) = nullptr;
+    int (*fnListViewInsertRow)(UIInstance, UIControlHandle, int, const char*, int, const char* const*) = nullptr;
+    int (*fnListViewInsertColumn)(UIInstance, UIControlHandle, int, const char*, float, int) = nullptr;
+    int (*fnListViewRemoveColumn)(UIInstance, UIControlHandle, int) = nullptr;
+    int (*fnListViewSetRowCells)(UIInstance, UIControlHandle, int, int, const char* const*) = nullptr;
+    int (*fnListViewSetRowLeadingControl)(UIInstance, UIControlHandle, int, void*) = nullptr;
+    int (*fnListViewSetCellStyle)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t, int) = nullptr;
+    int (*fnListViewSetColumnHeaderStyle)(UIInstance, UIControlHandle, int, uint8_t, uint8_t, uint8_t, uint8_t, int) = nullptr;
+    int (*fnListViewSetColumnIcon)(UIInstance, UIControlHandle, int, void*) = nullptr;
+    int (*fnListViewSetColumnSorter)(UIInstance, UIControlHandle, int, ListViewSortFn, void*) = nullptr;
+    int (*fnListViewSetColumnValues)(UIInstance, UIControlHandle, int, int, const char* const*) = nullptr;
+    int (*fnStatusBarSetItemIcon)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
+    int (*fnStatusBarSetItemMenu)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
+    int (*fnContextMenuAddItem)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
+    int (*fnContextMenuAddSeparator)(UIInstance, UIControlHandle) = nullptr;
+    int (*fnContextMenuShow)(UIInstance, UIControlHandle, float, float) = nullptr;
+    int (*fnContextMenuClose)(UIInstance, UIControlHandle) = nullptr;
+    int (*fnTabAddPage)(UIInstance, UIControlHandle, const char*) = nullptr;
+    int (*fnTabSetPage)(UIInstance, UIControlHandle, int, void*) = nullptr;
+    int (*fnTabSetTitle)(UIInstance, UIControlHandle, int, const char*) = nullptr;
+    int (*fnTabSetTabLeadingControl)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnShapeSetPoints)(UIInstance, UIControlHandle, int, const float*, const float*) = nullptr;
     int (*fnShapeMapToDrawPoint)(UIInstance, UIControlHandle, float, float, float*, float*) = nullptr;
     int (*fnShapeAddPrimitive)(UIInstance, UIControlHandle, const char*, float, float, float, float) = nullptr;
@@ -151,6 +174,10 @@ struct Api {
     int  (*fnComboBoxClearItems)(UIInstance, UIControlHandle) = nullptr;
     int  (*fnComboBoxGetItemCount)(UIInstance, UIControlHandle) = nullptr;
     UIControlHandle (*fnCreateHandleControl)(UIInstance, UIControlHandle, float, float, float, float, float, float) = nullptr;
+    int             (*fnSetHandleTarget)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
+    int             (*fnHandleHitTest)(UIInstance, UIControlHandle, float, float, int*) = nullptr;
+    int             (*fnSetHandleRectFilter)(UIInstance, UIControlHandle, UIHandleRectFilter, void*) = nullptr;
+    int             (*fnSetHandleMoveVisible)(UIInstance, UIControlHandle, int) = nullptr;
     UIControlHandle (*fnCreateImageButton)(UIInstance, const char*, const char*, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateImage)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateAnimation)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;

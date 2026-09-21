@@ -8,6 +8,14 @@
 class HandleControl : public ControlImpl {
     friend class HandleControlBuilder;
 public:
+    // 手柄类型（值契约稳定：None=0、Move=1、NW=2、N=3、NE=4、E=5、SE=6、S=7、SW=8、W=9）
+    enum class HandleType : uint8_t {
+        None,
+        Move,
+        NW, N, NE,
+        E, SE, S, SW, W
+    };
+
     HandleControl();
     ~HandleControl() override;
 
@@ -40,18 +48,26 @@ public:
     void setMoveHandleVisible(bool show) { m_showMoveHandle = show; }
     void setSelectionBoxVisible(bool show) { m_showSelectionBox = show; }
 
+    // ── 查询与几何过滤（C ABI 集成）──
+    // 手柄命中查询。命中返回非 None 的 HandleType（值契约：None=0、Move=1、NW=2、N=3、NE=4、E=5、SE=6、S=7、SW=8、W=9）。
+    // x/y 为窗口屏幕坐标（与 handleEvent 的 mousePos 同参照系：子视口局部物理坐标，即 bench 域）。
+    HandleType hitTestHandle(float mx, float my);
+    // 重建手柄区域缓存（hitTest 依赖）。内部由 draw()/handleEvent() 自动调用，C ABI 查询前手动调用一次。
+    void updateHandleAreas() { updateHandleAreas(m_target ? targetToScreen() : SRect()); }
+
+    // 拖拽/移动几何过滤回调：setRect 前调用。返回 1 用修正值、0 用原计算值。
+    // ioX/ioY/ioW/ioH 为 target 局部坐标（= 逻辑 rect，setRect 直接消费）。
+    // 注意：修改 ioX/ioY 时请自行与 ioW/ioH 联动（如 NW/W/SW 拖拽改 left 需保持右缘 x+width 不变）。
+    using RectFilter = int (*)(void* target, float* ioX, float* ioY,
+                               float* ioW, float* ioH, void* userData);
+    void setRectFilter(RectFilter filter, void* userData) { m_rectFilter = filter; m_rectFilterUser = userData; }
+
     // ── Control 接口重写 ──
     void draw() override;
     bool handleEvent(shared_ptr<Event> event) override;
     bool isContainsPoint(float x, float y) override { return false; }
 
 private:
-    enum class HandleType : uint8_t {
-        None,
-        Move,
-        NW, N, NE,
-        E, SE, S, SW, W
-    };
 
     struct HandleArea {
         SRect rect;
@@ -88,6 +104,10 @@ private:
     bool m_showMoveHandle     = true;
     bool m_showSelectionBox   = true;
 
+    // ── 几何过滤回调（P0-3）──
+    RectFilter m_rectFilter       = nullptr;
+    void*      m_rectFilterUser   = nullptr;
+
     // ── 光标缓存（持久化，避免频繁创建/销毁）──
     Cursor* m_cursorDefault = nullptr;
     Cursor* m_cursorMove    = nullptr;
@@ -108,8 +128,6 @@ private:
     SPoint screenToTargetLocal(float sx, float sy);
 
     void updateHandleAreas(const SRect& targetScreen);
-    HandleType hitTestHandle(float mx, float my);
-
     void startResize(HandleType type, const SPoint& mousePos);
     void updateResize(const SPoint& mousePos);
     void endResize();

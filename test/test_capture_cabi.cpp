@@ -40,6 +40,10 @@ typedef void*      (*UICreateImageFn)(UIInstance, const char*, float, float, flo
 typedef int        (*UISetEnumFn)(UIInstance, void*, const char*, const char*);
 typedef int        (*UIActorSetSourceRectFn)(UIInstance, void*, float, float, float, float);
 typedef int        (*UISetColorFn)(UIInstance, void*, const char*, UIColor);
+typedef void*      (*UICreateEditBoxFn)(UIInstance, float, float, float, float, float, float);
+typedef void       (*UIAddChildFn)(UIInstance, void*, void*);
+typedef int        (*UISetBoolFn)(UIInstance, void*, const char*, int);
+typedef int        (*UISetStringFn)(UIInstance, void*, const char*, const char*);
 typedef uint32_t   (*UIGetBackendCapsFn)(UIInstance);
 typedef int        (*UICaptureRectFn)(UIInstance, float, float, float, float, uint8_t*, int*, int*);
 typedef int        (*UICaptureViewportFn)(UIInstance, uint8_t*, int*, int*);
@@ -61,6 +65,10 @@ static UICreateImageFn          uiCreateImage               = nullptr;
 static UISetEnumFn              uiSetEnum                   = nullptr;
 static UIActorSetSourceRectFn   uiActorSetSourceRect        = nullptr;
 static UISetColorFn             uiSetColor                  = nullptr;
+static UICreateEditBoxFn        uiCreateEditBox             = nullptr;
+static UIAddChildFn             uiAddChildControl           = nullptr;
+static UISetBoolFn              uiSetBool                   = nullptr;
+static UISetStringFn            uiSetString                 = nullptr;
 static UIGetBackendCapsFn       uiGetBackendCapabilities    = nullptr;
 static UICaptureRectFn          uiCaptureRect               = nullptr;
 static UICaptureViewportFn      uiCaptureViewport           = nullptr;
@@ -88,6 +96,10 @@ static bool loadAllProcs() {
     RESOLVE(SetEnum)
     RESOLVE(ActorSetSourceRect)
     RESOLVE(SetColor)
+    RESOLVE(CreateEditBox)
+    RESOLVE(AddChildControl)
+    RESOLVE(SetBool)
+    RESOLVE(SetString)
     RESOLVE(GetBackendCapabilities)
     RESOLVE(CaptureRect)
     RESOLVE(CaptureViewport)
@@ -186,6 +198,32 @@ int main(int argc, char** argv) {
     // 瓦片 = source-rect 子区域（y 10..12 蓝带）→ 目标顶缘应为蓝
     assert(uiActorSetSourceRect(inst, i0cTileSrc, 0.f, 10.f, 24.f, 2.f) == 1);
 
+    // ── CLIP 用例（P0-11）：clip-children 容器 + 越界子控件（自内容裁剪路径） ──
+    // 容器 (60,520,200,100)；子 EditBox 局部 y=-30（上缘越出）与 y=-70（完全越出）
+    static void* clipPanel = uiCreatePanel(inst, 60.0f, 520.0f, 200.0f, 100.0f, 1.0f, 1.0f);
+    assert(clipPanel);
+    assert(uiSetBool(inst, clipPanel, "clip-children", 1) == 1);
+    static void* clipEbPart = uiCreateEditBox(inst, 5.0f, -15.0f, 180.0f, 30.0f, 1.0f, 1.0f);
+    assert(clipEbPart);
+    uiAddChildControl(inst, clipPanel, clipEbPart);          // 局部 (5,-15) → 屏幕 (65,505,180,30)：上缘越出 15px（下半可见）
+    uiSetString(inst, clipEbPart, "text", "OVERFLOW");
+    static void* clipEbFull = uiCreateEditBox(inst, 5.0f, -70.0f, 180.0f, 30.0f, 1.0f, 1.0f);
+    assert(clipEbFull);
+    uiAddChildControl(inst, clipPanel, clipEbFull);          // 局部 (5,-70) → 屏幕 (65,450,180,30)：完全越出
+    uiSetString(inst, clipEbFull, "text", "FULLOUT");
+    // 嵌套容器：outer(300,520,200,100) clip；inner 局部 (50,80,100,60) → 屏幕 (350,600,100,60) 下缘越出 outer
+    static void* clipOuter = uiCreatePanel(inst, 300.0f, 520.0f, 200.0f, 100.0f, 1.0f, 1.0f);
+    assert(clipOuter);
+    assert(uiSetBool(inst, clipOuter, "clip-children", 1) == 1);
+    static void* clipInner = uiCreatePanel(inst, 50.0f, 80.0f, 100.0f, 60.0f, 1.0f, 1.0f);
+    assert(clipInner);
+    assert(uiSetBool(inst, clipInner, "clip-children", 1) == 1);
+    static void* clipEbNested = uiCreateEditBox(inst, 5.0f, 5.0f, 90.0f, 50.0f, 1.0f, 1.0f);
+    assert(clipEbNested);
+    uiAddChildControl(inst, clipInner, clipEbNested);
+    uiSetString(inst, clipEbNested, "text", "NESTED");
+    uiAddChildControl(inst, clipOuter, clipInner);           // inner 下缘越出 outer（600+60=660 > 620）
+
     uint32_t caps = uiGetBackendCapabilities(inst);
     printf("backend capabilities: 0x%08X (READBACK=%s)\n", caps,
            (caps & UICORN_BACKEND_CAP_READBACK) ? "yes" : "no");
@@ -266,6 +304,47 @@ int main(int argc, char** argv) {
                 } else {
                     printf("FAIL: I0c tile+source-rect top edge not blue\n");
                     allPass = false;
+                }
+            }
+
+            // ── CLIP 断言（一次性，P0-11）：容器外区域无泄漏内容 ──
+            static bool clipChecked = false;
+            if (!clipChecked) {
+                clipChecked = true;
+                int cw = 0, ch = 0;
+                bool clipOk = true;
+                // 1) 部分越出行：容器上方 45px 带（60,470,200,45）应全为背景（修复前 EditBox 自裁剪替换容器裁剪 → 文本/背景泄漏）
+                assert(uiCaptureRect(inst, 60, 470, 200, 45, rectPixels, &cw, &ch) == 1);
+                for (int yy = 0; yy < ch && clipOk; ++yy)
+                    for (int xx = 0; xx < cw; ++xx)
+                        if (!pxEq(rectPixels + (yy * cw + xx) * 4, kBgR, kBgG, kBgB)) { clipOk = false; break; }
+                if (clipOk) printf("PASS: clip part-overflow outside clean\n");
+                else { printf("FAIL: clip part-overflow leaked above container\n"); allPass = false; }
+                // 2) 完全越出行：更上方 40px 带（60,450,200,40）同样干净
+                bool clipOk2 = true;
+                assert(uiCaptureRect(inst, 60, 450, 200, 40, rectPixels, &cw, &ch) == 1);
+                for (int yy = 0; yy < ch && clipOk2; ++yy)
+                    for (int xx = 0; xx < cw; ++xx)
+                        if (!pxEq(rectPixels + (yy * cw + xx) * 4, kBgR, kBgG, kBgB)) { clipOk2 = false; break; }
+                if (clipOk2) printf("PASS: clip full-overflow outside clean\n");
+                else { printf("FAIL: clip full-overflow leaked\n"); allPass = false; }
+                // 3) 嵌套容器：outer 下缘外 40px 带（350,620,100,40）干净（inner 内容不得越 outer）
+                bool clipOk3 = true;
+                assert(uiCaptureRect(inst, 350, 620, 100, 40, rectPixels, &cw, &ch) == 1);
+                for (int yy = 0; yy < ch && clipOk3; ++yy)
+                    for (int xx = 0; xx < cw; ++xx)
+                        if (!pxEq(rectPixels + (yy * cw + xx) * 4, kBgR, kBgG, kBgB)) { clipOk3 = false; break; }
+                if (clipOk3) printf("PASS: clip nested inner not escaping outer\n");
+                else { printf("FAIL: clip nested inner escaped outer\n"); allPass = false; }
+                // 4) 容器内可见部分应存在内容（EditBox 文本/背景）——诊断/回归：避免"全裁掉"或"空场景"误判
+                {
+                    bool insideInk = false;
+                    assert(uiCaptureRect(inst, 65, 522, 170, 16, rectPixels, &cw, &ch) == 1);
+                    for (int yy = 0; yy < ch && !insideInk; ++yy)
+                        for (int xx = 0; xx < cw; ++xx)
+                            if (!pxEq(rectPixels + (yy * cw + xx) * 4, kBgR, kBgG, kBgB)) { insideInk = true; break; }
+                    if (insideInk) printf("PASS: clip container interior has content\n");
+                    else { printf("FAIL: clip container interior empty (test scene draws nothing)\n"); allPass = false; }
                 }
             }
         } else {

@@ -174,7 +174,7 @@ static void onOpen(UIControlHandle ctl, const UIEventData* ev, void* ud) { }
 UICornerstone_SetCallback(g_inst, open, "click", onOpen, NULL);</code></pre>
 <h2>4.14.7 布局模式与弹出置顶（v1.1.1 增强）</h2>
 
-<p><strong>布局模式</strong>：MenuBar 挂到画布顶层（Bench）时 = <em>顶层模式</em>，全宽贴顶（宽=父宽、顶部=0、高=barHeight）。挂入 panel / v-flow 等布局引擎容器时，<code>setParent</code> 自动切换为手动定位——放弃全宽重置，rect 完全由布局引擎驱动，可作为 v-flow 内的一行（多菜单栏 / 工具栏式布局），<strong>无需显式 <code>manual-position</code></strong>。</p>
+<p><strong>布局模式</strong>：MenuBar 挂到画布顶层（Bench）时 = <em>顶层模式</em>，全宽贴顶（宽=父宽、顶部=0、高=bar-height）。挂入 panel / v-flow 等布局引擎容器时，<code>setParent</code> 自动切换为手动定位——放弃全宽重置，rect 完全由布局引擎驱动，可作为 v-flow 内的一行（多菜单栏 / 工具栏式布局），<strong>无需显式 <code>manual-position</code></strong>。</p>
 
 <p><strong>弹出置顶</strong>：打开下拉面板时，MenuPanel 临时挂到画布<b>顶层</b>（Bench 子列表末尾），保证：
 <ul>

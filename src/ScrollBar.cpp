@@ -184,6 +184,18 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
     bool isVertical = (m_orientation == ScrollBarOrientation::Vertical);
     float scaleY = isVertical ? getScaleYY() : getScaleXX();
 
+    // 滚轮：命中滚动条 → 步进 value（向上滚 scrollY=+1 → value 减；setValue 内部 clamp）
+    if (event->m_type == EventType::MouseWheel) {
+        SRect r = getDrawRect();
+        float wx = event->mouseWheel.x, wy = event->mouseWheel.y;
+        if (wx >= r.left && wx <= r.right() && wy >= r.top && wy <= r.bottom()) {
+            float dir = (event->mouseWheel.scrollY > 0.f) ? -1.f : 1.f;
+            setValue(m_value + dir * m_stepSize);
+            return true;
+        }
+        return false;   // 不在滚动条上：不消费（Panel 容器回调可接手）
+    }
+
     if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
         float localX = (event->mouseButton.x - drawRect.left) / scaleX;
         float localY = (event->mouseButton.y - drawRect.top) / scaleY;

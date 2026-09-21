@@ -124,7 +124,7 @@ UICornerstone_SetCallback(g_inst, sp, "moved", onMoved, NULL);</code></pre>
 
 <p><strong>引擎模式规则</strong>：</p>
 <ul>
-<li><strong>分段</strong>：Splitter 占自身 <code>thickness</code> 宽（高）且与邻居之间不计 gap；流内固定/弹性分配语义不变（<code>flowWeight</code> 生效）。</li>
+<li><strong>分段</strong>：Splitter 占自身 <code>thickness</code> 宽（高）且与邻居之间不计 gap；流内固定/弹性分配语义不变（<code>flow-weight</code> 生效）。</li>
 <li><strong>两式拖拽</strong>：前段（左/上）固定 → 改前段固定宽；前段弹性且后段固定 → 改后段固定宽（前段自动弹性补偿）；双侧弹性 → 前段锁定为固定（基础保护）。每次拖拽触发引擎整链重排，多个/嵌套 Splitter 位置始终链式正确、互不覆盖。</li>
 <li><strong>1:1 跟手</strong>：拖拽位移以<strong>拖拽起点为基准 + 累计增量</strong>换算（固定基准，避免逐帧叠加），坐标经画布/视口缩放全链换算——窗口缩放（DPI / fit / stretch）下依然 1:1。</li>
 <li><strong>手柄模式</strong>：无关联面板（无 <code>first-linked/second-linked</code>）且无链接对象时，Splitter 仅作为"拖拽手柄"：拖动自身位置并经 <code>onSplitterMoved</code> 上报 ratio（0~1），布局由应用侧维护。</li>

@@ -41,8 +41,18 @@ int Panel::getBoolProperty(const char* prop, int& out) {
 }
 
 bool Panel::handleEvent(shared_ptr<Event> event){
-    return ControlImpl::handleEvent(event);
-
+    if (ControlImpl::handleEvent(event)) return true;   // 子控件/既有逻辑优先（消费后容器不重复回调）
+    // 容器级滚轮：wheel 坐标在本面板内且子控件未消费 → 通知应用（载荷 floatVal = scrollY，+1 向上 / -1 向下）
+    if (event->m_type == EventType::MouseWheel &&
+        isContainsPoint(event->mouseWheel.x, event->mouseWheel.y)) {
+        if (hasCallback(PropertyNames::kEventMouseWheel)) {
+            float dy = event->mouseWheel.scrollY;
+            fireCCallback(PropertyNames::kEventMouseWheel, CCallbackData::Float, &dy);
+            return true;                            // 有订阅者：消费（最近订阅者语义）
+        }
+        return false;                               // 无订阅者：透传给外层 Panel/兄弟
+    }
+    return false;
 }
 void Panel::addControl(shared_ptr<Control> control){
     ControlImpl::addControl(control);

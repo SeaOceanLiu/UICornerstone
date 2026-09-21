@@ -40,6 +40,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <table>
 <tr><th>方法</th><th>说明</th></tr>
 <tr><td><code>bool IsQuitRequested() const</code></td><td>查询退出请求</td></tr>
+<tr><td><code>UIInstance Handle() const</code></td><td>取实例句柄</td></tr>
 <tr><td><code>bool ProcessEvents()</code></td><td>非阻塞处理事件（多实例主循环调度用）</td></tr>
 <tr><td><code>int Run(FrameCallback, RenderCallback=nullptr)</code></td><td>进入主循环（每帧 update + onRender）</td></tr>
 <tr><td><code>void Render() / Clear() / Present()</code></td><td>渲染三件套（自绘模式）</td></tr>
@@ -56,6 +57,11 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>bool LoadLayoutFromFile(const std::string&amp; filePath)</code></td><td>从文件加载布局</td></tr>
 <tr><td><code>bool RegisterResource(const std::string&amp; name, const void* data, size_t len)</code></td><td>拷贝注册内存资源（引擎复制字节，data 用后可释放）；须在 <code>Create</code> 后调用，懒创建 provider 并自动挂载</td></tr>
 <tr><td><code>Control FindControl(const std::string&amp; id)</code></td><td>按 id 查找控件（未找到返回无效句柄）</td></tr>
+<tr><td><code>bool SetControlId(Control ctl, const std::string&amp; id)</code></td><td>给编程式创建的控件设置 id（注册实例 id 表供 FindControl 查询；id 空串移除该控件名下全部 id）</td></tr>
+<tr><td><code>bool SetHandleTarget(Control handle, Control target)</code></td><td>切换手柄附加目标（target 无效 = detach）</td></tr>
+<tr><td><code>bool HandleHitTest(Control handle, float x, float y, int&amp; type)</code></td><td>手柄命中查询（命中返回 true 并写 type 枚举值）</td></tr>
+<tr><td><code>bool SetHandleRectFilter(Control handle, UIHandleRectFilter filter, void* user)</code></td><td>拖拽几何过滤回调（吸附/对齐线扩展点）</td></tr>
+<tr><td><code>bool SetHandleMoveVisible(Control handle, bool show)</code></td><td>Move 手柄可见性开关</td></tr>
 <tr><td><code>std::string GetResourceRoot() const</code></td><td>当前资源根目录</td></tr>
 <tr><td><code>std::string ResolveResource(const std::string&amp; relativePath) const</code></td><td>将相对路径解析为绝对资源路径</td></tr>
 <tr><td><code>void SetResourceRoot(const std::string&amp; path)</code></td><td>运行时切换资源根目录</td></tr>
@@ -73,14 +79,14 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>CreateCheckBox(text, x, y, w, h, xScale, yScale)</code></td><td>CheckBox</td></tr>
 <tr><td><code>CreateColorPicker(x, y, w, h, color, xScale, yScale)</code></td><td>ColorPicker</td></tr>
 <tr><td><code>CreateComboBox(x, y, w, h, xScale, yScale)</code></td><td>ComboBox</td></tr>
-<tr><td><code>CreateContextMenu(x, y, w, h, xScale, yScale)</code></td><td>ContextMenu（项经 UICornerstone::ContextMenuAddItem，绑定经 SetPtr("context-menu")）</td></tr>
+<tr><td><code>CreateContextMenu(x, y, w, h, xScale, yScale)</code></td><td>ContextMenu（项经实例方法 <code>ContextMenuAddItem</code>，绑定经 <code>SetPtr("context-menu")</code>）</td></tr>
 <tr><td><code>CreateDialog(confirmText, cancelText, x, y, w, h, xScale, yScale)</code></td><td>Dialog</td></tr>
 <tr><td><code>CreateEditBox(x, y, w, h, xScale, yScale)</code></td><td>EditBox</td></tr>
 <tr><td><code>CreateHandleControl(target, x, y, w, h, xScale, yScale)</code></td><td>HandleControl</td></tr>
 <tr><td><code>CreateImage(image, x, y, w, h, xScale, yScale)</code></td><td>Image</td></tr>
 <tr><td><code>CreateImageButton(normal, hover, pressed, x, y, w, h, xScale, yScale)</code></td><td>ImageButton</td></tr>
 <tr><td><code>CreateLabel(text, fontSize, x, y, w, h, xScale, yScale)</code></td><td>Label</td></tr>
-<tr><td><code>CreateListView(x, y, w, h, xScale, yScale)</code></td><td>ListView（数据/列/样式经 UICornerstone::ListView* 专用）</td></tr>
+<tr><td><code>CreateListView(x, y, w, h, xScale, yScale)</code></td><td>ListView（数据/列/样式经实例方法 <code>ListView*</code> 专用）</td></tr>
 <tr><td><code>CreateMenuBar(x, y, w, h, xScale, yScale)</code></td><td>MenuBar</td></tr>
 <tr><td><code>CreateMenuItem(caption, type, xScale, yScale)</code></td><td>MenuItem</td></tr>
 <tr><td><code>CreateMenuPanel(xScale, yScale)</code></td><td>MenuPanel</td></tr>
@@ -88,14 +94,14 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>CreatePanel(x, y, w, h, xScale, yScale)</code></td><td>Panel</td></tr>
 <tr><td><code>CreateProgressBar(x, y, w, h, xScale, yScale)</code></td><td>ProgressBar</td></tr>
 <tr><td><code>CreateScrollBar(x, y, w, h, orientation, xScale, yScale)</code></td><td>ScrollBar</td></tr>
-<tr><td><code>CreateShape(x, y, w, h, xScale, yScale)</code></td><td>Shape（图元经 UICornerstone::Shape* 专用）</td></tr>
+<tr><td><code>CreateShape(x, y, w, h, xScale, yScale)</code></td><td>Shape（图元经实例方法 <code>Shape*</code> 专用）</td></tr>
 <tr><td><code>ShapeAddPrimitive(sh, type, x, y, w, h)</code> / <code>ShapeSetPrimitiveColor(sh, idx, prop, color)</code> / <code>ShapeSetPrimitiveFloat(sh, idx, prop, v)</code> / <code>ShapeSetPrimitivePoints(sh, idx, pts)</code> / <code>ShapeClearPrimitives(sh)</code></td><td>Shape 多图元（组合图形/覆盖层，逐帧改点集；v1.1.1）</td></tr>
 <tr><td><code>SetBool("clip-children", true)</code></td><td>Panel 子项裁剪（滚动容器，v1.1.1）</td></tr>
 <tr><td><code>ImageSetSourceRect(img, x, y, w, h)</code></td><td>Image/Actor 源矩形（对 stretch/tile 生效；x&lt;0 清除恢复整图；v1.1.1）</td></tr>
 <tr><td><code>CreateSlider(x, y, w, h, min, max, value, xScale, yScale)</code></td><td>Slider</td></tr>
 
 <tr><td><code>CreateSplitter(x, y, w, h, orientation, xScale, yScale)</code></td><td>Splitter</td></tr><tr><td><code>CreateStatusBar(x, y, w, h, xScale, yScale)</code></td><td>StatusBar</td></tr>
-<tr><td><code>CreateTabControl(x, y, w, h, xScale, yScale)</code></td><td>TabControl（页经 UICornerstone::Tab* 专用）</td></tr>
+<tr><td><code>CreateTabControl(x, y, w, h, xScale, yScale)</code></td><td>TabControl（页经实例方法 <code>Tab*</code> 专用）</td></tr>
 <tr><td><code>CreateTextArea(x, y, w, h, xScale, yScale)</code></td><td>TextArea</td></tr>
 <tr><td><code>CreateTreeView(x, y, w, h, xScale, yScale)</code></td><td>TreeView</td></tr>
 <tr><td><code>CreateWinFrame(title, x, y, w, h, xScale, yScale)</code></td><td>WinFrame</td></tr>
@@ -117,6 +123,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>std::string GetId() const</code></td><td>取控件 id</td></tr>
 <tr><td><code>std::string GetType() const</code></td><td>控件运行时类型（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code> / <code>"tree-view"</code>；image-button 本质为 button 返回 <code>"button"</code>）</td></tr>
 <tr><td><code>UIRect GetRect() const</code></td><td>读取布局矩形</td></tr>
+<tr><td><code>UIControlHandle Handle() const</code></td><td>取原始 C 句柄（传给 C ABI 专用函数，如 <code>ListViewAddColumn</code>）</td></tr>
 <tr><td><code>void AddChild(Control child)</code></td><td>挂子控件</td></tr>
 <tr><td><code>void Destroy()</code></td><td>销毁控件</td></tr>
 <tr><td><code>void SetCallback(const char* event, EventCallback)</code></td><td>类型安全事件回调（lambda）</td></tr>
@@ -206,33 +213,34 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>SavePixelsToFile(pixels, w, h, filePath)</code>（静态）</td><td>保存 RGBA8888 像素为 BMP 文件</td></tr>
 </table>
 
-<h3>11.5.7 新控件专用操作（与 C ABI 同名，UICornerstone:: 直达）</h3>
+<h3>11.5.7 新控件专用操作（实例方法，与 C ABI 同名）</h3>
 
 <pre><code>// ListView：行/列
 auto lv = ui->CreateListView(30, 60, 420, 240);
-UICornerstone::ListViewAddColumn(inst, lv.GetThis(), u8"名称", 180, 1);
-const char* cells[] = { u8"main.cpp", u8"2.1 KB" };
-UICornerstone::ListViewAddRow(inst, lv.GetThis(), "f1", 2, cells);
+ui->ListViewAddColumn(lv, u8"名称", 180, true);
+std::vector&lt;std::string&gt; cells = { u8"main.cpp", u8"2.1 KB" };
+ui->ListViewAddRow(lv, "f1", cells);
 
 // StatusBar：段
 auto bar = ui->CreateStatusBar(0, 876, 1400, 24);
-UICornerstone::StatusBarAddItem(inst, bar.GetThis(), "branch", u8"main", 0);
-UICornerstone::StatusBarSetItemText(inst, bar.GetThis(), "branch", u8"dev");
+ui->StatusBarAddItem(bar, "branch", u8"main", false);
+ui->StatusBarSetItemText(bar, "branch", u8"dev");
 
 // TabControl：页
 auto tc = ui->CreateTabControl(120, 80, 560, 240);
-int i = UICornerstone::TabAddPage(inst, tc.GetThis(), u8"主页");
-UICornerstone::TabSetPage(inst, tc.GetThis(), i, page.GetThis());
+auto page = ui->CreatePanel(0, 0, 200, 120);
+int i = ui->TabAddPage(tc, u8"主页");
+ui->TabSetPage(tc, i, page);
 
 // Shape：多图元
 auto sh = ui->CreateShape(40, 40, 90, 90);
-int p = UICornerstone::ShapeAddPrimitive(inst, sh.GetThis(), "circle", 10, 10, 40, 40);
-UICornerstone::ShapeSetPrimitiveColor(inst, sh.GetThis(), p, "fill", color);
+int p = ui->ShapeAddPrimitive(sh, "circle", 10, 10, 40, 40);
+ui->ShapeSetPrimitiveColor(sh, p, "fill", color);
 
 // ContextMenu：组装 + 控件右键绑定
 auto menu = ui->CreateContextMenu(0, 0, 10, 10);
-UICornerstone::ContextMenuAddItem(inst, menu.GetThis(), u8"复制", "Ctrl+C");
-lbl.SetPtr(PropertyNames::kPropContextMenu, menu.GetThis());</code></pre>
+ui->ContextMenuAddItem(menu, u8"复制", "Ctrl+C");
+lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 
 <h2>11.6 事件访问器（Event 类）</h2>
 
@@ -257,7 +265,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.GetThis());</code></pre>
 
 <p>注意：<code>IsColorChanged()</code> 恒为 false（ColorPicker 用轮询读取）；通用原始访问：
 <code>GetNameRaw()</code> / <code>GetIntVal()</code> / <code>GetFloatVal()</code> / <code>GetDoubleVal()</code> /
-<code>GetStrVal()</code> / <code>GetPtrVal()</code>。</p>
+<code>GetStrVal()</code> / <code>GetPtrVal()</code>；<code>GetName()</code> 返回 <code>std::string</code> 事件名，<code>GetChangedColor()</code> 仅在事件携带颜色时有效。</p>
 
 <h2>11.7 视口 / 事件注入 / 动作注册</h2>
 

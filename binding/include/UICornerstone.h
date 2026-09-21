@@ -114,6 +114,9 @@ public:
     bool LoadLayout(const std::string& jsonContent);
     bool LoadLayoutFromFile(const std::string& filePath);
     Control FindControl(const std::string& id);
+    // 给编程式创建的控件设置 id（注册到实例 id 表，供 FindControl 查询）。
+    // id 空串 → 移除该控件名下全部 id。返回 true 成功。
+    bool SetControlId(Control ctl, const std::string& id);
     // 将裸句柄（如 GetPtr("item-leading-control") 返回值）包装为 Control 代理。
     // 句柄须属于本实例；重复包装共享同一代理状态（生命周期/有效性追踪）。
     Control FromHandle(UIControlHandle handle);
@@ -152,6 +155,28 @@ public:
     Control CreateTreeView(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     // Shape 形状控件（参数经 Control::Set* 属性接口；SetPoints/MapToDrawPoint 走专用方法）
     Control CreateShape(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+    Control CreateContextMenu(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+    Control CreateStatusBar(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+    Control CreateTabControl(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+
+    // ── StatusBar 段操作 ──
+    bool StatusBarAddItem(Control& bar, const std::string& id, const std::string& text, bool rightAlign = false);
+    bool StatusBarSetItemText(Control& bar, const std::string& id, const std::string& text);
+    bool StatusBarRemoveItem(Control& bar, const std::string& id);
+    bool StatusBarSetItemIcon(Control& bar, const std::string& id, Control& iconControl);
+    bool StatusBarSetItemMenu(Control& bar, const std::string& id, Control& menuPanel);
+
+    // ── ContextMenu 组装/显示 ──
+    bool ContextMenuAddItem(Control& menu, const std::string& caption, const std::string& shortcut = "");
+    bool ContextMenuAddSeparator(Control& menu);
+    bool ContextMenuShow(Control& menu, float x, float y);
+    bool ContextMenuClose(Control& menu);
+
+    // ── TabControl 页操作 ──
+    int  TabAddPage(Control& tab, const std::string& title);
+    bool TabSetPage(Control& tab, int index, Control& page);
+    bool TabSetTitle(Control& tab, int index, const std::string& title);
+    bool TabSetTabLeadingControl(Control& tab, int index, Control& ctl);
     void ShapeSetPoints(Control& sh, const std::vector<std::pair<float, float>>& pts); // 本地像素
     std::pair<float, float> ShapeMapToDrawPoint(Control& sh, float lx, float ly);      // 本地 → 全局
     // 多图元（组合图形）：与 C ABI 一一对应（覆盖层：选中框/控点/对齐线，动态改点集）
@@ -207,6 +232,17 @@ public:
     std::string ListViewGetCellText(Control& lv, int row, int col);
     int  ListViewAddColumn(Control& lv, const std::string& title, float width, bool sortable = false);
     bool ListViewSetColumnWidth(Control& lv, int index, float width);
+    bool ListViewInsertRow(Control& lv, int index, const std::string& id, const std::vector<std::string>& cells = {});
+    bool ListViewSetRowCells(Control& lv, int index, const std::vector<std::string>& cells);
+    int  ListViewInsertColumn(Control& lv, int index, const std::string& title, float width, bool sortable = false);
+    bool ListViewRemoveColumn(Control& lv, int index);
+    bool ListViewSetRowLeadingControl(Control& lv, int index, Control& iconControl);
+    bool ListViewSetCellLeadingControl(Control& lv, int row, int col, Control& ctl);
+    bool ListViewSetCellStyle(Control& lv, int row, int col, UIColor bg, int fontSize);
+    bool ListViewSetColumnHeaderStyle(Control& lv, int colIndex, UIColor color, int fontSize);
+    bool ListViewSetColumnIcon(Control& lv, int colIndex, Control& iconControl);
+    bool ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData = nullptr);
+    bool ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values);
 
     // ── LuotiAni 动画操作 ──
     bool AnimationPrepare(Control& ctl, int startFrame = 0);
@@ -221,6 +257,18 @@ public:
     static bool SavePixelsToFile(const uint8_t* pixels, int w, int h, const std::string& filePath);
 
     Control CreateHandleControl(Control target, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+
+    // ── HandleControl 集成（第二批）──
+    // 切换手柄附加目标；target 无效/默认构造 = detach（自移出父容器 + 恢复光标）。
+    bool SetHandleTarget(Control handle, Control target);
+    // 手柄命中查询（窗口屏幕坐标，与 UIEvent mousePos 同参照系）。命中返回 true 并写 outHandleType
+    // （None=0、Move=1、NW=2、N=3、NE=4、E=5、SE=6、S=7、SW=8、W=9）。
+    bool HandleHitTest(Control handle, float x, float y, int& outHandleType);
+    // 拖拽/移动几何过滤回调（吸附/对齐线扩展点）。filter==nullptr 清除。
+    // 回调签名复用 C ABI UIHandleRectFilter（target 为 UIControlHandle，局部坐标 io 修正，返回 1 用修正值）。
+    bool SetHandleRectFilter(Control handle, UIHandleRectFilter filter, void* userData);
+    // Move 手柄可见性（策略开关）。
+    bool SetHandleMoveVisible(Control handle, bool show);
 
     // ── 视口 ──
     void SetViewport(float x, float y, float w, float h);

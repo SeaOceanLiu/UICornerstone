@@ -64,6 +64,7 @@ UIControlHandle sb = UICornerstone_CreateScrollBar(g_inst, 440, 472, 200, 16, 1,
 <table>
 <tr><th>事件名</th><th>事件常量</th><th>触发时机</th><th>参数</th></tr>
 <tr><td><code>position-changed</code></td><td><code>kEventPositionChanged</code></td><td>拖拽滑块、点击轨道翻页、setValue 导致位置变化时</td><td>（value, pageSize, maxValue 等 4 个 float）</td></tr>
+<tr><td><code>mouse-wheel</code></td><td><code>kEventMouseWheel</code></td><td>滚轮落在滚动条上直接步进 value ± step-size（向上滚 value 减，经 range clamp）；滚轮在滚动条外时事件由所在 Panel 容器级 mouse-wheel 回调接手</td><td>Float（scrollY，+1 向上 / -1 向下）</td></tr>
 </table>
 
 

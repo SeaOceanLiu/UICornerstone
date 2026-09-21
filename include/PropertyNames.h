@@ -89,7 +89,6 @@ PROP_CONSTEXPR const char* kPressedImage        = "pressed-image";
 PROP_CONSTEXPR const char* kDisabledImage       = "disabled-image";
 
 // -- Bool 属性 --
-PROP_CONSTEXPR const char* kTextShadowEnable    = "text-shadow-enable";
 PROP_CONSTEXPR const char* kShadow              = "shadow";
 PROP_CONSTEXPR const char* kExpand              = "expand";
 PROP_CONSTEXPR const char* kClickable           = "clickable";
@@ -198,7 +197,6 @@ PROP_CONSTEXPR const char* kRatio               = "ratio";
 PROP_CONSTEXPR const char* kClosedSwatchSize    = "closed-swatch-size";
 PROP_CONSTEXPR const char* kPageStep            = "page-step";
 PROP_CONSTEXPR const char* kButtonWidth         = "button-width";
-PROP_CONSTEXPR const char* kCaptionSize         = "caption-size";
 PROP_CONSTEXPR const char* kMarginLeft          = "margin-left";
 PROP_CONSTEXPR const char* kMarginTop           = "margin-top";
 PROP_CONSTEXPR const char* kMarginRight         = "margin-right";
@@ -212,6 +210,8 @@ PROP_CONSTEXPR const char* kSecondMin           = "second-min";
 
 // -- String 属性 --
 PROP_CONSTEXPR const char* kCaption             = "caption";
+// 内部 caption Label 句柄键（getPtrProperty 读取；JSON 布局键与属性键同键同常量）
+PROP_CONSTEXPR const char* kCaptionLabel        = "caption-label";
 PROP_CONSTEXPR const char* kTextContent         = "text";
 PROP_CONSTEXPR const char* kPlaceholder         = "placeholder";
 PROP_CONSTEXPR const char* kSelectedValue       = "selected-value";
@@ -379,6 +379,7 @@ PROP_CONSTEXPR const char* kEventColorChanged     = "color-changed";
 PROP_CONSTEXPR const char* kEventSelect           = "select";
 PROP_CONSTEXPR const char* kEventListSelectionChanged = "list-selection-changed";
 PROP_CONSTEXPR const char* kEventItemClick        = "item-click";
+PROP_CONSTEXPR const char* kEventMouseWheel       = "mouse-wheel";
 PROP_CONSTEXPR const char* kEventColumnSort       = "column-sort";
 PROP_CONSTEXPR const char* kEventAnimationEnded   = "animation-ended";
 PROP_CONSTEXPR const char* kEventStatusItemClick  = "status-item-click";
@@ -479,8 +480,6 @@ PROP_CONSTEXPR const char* kTabCurrentIndex      = "currentIndex";   // TabContr
 PROP_CONSTEXPR const char* kJsonLabel           = "label";
 
 // 布局 JSON（控件级）
-PROP_CONSTEXPR const char* kJsonCaptionLabel = "caption-label";
-PROP_CONSTEXPR const char* kJsonEnableTextShadow = "text-shadow-enable";
 PROP_CONSTEXPR const char* kJsonActors              = "actors";
 PROP_CONSTEXPR const char* kJsonFile                = "file";
 PROP_CONSTEXPR const char* kJsonResourceId          = "resourceId";

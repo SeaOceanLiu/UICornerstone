@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -76,7 +76,7 @@ bool ok2 = ui->AdoptResource("cross-down", pngData, pngLen, [](void* p){ free(p)
 // 引用方式（与 C API 等价）：
 auto img  = ui->CreateImage("provider:cross-up", 20, 70, 0, 0);
 label.SetString(PropertyNames::kFontResource, "maple-font");
-ui->LoadLayout(layoutJson);   // 布局内 provider:name / fontResource / actors.providerName / path 均可</code></pre>
+ui->LoadLayout(layoutJson);   // 布局内 provider:name / font-resource / actors.providerName / path 均可</code></pre>
 
 <div class="note">注册须在 <code>Create</code> 之后调用（不可在 Create 前暂存）；同名重复注册后注册覆盖前者；adopt 覆盖旧条目时先调旧 <code>freeFn</code> 释放。销毁实例即销毁 provider，adopt 缓冲经 <code>freeFn</code> 归还。</div>
 

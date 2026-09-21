@@ -92,8 +92,10 @@ void CallbackRenderDevice::clearClipRect() {
     if (m_cbs->clearClipRect) m_cbs->clearClipRect(m_handle);
 }
 void CallbackRenderDevice::pushClipRect(const SRect& rect) {
-    if (m_cbs->setClipRect) m_cbs->setClipRect(m_handle, rect.left, rect.top, rect.width, rect.height);
-    m_clipStack.push_back(rect);
+    // 嵌套裁剪：与栈顶相交（此前为替换语义——见 ClipChildren_Nested_Design）
+    SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
+    if (m_cbs->setClipRect) m_cbs->setClipRect(m_handle, r.left, r.top, r.width, r.height);
+    m_clipStack.push_back(r);
 }
 void CallbackRenderDevice::popClipRect() {
     if (!m_clipStack.empty())

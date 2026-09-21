@@ -35,7 +35,7 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 
 <h2>4.7.2 控件的属性</h2>
 
-<p>ContextMenu 为行为型浮层，<b>无独立属性系统键</b>；菜单项内容/样式由 MenuPanel/MenuItem 体系承载，经 JSON <code>contextMenu.items[]</code> 声明（<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
+<p>ContextMenu 为行为型浮层，<b>无独立属性系统键</b>；菜单项内容/样式由 MenuPanel/MenuItem 体系承载，经 JSON <code>context-menu.items[]</code> 声明（<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
 
 <h2>4.7.3 控件的回调 / 事件</h2>
 
@@ -75,9 +75,9 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 <h2>4.7.5 C++ Binding 样例</h2>
 
 <pre><code>auto menu = ui->CreateContextMenu(0, 0, 10, 10);
-menu->AddItem(u8"复制", [](shared_ptr<MenuItem> it) { /* 用户回调 */ });
-menu->AddSeparator();
-lbl->SetPtr(PropertyNames::kPropContextMenu, menu->GetThis());  // 右键绑定</code></pre>
+ui->ContextMenuAddItem(menu, u8"复制", "Ctrl+C");
+ui->ContextMenuAddSeparator(menu);
+lbl->SetPtr(PropertyNames::kPropContextMenu, menu->Handle());  // 右键绑定</code></pre>
 
 <h2>4.7.6 C ABI 调用样例</h2>
 

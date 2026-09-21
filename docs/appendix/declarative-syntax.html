@@ -40,13 +40,13 @@
 <table>
 <tr><th>键</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>children</code></td><td>array</td><td>子控件（容器类型）</td></tr>
-<tr><td><code>colors</code></td><td>object</td><td>状态色：<code>{"background":{"normal","hover","pressed","disabled"}}</code>；键含 background/border/text/textShadow/控件特有（progressColor、titleBar 等）</td></tr>
+<tr><td><code>colors</code></td><td>object</td><td>状态色：<code>{"background":{"normal","hover","pressed","disabled"}}</code>；键含 background/border/text/text-shadow/控件特有键（progress、title-bar 等）</td></tr>
 <tr><td><code>events</code></td><td>object</td><td><code>{"onClick":"handlerName"}</code>，见 6.7</td></tr>
 <tr><td><code>id</code></td><td>string</td><td>全局唯一，FindControl 用</td></tr>
 <tr><td><code>margin</code></td><td>object</td><td><code>{"left","top","right","bottom"}</code></td></tr>
 <tr><td><code>rect</code></td><td>object</td><td><code>{"x","y","w","h"}</code>；支持百分比字符串 <code>"50%"</code></td></tr>
 <tr><td><code>scale</code></td><td>object</td><td><code>{"x":1.0,"y":1.0}</code>；内容按系数缩放，布局矩形不变</td></tr>
-<tr><td><code>type</code></td><td>string</td><td>必填。kebab 小写，全部 27 种：<code>label / button / image / image-button / animation / edit-box / combo-box / text-area / check-box / progress-bar / slider / scroll-bar / panel / win-frame / color-picker / popup / confirm-popup / dialog / menu-bar / numeric-up-down / splitter / tree-view / context-menu（控件级 contextMenu 键，非独立控件）/ list-view / status-bar / tab-control / shape</code></td></tr>
+<tr><td><code>type</code></td><td>string</td><td>必填。kebab 小写，全部 27 种：<code>label / button / image / image-button / animation / edit-box / combo-box / text-area / check-box / progress-bar / slider / scroll-bar / panel / win-frame / color-picker / popup / confirm-popup / dialog / menu-bar / numeric-up-down / splitter / tree-view / context-menu（控件级 context-menu 键，非独立控件）/ list-view / status-bar / tab-control / shape</code></td></tr>
 <tr><td><code>visible</code> / <code>enabled</code></td><td>bool</td><td>可见 / 启用</td></tr>
 </table>
 
@@ -60,8 +60,9 @@
 
 <h3>button / image-button</h3>
 <pre><code>{ "type":"button", "id":"submit",
-  "rect":{"x":280,"y":140,"w":100,"h":35}, "caption":"Submit", "caption-size":16,
-  "text-shadow-enable":false,
+  "rect":{"x":280,"y":140,"w":100,"h":35}, "caption":"Submit", "font-size":16,
+  "shadow":{"enabled":false,"offset":{"x":1,"y":1}},
+  "caption-label":{"caption":"Submit", "font":{"size":16}, "alignment":"center"},  // 可选：自定义内部标题 Label（对象；与属性键同键）
   "colors":{"background":{"normal":"#4060A0FF","hover":"#5080C0FF","pressed":"#305090FF"},
             "border":{"normal":"#6080C0FF"},"text":{"normal":"#FFFFFFFF"}},
   "actors":{                                               // 状态图（image-button 必填）
@@ -74,7 +75,7 @@
 
 <h3>check-box</h3>
 <pre><code>{ "type":"check-box", "id":"agree",
-  "rect":{"x":240,"y":432,"w":180,"h":30}, "caption":"I agree", "caption-size":14,
+  "rect":{"x":240,"y":432,"w":180,"h":30}, "caption":"I agree", "font-size":14,
   "check-state":"unchecked",                                 // unchecked/checked/indeterminate
   "style":"classic",                                        // classic/cross/circle
   "layout":"text-right",                                    // text-right/text-left
@@ -99,12 +100,12 @@
   "items":[ { "label":"Beijing","value":"beijing" },
             { "label":"Wuhan","value":"wuhan","disabled":true } ] }</code></pre>
 
-<h3>context-menu（右键菜单，控件级 contextMenu 键）</h3>
+<h3>context-menu（右键菜单，控件级 context-menu 键）</h3>
 <pre><code>{ "type":"label", "id":"lbl", "rect":[10,10,120,24], "caption":"t",
   "context-menu": { "items": [
     { "caption":"Open", "shortcut":"Ctrl+O" }, { "type":"separator" },
     { "caption":"Delete" } ] } }</code></pre>
-<p>控件级 <code>contextMenu</code> 键：<code>items[]</code> 字段复用 MenuPanel 解析（caption / shortcut / type:separator / icon / leading 等）。</p>
+<p>控件级 <code>context-menu</code> 键：<code>items[]</code> 字段复用 MenuPanel 解析（caption / shortcut / type:separator / icon / leading 等）。</p>
 
 <h3>edit-box</h3>
 <pre><code>{ "type":"edit-box", "id":"nameEdit",
@@ -140,7 +141,7 @@
   "rows": [ { "id":"f1", "cells":["main.cpp","2.1 KB"], "icon":"provider:icons/file",
               "cellControls":[ { "col":1, "control":{ "type":"check-box" } } ] } ],
   "events": { "onSelectionChanged":"onSel", "onColumnSort":"onSort" } }</code></pre>
- <p>属性键：<code>mode</code>（multi/single）/ <code>multiSelect</code> / <code>selectedIndex</code> / <code>rowHeight</code> / <code>headerHeight</code> / <code>gridlines</code> / <code>horizontalGridlines</code> / <code>hover</code> / <code>minColumnWidth</code> / <code>cycleNavigation</code> / <code>sortColumn</code> / <code>sortAscending</code> / <code>font</code>（<code>{name,size,style}</code>）/ <code>fontSize</code>；<code>columns[]</code>/<code>rows[]</code> 见样例（<code>c</code>… <code>columns.icon</code> / <code>rows.icon</code> / <code>rows.cellControls[]</code>）。</p>
+ <p>属性键：<code>mode</code>（multi/single）/ <code>multi-select</code> / <code>selected-index</code> / <code>row-height</code> / <code>header-height</code> / <code>gridlines</code> / <code>horizontal-gridlines</code> / <code>hover</code> / <code>min-column-width</code> / <code>cycle-navigation</code> / <code>sort-column</code> / <code>sort-ascending</code> / <code>font</code>（<code>{name,size,style}</code>）/ <code>font-size</code>；<code>columns[]</code>/<code>rows[]</code> 见样例（<code>c</code>… <code>columns.icon</code> / <code>rows.icon</code> / <code>rows.cellControls[]</code>）。</p>
 
 <h3>menu-bar（默认顶层独立；v1.1.1 起支持挂入布局容器作为普通子项）</h3>
 <p>顶层用法（缺省）：菜单栏全宽贴顶（挂到 Bench 时自动布置）。容器内用法（v1.1.1）：作为 panel / v-flow 子项时挂入即自动切换手动定位、参与引擎重排，无需 <code>manual-position</code>。</p>
@@ -197,7 +198,7 @@
     { "shape":"round-rect", "rect":[10,50,130,75], "radius":6, "fill":"#34D399" },
     { "shape":"polygon", "fill":"#EF4444",
       "points":[ {"x":0,"y":52},{"x":75,"y":0},{"x":150,"y":52} ] } ] }</code></pre>
-<p>单图元键：<code>shape</code>（rect / filled-rect / round-rect / circle / ellipse / polyline / polygon）/ <code>fill</code> / <code>stroke</code> / <code>lineWidth</code> / <code>radius</code> / <code>ringWidth</code> / <code>points[]</code>；多图元 <code>primitives[]</code> 非空时替代单图元（每项同上 + <code>rect:[x,y,w,h]</code> 本地坐标）。</p>
+<p>单图元键：<code>shape</code>（rect / filled-rect / round-rect / circle / ellipse / polyline / polygon）/ <code>fill</code> / <code>stroke</code> / <code>line-width</code> / <code>radius</code> / <code>ring-width</code> / <code>points[]</code>；多图元 <code>primitives[]</code> 非空时替代单图元（每项同上 + <code>rect:[x,y,w,h]</code> 本地坐标）。</p>
 
 <h3>slider</h3>
 <pre><code>{ "type":"slider", "id":"rSlider",
@@ -222,8 +223,8 @@
 <pre><code>{ "type":"status-bar", "id":"sb", "rect":[0,876,1400,24], "font-size":13,
   "items":[ { "id":"branch","text":"main","icon":"provider:icons/git","menu":"#branchMenu" },
             { "id":"enc","text":"UTF-8","align":"right" } ] }</code></pre>
-<p>属性键：<code>fontSize</code> / <code>itemHeight</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
-<p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>fontSize</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。继承细节：仅当祖先显式声明 <code>font.name</code> 时才覆盖子控件默认字体名；父只声明 <code>fontSize</code> 时子保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
+<p>属性键：<code>font-size</code> / <code>item-height</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
+<p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>font-size</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。继承细节：仅当祖先显式声明 <code>font.name</code> 时才覆盖子控件默认字体名；父只声明 <code>font-size</code> 时子保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
 <table>
 <tr><th>控件</th><th>继承方式</th></tr>
@@ -238,7 +239,7 @@
   "font-size":13, "currentIndex":0,
   "tabs":[ { "title":"主页", "icon":"provider:icons/home", "page":{ "type":"panel" } } ],
   "events": { "onTabChange":"onTab" } }</code></pre>
-<p>属性键：<code>position</code>（top/bottom/left/right）/ <code>fontSize</code> / <code>currentIndex</code>；<code>tabs[]</code>：<code>title</code> / <code>icon</code> / <code>page</code>（任意控件 JSON，递归解析，缺 rect 铺满内容区）。</p>
+<p>属性键：<code>position</code>（top/bottom/left/right）/ <code>font-size</code> / <code>currentIndex</code>；<code>tabs[]</code>：<code>title</code> / <code>icon</code> / <code>page</code>（任意控件 JSON，递归解析，缺 rect 铺满内容区）。</p>
 
 <h3>text-area</h3>
 <pre><code>{ "type":"text-area", "id":"notes",

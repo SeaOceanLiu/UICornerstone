@@ -71,6 +71,8 @@ private:
     void recreateClosedState();
     SRect computePopupRect();
     void openPopup();
+    // 弹窗子树惰性构建（首次打开时构建一次并缓存；create() 只建关闭态）
+    void ensurePopupBuilt();
     void closePopup();
     void togglePopup();
     void syncUIFromColor();

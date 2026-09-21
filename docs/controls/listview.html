@@ -39,16 +39,16 @@ UICornerstone_ListViewAddRow(g_inst, lv, "f1", 2, cells);
 
 <table>
 <tr><th>属性/字段</th><th>属性常量</th><th>类型</th><th>默认值</th><th>说明</th></tr>
-<tr><td><code>font</code> / <code>fontSize</code></td><td><code>kFont</code> / <code>kFontSize</code></td><td>Enum / Int</td><td>继承</td><td>字体声明 <code>{name,size,style}</code> 或便捷 <code>fontSize</code>（属性系统键，C ABI/Binding 可访问）；未声明时沿父控件链继承最近显式字体（默认 <code>HarmonyOS_Sans_SC_Regular</code> / 14，v1.1.1 起支持）</td></tr>
+<tr><td><code>font</code> / <code>font-size</code></td><td><code>kFont</code> / <code>kFontSize</code></td><td>Enum / Int</td><td>继承</td><td>字体声明 <code>{name,size,style}</code> 或便捷 <code>font-size</code>（属性系统键，C ABI/Binding 可访问）；未声明时沿父控件链继承最近显式字体（默认 <code>HarmonyOS_Sans_SC_Regular</code> / 14，v1.1.1 起支持）</td></tr>
 <tr><td><code>mode</code></td><td><code>kMode</code></td><td>Enum</td><td><code>kModeMulti</code></td><td><code>kModeMulti</code>（Report）/ <code>kModeSingle</code>（ListBox）</td></tr>
-<tr><td><code>multiSelect</code></td><td><code>kMultiSelect</code></td><td>Bool</td><td>true</td><td>Ctrl 多选</td></tr>
-<tr><td><code>selectedIndex</code></td><td><code>kSelectedIndex</code></td><td>Int</td><td>-1</td><td>初始选中行</td></tr>
-<tr><td><code>rowHeight</code> / <code>headerHeight</code></td><td><code>kRowHeight</code> / <code>kHeaderHeight</code></td><td>Float</td><td>24 / 28</td><td>行高/列头高</td></tr>
+<tr><td><code>multi-select</code></td><td><code>kMultiSelect</code></td><td>Bool</td><td>true</td><td>Ctrl 多选</td></tr>
+<tr><td><code>selected-index</code></td><td><code>kSelectedIndex</code></td><td>Int</td><td>-1</td><td>初始选中行</td></tr>
+<tr><td><code>row-height</code> / <code>header-height</code></td><td><code>kRowHeight</code> / <code>kHeaderHeight</code></td><td>Float</td><td>24 / 28</td><td>行高/列头高</td></tr>
 <tr><td><code>gridlines</code></td><td><code>kGridlines</code></td><td>Bool</td><td>true / false</td><td>网格线开关</td></tr>
 <tr><td><code>hover</code></td><td><code>kHoverHighlight</code></td><td>Bool</td><td>true</td><td>hover 高亮</td></tr>
-<tr><td><code>minColumnWidth</code></td><td><code>kMinColumnWidth</code></td><td>Float</td><td>20</td><td>列宽拖拽下限</td></tr>
-<tr><td><code>cycleNavigation</code></td><td><code>kCycleNavigation</code></td><td>Bool</td><td>true</td><td>键盘上下循环</td></tr>
-<tr><td><code>sortColumn</code> / <code>sortAscending</code></td><td><code>kSortColumn</code> / <code>kSortAscending</code></td><td>Int/Bool</td><td>-1 / true</td><td>初始排序状态</td></tr>
+<tr><td><code>min-column-width</code></td><td><code>kMinColumnWidth</code></td><td>Float</td><td>20</td><td>列宽拖拽下限</td></tr>
+<tr><td><code>cycle-navigation</code></td><td><code>kCycleNavigation</code></td><td>Bool</td><td>true</td><td>键盘上下循环</td></tr>
+<tr><td><code>sort-column</code> / <code>sort-ascending</code></td><td><code>kSortColumn</code> / <code>kSortAscending</code></td><td>Int/Bool</td><td>-1 / true</td><td>初始排序状态</td></tr>
 </table>
 
 <h2>4.12.3 控件的回调 / 事件</h2>

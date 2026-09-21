@@ -303,7 +303,7 @@
             "h": 60
           },
           "caption": "STRETCH (default)",
-          "caption-size": 14,
+          "font-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
@@ -331,7 +331,7 @@
             "h": 60
           },
           "caption": "FIT_CENTER",
-          "caption-size": 14,
+          "font-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
@@ -359,7 +359,7 @@
             "h": 60
           },
           "caption": "CENTER_CROP",
-          "caption-size": 14,
+          "font-size": 14,
           "actors": {
             "normal": {
               "file": "assets/images/cross_up.png",
@@ -425,7 +425,7 @@
               },
               "flow-weight": 1,
               "caption": "Flex1",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -448,7 +448,7 @@
               },
               "flow-weight": 2,
               "caption": "Flex2 (x2)",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -471,7 +471,7 @@
               },
               "flow-weight": 1,
               "caption": "Flex3",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -532,7 +532,7 @@
                 "h": 40
               },
               "caption": "Fixed 40px",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -555,7 +555,7 @@
               },
               "flow-weight": 1,
               "caption": "Flex1 (fills rest)",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -577,7 +577,7 @@
                 "h": 40
               },
               "caption": "Fixed 40px",
-              "caption-size": 13,
+              "font-size": 13,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -638,7 +638,7 @@
               },
               "anchor": "top-left",
               "caption": "TL",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#E06060FF",
@@ -667,7 +667,7 @@
                 "bottom": 0
               },
               "caption": "TR",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A060FF",
@@ -696,7 +696,7 @@
                 "bottom": 4
               },
               "caption": "BL",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF",
@@ -725,7 +725,7 @@
                 "bottom": 4
               },
               "caption": "BR",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C0A060FF",
@@ -748,7 +748,7 @@
               },
               "anchor": "center",
               "caption": "CENTER",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#A060C0FF",
@@ -777,7 +777,7 @@
                 "bottom": 4
               },
               "caption": "FILL bar",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A0A0FF",
@@ -852,7 +852,7 @@
                 "col": 0
               },
               "caption": "(0,0)",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#E06060FF"
@@ -877,7 +877,7 @@
                 "colSpan": 2
               },
               "caption": "(0,1) span2",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A060FF"
@@ -901,7 +901,7 @@
                 "col": 0
               },
               "caption": "(1,0)",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#6080C0FF"
@@ -925,7 +925,7 @@
                 "col": 1
               },
               "caption": "(1,1) mid",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C0A060FF"
@@ -950,7 +950,7 @@
                 "rowSpan": 2
               },
               "caption": "(1,2)\nrowSpan2",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#A060C0FF"
@@ -974,7 +974,7 @@
                 "col": 0
               },
               "caption": "(2,0)",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#60A0A0FF"
@@ -998,7 +998,7 @@
                 "col": 1
               },
               "caption": "(2,1)",
-              "caption-size": 12,
+              "font-size": 12,
               "colors": {
                 "background": {
                   "normal": "#C06080FF"
@@ -1035,7 +1035,7 @@
             "h": 32
           },
           "caption": "宽度=46% × 父容器宽，拉宽窗口试试",
-          "caption-size": 14,
+          "font-size": 14,
           "colors": {
             "background": {
               "normal": "#E06060FF"
@@ -1137,7 +1137,7 @@
             "h": 18
           },
           "caption": "-10",
-          "caption-size": 11,
+          "font-size": 11,
           "events": {
             "onClick": "onDecProgress"
           },
@@ -1162,7 +1162,7 @@
             "h": 18
           },
           "caption": "+10",
-          "caption-size": 11,
+          "font-size": 11,
           "events": {
             "onClick": "onIncProgress"
           },

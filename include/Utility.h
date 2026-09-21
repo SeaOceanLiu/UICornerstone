@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <SDL3/SDL_rect.h>
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <functional>
@@ -266,6 +267,15 @@ public:
     }
     float bottom(void){
         return top + height;
+    }
+    // 矩形相交（嵌套裁剪用）：无交集时返回空 rect（width/height = 0）
+    SRect intersected(const SRect& o) const {
+        float l = (std::max)(left, o.left);
+        float tp = (std::max)(top, o.top);
+        float r = (std::min)(left + width, o.left + o.width);
+        float b = (std::min)(top + height, o.top + o.height);
+        if (r <= l || b <= tp) return SRect(l, tp, 0.0f, 0.0f);
+        return SRect(l, tp, r - l, b - tp);
     }
     SPoint center(void) const {
         return SPoint(left + width / 2, top + height / 2);

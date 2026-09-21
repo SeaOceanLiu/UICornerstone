@@ -336,6 +336,8 @@ UICORNERSTONE_API int      UICornerstone_Debug_ClearMousePosition(UIInstance ins
 UICORNERSTONE_API int               UICornerstone_LoadLayout(UIInstance instance, const char* jsonContent);
 UICORNERSTONE_API int               UICornerstone_LoadLayoutFromFile(UIInstance instance, const char* filePath);
 UICORNERSTONE_API UIControlHandle   UICornerstone_FindControl(UIInstance instance, const char* id);
+// 给编程式创建的控件设置 id（注册 controlsById，供 FindControl 查询）。id 空则移除该控件名下 id。
+UICORNERSTONE_API int               UICornerstone_SetControlId(UIInstance instance, UIControlHandle ctl, const char* id);
 
 typedef void (*UIActionCallback)(UIControlHandle ctl, void* userData);
 UICORNERSTONE_API void UICornerstone_RegisterAction(UIInstance instance, const char* name, UIActionCallback cb, void* userData);
@@ -448,6 +450,25 @@ UICORNERSTONE_API int UICornerstone_ComboBoxGetItemCount(UIInstance instance, UI
 
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateHandleControl(UIInstance instance,
     UIControlHandle target, float x, float y, float w, float h, float xScale, float yScale);
+/* ============ HandleControl 集成扩展（第二批）============ */
+// 拖拽/移动几何过滤回调：HandleControl 每帧计算出新 rect 后、setRect 前调用。
+// target 为目标控件句柄；ioX/ioY/ioW/ioH 为 target 局部坐标（逻辑 rect）。
+// 返回 1 用修正值，返回 0 用原计算值。注意修改 left/top 时请自行与 width/height 联动（保持对缘不变）。
+typedef int (*UIHandleRectFilter)(UIControlHandle target, float* ioX, float* ioY,
+                                  float* ioW, float* ioH, void* userData);
+// 切换手柄附加目标。target==NULL → detach（自移出父容器 + 恢复光标）。返回 1 成功。
+UICORNERSTONE_API int UICornerstone_SetHandleTarget(UIInstance instance,
+    UIControlHandle handle, UIControlHandle target);
+// 手柄命中查询。x/y 为**窗口全局坐标原样**（与 UIEvent 的 mousePos/mouseWheel.x,y 及 getDrawRect 同域：
+// 父链递归累加至窗口全局，视口根 rect 已含窗口位置——子视口场景**不要**再减视口偏移）。
+// 命中返回 1 并写 *outHandleType（None=0、Move=1、NW=2、N=3、NE=4、E=5、SE=6、S=7、SW=8、W=9）；未命中/非手柄控件返回 0。
+UICORNERSTONE_API int UICornerstone_HandleHitTest(UIInstance instance,
+    UIControlHandle handle, float x, float y, int* outHandleType);
+// 设置拖拽几何过滤回调（吸附/对齐线扩展点）。filter==NULL 清除。返回 1 成功。
+UICORNERSTONE_API int UICornerstone_SetHandleRectFilter(UIInstance instance, UIControlHandle handle,
+    UIHandleRectFilter filter, void* userData);
+// Move 手柄可见性（策略开关：设计器可关闭 Move 手柄，移动统一走本体拖动+filter）。返回 1 成功。
+UICORNERSTONE_API int UICornerstone_SetHandleMoveVisible(UIInstance instance, UIControlHandle handle, int show);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(UIInstance instance,
     const char* normalImage,
     const char* hoverImage,
@@ -616,6 +637,8 @@ UICORNERSTONE_API int UICornerstone_AnimationSetFrameFilter(UIInstance instance,
 
 /* ============ 控件通用操作 ============ */
 UICORNERSTONE_API void UICornerstone_SetRect(UIInstance instance, UIControlHandle ctl, float x, float y, float w, float h);
+// 读取控件 rect（**直接父局部坐标**，即 m_rect 原值；与 getDrawRect 的窗口全局域不同——
+// 全局域 = 父链递归累加，容器位置判定请用全局域换算）。
 UICORNERSTONE_API void UICornerstone_GetRect(UIInstance instance, UIControlHandle ctl, float* x, float* y, float* w, float* h);
 UICORNERSTONE_API void UICornerstone_AddChildControl(UIInstance instance, UIControlHandle parent, UIControlHandle child);
 UICORNERSTONE_API void UICornerstone_DestroyControl(UIInstance instance, UIControlHandle ctl);

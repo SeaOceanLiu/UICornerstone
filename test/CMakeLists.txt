@@ -98,6 +98,7 @@ set(UI_TEST_EXECUTABLES
     test_progressbar
     test_button
     test_colorpicker
+    test_colorfixes
     test_combobox
     test_dialog
     test_graphtool
@@ -259,13 +260,42 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_api.c")
 endif()
 
 # ============================================================
+# test_p0_getter (pure C): P0 配合项验证（SetControlId / getBoolProperty /
+# font-size 转发）。链接与 test_api 完全一致。
+# ============================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_p0_getter.c")
+    add_executable(test_p0_getter test_p0_getter.c)
+    target_include_directories(test_p0_getter PRIVATE ${TEST_INCLUDES})
+    string(TOLOWER "${UICORNERSTONE_BACKEND}" _BACKEND_LOWER)
+    target_compile_definitions(test_p0_getter PRIVATE UICORNERSTONE_BACKEND_NAME="${_BACKEND_LOWER}")
+
+    if(UICORNERSTONE_BUILD_DLL)
+        target_link_libraries(test_p0_getter PRIVATE UICornerstone_dll)
+        target_compile_definitions(test_p0_getter PRIVATE UICORNERSTONE_BUILD_SHARED=1)
+
+        if(WIN32)
+            add_custom_command(TARGET test_p0_getter POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UICornerstone_dll>/UICornerstone.dll"
+                    "$<TARGET_FILE_DIR:test_p0_getter>")
+            add_custom_command(TARGET test_p0_getter POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE_DIR:UIBackend_${_BACKEND_LOWER}>/UIBackend_${_BACKEND_LOWER}.dll"
+                    "$<TARGET_FILE_DIR:test_p0_getter>")
+        endif()
+    else()
+        target_link_libraries(test_p0_getter PRIVATE ${TEST_LIBS})
+    endif()
+endif()
+
+# ============================================================
 # Multi-instance / multiviewport C ABI tests (pure DLL plugin loading)
 # Dynamic loading: LoadLibrary("UICornerstone.dll") + GetProcAddress,
 # create instances via CreateInstanceFromPlugin → core DLL loads
 # UIBackend_xxx.dll. Unlike test_api (import-lib link), these do NOT
 # link UICornerstone_dll — everything is resolved at runtime.
 # ============================================================
-foreach(cabi_test_name test_multi_instance_cabi test_multiviewport_cabi test_multiinstance_visual_cabi test_multiviewport_visual_cabi test_image test_capture_cabi)
+foreach(cabi_test_name test_multi_instance_cabi test_multiviewport_cabi test_multiinstance_visual_cabi test_multiviewport_visual_cabi test_image test_capture_cabi test_handlecontrol_cabi test_wheel_cabi test_wheel_nested_cabi)
     if(UICORNERSTONE_BUILD_DLL AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${cabi_test_name}.cpp")
         add_executable(${cabi_test_name} ${cabi_test_name}.cpp)
 

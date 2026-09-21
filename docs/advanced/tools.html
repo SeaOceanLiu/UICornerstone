@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -71,7 +71,7 @@ double v = ctx-&gt;get("progressValue").asDouble();
 // "bind": { "text": { "source": "userName", "mode": "twoWay" },
 //           "visible": "isEditable" }</code></pre>
 
-<p>可绑定属性：<code>caption / text / placeholder / value / checkState / visible / enabled</code>。双向绑定回写：EditBox <code>text-changed</code> → <code>set(key, text)</code>；CheckBox → 三态字符串；ScrollBar → 数值。watcher 用 weak_ptr 捕获控件，控件销毁自动失效。</p>
+<p>可绑定属性：<code>caption / text / placeholder / value / check-state / visible / enabled</code>。双向绑定回写：EditBox <code>text-changed</code> → <code>set(key, text)</code>；CheckBox → 三态字符串；ScrollBar → 数值。watcher 用 weak_ptr 捕获控件，控件销毁自动失效。</p>
 
 <h2>5.3.3 LayoutParser：自定义事件处理器</h2>
 

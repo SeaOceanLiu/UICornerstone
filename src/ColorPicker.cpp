@@ -86,6 +86,14 @@ void ColorPicker::create() {
     Panel::create();
     setTransparent(true);
     setBorderVisible(false);
+    // 关闭态（swatch + hex Label）：秒建。弹窗子树（Dialog/按钮/预设/滑块/hex）
+    // 延迟到首次 openPopup()——见 ensurePopupBuilt()（P0-4：避免选中即付 ~3.5s 构建）
+    createClosedStateControls();
+}
+
+// 构建弹窗子树（首次打开时调用一次，之后缓存复用）。原 create() 的 Dialog 段。
+void ColorPicker::ensurePopupBuilt() {
+    if (m_dialog || GET_CONTEXT == nullptr) return;
     m_dialog = make_shared<Dialog>(nullptr, SRect(0, 0, m_popupWidth, m_popupHeight),
                                    m_xScale, m_yScale);
     m_dialog->setConfirmButtonText(u8"确定");
@@ -98,7 +106,7 @@ void ColorPicker::create() {
     m_dialog->setResourceProvider(getResourceProvider());
     m_dialog->setInputBackend(getInputBackend());
     // 浮层继承宿主实例上下文：Dialog 以 nullptr 构造，无 setContext 传播路径，
-    // 必须在宿主挂树后（此处 GET_CONTEXT 就绪）显式补建
+    // 必须在宿主挂树后（GET_CONTEXT 就绪）显式补建
     m_dialog->setContext(GET_CONTEXT);
     m_dialog->setOnConfirm([this](shared_ptr<ConfirmPopup>) {
         onOK();
@@ -114,7 +122,6 @@ void ColorPicker::create() {
     m_dialog->setPadding(0);
     m_dialog->create();
     m_dialog->setVisible(false);
-    createClosedStateControls();
     recreatePopupContent();
 }
 
@@ -148,6 +155,11 @@ void ColorPicker::setRect(SRect rect) {
 // ==================== Closed State ====================
 
 void ColorPicker::createClosedStateControls() {
+    // 幂等：清理可能存在的旧实例（pre-create 属性应用、setContext 级联 recreate 等路径
+    // 可能重复进入本函数——先清理再创建，保证关闭态恒为唯一一对）
+    if (m_closedSwatch) { removeControl(m_closedSwatch); m_closedSwatch.reset(); }
+    if (m_closedLabel)  { removeControl(m_closedLabel);  m_closedLabel.reset(); }
+
     float yOff = (m_rect.height - m_swatchSize) / 2.0f;
 
     m_closedSwatch = make_shared<Panel>(this,
@@ -195,7 +207,7 @@ bool ColorPicker::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;   // enable/visible 守卫
     if (event->m_type == EventType::KeyDown &&
         (event->keyEvent.keycode == KeyCode::Return || event->keyEvent.keycode == KeyCode::Space) &&
-        getFocused() && !m_dialog->getVisible()) {
+        getFocused() && !isPopupVisible()) {
         togglePopup();
         return true;
     }
@@ -270,6 +282,7 @@ SRect ColorPicker::computePopupRect() {
 }
 
 void ColorPicker::openPopup() {
+    ensurePopupBuilt();
     if (!m_dialog) return;
     SRect pr = computePopupRect();
     // 绝对坐标（computePopupRect 基于 getDrawRect）转父（bench）相对本地坐标。

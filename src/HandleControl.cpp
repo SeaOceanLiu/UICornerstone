@@ -43,6 +43,8 @@ void HandleControl::setTarget(shared_ptr<Control> target)
 
 void HandleControl::setTarget(Control* target)
 {
+    if (!target) { detach(); return; }
+    if (m_target == target) return;   // 幂等：重复附加同一目标快速返回
     if (m_target) detach();
     m_target = target;
     m_targetWeak.reset();
@@ -247,7 +249,13 @@ void HandleControl::updateResize(const SPoint& mousePos)
     float localWidth  = newScreen.width  / targetScaleX;
     float localHeight = newScreen.height / targetScaleY;
 
-    m_target->setRect(SRect(localLeft, localTop, localWidth, localHeight));
+    SRect newLocal(localLeft, localTop, localWidth, localHeight);
+    if (m_rectFilter) {
+        float io[4] = {newLocal.left, newLocal.top, newLocal.width, newLocal.height};
+        int r = m_rectFilter(static_cast<void*>(m_target), &io[0], &io[1], &io[2], &io[3], m_rectFilterUser);
+        if (r == 1) newLocal = SRect(io[0], io[1], io[2], io[3]);
+    }
+    m_target->setRect(newLocal);
 }
 
 void HandleControl::endResize()
@@ -281,11 +289,14 @@ void HandleControl::updateDrag(const SPoint& mousePos)
     float newLeft = (m_startScreenRect.left + dx - parentDraw.left) / scaleX;
     float newTop  = (m_startScreenRect.top  + dy - parentDraw.top)  / scaleY;
 
-    m_target->setRect(SRect(
-        newLeft, newTop,
-        m_startTargetRect.width,
-        m_startTargetRect.height
-    ));
+    SRect newRect(newLeft, newTop, m_startTargetRect.width, m_startTargetRect.height);
+    if (m_rectFilter) {
+        float io[4] = {newRect.left, newRect.top, newRect.width, newRect.height};
+        if (m_rectFilter(static_cast<void*>(m_target), &io[0], &io[1], &io[2], &io[3], m_rectFilterUser) == 1) {
+            newRect = SRect(io[0], io[1], io[2], io[3]);
+        }
+    }
+    m_target->setRect(newRect);
 }
 
 void HandleControl::endDrag()

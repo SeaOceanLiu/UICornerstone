@@ -55,11 +55,11 @@ UIControlHandle img = UICornerstone_CreateImage(g_inst, "assets/img/icon.png", 2
 
 <h2>4.1.4 JSON 语法（独立 image 节点）</h2>
 
-<pre><code>// 独立图片：image 键（文件路径，相对 resourceRoot）或 imageResource / providerName（内存资源 ID）
+<pre><code>// 独立图片：image 键（文件路径，相对 resourceRoot）或 image-resource / providerName（内存资源 ID）
 { "type": "image", "id": "hero", "rect": { "x": 60, "y": 60, "w": 128, "h": 128 },
   "image": "assets/images/cross_up.png", "scale-type": "fit-center" }
 
-// 支持键：image / imageResource / providerName / matchParentRect / scaleType /
+// 支持键：image / image-resource / providerName / match-parent-rect / scale-type /
 //          rect / scale / visible / enabled / margin / colors / styles / events / id
 // scaleType：stretch（默认）/ fit-center / center-crop / none / tile</code></pre>
 

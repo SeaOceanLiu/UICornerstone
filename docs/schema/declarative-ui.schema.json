@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://uicornerstone.dev/schema/declarative-ui.schema.json",
   "title": "UICornerstone Declarative UI",
@@ -9,6 +9,31 @@
     }
   ],
   "$defs": {
+    "shadow": {
+      "type": "object",
+      "description": "阴影 {enabled, offset:{x,y}}",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "offset": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number",
+              "x-default": "1"
+            },
+            "y": {
+              "type": "number",
+              "x-default": "1"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "align9": {
       "enum": [
         "top-left",
@@ -71,14 +96,7 @@
           "type": "object",
           "description": "自定义标题 Label 描述"
         },
-        "caption-size": {
-          "type": "number",
-          "x-default": "16"
-        },
-        "text-shadow-enable": {
-          "type": "boolean",
-          "x-default": "false"
-        },
+        "shadow": { "$ref": "#/$defs/shadow" },
         "file": {
           "type": "string"
         },
@@ -132,6 +150,7 @@
         }
       ],
       "properties": {
+        "shadow": { "$ref": "#/$defs/shadow" },
         "type": {
           "const": "check-box"
         },
@@ -141,9 +160,6 @@
         "caption": {
           "type": "string",
           "x-default": ""
-        },
-        "caption-size": {
-          "type": "number"
         },
         "check-color": {
           "$ref": "#/$defs/color"
@@ -328,6 +344,10 @@
         "id": {
           "type": "string",
           "x-default": ""
+        },
+        "flow-weight": {
+          "type": "number",
+          "x-default": "1.0"
         },
         "border-visible": {
           "type": "boolean"
@@ -778,31 +798,8 @@
           "type": "object",
           "description": "阴影偏移 {x,y}"
         },
-        "shadow": {
-          "type": "object",
-          "description": "阴影 {enabled, offset:{x,y}}",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "x-default": "false"
-            },
-            "offset": {
-              "type": "object",
-              "properties": {
-                "x": {
-                  "type": "number",
-                  "x-default": "1"
-                },
-                "y": {
-                  "type": "number",
-                  "x-default": "1"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
+        "shadow": { "$ref": "#/$defs/shadow" },
+
         "size": {
           "type": "integer",
           "x-default": "16"
@@ -1024,10 +1021,6 @@
         },
         "columns": {
           "type": "array"
-        },
-        "flow-weight": {
-          "type": "number",
-          "x-default": "1.0"
         },
         "gap": {
           "type": "number"
@@ -1701,6 +1694,7 @@
         }
       ],
       "properties": {
+        "shadow": { "$ref": "#/$defs/shadow" },
         "type": {
           "const": "win-frame"
         },

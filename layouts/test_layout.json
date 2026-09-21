@@ -219,7 +219,7 @@
                 "h": 35
               },
               "caption": "Submit",
-              "caption-size": 16,
+              "font-size": 16,
               "colors": {
                 "background": {
                   "normal": "#4060A0FF",
@@ -443,7 +443,7 @@
             "h": 30
           },
           "caption": "I agree",
-          "caption-size": 14,
+          "font-size": 14,
           "check-state": "unchecked",
           "style": "classic",
           "layout": "text-right",
@@ -461,7 +461,7 @@
             "h": 30
           },
           "caption": "Enable option",
-          "caption-size": 14,
+          "font-size": 14,
           "check-state": "checked",
           "style": "cross",
           "layout": "text-right"
@@ -579,7 +579,7 @@
             "h": 40
           },
           "caption": "Image Button",
-          "caption-size": 14,
+          "font-size": 14,
           "actors": {
             "normal": "assets/images/cross_up.png",
             "hover": "assets/images/cross_over.png",
@@ -609,7 +609,7 @@
             "h": 40
           },
           "caption": "Animated",
-          "caption-size": 14,
+          "font-size": 14,
           "luotiAni": "assets/animations/rotateBtn/rotateBtn.jsonc",
           "playing": true,
           "colors": {

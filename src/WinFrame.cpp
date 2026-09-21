@@ -411,6 +411,12 @@ void WinFrame::setTitleTextColor(const SColor& color) {
     }
 }
 
+void WinFrame::setState(ControlState state) {
+    Panel::setState(state);
+    // 状态联动：标题 Label 的 text.*/text-shadow.* 各态色经此可达（Label::draw 按自身 state 取色）
+    if (m_titleLabel) m_titleLabel->setState(state);
+}
+
 void WinFrame::setTitle(const string& title) {
     m_title = title;
     if (m_titleLabel) {
@@ -431,16 +437,39 @@ int WinFrame::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kWinFrameBorder) == 0) { setWinFrameBorderColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kTitleBarBG) == 0)     { setTitleBarBGColor(color);     return 1; }
     if (strcmp(prop, PropertyNames::kTitleText) == 0)      { setTitleTextColor(color);      return 1; }
+    // #13：标题文本/阴影四态单色转发（对照 setTitleTextColor 同步模式；normal 由 kTitleText 承载）
+    if (m_titleLabel) {
+        if (strcmp(prop, PropertyNames::kTextShadow) == 0)         { m_titleLabel->setTextShadowNormalStateColor(color);   return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)    { m_titleLabel->setTextShadowHoverStateColor(color);    return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0)  { m_titleLabel->setTextShadowPressedStateColor(color);  return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0) { m_titleLabel->setTextShadowDisabledStateColor(color); return 1; }
+        if (strcmp(prop, PropertyNames::kTextHover) == 0)          { m_titleLabel->setTextHoverStateColor(color);          return 1; }
+        if (strcmp(prop, PropertyNames::kTextPressed) == 0)        { m_titleLabel->setTextPressedStateColor(color);        return 1; }
+        if (strcmp(prop, PropertyNames::kTextDisabled) == 0)       { m_titleLabel->setTextDisabledStateColor(color);       return 1; }
+    }
     return Panel::setColorProperty(prop, color);
 }
 
 int WinFrame::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kResizable) == 0) { setResizable(value != 0); return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // #12：标题阴影开关转发内部 title Label
+        if (m_titleLabel) { m_titleLabel->setShadow(value != 0); return 1; }
+        return 0;
+    }
     return Panel::setBoolProperty(prop, value);
 }
 
 int WinFrame::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kEdgeMargin) == 0) { setEdgeMargin(value); return 1; }
+    // #12：标题阴影偏移转发内部 title Label
+    if (m_titleLabel != nullptr) {
+        if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+            SPoint o = m_titleLabel->getShadowOffset(); o.x = value; m_titleLabel->setShadowOffset(o); return 1;
+        }
+        if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+            SPoint o = m_titleLabel->getShadowOffset(); o.y = value; m_titleLabel->setShadowOffset(o); return 1;
+        }
+    }
     return Panel::setFloatProperty(prop, value);
 }
 
@@ -455,6 +484,16 @@ int WinFrame::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTitleBarBG) == 0)     { out = m_titleBarBg;          return 1; }
     if (strcmp(prop, PropertyNames::kTitleText) == 0)      { out = m_titleTextColor;      return 1; }
     if (strcmp(prop, PropertyNames::kClosedText) == 0)     { out = m_closedTextColor;     return 1; }
+    // #13：标题文本/阴影四态单色读回（内部 title Label）
+    if (m_titleLabel) {
+        if (strcmp(prop, PropertyNames::kTextShadow) == 0)         { out = m_titleLabel->getTextShadowStateColor().getNormal();   return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)    { out = m_titleLabel->getTextShadowStateColor().getHover();    return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0)  { out = m_titleLabel->getTextShadowStateColor().getPressed();  return 1; }
+        if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0) { out = m_titleLabel->getTextShadowStateColor().getDisabled(); return 1; }
+        if (strcmp(prop, PropertyNames::kTextHover) == 0)          { out = m_titleLabel->getTextStateColor().getHover();          return 1; }
+        if (strcmp(prop, PropertyNames::kTextPressed) == 0)        { out = m_titleLabel->getTextStateColor().getPressed();        return 1; }
+        if (strcmp(prop, PropertyNames::kTextDisabled) == 0)       { out = m_titleLabel->getTextStateColor().getDisabled();       return 1; }
+    }
     return Panel::getColorProperty(prop, out);
 }
 
@@ -463,11 +502,19 @@ int WinFrame::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kCloseOnEsc) == 0)          { out = m_closeOnEsc          ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kResizable) == 0)           { out = m_resizable           ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kConfirmVisible) == 0)      { out = m_confirmVisible      ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // #12：读回内部 title Label
+        if (m_titleLabel) { out = m_titleLabel->isShadowEnabled() ? 1 : 0; return 1; }
+        return 0;
+    }
     return Panel::getBoolProperty(prop, out);
 }
 
 int WinFrame::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kClosedFontSize) == 0) { out = m_closedFontSize; return 1; }
+    if (m_titleLabel != nullptr) {
+        if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_titleLabel->getShadowOffset().x; return 1; }
+        if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_titleLabel->getShadowOffset().y; return 1; }
+    }
     return Panel::getFloatProperty(prop, out);
 }
 
