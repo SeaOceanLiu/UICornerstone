@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <memory>
 #include <fstream>
+#include <filesystem>
 #include <cmath>
 #include <string>
 #include "LuotiAni.h"
@@ -19,10 +20,21 @@ static void testL21AnimationEndedEvent(void);
 using namespace std;
 
 static ofstream g_logFile;
+// 测试临时文件统一生成到 CWD/Temp（不入库；根目录不再产生测试残留）
+static string tempJsonPath(const string& name) {
+    static const std::filesystem::path dir = []() {
+        std::error_code ec;
+        std::filesystem::path d = std::filesystem::current_path(ec) / "Temp";
+        std::filesystem::create_directories(d, ec);
+        return d;
+    }();
+    return (dir / name).string();
+}
+
 
 void logOutput(const string& message) {
     if (!g_logFile.is_open()) {
-        g_logFile.open("luotiani_log.txt", ios::out);
+        g_logFile.open(tempJsonPath("luotiani_log.txt"), ios::out);
     }
     g_logFile << message << endl;
     g_logFile.flush();
@@ -147,7 +159,7 @@ static json makeDoc(int totalFrames, const json& layer, int viewW = 100, int vie
 }
 
 static void writeCaseJson(const string& filename, const json& doc) {
-    ofstream out(filename, ios::out);
+    ofstream out(tempJsonPath(filename), ios::out);
     out << doc.dump();
     out.close();
 }
@@ -157,7 +169,7 @@ static shared_ptr<LuotiAni> loadAndPrepare(const string& filename, const json& d
     writeCaseJson(filename, doc);
     shared_ptr<LuotiAni> ani = make_shared<LuotiAni>(BENCH);
     try {
-        ani->loadAniDesc(fs::path(filename));
+        ani->loadAniDesc(fs::path(tempJsonPath(filename)));
         ani->prepare();
     } catch (const char* e) {
         g_failCount++;
@@ -688,7 +700,7 @@ static void showDemoAnimations(void) {
         };
         writeCaseJson("tl_demo.jsonc", doc);
         shared_ptr<LuotiAni> ani = LuotiAniBuilder(BENCH)
-            .loadAniDesc(fs::path("tl_demo.jsonc"))
+            .loadAniDesc(fs::path(tempJsonPath("tl_demo.jsonc")))
             .setRect(SRect(300, 20, 256, 256))
             .prepare()
             .setAutoStart()
@@ -769,7 +781,7 @@ static void testL21AnimationEndedEvent(void) {
                 if (ev->eventName && strcmp(ev->eventName, PropertyNames::kEventAnimationEnded) == 0)
                     ++ended;
             }), nullptr);
-        ani->loadAniDesc(fs::path("tl_L21.jsonc"));
+        ani->loadAniDesc(fs::path(tempJsonPath("tl_L21.jsonc")));
         CHECK(ani->getTotalFrames() == 3, "L21 load");
         ani->prepare();
         ani->setVisible(true);
