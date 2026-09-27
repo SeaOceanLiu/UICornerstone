@@ -28,6 +28,10 @@ struct TreeNode {
     AlignmentMode leadingAlign = AlignmentMode::AM_MID_LEFT;  // 槽位对齐（复用 Label 9 宫格；水平分量忽略，槽位贴文本起点）
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;  // 与 TreeView 默认一致；仅 fontSize>0 时生效
     int fontSize = 0;                         // 0 = 继承 TreeView 级字号
+    SColor textShadowColor{0, 0, 0, 120};     // P0-26：item 文本阴影（单色；shadowEnabled 控制）
+    bool   shadowEnabled = false;
+    float  shadowOffsetX = 1.0f;
+    float  shadowOffsetY = 1.0f;
 };
 
 inline std::shared_ptr<TreeNode> makeNode(
@@ -114,7 +118,7 @@ private:
     SColor m_borderColor = ConstDef::TREEVIEW_BORDER_COLOR;
     SColor m_hoverColor = ConstDef::TREEVIEW_HOVER_COLOR;
     SColor m_selectedColor = ConstDef::TREEVIEW_SELECTED_COLOR;
-    SColor m_textColor = ConstDef::TREEVIEW_TEXT_COLOR;
+    // 文本色使用基类 StateColor m_textColor（P0-26 复核：原自有 SColor 遮蔽基类 → 属性路径无效）
 
     OnSelectHandler m_onSelect;
     OnSelectDataHandler m_onSelectData;
@@ -193,8 +197,8 @@ public:
     SColor getHoverColor() const { return m_hoverColor; }
     void setSelectedColor(const SColor& c) { m_selectedColor = c; }
     SColor getSelectedColor() const { return m_selectedColor; }
-    void setTextColor(const SColor& c) { m_textColor = c; }
-    SColor getTextColor() const { return m_textColor; }
+    void setTextColor(const SColor& c) { m_textColor.setNormal(c); }
+    SColor getTextColor() const { return m_textColor.getNormal(); }
 
     void setFont(FontName fontName);
 
@@ -209,6 +213,7 @@ public:
     int getBoolProperty(const char* prop, int& out) override;
     int getIntProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
+    int getColorProperty(const char* prop, SColor& out) override;   // P0-26：item 阴影色读回
     int getEnumProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
     int getStringProperty(const char* prop, const char*& out) override;

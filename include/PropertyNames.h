@@ -234,6 +234,7 @@ PROP_CONSTEXPR const char* kItems               = "items";
 PROP_CONSTEXPR const char* kTreeExpand          = "expand";
 PROP_CONSTEXPR const char* kTreeCollapse        = "collapse";
 PROP_CONSTEXPR const char* kSelectedId          = "selected-id";
+PROP_CONSTEXPR const char* kSelectedText        = "selected-text";       // TabControl 选中页签文字色（P0-26）
 PROP_CONSTEXPR const char* kSelectedUserData    = "selected-user-data";
 // TreeView item 级属性：先以字符串属性 "item-id" 定位目标节点，再用下列属性作用于该节点
 PROP_CONSTEXPR const char* kTreeItemId             = "item-id";
@@ -241,6 +242,9 @@ PROP_CONSTEXPR const char* kTreeItemLeadingGap     = "item-leading-gap";
 PROP_CONSTEXPR const char* kTreeItemLeadingAlign   = "item-leading-align";
 PROP_CONSTEXPR const char* kTreeItemFontSize       = "item-font-size";
 PROP_CONSTEXPR const char* kTreeItemFont           = "item-font";
+PROP_CONSTEXPR const char* kTreeItemTextShadow     = "item-text-shadow";       // item 文本阴影色（单色；P0-26）
+PROP_CONSTEXPR const char* kTreeItemShadowOffsetX  = "item-shadow-offset-x";   // P0-26
+PROP_CONSTEXPR const char* kTreeItemShadowOffsetY  = "item-shadow-offset-y";   // P0-26
 PROP_CONSTEXPR const char* kTreeItemLeadingControl = "item-leading-control";
 
 // -- Shape 形状控件 --

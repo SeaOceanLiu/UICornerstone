@@ -39,6 +39,10 @@ struct CellStyle {
     SColor textColor;
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;
     int fontSize = 0;
+    SColor textShadowColor{0, 0, 0, 120};   // P0-26：单元格文本阴影（单色 + 偏移）
+    bool   shadowEnabled = false;
+    float  shadowOffsetX = 1.0f;
+    float  shadowOffsetY = 1.0f;
 };
 
 struct ListColumn {
@@ -221,7 +225,7 @@ private:
     float m_contentWidth = 0.f;                   // Σ列宽缓存
 
     // ── 配色（一期固定；颜色属性键与 bool "hover" 同串冲突，暂不暴露）──
-    SColor m_textColor{235, 235, 235};
+    // 文本色使用基类 StateColor m_textColor（P0-26 复核：原自有 SColor 遮蔽基类 → 属性路径无效）
     SColor m_headerTextColor{200, 200, 205};
     SColor m_hoverColor{60, 60, 70};
     SColor m_selectedColor{59, 130, 246};

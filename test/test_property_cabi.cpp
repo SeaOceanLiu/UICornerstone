@@ -166,9 +166,9 @@ static int runPropertyTests(void) {
     CHECK_RET(uiSetColor(g_inst, slider, "label",         green), 1, "Slider: SetColor(label, green)");
     CHECK_RET(uiSetColor(g_inst, slider, "invalid-prop",  red),   0, "Slider: SetColor(invalid) -> 0");
 
-    CHECK_RET(uiSetColor(g_inst, check, "check",          green), 1, "CheckBox: SetColor(check, green)");
-    CHECK_RET(uiSetColor(g_inst, check, "cross",          red),   1, "CheckBox: SetColor(cross, red)");
-    CHECK_RET(uiSetColor(g_inst, check, "box-border",     blue),  1, "CheckBox: SetColor(box-border, blue)");
+    CHECK_RET(uiSetColor(g_inst, check, "check-color",    green), 1, "CheckBox: SetColor(check-color, green)");
+    CHECK_RET(uiSetColor(g_inst, check, "cross-color",    red),   1, "CheckBox: SetColor(cross-color, red)");
+    CHECK_RET(uiSetColor(g_inst, check, "box-border-color", blue), 1, "CheckBox: SetColor(box-border-color, blue)");
 
     CHECK_RET(uiSetColor(g_inst, prog,  "background",     red),   1, "ProgressBar: SetColor(background, red)");
     CHECK_RET(uiSetColor(g_inst, prog,  "progress",       green), 1, "ProgressBar: SetColor(progress, green)");

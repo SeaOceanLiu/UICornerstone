@@ -1254,32 +1254,6 @@ void UICornerstone_MenuItemSetSubMenu(UIInstance instance, UIControlHandle item,
     if (it) it->setSubMenu(std::dynamic_pointer_cast<MenuPanel>(sp));
 }
 
-UIControlHandle UICornerstone_CreateImageButton(UIInstance instance,
-    const char* normalImage, const char* hoverImage, const char* pressedImage,
-    float x, float y, float w, float h, float xScale, float yScale)
-{
-    if (!instance || !instance->initialized) return nullptr;
-    auto ctl = std::make_shared<Button>(instance->bench, SRect(x, y, w, h), xScale, yScale);
-    // Actor 依附于按钮（parent=ctl），累进缩放 = xScale * parent 的累计缩放；
-    // 这里必须传 1.0f，否则按钮 2x 时 Actor 再乘 2 变成 4x（图片溢出按钮区域）。
-    if (normalImage) {
-        auto actor = std::make_shared<Actor>(ctl.get(), fs::path(normalImage), true, 1.0f, 1.0f);
-        ctl->setNormalStateActor(actor);
-    }
-    if (hoverImage) {
-        auto actor = std::make_shared<Actor>(ctl.get(), fs::path(hoverImage), true, 1.0f, 1.0f);
-        ctl->setHoverStateActor(actor);
-    }
-    if (pressedImage) {
-        auto actor = std::make_shared<Actor>(ctl.get(), fs::path(pressedImage), true, 1.0f, 1.0f);
-        ctl->setPressedStateActor(actor);
-    }
-    instance->bench->addControl(ctl);
-    ctl->create();
-    ctl->setVisible(true);
-    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
-}
-
 UIControlHandle UICornerstone_CreateActor(UIInstance instance,
     const char* image, float x, float y, float w, float h, float xScale, float yScale)
 {
@@ -1330,12 +1304,10 @@ UIControlHandle UICornerstone_CreateAnimation(UIInstance instance,
     auto ani = std::make_shared<LuotiAni>(instance->bench, xScale, yScale);   // 构造不加载（同 Button.cpp:345 用法）
     ani->setRect(SRect(x, y, w, h));                          // w/h 传 0 → prepare 回退到画布尺寸
     instance->bench->addControl(ani);                         // setContext 传播
-    if (jsoncPath) {
+    if (jsoncPath && jsoncPath[0]) {                          // 空串=占位创建（P0-25）：不 load/prepare，path 行运行时设置加载
         try {                                                 // §6.4-1：异常边界，失败回滚 + 返回 nullptr
-            fs::path p(jsoncPath);
-            // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-            if (p.is_relative() && p.string().rfind(PropertyNames::kProviderPrefix, 0) != 0) p = fs::path(Platform::GetBasePath()) / p;
-            ani->loadFromFile(p);
+            // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+            ani->loadFromFile(fs::path(jsoncPath));
             ani->prepare();
             // 设计语义（test_animation A2）：创建后不自动播放，由调用方 SetBool "playing" 启动
         } catch (...) {
@@ -1785,6 +1757,20 @@ int UICornerstone_ListViewSetCellStyle(UIInstance instance, UIControlHandle lv,
     return 1;
 }
 
+int UICornerstone_ListViewSetCellShadow(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    CellStyle st = v->getCellStyle(row, col);   // 保留既有字段，叠加阴影
+    st.textShadowColor = SColor(r, g, b, a);
+    st.shadowEnabled = (a > 0);
+    st.shadowOffsetX = offsetX;
+    st.shadowOffsetY = offsetY;
+    v->setCellStyle(row, col, st);
+    return 1;
+}
+
 int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHandle lv,
     int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, int fontSize)
 {
@@ -1820,10 +1806,8 @@ int UICornerstone_ListViewSetColumnSorter(UIInstance instance, UIControlHandle l
     ani->setRect(SRect(0, 0, w, h));
     if (jsoncPath) {
         try {
-            fs::path p(jsoncPath);
-            // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-            if (p.is_relative() && p.string().rfind(PropertyNames::kProviderPrefix, 0) != 0) p = fs::path(Platform::GetBasePath()) / p;
-            ani->loadFromFile(p);
+            // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+            ani->loadFromFile(fs::path(jsoncPath));
             ani->prepare();
         } catch (...) {
             printf("UICornerstone_CreateAnimatedButton: load/prepare failed for '%s'\n", jsoncPath);
@@ -2060,6 +2044,31 @@ UIControlHandle UICornerstone_CreateDialog(UIInstance instance,
     // 保持 Dialog 生命期：加入 popupPool，close() 时自动清理
     instance->popupPool.push_back(ctl);
 
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
+UIControlHandle UICornerstone_CreatePopup(UIInstance instance,
+    float x, float y, float w, float h, float xScale, float yScale)
+{
+    if (!instance || !instance->initialized) return nullptr;
+    auto ctl = std::make_shared<Popup>(instance->bench, SRect(x, y, w, h), xScale, yScale);
+    instance->bench->addControl(ctl);
+    ctl->create();                 // 保持隐藏；显隐经 "visible" 属性（P0-27d：不自动 open）
+    instance->popupPool.push_back(ctl);
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
+}
+
+UIControlHandle UICornerstone_CreateConfirmPopup(UIInstance instance,
+    const char* confirmText,
+    float x, float y, float w, float h, float xScale, float yScale)
+{
+    if (!instance || !instance->initialized) return nullptr;
+    auto ctl = std::make_shared<ConfirmPopup>(instance->bench, SRect(x, y, w, h), xScale, yScale);
+    if (confirmText) ctl->setConfirmButtonText(confirmText);   // ConfirmPopup 仅确认按钮（无取消）
+    ctl->setCentered();            // 与 CreateDialog 对齐（居中）
+    instance->bench->addControl(ctl);
+    ctl->create();                 // 保持隐藏；显隐经 "visible" 属性（不自动 open）
+    instance->popupPool.push_back(ctl);
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get()));
 }
 

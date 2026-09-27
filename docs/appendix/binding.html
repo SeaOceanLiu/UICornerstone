@@ -84,7 +84,6 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>CreateEditBox(x, y, w, h, xScale, yScale)</code></td><td>EditBox</td></tr>
 <tr><td><code>CreateHandleControl(target, x, y, w, h, xScale, yScale)</code></td><td>HandleControl</td></tr>
 <tr><td><code>CreateImage(image, x, y, w, h, xScale, yScale)</code></td><td>Image</td></tr>
-<tr><td><code>CreateImageButton(normal, hover, pressed, x, y, w, h, xScale, yScale)</code></td><td>ImageButton</td></tr>
 <tr><td><code>CreateLabel(text, fontSize, x, y, w, h, xScale, yScale)</code></td><td>Label</td></tr>
 <tr><td><code>CreateListView(x, y, w, h, xScale, yScale)</code></td><td>ListView（数据/列/样式经实例方法 <code>ListView*</code> 专用）</td></tr>
 <tr><td><code>CreateMenuBar(x, y, w, h, xScale, yScale)</code></td><td>MenuBar</td></tr>
@@ -121,7 +120,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>GetColor / GetStateColor / GetBool / GetInt / GetFloat / GetString / GetEnum / GetPtr</code></td><td>属性读取</td></tr>
 <tr><td><code>SetColor / SetStateColor / SetBool / SetInt / SetFloat / SetString / SetEnum / SetPtr</code></td><td>属性写入（一一对应 C ABI <code>UICornerstone_Set*</code>）</td></tr>
 <tr><td><code>std::string GetId() const</code></td><td>取控件 id</td></tr>
-<tr><td><code>std::string GetType() const</code></td><td>控件运行时类型（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code> / <code>"tree-view"</code>；image-button 本质为 button 返回 <code>"button"</code>）</td></tr>
+<tr><td><code>std::string GetType() const</code></td><td>控件运行时类型（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code> / <code>"tree-view"</code>）</td></tr>
 <tr><td><code>UIRect GetRect() const</code></td><td>读取布局矩形</td></tr>
 <tr><td><code>UIControlHandle Handle() const</code></td><td>取原始 C 句柄（传给 C ABI 专用函数，如 <code>ListViewAddColumn</code>）</td></tr>
 <tr><td><code>void AddChild(Control child)</code></td><td>挂子控件</td></tr>

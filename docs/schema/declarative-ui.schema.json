@@ -65,6 +65,13 @@
         "playing": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -96,7 +103,9 @@
           "type": "object",
           "description": "自定义标题 Label 描述"
         },
-        "shadow": { "$ref": "#/$defs/shadow" },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
         "file": {
           "type": "string"
         },
@@ -105,6 +114,26 @@
         },
         "image-resource": {
           "type": "string"
+        },
+        "normal-image": {
+          "type": "string",
+          "description": "运行时状态图（文件路径或 provider: 资源引用）；等价 actors.normal；与属性键同名（P0-19）"
+        },
+        "hover-image": {
+          "type": "string",
+          "description": "运行时状态图（文件路径或 provider: 资源引用）；等价 actors.hover"
+        },
+        "pressed-image": {
+          "type": "string",
+          "description": "运行时状态图（文件路径或 provider: 资源引用）；等价 actors.pressed"
+        },
+        "disabled-image": {
+          "type": "string",
+          "description": "运行时状态图（文件路径或 provider: 资源引用）；等价 actors.disabled"
+        },
+        "animation": {
+          "type": "string",
+          "description": "运行时内嵌动画（jsonc 文件路径或 provider: 资源引用）；等价 luotiAni.file"
         },
         "luotiAni": {
           "type": "object",
@@ -135,6 +164,20 @@
             "none",
             "tile"
           ]
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -150,7 +193,9 @@
         }
       ],
       "properties": {
-        "shadow": { "$ref": "#/$defs/shadow" },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
         "type": {
           "const": "check-box"
         },
@@ -208,6 +253,20 @@
             "bottom"
           ],
           "x-default": "center"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -255,6 +314,23 @@
         "closed-swatch-size": {
           "type": "number",
           "x-default": "16"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -331,6 +407,20 @@
         },
         "text": {
           "type": "string"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -348,13 +438,6 @@
         "flow-weight": {
           "type": "number",
           "x-default": "1.0"
-        },
-        "border-visible": {
-          "type": "boolean"
-        },
-        "colors": {
-          "type": "object",
-          "description": "状态色组：normal/hover/pressed/disabled 子键（值同 color），宽松校验"
         },
         "enabled": {
           "type": "boolean",
@@ -376,16 +459,6 @@
         },
         "scale": {
           "$ref": "#/$defs/scale"
-        },
-        "text-shadow": {
-          "$ref": "#/$defs/color"
-        },
-        "font": {
-          "$ref": "#/$defs/font-spec"
-        },
-        "font-size": {
-          "type": "integer",
-          "description": "字号（font.size 的便捷形式，v1.1.1）"
         },
         "visible": {
           "type": "boolean",
@@ -513,6 +586,13 @@
         "visible": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic1"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -557,6 +637,20 @@
         "text": {
           "type": "string",
           "x-default": ""
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -643,6 +737,13 @@
             "none",
             "tile"
           ]
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -743,6 +844,23 @@
         "sort-column": {
           "type": "integer",
           "x-default": "-1"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -798,8 +916,9 @@
           "type": "object",
           "description": "阴影偏移 {x,y}"
         },
-        "shadow": { "$ref": "#/$defs/shadow" },
-
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
         "size": {
           "type": "integer",
           "x-default": "16"
@@ -807,6 +926,17 @@
         "style": {
           "type": "string",
           "description": "字体样式"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -915,6 +1045,20 @@
         },
         "h": {
           "type": "integer"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-menu"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -971,6 +1115,23 @@
         "value": {
           "type": "number",
           "x-default": "0"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -1048,6 +1209,13 @@
         "transparent": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -1085,6 +1253,13 @@
         "visible": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic1"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -1137,6 +1312,13 @@
         "visible": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic1"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -1212,6 +1394,20 @@
         "value": {
           "type": "number",
           "x-default": "0"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -1300,6 +1496,9 @@
         "value": {
           "type": "number",
           "x-default": "0"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-bg"
         }
       },
       "required": [
@@ -1372,6 +1571,13 @@
         "stroke": {
           "$ref": "#/$defs/color",
           "description": "描边色（缺省黑）"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
         }
       },
       "required": [
@@ -1462,6 +1668,20 @@
         "value": {
           "type": "number",
           "x-default": "0"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -1511,6 +1731,9 @@
         },
         "thickness": {
           "type": "number"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-bg"
         }
       },
       "required": [
@@ -1543,6 +1766,19 @@
           "items": {
             "type": "object"
           }
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
         }
       },
       "required": [
@@ -1584,6 +1820,22 @@
           "items": {
             "type": "object"
           }
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "selected-text": {
+          "$ref": "#/$defs/color"
         }
       },
       "required": [
@@ -1628,6 +1880,20 @@
         },
         "word-wrap": {
           "type": "boolean"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -1679,6 +1945,23 @@
         },
         "h": {
           "type": "integer"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
@@ -1694,7 +1977,9 @@
         }
       ],
       "properties": {
-        "shadow": { "$ref": "#/$defs/shadow" },
+        "shadow": {
+          "$ref": "#/$defs/shadow"
+        },
         "type": {
           "const": "win-frame"
         },
@@ -1726,12 +2011,161 @@
         },
         "title-text": {
           "$ref": "#/$defs/color"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-full"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "font": {
+          "$ref": "#/$defs/font-spec"
+        },
+        "font-size": {
+          "type": "integer",
+          "description": "字号；font.size 的便捷形式（v1.1.1）"
         }
       },
       "required": [
         "type"
       ],
       "additionalProperties": false
+    },
+    "state-color-4": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/color"
+        },
+        "hover": {
+          "$ref": "#/$defs/color"
+        },
+        "pressed": {
+          "$ref": "#/$defs/color"
+        },
+        "disabled": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false,
+      "description": "状态色对象（normal/hover/pressed/disabled；值同 color）"
+    },
+    "state-color-3d": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/color"
+        },
+        "hover": {
+          "$ref": "#/$defs/color"
+        },
+        "disabled": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false,
+      "description": "状态色对象（normal/hover/disabled；值同 color）"
+    },
+    "state-color-3p": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/color"
+        },
+        "hover": {
+          "$ref": "#/$defs/color"
+        },
+        "pressed": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false,
+      "description": "状态色对象（normal/hover/pressed；值同 color）"
+    },
+    "state-color-1": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false,
+      "description": "状态色对象（normal；值同 color）"
+    },
+    "colors-full": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-4"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-4"
+        },
+        "text": {
+          "$ref": "#/$defs/state-color-4"
+        },
+        "text-shadow": {
+          "$ref": "#/$defs/state-color-4"
+        }
+      },
+      "additionalProperties": false,
+      "description": "视觉色组（背景/边框/文本/文本阴影，四态）"
+    },
+    "colors-basic": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-4"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-4"
+        }
+      },
+      "additionalProperties": false,
+      "description": "视觉色组（背景/边框，四态）"
+    },
+    "colors-basic1": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-1"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-1"
+        }
+      },
+      "additionalProperties": false,
+      "description": "视觉色组（背景/边框，仅 normal）"
+    },
+    "colors-bg": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-4"
+        }
+      },
+      "additionalProperties": false,
+      "description": "视觉色组（仅背景，四态）"
+    },
+    "colors-menu": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-3p"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-1"
+        },
+        "text": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "text-shadow": {
+          "$ref": "#/$defs/state-color-3d"
+        }
+      },
+      "additionalProperties": false,
+      "description": "菜单色组（背景三态/边框单态/文本三态/文本阴影三态；统一覆盖 bar/panel/item）"
     }
   },
   "version": "1.1.0"

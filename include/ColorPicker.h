@@ -65,6 +65,7 @@ private:
     float m_swatchSize = ConstDef::COLORPICKER_SWATCH_SIZE;
     int   m_closedFontSize = ConstDef::COLORPICKER_HEX_FONT_SIZE;
     SColor m_closedTextColor = SColor(219, 219, 219, 255);
+    FontName m_closedFontName = FontName::HarmonyOS_Sans_SC_Regular;   // 关闭态字体名（P0-26）
     SColor m_popupBGColor = ConstDef::COLORPICKER_POPUP_BG;
 
     void createClosedStateControls();
@@ -118,18 +119,25 @@ public:
     void setClosedSwatchSize(float size) { m_swatchSize = size; recreateClosedState(); }
     void setClosedFontSize(int size) { m_closedFontSize = size; recreateClosedState(); }
     void setClosedTextColor(SColor color) { m_closedTextColor = color; recreateClosedState(); }
+    void setClosedFont(FontName font) { m_closedFontName = font; if (m_closedLabel) m_closedLabel->setFont(font); }
     void setPopupBGColor(SColor color) { m_popupBGColor = color; if (m_dialog) m_dialog->setNormalStateBGColor(color); }
 
     // ── Property system overrides ──
     int setColorProperty(const char* prop, SColor color) override;
+    int setBoolProperty(const char* prop, int value) override;
     int setIntProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setStringProperty(const char* prop, const char* value) override;
+    int setEnumProperty(const char* prop, const char* value) override;
+    void setTextStateColor(StateColor stateColor) override;        // P0-26：转发关闭态 Label（四态）
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
 
     int getColorProperty(const char* prop, SColor& out) override;
+    int getBoolProperty(const char* prop, int& out) override;
     int getIntProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getStringProperty(const char* prop, const char*& out) override;
+    int getEnumProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
 };
 

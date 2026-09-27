@@ -40,13 +40,13 @@
 <table>
 <tr><th>键</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>children</code></td><td>array</td><td>子控件（容器类型）</td></tr>
-<tr><td><code>colors</code></td><td>object</td><td>状态色：<code>{"background":{"normal","hover","pressed","disabled"}}</code>；键含 background/border/text/text-shadow/控件特有键（progress、title-bar 等）</td></tr>
+<tr><td><code>colors</code></td><td>object</td><td>状态色：<code>{"background":{"normal","hover","pressed","disabled"}}</code>；键含 background/border/text/text-shadow/控件特有键（progress、title-bar 等）。<b>P0-26</b>：按控件类型声明（态子集裁剪）——menu 为 background 三态 + text 三态，dialog/popup 仅 normal；完整矩阵见 <a href="properties.html">7.1.1</a></td></tr>
 <tr><td><code>events</code></td><td>object</td><td><code>{"onClick":"handlerName"}</code>，见 6.7</td></tr>
 <tr><td><code>id</code></td><td>string</td><td>全局唯一，FindControl 用</td></tr>
 <tr><td><code>margin</code></td><td>object</td><td><code>{"left","top","right","bottom"}</code></td></tr>
 <tr><td><code>rect</code></td><td>object</td><td><code>{"x","y","w","h"}</code>；支持百分比字符串 <code>"50%"</code></td></tr>
 <tr><td><code>scale</code></td><td>object</td><td><code>{"x":1.0,"y":1.0}</code>；内容按系数缩放，布局矩形不变</td></tr>
-<tr><td><code>type</code></td><td>string</td><td>必填。kebab 小写，全部 27 种：<code>label / button / image / image-button / animation / edit-box / combo-box / text-area / check-box / progress-bar / slider / scroll-bar / panel / win-frame / color-picker / popup / confirm-popup / dialog / menu-bar / numeric-up-down / splitter / tree-view / context-menu（控件级 context-menu 键，非独立控件）/ list-view / status-bar / tab-control / shape</code></td></tr>
+<tr><td><code>type</code></td><td>string</td><td>必填。kebab 小写，全部 26 种：<code>label / button / image / animation / edit-box / combo-box / text-area / check-box / progress-bar / slider / scroll-bar / panel / win-frame / color-picker / popup / confirm-popup / dialog / menu-bar / numeric-up-down / splitter / tree-view / context-menu（控件级 context-menu 键，非独立控件）/ list-view / status-bar / tab-control / shape</code></td></tr>
 <tr><td><code>visible</code> / <code>enabled</code></td><td>bool</td><td>可见 / 启用</td></tr>
 </table>
 
@@ -56,16 +56,16 @@
 <pre><code>{ "type":"animation", "id":"ani1x", "rect":{"x":1100,"y":80,"w":256,"h":256},
   "path":"assets/animations/rotateBtn/rotateBtn.jsonc",     // 相对 exe 目录；w/h=0 → 画布尺寸
   "scale":{"x":1,"y":1},                                    // 挂树后延迟 prepare，SetBool("playing") 启动
-  "playing":true }                                          // "playing":true 挂树后自动播放</code></pre>
+  "playing":true }                                          // "playing":true 挂树后自动播放；运行时键 "animation" 与 "path" 同义（P0-24）</code></pre>
 
-<h3>button / image-button</h3>
+<h3>button</h3>
 <pre><code>{ "type":"button", "id":"submit",
   "rect":{"x":280,"y":140,"w":100,"h":35}, "caption":"Submit", "font-size":16,
   "shadow":{"enabled":false,"offset":{"x":1,"y":1}},
   "caption-label":{"caption":"Submit", "font":{"size":16}, "alignment":"center"},  // 可选：自定义内部标题 Label（对象；与属性键同键）
   "colors":{"background":{"normal":"#4060A0FF","hover":"#5080C0FF","pressed":"#305090FF"},
             "border":{"normal":"#6080C0FF"},"text":{"normal":"#FFFFFFFF"}},
-  "actors":{                                               // 状态图（image-button 必填）
+  "actors":{                                               // 状态图（四态图按钮：normal/hover/pressed/disabled）
     "match-parent-rect":true,
     "normal":"assets/images/normal.png",                   // 或 {"file":..., "scale-type":"fit-center"}
     "hover":"assets/images/hover.png", "pressed":"assets/images/pressed.png" },
@@ -181,6 +181,7 @@
   "value":65, "range":{"min":0,"max":100},
   "style":"horizontal",                                    // horizontal/vertical
   "text-mode":"percent",                                    // none/percent/custom
+  "text":"Loading",                                         // P0-27c：等价 custom-text + 自动 text-mode=custom
   "animation-speed":0.1,
   "colors":{"progress":{"normal":"#4080C0FF"},"background":{"normal":"#303030FF"}} }</code></pre>
 

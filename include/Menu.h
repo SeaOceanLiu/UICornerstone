@@ -181,7 +181,22 @@ public:
     // 按 item-id 定位（CABI 属性分发用；getItemAt 为位置定位）
     shared_ptr<MenuItem> getItemById(const string& id) const;
 
+    // P0-26：item 文本色/阴影访问器（MenuItem::draw 读取）
+    SColor getItemTextColor() const { return m_textColor; }
+    SColor getItemHoverTextColor() const { return m_hoverTextColor; }
+    SColor getItemDisabledTextColor() const { return m_disabledTextColor; }
+    StateColor& getItemTextShadowState() { return m_textShadowColor; }
+    bool   isTextShadowEnabled() const { return m_shadowEnabled; }
+    SPoint getTextShadowOffset() const { return m_shadowOffset; }
+    bool   isItemHovered(const MenuItem* item) const;
+
     // 属性系统（CABI item-id 定位 + item-leading-* 属性，TreeView v7 同模式）
+    void setTextStateColor(StateColor stateColor) override;        // P0-26：文本三态（normal/hover/disabled）
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色三态
+    int setColorProperty(const char* prop, SColor color) override;
+    int getColorProperty(const char* prop, SColor& out) override;
+    int setBoolProperty(const char* prop, int value) override;
+    int getBoolProperty(const char* prop, int& out) override;
     int setIntProperty(const char* prop, int value) override;
     int getIntProperty(const char* prop, int& out) override;
     int setStringProperty(const char* prop, const char* value) override;
@@ -215,6 +230,12 @@ private:
     SColor m_borderColor;
     SColor m_hoverColor;
     SColor m_separatorColor;
+    SColor m_textColor;
+    SColor m_hoverTextColor;
+    SColor m_disabledTextColor;
+    StateColor m_textShadowColor;
+    bool   m_shadowEnabled = false;
+    SPoint m_shadowOffset{1, 1};
     float m_shadowRadius;
 
     void ensureFont();
@@ -304,6 +325,11 @@ private:
     SColor m_hoverBgColor;
     SColor m_hoverTextColor;
     SColor m_activeBgColor;
+    SColor m_borderColor;
+    SColor m_disabledTextColor;
+    StateColor m_textShadowColor;
+    bool   m_shadowEnabled = false;
+    SPoint m_shadowOffset{1, 1};
 
     float m_itemHeightRatio;
     float m_menuTextSize;
@@ -316,6 +342,10 @@ private:
     void switchMenu(int index);
 public:
     // ── Property system overrides ──
+    void setTextStateColor(StateColor stateColor) override;        // P0-26：文本三态 → 自身 + 面板
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
+    int setColorProperty(const char* prop, SColor color) override;
+    int getColorProperty(const char* prop, SColor& out) override;
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setEnumProperty(const char* prop, const char* value) override;

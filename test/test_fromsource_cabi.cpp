@@ -316,15 +316,13 @@ static void createAllControls() {
             }
         }
 
-        if (uiCreateImageButton) {
-            g_imgBtnHandle = uiCreateImageButton(
-                    g_inst,
-                    "assets/images/cross_up.png",
-                    "assets/images/cross_over.png",
-                    "assets/images/cross_down.png",
-                    5, 175, 200, 30, 1.0f, 1.0f);
+        if (uiCreateButton && uiSetString) {   // P0-31：ImageButton 已移除 → 状态图 Button 等价用例
+            g_imgBtnHandle = uiCreateButton(g_inst, "", 5, 175, 200, 30, 1.0f, 1.0f);
             if (g_imgBtnHandle) {
-                printf("OK: created ImageButton\n");
+                uiSetString(g_inst, g_imgBtnHandle, "normal-image", "assets/images/cross_up.png");
+                uiSetString(g_inst, g_imgBtnHandle, "hover-image", "assets/images/cross_over.png");
+                uiSetString(g_inst, g_imgBtnHandle, "pressed-image", "assets/images/cross_down.png");
+                printf("OK: created state-image Button (ImageButton 等价)\n");
                 if (uiSetCallback)
                     uiSetCallback(g_inst, g_imgBtnHandle, "click", onButtonClick, nullptr);
                 uiAddChildControl(g_inst, g_panelHandle, g_imgBtnHandle);

@@ -265,6 +265,7 @@ private:
     string m_version;
     string m_name;
     string m_resourceId;              // 内存资源引用：parse 阶段 provider 未就绪时记忆，挂树后由 setRenderDevice 补读
+    string m_filePathStr;             // 文件路径设置原值（稳定存储，P0-21 读回；resource 路径清空）
     SSize m_canvasSize;
     uint16_t m_frameRate;
     uint32_t m_totalFrames;
@@ -318,6 +319,7 @@ public:
         m_id(-1)
     {
         m_ctlType = ControlType::Animation;
+        setTransparent(true);   // P0-26：缺省无底色；显式设背景色自动取消透明
     }
     ~LuotiAni(){
         m_frameSurfaces.clear();
@@ -328,6 +330,8 @@ public:
     void loadFromResource(string resourceId) override;
     void loadAniDesc(fs::path filePath);
     void loadAniDesc(string resourceId);
+    // 文件路径设置原值（稳定存储，供 getFilePathStr 读回；resource 路径清空；P0-21）
+    const std::string& getFilePathStr() const { return m_filePathStr; }
     void parseJsonDesc();
     void update(void) override;
     void draw(float x=0, float y=0, uint8_t alpha=255) override;
@@ -355,6 +359,7 @@ public:
 
     // ── 属性系统重写（控件化 §6.3，分发惯例同 Button.cpp:335-353）──
     int setStringProperty(const char* prop, const char* value) override;  // "animation"
+    int getStringProperty(const char* prop, const char*& out) override;   // "animation"（原值回读；P0-21 同型）
     int setBoolProperty(const char* prop, int value) override;            // "playing" / "loop"
     int setIntProperty(const char* prop, int value) override;             // "frame"
     int getBoolProperty(const char* prop, int& out) override;             // "playing" / "loop"

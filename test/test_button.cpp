@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <memory>
 #include <fstream>
+#include <filesystem>
 #include "Button.h"
 #include "Actor.h"
 #include "MainWindow.h"
@@ -73,7 +74,7 @@ void testBenchInitialize(shared_ptr<Bench>) {
     if (g_button1->getIntProperty("font-size", cbFs) == 1 && cbFs == 24) {
         printf("PASS: Button font-size roundtrip = 24\n");
     } else {
-        printf("FAIL: Button font-size readback = %.1f\n", cbFs);
+        printf("FAIL: Button font-size readback = %d\n", cbFs);
     }
     g_button1->setStringProperty("caption", "readback");
     const char* cbCap = nullptr;
@@ -81,6 +82,50 @@ void testBenchInitialize(shared_ptr<Bench>) {
         printf("PASS: Button caption readback\n");
     } else {
         printf("FAIL: Button caption readback (%s)\n", cbCap ? cbCap : "null");
+    }
+
+    // [P0-20] 运行时（create 后）设置状态图：修复后 setter 补"可见 + 条件补建"
+    {
+        auto probeBtn = ButtonBuilder(BENCH, SRect(300, 300, 120, 40)).build();
+        probeBtn->create();
+        BENCH->addControl(probeBtn);
+        // 四态 setter 统一验证：created=1 且 visible=1（修复前 created=0 visible=0）
+        auto actorA = make_shared<Actor>(
+            probeBtn.get(), fs::path("assets/images/bitmap1.bmp"), true, 1.0f, 1.0f);
+        probeBtn->setNormalStateActor(actorA);
+        if (actorA->isCreated() && actorA->getVisible()) {
+            printf("PASS: P0-20 normal state actor created+visible\n");
+        } else {
+            printf("FAIL: P0-20 normal state actor created=%d visible=%d\n",
+                   actorA->isCreated() ? 1 : 0, actorA->getVisible() ? 1 : 0);
+        }
+        auto actorH = make_shared<Actor>(
+            probeBtn.get(), fs::path("assets/images/bitmap2.bmp"), true, 1.0f, 1.0f);
+        probeBtn->setHoverStateActor(actorH);
+        auto actorP = make_shared<Actor>(
+            probeBtn.get(), fs::path("assets/images/bitmap3.bmp"), true, 1.0f, 1.0f);
+        probeBtn->setPressedStateActor(actorP);
+        auto actorD = make_shared<Actor>(
+            probeBtn.get(), fs::path("assets/images/bitmap4.bmp"), true, 1.0f, 1.0f);
+        probeBtn->setDisabledStateActor(actorD);
+        if (actorH->isCreated() && actorH->getVisible() &&
+            actorP->isCreated() && actorP->getVisible() &&
+            actorD->isCreated() && actorD->getVisible()) {
+            printf("PASS: P0-20 hover/pressed/disabled state actors created+visible\n");
+        } else {
+            printf("FAIL: P0-20 hover/pressed/disabled created=%d/%d/%d visible=%d/%d/%d\n",
+                   actorH->isCreated() ? 1 : 0, actorP->isCreated() ? 1 : 0, actorD->isCreated() ? 1 : 0,
+                   actorH->getVisible() ? 1 : 0, actorP->getVisible() ? 1 : 0, actorD->getVisible() ? 1 : 0);
+        }
+        // [P0-21] 状态图路径原值读回（稳定存储）
+        const char* backPath = nullptr;
+        if (probeBtn->getStringProperty(PropertyNames::kNormalImage, backPath) == 1 &&
+            backPath && strcmp(backPath, "assets/images/bitmap1.bmp") == 0) {
+            printf("PASS: P0-21 normal-image readback = %s\n", backPath);
+        } else {
+            printf("FAIL: P0-21 normal-image readback = %s\n", backPath ? backPath : "(null)");
+        }
+        fflush(stdout);
     }
 
     g_button2 = ButtonBuilder(nullptr, SRect(200, 50, 150, 50))

@@ -127,6 +127,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ListViewSetColumnIcon);
     RESOLVE(ListViewSetColumnSorter);
     RESOLVE(ListViewSetColumnValues);
+    RESOLVE(ListViewSetCellShadow);
     RESOLVE(StatusBarSetItemIcon);
     RESOLVE(StatusBarSetItemMenu);
     RESOLVE(ContextMenuAddItem);
@@ -178,11 +179,12 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(HandleHitTest);
     RESOLVE(SetHandleRectFilter);
     RESOLVE(SetHandleMoveVisible);
-    RESOLVE(CreateImageButton);
     RESOLVE(CreateImage);
     RESOLVE(CreateAnimation);
     RESOLVE(CreateAnimatedButton);
     RESOLVE(CreateDialog);
+    RESOLVE(CreatePopup);
+    RESOLVE(CreateConfirmPopup);
 
     RESOLVE(SetRect);
     RESOLVE(GetRect);

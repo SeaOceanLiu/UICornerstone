@@ -1,6 +1,7 @@
 ﻿#include "LuotiAni.h"
 #include "PropertyNames.h"
 #include "PlatformUtils.h"
+#include "ConstDef.h"
 
 LuotiAni::Matrix2D LuotiAni::createRotationMatrix(float angle) {
     Matrix2D mat;
@@ -83,24 +84,33 @@ uint32_t LuotiAni::bilinearInterpolation(Surface *surface, float x, float y) {
 }
 
 SharedSurface LuotiAni::getImageFromResource(string resourceId){
+    std::string rid = resourceId;
+    if (rid.rfind(PropertyNames::kProviderPrefix, 0) == 0)   // provider: 前缀：剥除后走同一回退链
+        rid = rid.substr(strlen(PropertyNames::kProviderPrefix));
+
+    // 1) 资源包优先（既有语义不变；provider null 不再直接 throw，走文件回退——P0-23）
     ResourceProvider* provider = getResourceProvider();
-    if (provider == nullptr) {
-        printf("LuotiAni::getImageFromResource: No resource provider\n");
-        throw "LuotiAni::getImageFromResource: No resource provider";
+    if (provider != nullptr) {
+        shared_ptr<vector<char>> imageData = provider->readFile(rid);
+        if (imageData != nullptr && !imageData->empty()) {
+            SharedSurface surface = Surface::loadFromMemory(imageData->data(), imageData->size());
+            if (surface != nullptr) return surface;          // loadFromMemory 失败 → 继续文件回退
+        }
     }
 
-    shared_ptr<vector<char>> imageData = provider->readFile(resourceId);
-    if (imageData == nullptr || imageData->empty()) {
-        printf("LuotiAni::getImageFromResource Error: '%s' not found\n", resourceId.c_str());
-        throw "LuotiAni::getImageFromResource Error: resource not found";
+    // 2) 文件回退：<exeDir>/assets（jsonc src 实测根）→ <exeDir>（Actor 同款基准，兼容 src 自带 assets/ 前缀）
+    const fs::path bases[2] = { ConstDef::pathPrefix, fs::path(Platform::GetBasePath()) };
+    for (const auto& base : bases) {
+        fs::path p = base / rid;
+        if (!fs::exists(p)) continue;
+        SharedSurface surface = Surface::loadFromFile(p.string());
+        if (surface != nullptr) return surface;
     }
 
-    SharedSurface surface = Surface::loadFromMemory(imageData->data(), imageData->size());
-    if (surface == nullptr) {
-        printf("LuotiAni::getImageFromResource Error: loadFromMemory failed.\n");
-        throw "LuotiAni::getImageFromResource Error: loadFromMemory failed.";
-    }
-    return surface;
+    // 3) 仍失败：throw（调用方 catch 链不变；错误信息含两基准，便于诊断）
+    printf("LuotiAni::getImageFromResource Error: '%s' not found (provider + file fallback: '%s', '%s')\n",
+           rid.c_str(), bases[0].string().c_str(), bases[1].string().c_str());
+    throw "LuotiAni::getImageFromResource Error: resource not found";
 }
 
 LuotiAni::OpData LuotiAni::keyFrameToOpData(shared_ptr<KeyFrame> keyFrame, OpData srcOpData){
@@ -143,10 +153,15 @@ void LuotiAni::loadFromFile(fs::path filePath) {
         loadFromResource(p.substr(strlen(PropertyNames::kProviderPrefix)));
         return;
     }
+    m_filePathStr = p;                   // 设置原值（相对保持相对），供 getFilePathStr 读回
+    if (filePath.is_relative()) {        // 统一在此解析 basePath（调用方传原值；绝对路径为 no-op）
+        filePath = fs::path(Platform::GetBasePath()) / filePath;
+    }
     loadAniDesc(filePath);
 }
 void LuotiAni::loadFromResource(string resourceId) {
     m_resourceId = resourceId;
+    m_filePathStr.clear();               // 资源引用不冒充文件路径（P0-21：animation 键读回返回 0）
     loadAniDesc(resourceId);
 }
 void LuotiAni::loadAniDesc(fs::path filePath){
@@ -495,21 +510,10 @@ void LuotiAni::draw(uint32_t frameNo, float x, float y, uint8_t alpha) {
     if (!m_visible) return;
     if (!m_isPrepared || m_frames.empty()) return;
 
+    ControlImpl::beforeDraw();   // P0-26：背景（四态经基类状态机；原手动边框块改走 afterDraw）
     m_frames[frameNo]->refreshScaleWith(m_xxScale, m_yyScale);  // 帧 Actor 缩放校准（§6.9：非控件树成员，快照会陈旧）
     m_frames[frameNo]->draw(x, y, alpha);
-
-    if (getBorderVisible()) {
-        SColor borderColor;
-        switch (m_state){
-            case ControlState::Disabled: borderColor = m_borderColor.getDisabled(); break;
-            case ControlState::Hover:    borderColor = m_borderColor.getHover();    break;
-            case ControlState::Pressed:  borderColor = m_borderColor.getPressed();  break;
-            default:                     borderColor = m_borderColor.getNormal();   break;
-        }
-        SRect frameDrawRect = getDrawRect();
-        getRenderDevice()->setDrawColor(borderColor);
-        getRenderDevice()->drawRect(frameDrawRect);
-    }
+    afterDraw();                 // 边框/焦点环（统一基类路径）
 }
 
 void LuotiAni::setRect(SRect rect){
@@ -855,12 +859,11 @@ void LuotiInstance::play(void){
 // 属性系统重写（控件化 §6.3/§6.4）
 // ============================================================
 int LuotiAni::setStringProperty(const char* prop, const char* value) {
-    if (strcmp(prop, PropertyNames::kAnimation) == 0) {
+    // "path" 为 "animation" 别名（P0-24：布局键=运行时键；布局解析键 kJsonPath="path"）
+    if (strcmp(prop, PropertyNames::kAnimation) == 0 || strcmp(prop, PropertyNames::kJsonPath) == 0) {
         if (!value || !value[0]) return 0;
-        fs::path p(value);
-        // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-        if (p.is_relative() && p.string().rfind(PropertyNames::kProviderPrefix, 0) != 0) p = fs::path(Platform::GetBasePath()) / p;
         try {
+            fs::path p(value);   // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
             bool wasPlaying = m_isPlaying;
             loadFromFile(p);     // 依赖 §6.5 换动画状态重置（parseJsonDesc 开头）
             prepare();
@@ -875,6 +878,16 @@ int LuotiAni::setStringProperty(const char* prop, const char* value) {
         return 1;
     }
     return ControlImpl::setStringProperty(prop, value);
+}
+
+int LuotiAni::getStringProperty(const char* prop, const char*& out) {
+    // "path" 为 "animation" 别名（P0-24）
+    if (strcmp(prop, PropertyNames::kAnimation) == 0 || strcmp(prop, PropertyNames::kJsonPath) == 0) {
+        if (m_filePathStr.empty()) return 0;   // 未设置/资源引用：返回 0（键不同不越权）
+        out = m_filePathStr.c_str();
+        return 1;
+    }
+    return ControlImpl::getStringProperty(prop, out);
 }
 
 int LuotiAni::setBoolProperty(const char* prop, int value) {

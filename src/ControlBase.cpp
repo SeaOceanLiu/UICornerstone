@@ -340,8 +340,22 @@ bool ControlImpl::handleEvent(shared_ptr<Event> event){
             }
         }
 
+        // P0-30：自身命中（子控件未消费）——按下/抬起切态（不消费事件，保持既有分发语义）
+        if (hasPos && (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) &&
+            isContainsPoint(mx, my)) {
+            applyPressState(event->m_type == EventType::MouseDown);
+        }
     }
     return false;
+}
+
+void ControlImpl::applyPressState(bool mouseDown){
+    if (!getEnable() || !getVisible()) return;
+    if (mouseDown) {
+        if (m_state != ControlState::Pressed) setState(ControlState::Pressed);
+    } else if (m_state == ControlState::Pressed) {
+        setState(ControlState::Hover);   // 抬起恢复 hover（鼠标仍在内）
+    }
 }
 
 bool ControlImpl::beforeEventHandlingWatcher(shared_ptr<Event> event){
@@ -662,11 +676,18 @@ bool ControlImpl::isContainsPoint(float x, float y){
 }
 
 void ControlImpl::onMouseEnter(float x, float y){
-    // 默认不做任何处理，子类可重写此方法
+    // P0-30：默认切 Hover（enabled 且非按下/禁用；子类可重写并调用基类）
+    if (getEnable() && getVisible() &&
+        m_state != ControlState::Pressed && m_state != ControlState::Disabled) {
+        setState(ControlState::Hover);
+    }
 }
 
 void ControlImpl::onMouseLeave(float x, float y){
-    // 默认不做任何处理，子类可重写此方法
+    // P0-30：离开恢复 Normal/Disabled（按下态在抬起时由 applyPressState 恢复）
+    if (m_state == ControlState::Hover || m_state == ControlState::Pressed) {
+        setState(getEnable() ? ControlState::Normal : ControlState::Disabled);
+    }
 }
 
 void ControlImpl::setTransparent(bool isTransparent){
@@ -679,6 +700,7 @@ void ControlImpl::setState(ControlState state){
 
 void ControlImpl::setBackgroundStateColor(StateColor stateColor){
     m_bgColor = stateColor;
+    setTransparent(false);   // P0-27a：显式设背景色 → 取消透明（Shape 同款语义推广到全部控件）
 }
 void ControlImpl::setBorderStateColor(StateColor stateColor){
     m_borderColor = stateColor;
@@ -705,15 +727,19 @@ StateColor ControlImpl::getTextShadowStateColor(void){
 
 void ControlImpl::setNormalStateBGColor(SColor color){
     m_bgColor.setNormal(color);
+    if (color.alpha() > 0) setTransparent(false);   // P0-27a
 }
 void ControlImpl::setHoverStateBGColor(SColor color){
     m_bgColor.setHover(color);
+    if (color.alpha() > 0) setTransparent(false);
 }
 void ControlImpl::setPressedStateBGColor(SColor color){
     m_bgColor.setPressed(color);
+    if (color.alpha() > 0) setTransparent(false);
 }
 void ControlImpl::setDisabledStateBGColor(SColor color){
     m_bgColor.setDisabled(color);
+    if (color.alpha() > 0) setTransparent(false);
 }
 void ControlImpl::setNormalStateBDColor(SColor color){
     m_borderColor.setNormal(color);

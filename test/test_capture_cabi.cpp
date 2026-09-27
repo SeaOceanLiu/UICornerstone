@@ -37,6 +37,7 @@ typedef int        (*UIIsQuitRequestedFn)(UIInstance);
 typedef int        (*UISetViewportBgFn)(UIInstance, uint8_t, uint8_t, uint8_t, uint8_t);
 typedef void*      (*UICreatePanelFn)(UIInstance, float, float, float, float, float, float);
 typedef void*      (*UICreateImageFn)(UIInstance, const char*, float, float, float, float, float, float);
+typedef void*      (*UICreateButtonFn)(UIInstance, const char*, float, float, float, float, float, float);
 typedef int        (*UISetEnumFn)(UIInstance, void*, const char*, const char*);
 typedef int        (*UIActorSetSourceRectFn)(UIInstance, void*, float, float, float, float);
 typedef int        (*UISetColorFn)(UIInstance, void*, const char*, UIColor);
@@ -63,6 +64,7 @@ static UISetViewportBgFn        uiSetViewportBackgroundColor= nullptr;
 static UICreatePanelFn          uiCreatePanel               = nullptr;
 static UICreateImageFn          uiCreateImage               = nullptr;
 static UISetEnumFn              uiSetEnum                   = nullptr;
+static UICreateButtonFn         uiCreateButton              = nullptr;
 static UIActorSetSourceRectFn   uiActorSetSourceRect        = nullptr;
 static UISetColorFn             uiSetColor                  = nullptr;
 static UICreateEditBoxFn        uiCreateEditBox             = nullptr;
@@ -93,6 +95,7 @@ static bool loadAllProcs() {
     RESOLVE(SetViewportBackgroundColor)
     RESOLVE(CreatePanel)
     RESOLVE(CreateImage)
+    RESOLVE(CreateButton)
     RESOLVE(SetEnum)
     RESOLVE(ActorSetSourceRect)
     RESOLVE(SetColor)
@@ -197,6 +200,17 @@ int main(int argc, char** argv) {
     assert(uiSetEnum(inst, i0cTileSrc, "scale-type", "tile") == 1);
     // 瓦片 = source-rect 子区域（y 10..12 蓝带）→ 目标顶缘应为蓝
     assert(uiActorSetSourceRect(inst, i0cTileSrc, 0.f, 10.f, 24.f, 2.f) == 1);
+    // P0-20 像素用例：运行时 SetString("normal-image") 的按钮应绘制纹理（修复前不可见）
+    static void* rtBtn = uiCreateButton(inst, "", 600.0f, 200.0f, 120.0f, 40.0f, 1.0f, 1.0f);
+    assert(rtBtn);
+    assert(uiSetString(inst, rtBtn, "normal-image", "assets/images/srcrect_split.bmp") == 1);
+    // P0-22 像素用例：Image 换图失败 → 旧图消失（失败=无图）
+    static void* p022Img = uiCreateImage(inst, "assets/images/srcrect_split.bmp", 600.0f, 260.0f, 120.0f, 40.0f, 1.0f, 1.0f);
+    assert(p022Img);
+    // P0-26 像素用例：Image 背景色（补齐绘制）——无纹理 + 背景红 → 捕获中心=红
+    static void* p026Img = uiCreateImage(inst, NULL, 600.0f, 320.0f, 60.0f, 30.0f, 1.0f, 1.0f);
+    assert(p026Img);
+    assert(uiSetColor(inst, p026Img, "background", UIColor{200, 30, 30, 255}) == 1);
 
     // ── CLIP 用例（P0-11）：clip-children 容器 + 越界子控件（自内容裁剪路径） ──
     // 容器 (60,520,200,100)；子 EditBox 局部 y=-30（上缘越出）与 y=-70（完全越出）
@@ -305,8 +319,76 @@ int main(int argc, char** argv) {
                     printf("FAIL: I0c tile+source-rect top edge not blue\n");
                     allPass = false;
                 }
+
+                // P0-20：运行时状态图按钮——纹理色像素 > 0（修复前 created/visible=0 不可见）
+                assert(uiCaptureControl(inst, rtBtn, ctlPixels, &bw, &bh) == 1);
+                {
+                    int texPixels = 0;
+                    for (int i = 0; i < bw * bh; ++i) {
+                        const uint8_t* p = ctlPixels + i * 4;
+                        if ((p[1] > 200 && p[0] < 100 && p[2] < 100) ||
+                            (p[2] > 200 && p[0] < 100 && p[1] < 100)) texPixels++;
+                    }
+                    if (texPixels > 0) {
+                        printf("PASS: P0-20 runtime normal-image button rendered (texPixels=%d)\n", texPixels);
+                    } else {
+                        printf("FAIL: P0-20 runtime normal-image button not rendered\n");
+                        allPass = false;
+                    }
+                }
+
             }
 
+                // P0-26：Image 背景补齐绘制（无纹理 + 背景红 → 中心像素红）
+                static bool p026Checked = false;
+                if (!p026Checked) {
+                    p026Checked = true;
+                    int iw = 0, ih = 0;
+                    assert(uiCaptureControl(inst, p026Img, ctlPixels, &iw, &ih) == 1);
+                    if (pxEq(ctlPixels + ((ih / 2) * iw + iw / 2) * 4, 200, 30, 30)) {
+                        printf("PASS: P0-26 image background rendered (center=bg)\n");
+                    } else {
+                        printf("FAIL: P0-26 image background not rendered\n");
+                        allPass = false;
+                    }
+                }
+
+                // P0-22：换图失败清旧纹理（失败=无图）——跨帧两步（本帧有图 → 设坏路径 → 下帧无图）
+            static int p022Step = 0;
+            if (p022Step == 0) {
+                p022Step = 1;
+                int uw = 0, uh = 0;
+                assert(uiCaptureControl(inst, p022Img, ctlPixels, &uw, &uh) == 1);
+                int tex = 0;
+                for (int i = 0; i < uw * uh; ++i) {
+                    const uint8_t* p = ctlPixels + i * 4;
+                    if ((p[1] > 200 && p[0] < 100 && p[2] < 100) ||
+                        (p[2] > 200 && p[0] < 100 && p[1] < 100)) tex++;
+                }
+                if (tex > 0) {
+                    printf("PASS: P0-22 pre-change image rendered (texPixels=%d)\n", tex);
+                } else {
+                    printf("FAIL: P0-22 pre-change image not rendered\n");
+                    allPass = false;
+                }
+                assert(uiSetString(inst, p022Img, "image", "assets/images/__missing__.bmp") == 1);
+            } else if (p022Step == 1) {
+                p022Step = 2;
+                int uw = 0, uh = 0;
+                assert(uiCaptureControl(inst, p022Img, ctlPixels, &uw, &uh) == 1);
+                int tex = 0;
+                for (int i = 0; i < uw * uh; ++i) {
+                    const uint8_t* p = ctlPixels + i * 4;
+                    if ((p[1] > 200 && p[0] < 100 && p[2] < 100) ||
+                        (p[2] > 200 && p[0] < 100 && p[1] < 100)) tex++;
+                }
+                if (tex == 0) {
+                    printf("PASS: P0-22 failed reload clears old texture (no image)\n");
+                } else {
+                    printf("FAIL: P0-22 failed reload keeps old texture (texPixels=%d)\n", tex);
+                    allPass = false;
+                }
+            }
             // ── CLIP 断言（一次性，P0-11）：容器外区域无泄漏内容 ──
             static bool clipChecked = false;
             if (!clipChecked) {

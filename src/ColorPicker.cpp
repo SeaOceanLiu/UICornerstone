@@ -178,6 +178,7 @@ void ColorPicker::createClosedStateControls() {
         1.0f, 1.0f);
     m_closedLabel->setCaption(m_color.toHex(true));
     m_closedLabel->setFontSize(m_closedFontSize);
+    m_closedLabel->setFont(m_closedFontName);
     m_closedLabel->setMargin({2, 0, 0, 0});
     m_closedLabel->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
     m_closedLabel->setTextNormalStateColor(m_closedTextColor);
@@ -636,13 +637,37 @@ void ColorPicker::onCancel() {
 
 // ── Property system overrides ──
 
+// P0-26：文本/文本阴影族转发关闭态 Label（含四态对象与单态键；自身字段同步以保读回一致）
+void ColorPicker::setTextStateColor(StateColor stateColor) {
+    ControlImpl::setTextStateColor(stateColor);
+    if (m_closedLabel) m_closedLabel->setTextStateColor(stateColor);
+}
+void ColorPicker::setTextShadowStateColor(StateColor stateColor) {
+    ControlImpl::setTextShadowStateColor(stateColor);
+    if (m_closedLabel) m_closedLabel->setTextShadowStateColor(stateColor);
+}
+
 int ColorPicker::setColorProperty(const char* prop, SColor color) {
+    if (m_closedLabel && ControlImpl::isTextColorFamilyKey(prop)) {
+        m_closedLabel->setColorProperty(prop, color);
+        ControlImpl::setColorProperty(prop, color);
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kClosedText) == 0) { setClosedTextColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kPopupBG) == 0)    { setPopupBGColor(color);    return 1; }
     return Panel::setColorProperty(prop, color);
 }
 
+int ColorPicker::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // P0-26：关闭态文字阴影开关
+        if (m_closedLabel) { m_closedLabel->setShadow(value != 0); return 1; }
+        return 0;
+    }
+    return Panel::setBoolProperty(prop, value);
+}
+
 int ColorPicker::setIntProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { setClosedFontSize(value);             return 1; }  // P0-26：通用字号→关闭态
     if (strcmp(prop, PropertyNames::kPresetCols) == 0)     { setPresetLayout(value, m_presetRows); return 1; }
     if (strcmp(prop, PropertyNames::kPresetRows) == 0)     { setPresetLayout(m_presetCols, value); return 1; }
     if (strcmp(prop, PropertyNames::kClosedFontSize) == 0) { setClosedFontSize(value);             return 1; }
@@ -650,8 +675,21 @@ int ColorPicker::setIntProperty(const char* prop, int value) {
 }
 
 int ColorPicker::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {   // P0-26：关闭态文字阴影偏移
+        if (m_closedLabel) { SPoint o = m_closedLabel->getShadowOffset(); o.x = value; m_closedLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        if (m_closedLabel) { SPoint o = m_closedLabel->getShadowOffset(); o.y = value; m_closedLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kClosedSwatchSize) == 0) { setClosedSwatchSize(value); return 1; }
     return Panel::setFloatProperty(prop, value);
+}
+
+int ColorPicker::setEnumProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { setClosedFont(FontNameFromString(value)); return 1; }  // P0-26：通用字体名→关闭态
+    return Panel::setEnumProperty(prop, value);
 }
 
 int ColorPicker::setStringProperty(const char* prop, const char* value) {
@@ -667,7 +705,16 @@ int ColorPicker::getColorProperty(const char* prop, SColor& out) {
     return Panel::getColorProperty(prop, out);
 }
 
+int ColorPicker::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {
+        if (m_closedLabel) { out = m_closedLabel->isShadowEnabled() ? 1 : 0; return 1; }
+        return 0;
+    }
+    return Panel::getBoolProperty(prop, out);
+}
+
 int ColorPicker::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)       { out = m_closedFontSize; return 1; }
     if (strcmp(prop, PropertyNames::kPresetCols) == 0)     { out = m_presetCols;    return 1; }
     if (strcmp(prop, PropertyNames::kPresetRows) == 0)     { out = m_presetRows;    return 1; }
     if (strcmp(prop, PropertyNames::kClosedFontSize) == 0) { out = m_closedFontSize; return 1; }
@@ -675,8 +722,21 @@ int ColorPicker::getIntProperty(const char* prop, int& out) {
 }
 
 int ColorPicker::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+        if (m_closedLabel) { out = m_closedLabel->getShadowOffset().x; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        if (m_closedLabel) { out = m_closedLabel->getShadowOffset().y; return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kClosedSwatchSize) == 0) { out = m_swatchSize; return 1; }
     return Panel::getFloatProperty(prop, out);
+}
+
+int ColorPicker::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_closedFontName); return 1; }
+    return Panel::getEnumProperty(prop, out);
 }
 
 int ColorPicker::getStringProperty(const char* prop, const char*& out) {

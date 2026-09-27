@@ -4,6 +4,7 @@
 // 可见行窗口化渲染 O(可见行×可见列)；垂直行级滚动 + 水平整行平移。
 // ============================================================================
 #include "ListView.h"
+#include "TextDraw.h"
 #include "ScrollBar.h"
 #include "PropertyNames.h"
 #include "RenderDevice.h"
@@ -37,6 +38,8 @@ ListView::ListView(Control* parent, const SRect& rect, float xScale, float yScal
 {
     m_ctlType = ControlType::ListView;
     m_rect = rect;
+    m_textColor.setNormal(SColor(235, 235, 235));   // P0-26：原自有缺省色迁入基类 StateColor
+    setTransparent(true);                           // P0-26：缺省无底色；显式设背景色自动取消透明
 }
 
 // ── 字体 ──
@@ -542,6 +545,7 @@ void ListView::draw(void) {
     RenderDevice* dev = getRenderDevice();
     TextRenderer* renderer = getTextRenderer();
     if (!dev || !renderer) return;
+    ControlImpl::beforeDraw();   // P0-26：背景（四态经基类状态机）
     ensureFont();
     if (!m_font) return;
 
@@ -639,19 +643,29 @@ void ListView::draw(void) {
             const string text = (c < static_cast<int>(row.cells.size())) ? row.cells[c] : string();
             if (text.empty()) continue;
 
-            FontName fn = m_fontName; int fs = m_fontSize; SColor tc = m_textColor;
+            FontName fn = m_fontName; int fs = m_fontSize;
+            SColor tc = ControlImpl::resolveStateColor(m_textColor, getState());   // P0-26：文本四态
+            const CellStyle* csPtr = nullptr;
             if (styleIt != row.cellStyles.end()) {
                 const CellStyle& cs = styleIt->second;
                 if (cs.fontSize > 0) fs = cs.fontSize;
                 if (cs.textColor.alpha() > 0) tc = cs.textColor;
                 fn = cs.fontName;
+                csPtr = &cs;
             }
             SharedFont cf = fontFor(fn, fs);
             if (!cf) cf = m_font;
             const float fh = renderer->getFontHeight(cf.get());
+            const bool shadowEnabled = csPtr ? csPtr->shadowEnabled : false;
+            const SColor shadowColor = csPtr ? csPtr->textShadowColor : SColor(0, 0, 0, 120);
+            const float offX = csPtr ? csPtr->shadowOffsetX : 1.0f;
+            const float offY = csPtr ? csPtr->shadowOffsetY : 1.0f;
 
             dev->pushClipRect(SRect(ox + x, y, w, rowH));
-            renderer->drawText(cf.get(), text, tx, y + (rowH - fh) / 2.f, tc);
+            TextDraw::withShadow(renderer, cf.get(), text,
+                                 tx, y + (rowH - fh) / 2.f,
+                                 tx + offX, y + (rowH - fh) / 2.f + offY,
+                                 tc, shadowEnabled, shadowColor);   // P0-26：cell 阴影
             dev->popClipRect();
         }
 
@@ -670,15 +684,12 @@ void ListView::draw(void) {
         }
     }
 
-    // 焦点环
-    if (getFocused())
-        drawFocusRing();  // 引擎自动使用 m_rect
-
     dev->popClipRect();
 
     // 子控件（leadingControl/cellControls/滚动条）最后绘制：
     // 必须位于行背景/表头背景之上（此前在函数开头绘制会被选中/hover 行背景覆盖）
     ControlImpl::draw();
+    afterDraw();  // P0-26：边框 + 焦点环（统一基类路径，替换原手动 drawFocusRing）
 }
 
 // ── 事件 ──

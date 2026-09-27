@@ -296,7 +296,36 @@ int ProgressBar::setColorProperty(const char* prop, SColor color) {
     return ControlImpl::setColorProperty(prop, color);
 }
 
+void ProgressBar::setTextStateColor(StateColor stateColor) {   // P0-26：文本四态转发 textLabel
+    ControlImpl::setTextStateColor(stateColor);
+    if (m_textLabel) m_textLabel->setTextStateColor(stateColor);
+}
+void ProgressBar::setTextShadowStateColor(StateColor stateColor) {
+    ControlImpl::setTextShadowStateColor(stateColor);
+    updateTextLabel();   // P0-26：确保懒建 Label 存在后再转发
+    if (m_textLabel) m_textLabel->setTextShadowStateColor(stateColor);
+}
+
+int ProgressBar::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // P0-26：textLabel 阴影开关（懒建后转发）
+        updateTextLabel();
+        if (m_textLabel) { m_textLabel->setShadow(value != 0); return 1; }
+        return 0;
+    }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+
 int ProgressBar::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {   // P0-26：textLabel 阴影偏移（懒建后转发）
+        updateTextLabel();
+        if (m_textLabel) { SPoint o = m_textLabel->getShadowOffset(); o.x = value; m_textLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        updateTextLabel();
+        if (m_textLabel) { SPoint o = m_textLabel->getShadowOffset(); o.y = value; m_textLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kValue) == 0)          { setValue(value);                return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)       { setRange(value, m_maxValue);    return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)       { setRange(m_minValue, value);    return 1; }
@@ -310,6 +339,11 @@ int ProgressBar::setIntProperty(const char* prop, int value) {
 }
 
 int ProgressBar::setStringProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kTextContent) == 0) {   // P0-27c：text 键直达（自动切 custom 模式）
+        setCustomText(value ? value : "");
+        setTextMode(ProgressBarTextMode::Custom);
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kCustomText) == 0) { setCustomText(value); return 1; }
     return ControlImpl::setStringProperty(prop, value);
 }
@@ -356,7 +390,23 @@ int ProgressBar::getIntProperty(const char* prop, int& out) {
     return ControlImpl::getIntProperty(prop, out);
 }
 
+int ProgressBar::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {
+        if (m_textLabel) { out = m_textLabel->isShadowEnabled() ? 1 : 0; return 1; }
+        return 0;
+    }
+    return ControlImpl::getBoolProperty(prop, out);
+}
+
 int ProgressBar::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+        if (m_textLabel) { out = m_textLabel->getShadowOffset().x; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        if (m_textLabel) { out = m_textLabel->getShadowOffset().y; return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kValue) == 0)          { out = m_value;          return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)       { out = m_minValue;       return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)       { out = m_maxValue;       return 1; }
@@ -366,7 +416,8 @@ int ProgressBar::getFloatProperty(const char* prop, float& out) {
 }
 
 int ProgressBar::getStringProperty(const char* prop, const char*& out) {
-    if (strcmp(prop, PropertyNames::kCustomText) == 0) { out = m_customText.c_str(); return 1; }
+    if (strcmp(prop, PropertyNames::kCustomText) == 0 ||
+        strcmp(prop, PropertyNames::kTextContent) == 0) { out = m_customText.c_str(); return 1; }
     return ControlImpl::getStringProperty(prop, out);
 }
 

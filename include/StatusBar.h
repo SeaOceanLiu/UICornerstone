@@ -59,9 +59,17 @@ public:
     void setRect(SRect rect) override;
 
     // ── 属性系统 override ──
+    void setTextStateColor(StateColor stateColor) override;      // P0-26：文本四态
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色四态
+    int setColorProperty(const char* prop, SColor color) override;   // P0-26：text/text.hover/.pressed/.disabled
+    int getColorProperty(const char* prop, SColor& out) override;
+    int setBoolProperty(const char* prop, int value) override;       // P0-26：shadow
+    int getBoolProperty(const char* prop, int& out) override;
+    int setEnumProperty(const char* prop, const char* value) override;  // P0-26：font
+    int getEnumProperty(const char* prop, const char*& out) override;
     int setIntProperty(const char* prop, int value) override;    // font-size（int 通道）
     int getIntProperty(const char* prop, int& out) override;
-    int setFloatProperty(const char* prop, float value) override;   // item-height
+    int setFloatProperty(const char* prop, float value) override;   // item-height / shadow-offset
     int getFloatProperty(const char* prop, float& out) override;
 
 private:
@@ -82,6 +90,11 @@ private:
     float m_spacing = 8.0f;
     float m_padding = 12.0f;
     SharedFont m_font;
+    FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P0-26：字体名可配
+    StateColor m_textColor;                                       // P0-26：段文字四态（ctor 设 normal 缺省）
+    StateColor m_textShadowColor;                                 // P0-26：文本阴影色（四态）
+    bool   m_shadowEnabled = false;
+    SPoint m_shadowOffset{1, 1};
 };
 
 // ── 声明式 Builder（LabelBuilder 同款惯例）──

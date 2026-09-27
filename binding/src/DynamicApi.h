@@ -121,6 +121,7 @@ struct Api {
     int (*fnListViewSetColumnIcon)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnListViewSetColumnSorter)(UIInstance, UIControlHandle, int, ListViewSortFn, void*) = nullptr;
     int (*fnListViewSetColumnValues)(UIInstance, UIControlHandle, int, int, const char* const*) = nullptr;
+    int (*fnListViewSetCellShadow)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t, float, float) = nullptr;
     int (*fnStatusBarSetItemIcon)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnStatusBarSetItemMenu)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnContextMenuAddItem)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
@@ -178,11 +179,12 @@ struct Api {
     int             (*fnHandleHitTest)(UIInstance, UIControlHandle, float, float, int*) = nullptr;
     int             (*fnSetHandleRectFilter)(UIInstance, UIControlHandle, UIHandleRectFilter, void*) = nullptr;
     int             (*fnSetHandleMoveVisible)(UIInstance, UIControlHandle, int) = nullptr;
-    UIControlHandle (*fnCreateImageButton)(UIInstance, const char*, const char*, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateImage)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateAnimation)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateAnimatedButton)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;
     UIControlHandle (*fnCreateDialog)(UIInstance, const char*, const char*, float, float, float, float, float, float) = nullptr;
+    UIControlHandle (*fnCreatePopup)(UIInstance, float, float, float, float, float, float) = nullptr;
+    UIControlHandle (*fnCreateConfirmPopup)(UIInstance, const char*, float, float, float, float, float, float) = nullptr;
 
     // 控件通用操作
     void (*fnSetRect)(UIInstance, UIControlHandle, float, float, float, float) = nullptr;

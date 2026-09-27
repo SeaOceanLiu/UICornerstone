@@ -135,13 +135,14 @@ public:
     Control CreateColorPicker(float x, float y, float w, float h, const std::string& color, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateNumericUpDown(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateSplitter(float x, float y, float w, float h, int orientation, float xScale = 1.0f, float yScale = 1.0f);
-    Control CreateImageButton(const std::string& normal, const std::string& hover,
-                              const std::string& pressed, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateImage(const std::string& image, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateAnimation(const std::string& jsoncPath, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateAnimatedButton(const std::string& jsoncPath, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateDialog(const std::string& confirmText, const std::string& cancelText,
                          float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+    Control CreatePopup(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);   // P0-27d（不自动 open）
+    Control CreateConfirmPopup(const std::string& confirmText,
+                               float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
 
     // ── 菜单族 / 滚动条 / 树 / 句柄 ──
     Control CreateMenuBar(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
@@ -243,6 +244,7 @@ public:
     bool ListViewSetColumnIcon(Control& lv, int colIndex, Control& iconControl);
     bool ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData = nullptr);
     bool ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values);
+    bool ListViewSetCellShadow(Control& lv, int row, int col, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
 
     // ── LuotiAni 动画操作 ──
     bool AnimationPrepare(Control& ctl, int startFrame = 0);

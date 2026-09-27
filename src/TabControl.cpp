@@ -2,6 +2,7 @@
 // TabControl.cpp -- 选项卡控件（四方向页签条 + 内容区，一体自绘）
 // ============================================================================
 #include "TabControl.h"
+#include "TextDraw.h"
 #include "RenderDevice.h"
 #include "TextRenderer.h"
 #include "ResourceProvider.h"
@@ -30,6 +31,8 @@ TabControl::TabControl(Control* parent, const SRect& rect, float xScale, float y
 {
     m_ctlType = ControlType::TabControl;
     m_rect = rect;
+    m_textColor.setNormal(kNormTextColor);         // P0-26：常态页签缺省色（原常量迁入四态）
+    m_textShadowColor.setNormal(SColor(0, 0, 0, 120));
     setFocusable(true);
     // 焦点作用域边界（FocusSystem_Design §4.3 / TabControl_Design §3.6）：
     // Tab 在本控件页内循环，Ctrl+Tab 跨作用域
@@ -42,7 +45,7 @@ void TabControl::ensureFont() {
     TextRenderer* renderer = getTextRenderer();
     ResourceProvider* provider = getResourceProvider();
     if (!renderer || !provider) return;
-    auto it = ConstDef::fontFiles.find(FontName::HarmonyOS_Sans_SC_Regular);
+    auto it = ConstDef::fontFiles.find(m_fontName);   // P0-26：字体名可配
     if (it == ConstDef::fontFiles.end()) return;
     string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
     auto data = provider->readFile(fontPath);
@@ -280,8 +283,12 @@ void TabControl::drawTabBar() {
             const float tx = ox + (tr.left + m_padding
                                    + (tp.leadingControl ? m_fontSize * kBarFontRatio + kIconTextGap : 0.f)) * sx;
             const float ty = oy + (tr.top + (tr.height - m_fontSize) / 2.f) * sy;
-            r->drawText(m_font.get(), tp.title, tx, ty,
-                        sel ? kSelTextColor : kNormTextColor);
+            SColor tabTextColor = sel ? m_selectedTextColor
+                                      : ControlImpl::resolveStateColor(m_textColor, getState());   // P0-26：常态四态 + selected-text
+            TextDraw::withShadow(r, m_font.get(), tp.title,
+                                 tx, ty, tx + m_shadowOffset.x * sx, ty + m_shadowOffset.y * sy,
+                                 tabTextColor, m_shadowEnabled,
+                                 ControlImpl::resolveStateColor(m_textShadowColor, getState()));
         }
     }
 }
@@ -354,7 +361,50 @@ void TabControl::setRect(SRect rect) {
     relayout();
 }
 
+void TabControl::setTextStateColor(StateColor stateColor) {   // P0-26：页签文字四态
+    m_textColor = stateColor;
+}
+void TabControl::setTextShadowStateColor(StateColor stateColor) {   // P0-26：阴影色四态
+    m_textShadowColor = stateColor;
+}
+
+int TabControl::setColorProperty(const char* prop, SColor color) {
+    if (strcmp(prop, PropertyNames::kText) == 0)         { m_textColor.setNormal(color);   return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { m_textColor.setHover(color);    return 1; }
+    if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { m_textColor.setPressed(color);  return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { m_textColor.setDisabled(color); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { m_textShadowColor.setNormal(color); return 1; }
+    if (strcmp(prop, PropertyNames::kSelectedText) == 0) { m_selectedTextColor = color;    return 1; }
+    return ControlImpl::setColorProperty(prop, color);
+}
+
+int TabControl::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kText) == 0)         { out = m_textColor.getNormal();   return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_textColor.getHover();    return 1; }
+    if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { out = m_textColor.getPressed();  return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_textColor.getDisabled(); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
+    if (strcmp(prop, PropertyNames::kSelectedText) == 0) { out = m_selectedTextColor;       return 1; }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
+int TabControl::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { m_shadowEnabled = (value != 0); return 1; }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+
+int TabControl::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { out = m_shadowEnabled ? 1 : 0; return 1; }
+    return ControlImpl::getBoolProperty(prop, out);
+}
+
 int TabControl::setEnumProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {
+        m_fontName = FontNameFromString(value);
+        m_font.reset();
+        if (m_isCreated) ensureFont();
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTabPosition) == 0) {
         if (strcmp(value, PropertyNames::kTabPositionTop) == 0) setPosition(TabPosition::Top);
         else if (strcmp(value, PropertyNames::kTabPositionBottom) == 0) setPosition(TabPosition::Bottom);
@@ -366,6 +416,7 @@ int TabControl::setEnumProperty(const char* prop, const char* value) {
     return ControlImpl::setEnumProperty(prop, value);
 }
 int TabControl::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }
     if (strcmp(prop, PropertyNames::kTabPosition) == 0) {
         switch (m_position) {
             case TabPosition::Top:    out = PropertyNames::kTabPositionTop; break;
@@ -388,9 +439,13 @@ int TabControl::getIntProperty(const char* prop, int& out) {
     return ControlImpl::getIntProperty(prop, out);
 }
 int TabControl::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { m_shadowOffset.x = value; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { m_shadowOffset.y = value; return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int TabControl::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 

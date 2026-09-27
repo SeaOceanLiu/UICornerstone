@@ -56,6 +56,12 @@ public:
     void setRect(SRect rect) override;
 
     // ── 属性系统 ──
+    void setTextStateColor(StateColor stateColor) override;      // P0-26：文本四态
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色四态
+    int setColorProperty(const char* prop, SColor color) override;   // P0-26：text 族 + selected-text
+    int getColorProperty(const char* prop, SColor& out) override;
+    int setBoolProperty(const char* prop, int value) override;       // P0-26：shadow
+    int getBoolProperty(const char* prop, int& out) override;
     int setEnumProperty(const char* prop, const char* value) override;
     int getEnumProperty(const char* prop, const char*& out) override;
     int setIntProperty(const char* prop, int value) override;
@@ -74,6 +80,12 @@ private:
     int m_currentIndex = -1;
     TabPosition m_position = TabPosition::Top;
     float m_fontSize = 13.0f;
+    FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P0-26：字体名可配
+    StateColor m_textColor;                                       // P0-26：页签文字四态（ctor 设 normal 缺省）
+    SColor m_selectedTextColor{235, 235, 235};                    // P0-26：选中页签文字色（selected-text）
+    StateColor m_textShadowColor;                                 // P0-26：阴影色（四态）
+    bool   m_shadowEnabled = false;
+    SPoint m_shadowOffset{1, 1};
     float m_padding = 8.0f;
     int m_hoveredTab = -1;
     SRect m_contentRect;              // 内容区（相对控件原点）

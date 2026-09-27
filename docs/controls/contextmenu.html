@@ -86,6 +86,7 @@ UICornerstone_ContextMenuAddItem(g_inst, m, u8"复制", "Ctrl+C");
 UICornerstone_ContextMenuAddSeparator(g_inst, m);
 UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 UICornerstone_SetPtr(g_inst, lbl, "context-menu", m);   // 右键绑定</code></pre>
+<p class="note"><b>P0-28</b>：编辑态常显（点击画布其它控件不关闭）——创建后 <code>SetBool("close-on-click-outside", 0)</code> + <code>SetBool("close-on-esc", 0)</code>（继承自 Popup 的能力）。</p>
 
 </body>
 </html>

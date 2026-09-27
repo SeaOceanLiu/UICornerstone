@@ -4,6 +4,7 @@
 // 字体/尺寸状态为实例成员，hover 统一由 MenuPanel 管理。
 
 #include "Menu.h"
+#include "TextDraw.h"
 #include "PropertyNames.h"
 #include "Bench.h"
 
@@ -153,12 +154,28 @@ void MenuItem::draw() {
 
     if (renderer && m_font) {
         float textY = drawRect.top + (drawRect.height - fontHeight) / 2;
+        const float sx = getScaleXX();
+        // P0-26：面板文本色（normal/disabled）与阴影（面板级配置）
+        const bool hovered = panel && panel->isItemHovered(this);
+        SColor itemColor = (!getEnable())
+            ? (panel ? panel->getItemDisabledTextColor() : MenuColors::ITEM_DISABLED)
+            : (hovered && panel ? panel->getItemHoverTextColor()
+                                : (panel ? panel->getItemTextColor() : MenuColors::ITEM_TEXT));
+        SColor shadowColor = panel
+            ? (!getEnable() ? panel->getItemTextShadowState().getDisabled()
+                            : (hovered ? panel->getItemTextShadowState().getHover()
+                                       : panel->getItemTextShadowState().getNormal()))
+            : SColor(0, 0, 0, 120);
+        const bool shadowEnabled = panel ? panel->isTextShadowEnabled() : false;
+        SPoint shadowOffset = panel ? panel->getTextShadowOffset() : SPoint(1, 1);
 
         // 标题（所有行文字起点统一：无 leadingControl 时从左 padding 起，不预留 icon 区）
         if (!m_caption.empty()) {
-            renderer->drawText(m_font.get(), m_caption,
-                drawRect.left + (MenuColors::ITEM_LEFT_PADDING
-                    + (panel && panel->hasLeadingControl() ? (iconAreaW + gap) : 0)) * getScaleXX(), textY, MenuColors::ITEM_TEXT);
+            float textX = drawRect.left + (MenuColors::ITEM_LEFT_PADDING
+                + (panel && panel->hasLeadingControl() ? (iconAreaW + gap) : 0)) * sx;
+            TextDraw::withShadow(renderer, m_font.get(), m_caption,
+                                 textX, textY, textX + shadowOffset.x * sx, textY + shadowOffset.y * sx,
+                                 itemColor, shadowEnabled, shadowColor);
         }
 
         // 快捷键（右侧右对齐，箭头区域之前）
@@ -167,8 +184,10 @@ void MenuItem::draw() {
             float shortcutWidth = sz.width / getScaleXX();
             float right = drawRect.right();
             if (m_type == MenuItemType::SubMenu) right -= MenuColors::ARROW_AREA_WIDTH;
-            renderer->drawText(m_font.get(), m_shortcut,
-                right - MenuColors::ITEM_RIGHT_PADDING - shortcutWidth, textY, MenuColors::SHORTCUT_TEXT);
+            float textX = right - MenuColors::ITEM_RIGHT_PADDING - shortcutWidth;
+            TextDraw::withShadow(renderer, m_font.get(), m_shortcut,
+                                 textX, textY, textX + shadowOffset.x * sx, textY + shadowOffset.y * sx,
+                                 MenuColors::SHORTCUT_TEXT, shadowEnabled, shadowColor);
         }
     }
 
@@ -285,6 +304,9 @@ MenuPanel::MenuPanel(Control *parent, float xScale, float yScale)
     , m_borderColor(MenuColors::PANEL_BORDER)
     , m_hoverColor(MenuColors::ITEM_HOVER_BG)
     , m_separatorColor(MenuColors::SEPARATOR)
+    , m_textColor(MenuColors::ITEM_TEXT)
+    , m_hoverTextColor(MenuColors::ITEM_TEXT)
+    , m_disabledTextColor(MenuColors::ITEM_DISABLED)
     , m_shadowRadius(MenuColors::PANEL_SHADOW_BLUR)
 {
     m_ctlType = ControlType::MenuPanel;
@@ -604,7 +626,56 @@ int MenuPanel::getStringProperty(const char* prop, const char*& out) {
     return ControlImpl::getStringProperty(prop, out);
 }
 
+// P0-26：JSON colors.text 三态（normal/hover/disabled）→ 面板 item 角色色
+void MenuPanel::setTextStateColor(StateColor stateColor) {
+    m_textColor = stateColor.getNormal();
+    m_hoverTextColor = stateColor.getHover();
+    m_disabledTextColor = stateColor.getDisabled();
+}
+void MenuPanel::setTextShadowStateColor(StateColor stateColor) {
+    m_textShadowColor = stateColor;
+}
+
+bool MenuPanel::isItemHovered(const MenuItem* item) const {
+    return m_hoveredIndex >= 0 && m_hoveredIndex < (int)m_items.size() &&
+           m_items[m_hoveredIndex].get() == item;
+}
+
+int MenuPanel::setColorProperty(const char* prop, SColor color) {   // P0-26：面板/条目颜色属性化
+    if (strcmp(prop, PropertyNames::kBackground) == 0)  { m_bgColor = color;        return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0)  { m_hoverColor = color;     return 1; }
+    if (strcmp(prop, PropertyNames::kBorder) == 0)      { m_borderColor = color;    return 1; }
+    if (strcmp(prop, PropertyNames::kText) == 0)        { m_textColor = color;      return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { m_textShadowColor.setNormal(color); return 1; }
+    return ControlImpl::setColorProperty(prop, color);
+}
+
+int MenuPanel::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kBackground) == 0)  { out = m_bgColor;           return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0)  { out = m_hoverColor;        return 1; }
+    if (strcmp(prop, PropertyNames::kBorder) == 0)      { out = m_borderColor;       return 1; }
+    if (strcmp(prop, PropertyNames::kText) == 0)        { out = m_textColor;         return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)   { out = m_hoverTextColor;    return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ out = m_disabledTextColor; return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { out = m_textShadowColor.getNormal(); return 1; }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
+int MenuPanel::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { m_shadowEnabled = (value != 0); return 1; }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+
+int MenuPanel::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { out = m_shadowEnabled ? 1 : 0; return 1; }
+    return ControlImpl::getBoolProperty(prop, out);
+}
+
 int MenuPanel::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { m_shadowOffset.x = value; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { m_shadowOffset.y = value; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { setItemHeightRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -617,6 +688,8 @@ int MenuPanel::setFloatProperty(const char* prop, float value) {
 }
 
 int MenuPanel::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { out = m_heightRatio; return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -737,8 +810,8 @@ void MenuPanel::draw() {
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, true);
     }
 
-    // 3. 绘制边框
-    {
+    // 3. 绘制边框（P0-26：border-visible 门控）
+    if (getBorderVisible()) {
         GraphTool::DrawingContext dc(getRenderDevice());
         dc.setPen(GraphTool::SPen(
             GraphTool::SColor(m_borderColor.red(), m_borderColor.green(),
@@ -845,6 +918,8 @@ MenuBar::MenuBar(Control *parent, float xScale, float yScale)
     , m_hoverBgColor(MenuColors::BAR_HOVER_BG)
     , m_hoverTextColor(MenuColors::BAR_TEXT)
     , m_activeBgColor(MenuColors::BAR_ACTIVE_BG)
+    , m_borderColor(MenuColors::PANEL_BORDER)
+    , m_disabledTextColor(MenuColors::ITEM_DISABLED)
     , m_itemHeightRatio(MenuColors::DEFAULT_HEIGHT_RATIO)
     , m_menuTextSize(MenuColors::DEFAULT_TEXT_SIZE)
     , m_font(nullptr)
@@ -1140,7 +1215,56 @@ void MenuBar::setFontSize(float size) {
     layoutEntries();
 }
 
+// P0-26：JSON colors.text 三态 → 自身 + 全部面板
+void MenuBar::setTextStateColor(StateColor stateColor) {
+    m_textColor = stateColor.getNormal();
+    m_hoverTextColor = stateColor.getHover();
+    m_disabledTextColor = stateColor.getDisabled();
+    for (auto& entry : m_entries) if (entry.panel) entry.panel->setTextStateColor(stateColor);
+}
+void MenuBar::setTextShadowStateColor(StateColor stateColor) {
+    m_textShadowColor = stateColor;
+    for (auto& entry : m_entries) if (entry.panel) entry.panel->setTextShadowStateColor(stateColor);
+}
+
+// P0-26：MenuBar 颜色属性 → 自身 + 全部下拉面板（统一覆盖 bar/panel/item 角色）
+int MenuBar::setColorProperty(const char* prop, SColor color) {
+    bool ok = false;
+    if (strcmp(prop, PropertyNames::kBackground) == 0)   { m_bgColor = color;            ok = true; }
+    else if (strcmp(prop, PropertyNames::kStateHover) == 0)  { m_hoverBgColor = color;  ok = true; }
+    else if (strcmp(prop, PropertyNames::kStatePressed) == 0){ m_activeBgColor = color; ok = true; }
+    else if (strcmp(prop, PropertyNames::kBorder) == 0)      { m_borderColor = color;   ok = true; }
+    else if (strcmp(prop, PropertyNames::kText) == 0)        { m_textColor = color;     ok = true; }
+    else if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; ok = true; }
+    else if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; ok = true; }
+    else if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { m_textShadowColor.setNormal(color); ok = true; }
+    if (ok) {
+        for (auto& entry : m_entries) {
+            if (entry.panel) entry.panel->setColorProperty(prop, color);
+        }
+        return 1;
+    }
+    return ControlImpl::setColorProperty(prop, color);
+}
+
+int MenuBar::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kBackground) == 0)   { out = m_bgColor;            return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0)   { out = m_hoverBgColor;       return 1; }
+    if (strcmp(prop, PropertyNames::kStatePressed) == 0) { out = m_activeBgColor;      return 1; }
+    if (strcmp(prop, PropertyNames::kBorder) == 0)       { out = m_borderColor;        return 1; }
+    if (strcmp(prop, PropertyNames::kText) == 0)         { out = m_textColor;          return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_hoverTextColor;     return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_disabledTextColor;  return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
 int MenuBar::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0 || strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        (strcmp(prop, PropertyNames::kShadowOffsetX) == 0 ? m_shadowOffset.x : m_shadowOffset.y) = value;
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setFloatProperty(prop, value);
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { setItemHeightRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kValue) == 0)           { setFontSize(value);        return 1; }
     if (strcmp(prop, PropertyNames::kBarHeight) == 0)       { setBarHeight(value);       return 1; }
@@ -1149,11 +1273,17 @@ int MenuBar::setFloatProperty(const char* prop, float value) {
 
 int MenuBar::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kManualPosition) == 0) { setManualPosition(value != 0); return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {   // P0-26：文本阴影开关 → 自身 + 全部面板
+        m_shadowEnabled = (value != 0);
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setBoolProperty(prop, value);
+        return 1;
+    }
     return ControlImpl::setBoolProperty(prop, value);
 }
 
 int MenuBar::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kManualPosition) == 0) { out = m_manualPosition ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { out = m_shadowEnabled ? 1 : 0; return 1; }
     return ControlImpl::getBoolProperty(prop, out);
 }
 
@@ -1174,6 +1304,8 @@ int MenuBar::setEnumProperty(const char* prop, const char* value) {
 }
 
 int MenuBar::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { out = m_itemHeightRatio; return 1; }
     if (strcmp(prop, PropertyNames::kValue) == 0)           { out = m_menuTextSize;    return 1; }
     if (strcmp(prop, PropertyNames::kBarHeight) == 0)       { out = m_barHeight;       return 1; }
@@ -1218,13 +1350,18 @@ void MenuBar::draw() {
             int fontHeight = renderer->getFontHeight(m_font.get());
             float textY = drawRect.top + (drawRect.height - fontHeight) / 2;
             float textX = drawRect.left + hitRect.left * sx + (hitRect.width * sx - sz.width) / 2;
-            SColor color = ((int)i == m_hoveredIndex) ? m_hoverTextColor : m_textColor;
-            renderer->drawText(m_font.get(), entry.caption, textX, textY, color);
+            const bool hovered = ((int)i == m_hoveredIndex);
+            SColor color = hovered ? m_hoverTextColor : m_textColor;
+            SColor shadowColor = hovered ? m_textShadowColor.getHover() : m_textShadowColor.getNormal();
+            TextDraw::withShadow(renderer, m_font.get(), entry.caption,
+                                 textX, textY,
+                                 textX + m_shadowOffset.x * sx, textY + m_shadowOffset.y * sy,
+                                 color, m_shadowEnabled, shadowColor);
         }
     }
 
-    // 3. 绘制底部分隔线
-    GET_RENDERDEVICE->setDrawColor(MenuColors::PANEL_BORDER);
+    // 3. 绘制底部分隔线（P0-26：border 属性化）
+    GET_RENDERDEVICE->setDrawColor(m_borderColor);
     GET_RENDERDEVICE->drawLine(drawRect.left, drawRect.top + drawRect.height - 1,
                                drawRect.left + drawRect.width, drawRect.top + drawRect.height - 1);
 

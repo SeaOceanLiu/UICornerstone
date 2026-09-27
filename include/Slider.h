@@ -173,6 +173,8 @@ public:
     void setOnValueChanged(OnValueChangedHandler handler);
 
     // ── Property system overrides ──
+    void setTextStateColor(StateColor stateColor) override;        // P0-26：转发 valueLabel（四态）
+    void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
     int setColorProperty(const char* prop, SColor color) override;
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;

@@ -116,7 +116,10 @@ int main(int argc, char* argv[]) {
     labelMode.SetColor("text", UIColor{255, 220, 100, 255});
 
     // 图片按钮 → 弹出 Dialog
-    auto imgBtn = vpB->CreateImageButton(kImgNormal, kImgHover, kImgPressed, 20, 120, 200, 90);
+    auto imgBtn = vpB->CreateButton(u8"", 20, 120, 200, 90);   // P0-31：ImageButton 已移除 → 四态图 Button
+    imgBtn.SetString(PropertyNames::kNormalImage, kImgNormal);
+    imgBtn.SetString(PropertyNames::kHoverImage, kImgHover);
+    imgBtn.SetString(PropertyNames::kPressedImage, kImgPressed);
     imgBtn.SetCallback(PropertyNames::kEventClick, [&](const Event&) {
         std::printf(u8"[sample_vpscale] 图片按钮点击 -> 弹出 Dialog\n");
         auto dialog = vpB->CreateDialog(u8"确定", "", 0, 0, 320, 140);   // 居中弹窗

@@ -3,6 +3,7 @@
 // left/right 两组布局；点击 item 向上弹出共享 MenuPanel；外部点击关闭。
 // ============================================================================
 #include "StatusBar.h"
+#include "TextDraw.h"
 #include "Menu.h"
 #include "PropertyNames.h"
 #include "RenderDevice.h"
@@ -28,6 +29,8 @@ StatusBar::StatusBar(Control* parent, const SRect& rect, float xScale, float ySc
     m_ctlType = ControlType::StatusBar;
     m_rect = rect;
     m_itemHeight = rect.height;
+    m_textColor.setNormal(kTextColor);             // P0-26：段文字缺省色（原常量迁入四态）
+    m_textShadowColor.setNormal(SColor(0, 0, 0, 120));
     setNormalStateBGColor(kVSCodeBlue);            // VSCode 状态栏蓝
 }
 
@@ -85,7 +88,7 @@ void StatusBar::ensureFont() {
     TextRenderer* renderer = getTextRenderer();
     ResourceProvider* provider = getResourceProvider();
     if (!renderer || !provider) return;
-    auto it = ConstDef::fontFiles.find(FontName::HarmonyOS_Sans_SC_Regular);
+    auto it = ConstDef::fontFiles.find(m_fontName);   // P0-26：字体名可配
     if (it == ConstDef::fontFiles.end()) return;
     string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
     auto data = provider->readFile(fontPath);
@@ -182,7 +185,11 @@ void StatusBar::draw(void) {
                 const float tx = ox + (item.hitRect.left + kIconLeftPad
                                        + (item.leadingControl ? m_fontSize * kIconFontRatio + kIconTextGap : 0.f)) * sx;
                 const float ty = oy + (item.hitRect.top + (m_itemHeight - m_fontSize) / 2.f) * sy;
-                renderer->drawText(m_font.get(), item.text, tx, ty, kTextColor);
+                SColor itemTextColor = ControlImpl::resolveStateColor(m_textColor, getState());   // P0-26：四态
+                TextDraw::withShadow(renderer, m_font.get(), item.text,
+                                     tx, ty, tx + m_shadowOffset.x * sx, ty + m_shadowOffset.y * sy,
+                                     itemTextColor, m_shadowEnabled,
+                                     ControlImpl::resolveStateColor(m_textShadowColor, getState()));
             }
         }
     }
@@ -270,6 +277,56 @@ void StatusBar::setRect(SRect rect) {
 }
 
 // ── 属性系统 override ──
+void StatusBar::setTextStateColor(StateColor stateColor) {   // P0-26：文本四态
+    m_textColor = stateColor;
+}
+void StatusBar::setTextShadowStateColor(StateColor stateColor) {   // P0-26：阴影色四态
+    m_textShadowColor = stateColor;
+}
+
+int StatusBar::setColorProperty(const char* prop, SColor color) {   // P0-26：文本族单态键
+    if (strcmp(prop, PropertyNames::kText) == 0)         { m_textColor.setNormal(color);   return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { m_textColor.setHover(color);    return 1; }
+    if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { m_textColor.setPressed(color);  return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { m_textColor.setDisabled(color); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { m_textShadowColor.setNormal(color); return 1; }
+    return ControlImpl::setColorProperty(prop, color);
+}
+
+int StatusBar::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kText) == 0)         { out = m_textColor.getNormal();   return 1; }
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_textColor.getHover();    return 1; }
+    if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { out = m_textColor.getPressed();  return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_textColor.getDisabled(); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
+int StatusBar::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { m_shadowEnabled = (value != 0); return 1; }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+
+int StatusBar::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kShadow) == 0) { out = m_shadowEnabled ? 1 : 0; return 1; }
+    return ControlImpl::getBoolProperty(prop, out);
+}
+
+int StatusBar::setEnumProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {
+        m_fontName = FontNameFromString(value);
+        m_font.reset();
+        if (m_isCreated) { ensureFont(); relayout(); }
+        return 1;
+    }
+    return ControlImpl::setEnumProperty(prop, value);
+}
+
+int StatusBar::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }
+    return ControlImpl::getEnumProperty(prop, out);
+}
+
 int StatusBar::setIntProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kFontSize) == 0)      { setFontSize((float)value); return 1; }
     return ControlImpl::setIntProperty(prop, value);
@@ -279,10 +336,14 @@ int StatusBar::getIntProperty(const char* prop, int& out) {
     return ControlImpl::getIntProperty(prop, out);
 }
 int StatusBar::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { m_shadowOffset.x = value; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { m_shadowOffset.y = value; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeight) == 0)     { setItemHeight(value); return 1; }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int StatusBar::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeight) == 0) { out = m_itemHeight; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }

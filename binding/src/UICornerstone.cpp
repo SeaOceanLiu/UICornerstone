@@ -358,10 +358,6 @@ UI_FACTORY(CreateNumericUpDown,
 UI_FACTORY(CreateSplitter,
     (float x, float y, float w, float h, int orientation, float xScale, float yScale),
     x, y, w, h, orientation, xScale, yScale)
-UI_FACTORY(CreateImageButton,
-    (const std::string& normal, const std::string& hover, const std::string& pressed,
-     float x, float y, float w, float h, float xScale, float yScale),
-    normal.c_str(), hover.c_str(), pressed.c_str(), x, y, w, h, xScale, yScale)
 UI_FACTORY(CreateImage,
     (const std::string& image, float x, float y, float w, float h, float xScale, float yScale),
     image.c_str(), x, y, w, h, xScale, yScale)
@@ -375,6 +371,12 @@ UI_FACTORY(CreateDialog,
     (const std::string& confirmText, const std::string& cancelText, float x, float y, float w, float h,
      float xScale, float yScale),
     confirmText.c_str(), cancelText.c_str(), x, y, w, h, xScale, yScale)
+UI_FACTORY(CreatePopup,
+    (float x, float y, float w, float h, float xScale, float yScale),
+    x, y, w, h, xScale, yScale)
+UI_FACTORY(CreateConfirmPopup,
+    (const std::string& confirmText, float x, float y, float w, float h, float xScale, float yScale),
+    confirmText.c_str(), x, y, w, h, xScale, yScale)
 UI_FACTORY(CreateMenuBar,
     (float x, float y, float w, float h, float xScale, float yScale),
     x, y, w, h, xScale, yScale)
@@ -762,6 +764,11 @@ bool UICornerstone::ListViewSetColumnIcon(Control& lv, int colIndex, Control& ic
 bool UICornerstone::ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData) {
     if (!m_impl->instance || !lv.Handle()) return false;
     return Dyn::API().fnListViewSetColumnSorter(m_impl->instance, lv.Handle(), colIndex, cmp, userData) != 0;
+}
+bool UICornerstone::ListViewSetCellShadow(Control& lv, int row, int col, UIColor color, float offsetX, float offsetY) {
+    if (!m_impl->instance || !lv.Handle()) return false;
+    return Dyn::API().fnListViewSetCellShadow(m_impl->instance, lv.Handle(), row, col,
+        color.r, color.g, color.b, color.a, offsetX, offsetY) != 0;
 }
 bool UICornerstone::ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values) {
     if (!m_impl->instance || !lv.Handle()) return false;

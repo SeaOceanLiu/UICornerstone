@@ -26,6 +26,15 @@ CheckBox::CheckBox(Control *parent, SRect rect, float xScale, float yScale):
     m_indeterminateStateColor(StateColor::Type::Text)
 {
     m_ctlType = ControlType::CheckBox;
+    // P0-30：历史缺省态显式化（保持既有 hover/pressed 视觉）
+    setHoverStateBGColor(ConstDef::DEFAULT_HOVER_COLOR);
+    setPressedStateBGColor(ConstDef::DEFAULT_DOWN_COLOR);
+    setHoverStateBDColor(ConstDef::DEFAULT_BORDER_HOVER_COLOR);
+    setPressedStateBDColor(ConstDef::DEFAULT_BORDER_DOWN_COLOR);
+    m_textColor.setHover(ConstDef::DEFAULT_TEXT_HOVER_COLOR);
+    m_textColor.setPressed(ConstDef::DEFAULT_TEXT_DOWN_COLOR);
+    m_textShadowColor.setHover(ConstDef::DEFAULT_TEXT_SHADOW_HOVER_COLOR);
+    m_textShadowColor.setPressed(ConstDef::DEFAULT_TEXT_SHADOW_DOWN_COLOR);
     m_checkStateColor.setNormal(ConstDef::CHECKBOX_CHECK_COLOR);
     m_crossStateColor.setNormal(ConstDef::CHECKBOX_CROSS_COLOR);
     m_indeterminateStateColor.setNormal(ConstDef::CHECKBOX_INDETERMINATE_COLOR);

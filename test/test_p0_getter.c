@@ -128,6 +128,263 @@ int main(void) {
     printf("CheckBox direct color after recreate: rc=%d rgba=%d,%d,%d\n", rc3, got3.r, got3.g, got3.b);
     if (rc3 != 1 || got3.r != 0 || got3.g != 255 || got3.b != 0) { printf("FAIL: 直控色 recreate 持久\n"); pass = 0; }
 
+    /* 7. P0-21：四态图/animation 运行时读回（设置原值保持）+ Bonus A/B */
+    char sbuf[256];
+    int s1 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/bitmap1.bmp");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g1 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    printf("Set(normal-image)=%d Get=%d val=%s\n", s1, g1, sbuf);
+    if (s1 != 1 || g1 != 1 || strcmp(sbuf, "assets/images/bitmap1.bmp") != 0) {
+        printf("FAIL: normal-image 原值读回\n"); pass = 0;
+    }
+
+    /* 未设置态：读回 0（不崩） */
+    memset(sbuf, 0, sizeof(sbuf));
+    int g2 = UICornerstone_GetString(inst, btn, "hover-image", sbuf, sizeof(sbuf));
+    printf("Get(hover-image unset)=%d (expect 0)\n", g2);
+    if (g2 != 0) { printf("FAIL: 未设置态应返回 0\n"); pass = 0; }
+
+    /* animation 往返（有效资源；basePath 由引擎解析，原值读回） */
+    int s3 = UICornerstone_SetString(inst, btn, "animation", "assets/animations/rotateBtn/rotateBtn.jsonc");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g3 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf));
+    printf("Set(animation)=%d Get=%d val=%s\n", s3, g3, sbuf);
+    if (s3 != 1 || g3 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
+        printf("FAIL: animation 原值读回\n"); pass = 0;
+    }
+
+    /* Bonus B：内嵌动画 frames 读回转发 */
+    int tf = 0, cf = 0;
+    int b1 = UICornerstone_GetInt(inst, btn, "total-frames", &tf);
+    int b2 = UICornerstone_GetInt(inst, btn, "current-frame", &cf);
+    printf("Get(total-frames)=%d val=%d Get(current-frame)=%d val=%d\n", b1, tf, b2, cf);
+    if (b1 != 1 || tf <= 0 || b2 != 1) { printf("FAIL: frames 读回转发\n"); pass = 0; }
+
+    /* Bonus A：无效 animation 路径 → 返回 0、进程存活、旧动画保留 */
+    int s4 = UICornerstone_SetString(inst, btn, "animation", "assets/animations/__missing__.jsonc");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g4 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf));
+    printf("Set(invalid animation)=%d (expect 0) Get after=%d val=%s\n", s4, g4, sbuf);
+    if (s4 != 0 || g4 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
+        printf("FAIL: 无效 animation 应返回 0 且旧动画保留\n"); pass = 0;
+    }
+
+    /* 8. LuotiAni 独立控件 animation 原值读回（P0-21 同型延伸） */
+    UIControlHandle ani = UICornerstone_CreateAnimation(inst, "assets/animations/rotateBtn/rotateBtn.jsonc",
+                                                        300, 300, 120, 120, 1.0f, 1.0f);
+    memset(sbuf, 0, sizeof(sbuf));
+    int g5 = ani ? UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf)) : 0;
+    printf("LuotiAni GetString(animation)=%d val=%s\n", g5, sbuf);
+    if (g5 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
+        printf("FAIL: LuotiAni animation 原值读回\n"); pass = 0;
+    }
+
+    /* 9. P0-22：image 空串 = 卸载（读回 0）；再设有效路径恢复；失败路径读回=尝试值 */
+    int s5 = UICornerstone_SetString(inst, btn, "normal-image", "");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g6 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    printf("Set(normal-image empty)=%d Get=%d (expect 1/0)\n", s5, g6);
+    if (s5 != 1 || g6 != 0) { printf("FAIL: 空串卸载\n"); pass = 0; }
+
+    int s6 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/bitmap2.bmp");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g7 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    printf("Set(restore)=%d Get=%d val=%s\n", s6, g7, sbuf);
+    if (s6 != 1 || g7 != 1 || strcmp(sbuf, "assets/images/bitmap2.bmp") != 0) {
+        printf("FAIL: 卸载后恢复\n"); pass = 0;
+    }
+
+    int s7 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/__missing__.bmp");
+    memset(sbuf, 0, sizeof(sbuf));
+    int g8 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    printf("Set(bad image)=%d Get=%d val=%s (readback=attempted)\n", s7, g8, sbuf);
+    if (s7 != 1 || g8 != 1 || strcmp(sbuf, "assets/images/__missing__.bmp") != 0) {
+        printf("FAIL: 失败路径保留尝试值\n"); pass = 0;
+    }
+
+    /* 10. P0-24/P0-25：path 别名 + CreateAnimation 空路径占位 */
+    memset(sbuf, 0, sizeof(sbuf));
+    int a1 = UICornerstone_GetString(inst, ani, "path", sbuf, sizeof(sbuf));
+    printf("GetString(path alias)=%d val=%s\n", a1, sbuf);
+    if (a1 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
+        printf("FAIL: path 别名读回\n"); pass = 0;
+    }
+    int a2 = UICornerstone_SetString(inst, ani, "path", "assets/animations/rotateBtn/rotateBtn.jsonc");
+    memset(sbuf, 0, sizeof(sbuf));
+    int a3 = UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf));
+    printf("Set(path)=%d Get(animation)=%d val=%s\n", a2, a3, sbuf);
+    if (a2 != 1 || a3 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
+        printf("FAIL: path 别名写入\n"); pass = 0;
+    }
+
+    UIControlHandle ani2 = UICornerstone_CreateAnimation(inst, "", 450, 300, 120, 120, 1.0f, 1.0f);
+    memset(sbuf, 0, sizeof(sbuf));
+    int b0 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf)) : -1;
+    printf("CreateAnimation(\"\") handle=%s GetString=%d (expect OK/0)\n", ani2 ? "OK" : "NULL", b0);
+    if (!ani2 || b0 != 0) { printf("FAIL: 空路径占位创建\n"); pass = 0; }
+    int c1 = ani2 ? UICornerstone_SetString(inst, ani2, "path", "assets/animations/rotateBtn/rotateBtn.jsonc") : 0;
+    memset(sbuf, 0, sizeof(sbuf));
+    int c2 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf)) : 0;
+    int tot = 0;
+    int c3 = ani2 ? UICornerstone_GetInt(inst, ani2, "total-frames", &tot) : 0;
+    printf("placeholder Set(path)=%d Get=%d val=%s total=%d\n", c1, c2, sbuf, tot);
+    if (c1 != 1 || c2 != 1 || c3 != 1 || tot <= 0) { printf("FAIL: 占位后加载\n"); pass = 0; }
+
+    /* 11. P0-26：视觉能力补齐读回（各类型） */
+    {
+        UIColor c = {10, 20, 30, 255};
+        UIColor got = {0, 0, 0, 0};
+
+        /* image：背景/边框色（补齐绘制） */
+        UIControlHandle img2 = UICornerstone_CreateImage(inst, NULL, 0, 0, 60, 30, 1.0f, 1.0f);
+        int r1 = img2 ? UICornerstone_SetColor(inst, img2, "background", c) : 0;
+        int r2 = img2 ? UICornerstone_GetColor(inst, img2, "background", &got) : 0;
+        printf("P0-26 image background set=%d get=%d rgba=%d,%d,%d\n", r1, r2, got.r, got.g, got.b);
+        if (r1 != 1 || r2 != 1 || got.r != 10 || got.g != 20 || got.b != 30) { printf("FAIL: image 背景\n"); pass = 0; }
+
+        /* color-picker：关闭态文字色（四态）/阴影/字号/字体名 */
+        UIControlHandle cp2 = UICornerstone_CreateColorPicker(inst, 0, 60, 80, 30, "#11223344", 1.0f, 1.0f);
+        got = (UIColor){0, 0, 0, 0};
+        int p1 = cp2 ? UICornerstone_SetColor(inst, cp2, "text.hover", c) : 0;
+        int p2 = cp2 ? UICornerstone_GetColor(inst, cp2, "text.hover", &got) : 0;
+        int p3 = cp2 ? UICornerstone_SetBool(inst, cp2, "shadow", 1) : 0;
+        int p4 = 0;
+        if (cp2) UICornerstone_GetBool(inst, cp2, "shadow", &p4);
+        int p5 = cp2 ? UICornerstone_SetInt(inst, cp2, "font-size", 17) : 0;
+        int p6 = 0;
+        if (cp2) UICornerstone_GetInt(inst, cp2, "font-size", &p6);
+        printf("P0-26 colorpicker text.hover=%d/%d rgba=%d,%d,%d shadow=%d/%d font-size=%d/%d\n",
+               p1, p2, got.r, got.g, got.b, p3, p4, p5, p6);
+        if (p1 != 1 || p2 != 1 || got.r != 10 || p3 != 1 || p4 != 1 || p5 != 1 || p6 != 17) {
+            printf("FAIL: colorpicker 关闭态补齐\n"); pass = 0;
+        }
+        char fbuf2[64] = {0};
+        int p7 = cp2 ? UICornerstone_SetEnum(inst, cp2, "font", "maplemono-nf-cn-regular") : 0;
+        int p8 = cp2 ? UICornerstone_GetEnum(inst, cp2, "font", fbuf2, sizeof(fbuf2)) : 0;
+        if (p7 != 1 || p8 != 1 || strcmp(fbuf2, "maplemono-nf-cn-regular") != 0) {
+            printf("FAIL: colorpicker font（%d/%d %s）\n", p7, p8, fbuf2); pass = 0;
+        }
+
+        /* slider：label 四态/阴影/偏移 */
+        UIControlHandle sl2 = UICornerstone_CreateSlider(inst, 0, 100, 120, 30, 0, 100, 50, 1.0f, 1.0f);
+        got = (UIColor){0, 0, 0, 0};
+        int s1 = sl2 ? UICornerstone_SetColor(inst, sl2, "text.hover", c) : 0;
+        int s2 = sl2 ? UICornerstone_GetColor(inst, sl2, "text.hover", &got) : 0;
+        if (sl2) UICornerstone_SetBool(inst, sl2, "show-value-label", 1);   /* P0-26：valueLabel 需先启用 */
+        int s3 = sl2 ? UICornerstone_SetBool(inst, sl2, "shadow", 1) : 0;
+        int s4 = sl2 ? UICornerstone_SetFloat(inst, sl2, "shadow-offset-x", 3.0f) : 0;
+        float sf = 0;
+        int s5 = sl2 ? UICornerstone_GetFloat(inst, sl2, "shadow-offset-x", &sf) : 0;
+        printf("P0-26 slider text.hover=%d/%d shadow=%d offx=%d/%d %.1f\n", s1, s2, s3, s4, s5, sf);
+        if (s1 != 1 || s2 != 1 || got.r != 10 || s3 != 1 || s4 != 1 || s5 != 1 || sf != 3.0f) {
+            printf("FAIL: slider label 补齐\n"); pass = 0;
+        }
+
+        /* menu-bar：背景/文本/阴影（统一覆盖 bar/panel/item） */
+        UIControlHandle mb2 = UICornerstone_CreateMenuBar(inst, 0, 140, 300, 24, 1.0f, 1.0f);
+        got = (UIColor){0, 0, 0, 0};
+        int m1 = mb2 ? UICornerstone_SetColor(inst, mb2, "background", c) : 0;
+        int m2 = mb2 ? UICornerstone_GetColor(inst, mb2, "background", &got) : 0;
+        int m3 = mb2 ? UICornerstone_SetBool(inst, mb2, "shadow", 1) : 0;
+        int m4 = 0;
+        if (mb2) UICornerstone_GetBool(inst, mb2, "shadow", &m4);
+        printf("P0-26 menu background=%d/%d rgba=%d,%d,%d shadow=%d/%d\n", m1, m2, got.r, got.g, got.b, m3, m4);
+        if (m1 != 1 || m2 != 1 || got.r != 10 || m3 != 1 || m4 != 1) { printf("FAIL: menu 补齐\n"); pass = 0; }
+
+        /* status-bar：文本色/字体名/阴影 */
+        UIControlHandle sb2 = UICornerstone_CreateStatusBar(inst, 0, 170, 300, 24, 1.0f, 1.0f);
+        got = (UIColor){0, 0, 0, 0};
+        int b1b = sb2 ? UICornerstone_SetColor(inst, sb2, "text", c) : 0;
+        int b2b = sb2 ? UICornerstone_GetColor(inst, sb2, "text", &got) : 0;
+        int b3b = sb2 ? UICornerstone_SetBool(inst, sb2, "shadow", 1) : 0;
+        char fbuf3[64] = {0};
+        int b4b = sb2 ? UICornerstone_SetEnum(inst, sb2, "font", "maplemono-nf-cn-regular") : 0;
+        int b5b = sb2 ? UICornerstone_GetEnum(inst, sb2, "font", fbuf3, sizeof(fbuf3)) : 0;
+        printf("P0-26 statusbar text=%d/%d rgba=%d,%d,%d shadow=%d font=%d/%d %s\n",
+               b1b, b2b, got.r, got.g, got.b, b3b, b4b, b5b, fbuf3);
+        if (b1b != 1 || b2b != 1 || got.r != 10 || b3b != 1 || b4b != 1 || b5b != 1) {
+            printf("FAIL: statusbar 补齐\n"); pass = 0;
+        }
+
+        /* tab-control：常态文本四态 + selected-text */
+        UIControlHandle tc2 = UICornerstone_CreateTabControl(inst, 0, 200, 200, 100, 1.0f, 1.0f);
+        got = (UIColor){0, 0, 0, 0};
+        int t1b = tc2 ? UICornerstone_SetColor(inst, tc2, "text.hover", c) : 0;
+        int t2b = tc2 ? UICornerstone_GetColor(inst, tc2, "text.hover", &got) : 0;
+        UIColor sel = {200, 100, 50, 255};
+        int t3b = tc2 ? UICornerstone_SetColor(inst, tc2, "selected-text", sel) : 0;
+        int t4b = tc2 ? UICornerstone_GetColor(inst, tc2, "selected-text", &got) : 0;
+        printf("P0-26 tabcontrol text.hover=%d/%d selected-text=%d/%d rgba=%d,%d,%d\n",
+               t1b, t2b, t3b, t4b, got.r, got.g, got.b);
+        if (t1b != 1 || t2b != 1 || t3b != 1 || t4b != 1 || got.r != 200) { printf("FAIL: tabcontrol 补齐\n"); pass = 0; }
+
+        /* progress-bar：阴影转发（内嵌 Label） */
+        UIControlHandle pb2 = UICornerstone_CreateProgressBar(inst, 0, 310, 150, 20, 1.0f, 1.0f);
+        int g1b = pb2 ? UICornerstone_SetBool(inst, pb2, "shadow", 1) : 0;
+        int g2b = 0;
+        if (pb2) UICornerstone_GetBool(inst, pb2, "shadow", &g2b);
+        float pf = 0;
+        int g3b = pb2 ? UICornerstone_SetFloat(inst, pb2, "shadow-offset-y", 2.0f) : 0;
+        int g4b = pb2 ? UICornerstone_GetFloat(inst, pb2, "shadow-offset-y", &pf) : 0;
+        printf("P0-26 progressbar shadow=%d/%d offy=%d/%d %.1f\n", g1b, g2b, g3b, g4b, pf);
+        if (g1b != 1 || g2b != 1 || g3b != 1 || g4b != 1 || pf != 2.0f) { printf("FAIL: progressbar 补齐\n"); pass = 0; }
+
+        /* tree-view：item 阴影（item-id 定位） */
+        UIControlHandle tv2 = UICornerstone_CreateTreeView(inst, 0, 340, 150, 80, 1.0f, 1.0f);
+        if (tv2) UICornerstone_TreeViewAddNode(inst, tv2, "", "n1", "Node1", 1);
+        int v1 = tv2 ? UICornerstone_SetString(inst, tv2, "item-id", "n1") : 0;
+        got = (UIColor){0, 0, 0, 0};
+        int v2 = tv2 ? UICornerstone_SetColor(inst, tv2, "item-text-shadow", c) : 0;
+        int v3 = tv2 ? UICornerstone_GetColor(inst, tv2, "item-text-shadow", &got) : 0;
+        int v4 = tv2 ? UICornerstone_SetFloat(inst, tv2, "item-shadow-offset-x", 4.0f) : 0;
+        float vf = 0;
+        int v5 = tv2 ? UICornerstone_GetFloat(inst, tv2, "item-shadow-offset-x", &vf) : 0;
+        printf("P0-26 treeview item shadow set=%d/%d rgba=%d,%d,%d offx=%d/%d %.1f\n",
+               v1, v2, got.r, got.g, got.b, v4, v5, vf);
+        if (v1 != 1 || v2 != 1 || v3 != 1 || got.r != 10 || v4 != 1 || v5 != 1 || vf != 4.0f) {
+            printf("FAIL: treeview item 阴影\n"); pass = 0;
+        }
+
+        /* P0-26 复核修正：tree 文本四态（原遮蔽基类成员 → 已解除） */
+        got = (UIColor){0, 0, 0, 0};
+        int z1 = tv2 ? UICornerstone_SetColor(inst, tv2, "text.hover", c) : 0;
+        int z2 = tv2 ? UICornerstone_GetColor(inst, tv2, "text.hover", &got) : 0;
+        printf("P0-26 treeview text.hover=%d/%d rgba=%d,%d,%d\n", z1, z2, got.r, got.g, got.b);
+        if (z1 != 1 || z2 != 1 || got.r != 10 || got.g != 20 || got.b != 30) { printf("FAIL: treeview 文本四态\n"); pass = 0; }
+
+        /* list-view：cell 阴影（新 C ABI） */
+        UIControlHandle lv2 = UICornerstone_CreateListView(inst, 0, 430, 200, 80, 1.0f, 1.0f);
+        if (lv2) {
+            const char* cells[2] = {"a", "b"};
+            UICornerstone_ListViewAddRow(inst, lv2, "r1", 2, cells);
+        }
+        int w1 = lv2 ? UICornerstone_ListViewSetCellShadow(inst, lv2, 0, 0, 10, 20, 30, 255, 2.0f, 2.0f) : 0;
+        printf("P0-26 listview cell shadow set=%d\n", w1);
+        if (w1 != 1) { printf("FAIL: listview cell 阴影\n"); pass = 0; }
+        got = (UIColor){0, 0, 0, 0};
+        int z3 = lv2 ? UICornerstone_SetColor(inst, lv2, "text.hover", c) : 0;
+        int z4 = lv2 ? UICornerstone_GetColor(inst, lv2, "text.hover", &got) : 0;
+        printf("P0-26 listview text.hover=%d/%d rgba=%d,%d,%d\n", z3, z4, got.r, got.g, got.b);
+        if (z3 != 1 || z4 != 1 || got.r != 10 || got.g != 20 || got.b != 30) { printf("FAIL: listview 文本四态\n"); pass = 0; }
+    }
+
+    /* 12. P0-27d/P0-28：Popup/ConfirmPopup 工厂 + 编辑态常显键 */
+    UIControlHandle pop = UICornerstone_CreatePopup(inst, 0, 500, 200, 100, 1.0f, 1.0f);
+    int q1 = pop ? UICornerstone_SetBool(inst, pop, "close-on-click-outside", 0) : 0;
+    int q2 = -1; if (pop) UICornerstone_GetBool(inst, pop, "close-on-click-outside", &q2);
+    int q3 = pop ? UICornerstone_SetBool(inst, pop, "close-on-esc", 0) : 0;
+    int q4 = pop ? UICornerstone_SetBool(inst, pop, "visible", 1) : 0;
+    int q5 = 0; if (pop) UICornerstone_GetBool(inst, pop, "popup-visible", &q5);
+    int q6 = pop ? UICornerstone_SetBool(inst, pop, "visible", 0) : 0;
+    printf("P0-27d popup=%s coc=%d/%d esc=%d visible=%d/%d/%d\n",
+           pop ? "OK" : "NULL", q1, q2, q3, q4, q5, q6);
+    if (!pop || q1 != 1 || q2 != 0 || q3 != 1 || q4 != 1 || q5 != 1 || q6 != 1) {
+        printf("FAIL: Popup 工厂/常显键\n"); pass = 0;
+    }
+    UIControlHandle cpop = UICornerstone_CreateConfirmPopup(inst, "OK", 0, 0, 240, 120, 1.0f, 1.0f);
+    printf("P0-27d confirm-popup=%s\n", cpop ? "OK" : "NULL");
+    if (!cpop) { printf("FAIL: ConfirmPopup 工厂\n"); pass = 0; }
+
     UICornerstone_DestroyInstance(inst);
     if (pass) { printf("=== PASS: test_p0_getter ===\n"); return 0; }
     printf("=== FAIL: test_p0_getter ===\n");

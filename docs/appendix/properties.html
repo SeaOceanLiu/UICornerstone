@@ -17,7 +17,8 @@
 
 <p>全部属性名可在 <code>include/PropertyNames.h</code> 找到对应 <code>k*</code> 常量。C++ Binding 建议直接使用常量。</p>
 
-<h2>7.1 通用属性（所有控件）</h2>
+<h2>7.1 通用属性（布局 / 交互类，所有控件）</h2>
+<p class="note"><b>P0-26</b>：视觉键（<code>background/border/text/text-shadow/font/font-size/border-visible/shadow</code>）改为<b>按控件类型声明</b>（声明=布局合法=视觉有效）——各类型适用范围见 <a href="#7-1-1">7.1.1 视觉能力矩阵</a>；本表为运行时属性键全量参考。<b>P0-27a</b>：显式设置 <code>background</code>（alpha&gt;0）会<b>自动取消 transparent</b>（Label 等缺省透明控件设色即绘制底色；显式 <code>transparent=1</code> 可再关闭）。</p>
 
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
@@ -48,6 +49,23 @@
 </table>
 <p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。</p>
 
+<h3>7.1.1 视觉能力矩阵（按控件类型，P0-26）</h3>
+<p>schema 按类型声明视觉键（声明=布局合法=视觉有效）；<code>colors</code> 组内态子集按运行时实际可达状态裁剪。</p>
+<table>
+<tr><th>类型</th><th>colors 组（态）</th><th>shadow（enabled+offset）</th><th>font / font-size</th><th>border-visible</th></tr>
+<tr><td>label / button / check-box / win-frame</td><td>background/border/text/text-shadow（四态）</td><td>✓</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>edit-box / text-area / combo-box / numeric-up-down</td><td>四组（四态）</td><td>—（输入控件不加阴影）</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>list-view / tree-view</td><td>四组（四态）</td><td>✓（item/cell 级：单色+偏移）</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>progress-bar / status-bar / tab-control</td><td>四组（四态）</td><td>✓（文本阴影）</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>slider</td><td>四组（四态）</td><td>✓（valueLabel）</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>color-picker</td><td>四组（四态，作用于关闭态文字）</td><td>✓（关闭态）</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>menu-bar（含下拉 panel/item）</td><td>background 三态（normal/hover/pressed）+ border 单态 + text 三态（normal/hover/disabled）+ text-shadow 三态</td><td>✓</td><td>✓ / ✓</td><td>✓</td></tr>
+<tr><td>panel / shape / image / animation</td><td>background/border（四态；image/animation 为 P0-26 补齐绘制）</td><td>—</td><td>—</td><td>✓</td></tr>
+<tr><td>splitter / scroll-bar</td><td>background（四态）</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>dialog / popup / confirm-popup</td><td>background/border（仅 normal）</td><td>—</td><td>—</td><td>✓</td></tr>
+</table>
+<p class="note">布局 JSON 的 <code>colors</code> 组为状态对象（<code>{normal,hover,pressed,disabled}</code> 按类型态子集）；顶层 <code>text-shadow</code> 布局键已移除（文本阴影色统一经 <code>colors.text-shadow</code>；运行时属性键 <code>text-shadow</code> 仍可用）。</p>
+
 <h2>7.2 按控件速查（字母序）</h2>
 
 <h3>Actor（Image，类型 <code>image</code>）</h3>
@@ -57,8 +75,8 @@
 <tr><td><code>anchor</code></td><td><code>kAnchor</code></td><td>Enum</td><td><code>kAlignLowerTopLeft</code> … <code>kAlignLowerCenter</code> …（9 值）</td></tr>
 <tr><td><code>anchor-x</code></td><td><code>kAnchorX</code></td><td>Float</td><td>自由坐标锚点分量</td></tr>
 <tr><td><code>anchor-y</code></td><td><code>kAnchorY</code></td><td>Float</td><td>自由坐标锚点分量</td></tr>
-<tr><td><code>image</code></td><td><code>kImage</code></td><td>String（只写）</td><td>—</td></tr>
-<tr><td><code>image-resource</code></td><td><code>kImageResource</code></td><td>String（只写）</td><td>—</td></tr>
+<tr><td><code>image</code></td><td><code>kImage</code></td><td>String（只写）</td><td>空串 = 卸载（清空=删除，读回 0）；加载失败 = 无图（旧图清除）</td></tr>
+<tr><td><code>image-resource</code></td><td><code>kImageResource</code></td><td>String（只写）</td><td>空串 = 卸载（清空=删除）；加载失败 = 无图</td></tr>
 <tr><td><code>match-parent-rect</code></td><td><code>kMatchParentRect</code></td><td>Bool</td><td>false</td></tr>
 <tr><td><code>scale-type</code></td><td><code>kScaleType</code></td><td>Enum</td><td><code>kScaleTypeStretch</code> / <code>kScaleTypeFitCenter</code> / <code>kScaleTypeCenterCrop</code> / <code>kScaleTypeNone</code> / <code>kScaleTypeTile</code></td></tr>
 </table>
@@ -77,14 +95,14 @@
 <h3>Button（类型 <code>button</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>animation</code></td><td><code>kAnimation</code></td><td>String</td><td>—（LuotiAni 路径，加载即播放）</td></tr>
+<tr><td><code>animation</code></td><td><code>kAnimation</code></td><td>String（读写，原值回读）</td><td>—（LuotiAni 路径，加载即播放；失败返回 0 保留旧动画；帧图 src 资源包 miss 时回退 &lt;exeDir&gt;/assets → &lt;exeDir&gt; 文件加载）</td></tr>
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>空</td></tr>
 <tr><td><code>caption-label</code></td><td><code>kCaptionLabel</code></td><td>Object / 句柄</td><td>—</td><td>内部标题 Label：JSON 对象配置（caption/font/alignment）；运行时 <code>GetPtr</code> 读句柄直控其标准属性（颜色/字体/对齐，各态色随控件状态生效）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td><td>标题字号（Button 标题，与通用 font-size 统一）</td></tr>
-<tr><td><code>normal-image</code></td><td><code>kNormalImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
-<tr><td><code>hover-image</code></td><td><code>kHoverImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
-<tr><td><code>pressed-image</code></td><td><code>kPressedImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
-<tr><td><code>disabled-image</code></td><td><code>kDisabledImage</code></td><td>String（只写）</td><td>—（状态 Actor，跟随时设边框）</td></tr>
+<tr><td><code>normal-image</code></td><td><code>kNormalImage</code></td><td>String（读写，原值回读）</td><td>—（状态 Actor，跟随时设边框；资源引用读回 0）</td></tr>
+<tr><td><code>hover-image</code></td><td><code>kHoverImage</code></td><td>String（读写，原值回读）</td><td>—（状态 Actor，跟随时设边框；资源引用读回 0）</td></tr>
+<tr><td><code>pressed-image</code></td><td><code>kPressedImage</code></td><td>String（读写，原值回读）</td><td>—（状态 Actor，跟随时设边框；资源引用读回 0）</td></tr>
+<tr><td><code>disabled-image</code></td><td><code>kDisabledImage</code></td><td>String（读写，原值回读）</td><td>—（状态 Actor，跟随时设边框；资源引用读回 0）</td></tr>
 <tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Object</td><td>{enabled:false}</td></tr>
 </table>
 
@@ -166,6 +184,7 @@
 <tr><td><code>cancel-button</code></td><td><code>kCancelButton</code></td><td>Ptr（只读）</td><td>确定/取消按钮句柄</td></tr>
 <tr><td><code>visible</code></td><td><code>kVisible</code></td><td>Bool</td><td>0（置 1=open，置 0=close）</td></tr>
 </table>
+<p class="note"><b>P0-27d/P0-28</b>：C ABI <code>CreatePopup</code> / <code>CreateConfirmPopup</code> 创建后**保持隐藏**（不自动 open；<code>SetBool("visible",1)</code> 显示，同 JSON <code>visible</code>）。<b>编辑态常显</b>（设计器/宿主场景：点击画布其它控件不关闭）：<code>SetBool(ctl,"close-on-click-outside",0)</code> + <code>SetBool(ctl,"close-on-esc",0)</code>（Dialog / Popup / ConfirmPopup / ContextMenu 均支持）。</p>
 
 <h3>EditBox（类型 <code>edit-box</code>）</h3>
 <table>
@@ -182,9 +201,6 @@
 
 <h3>HandleControl（无 JSON 类型）</h3>
 <p>核心类专属能力（C ABI 经 <code>UICornerstone_CreateHandleControl(inst, target, ...)</code> 创建，无属性系统键名 / 无布局 JSON 分支）：手柄拖动调整目标控件尺寸。尺寸/颜色/显隐均为 C++ API（<code>setHandleSize</code> / <code>setMinSize</code> / <code>setHandleColor</code> 等，见 <a href="../controls/handlecontrol.html">4.10 HandleControl</a>）。</p>
-
-<h3>ImageButton（类型 <code>image-button</code>，与 button 同语法）</h3>
-<p>属性 = Button 全量 + 状态图片（<code>normal-image</code> / <code>hover-image</code> / <code>pressed-image</code>，String 只写）；布局 JSON 也可用 <code>"actors": {"normal": path, "hover": ..., "pressed": ...}</code> 声明三态图。</p>
 
 <h3>Label（类型 <code>label</code>）</h3>
 <table>
@@ -232,7 +248,7 @@
 <h3>LuotiAni（类型 <code>animation</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>animation</code></td><td><code>kAnimation</code></td><td>String</td><td>JSONC 路径（只写）</td></tr>
+<tr><td><code>animation</code></td><td><code>kAnimation</code></td><td>String（读写，原值回读）</td><td>JSONC 路径（<code>path</code> 为同义别名，布局键一致）；失败返回 0 保留旧动画</td></tr>
 <tr><td><code>frame</code></td><td><code>kFrame</code></td><td>Int</td><td>跳帧</td></tr>
 <tr><td><code>total-frames</code></td><td><code>kTotalFrames</code></td><td>Int（只读）</td><td>总帧数 / 当前帧</td></tr>
 <tr><td><code>current-frame</code></td><td><code>kCurrentFrame</code></td><td>Int（只读）</td><td>总帧数 / 当前帧</td></tr>
@@ -248,6 +264,10 @@
 <tr><td><code>checked</code></td><td><code>kChecked</code></td><td>Bool</td><td>MenuItem 勾选</td></tr>
 <tr><td><code>click</code></td><td><code>kEventClick</code></td><td>callback</td><td>MenuItem 点击</td></tr>
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>菜单字体（默认 MapleMono_NF_CN_Regular）</td></tr>
+<tr><td><code>background</code> / <code>background.hover</code> / <code>background.pressed</code></td><td><code>kBackground</code> / <code>kStateHover</code> / <code>kStatePressed</code></td><td>Color</td><td>菜单背景三态（bar/panel/item 统一覆盖；P0-26）</td></tr>
+<tr><td><code>border</code></td><td><code>kBorder</code></td><td>Color</td><td>下拉面板边框（bar 无边框；P0-26）</td></tr>
+<tr><td><code>text</code> / <code>text.hover</code> / <code>text.disabled</code></td><td><code>kText</code> / <code>kTextHover</code> / <code>kTextDisabled</code></td><td>Color</td><td>菜单文本三态（P0-26）</td></tr>
+<tr><td><code>text-shadow</code> + <code>shadow</code> / <code>shadow-offset-x</code> / <code>shadow-offset-y</code></td><td><code>kTextShadow</code> / <code>kShadow</code> / <code>kShadowOffsetX</code> / <code>kShadowOffsetY</code></td><td>Color / Bool / Float</td><td>菜单文本阴影（P0-26）</td></tr>
 <tr><td><code>value</code></td><td><code>kValue</code></td><td>Float</td><td>MenuBar 字号</td></tr>
 <tr><td><code>bar-height</code></td><td><code>kBarHeight</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
 <tr><td><code>item-height-ratio</code></td><td><code>kItemHeightRatio</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
@@ -279,7 +299,8 @@
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>animation-speed</code></td><td><code>kAnimationSpeed</code></td><td>Float</td><td>0.1</td></tr>
-<tr><td><code>custom-text</code></td><td><code>kCustomText</code></td><td>String</td><td>空</td></tr>
+<tr><td><code>custom-text</code></td><td><code>kCustomText</code></td><td>String</td><td>空（需 <code>text-mode=custom</code>）</td></tr>
+<tr><td><code>text</code></td><td><code>kTextContent</code></td><td>String</td><td>文本内容直达（P0-27c：设置时自动切换 <code>text-mode=custom</code>；与颜色键 <code>kText</code> 同名字、按通道区分）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>14</td></tr>
 <tr><td><code>progress</code></td><td><code>kProgress</code></td><td>Color</td><td>绿 / 灰 / 白</td></tr>
 <tr><td><code>background</code></td><td><code>kBackground</code></td><td>Color</td><td>绿 / 灰 / 白</td></tr>
@@ -372,6 +393,7 @@
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>13 / rect 高</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular（P0-26）</td></tr>
 <tr><td><code>item-height</code></td><td><code>kItemHeight</code></td><td>Float</td><td>13 / rect 高</td></tr>
 </table>
 <p>段数据经 JSON <code>items[]</code>（id / text / align / icon / menu / onClick）；C ABI 专用函数 <code>StatusBarAddItem</code> 等见 8.3.1。</p>
@@ -381,6 +403,8 @@
 <tr><td><code>position</code></td><td><code>kTabPosition</code></td><td>Enum</td><td>top（top / bottom / left / right）</td></tr>
 <tr><td><code>currentIndex</code></td><td><code>kTabCurrentIndex</code></td><td>Int</td><td>0（首页自动选中）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>13</td></tr>
+<tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular（P0-26）</td></tr>
+<tr><td><code>selected-text</code></td><td><code>kSelectedText</code></td><td>Color</td><td>选中页签文字色（常态页签用 <code>colors.text</code> 四态；P0-26）</td></tr>
 </table>
 <p>页数据经 JSON <code>tabs[]</code>（title / icon / page）；C ABI 专用函数 <code>TabAddPage / TabSetPage</code> 等见 8.3.1。</p>
 <h3>TextArea（类型 <code>text-area</code>）</h3>
@@ -408,6 +432,9 @@
 <tr><td><code>indent-width</code></td><td><code>kIndentWidth</code></td><td>Float</td><td>子节点缩进宽度</td></tr>
 <tr><td><code>item-font</code></td><td><code>kTreeItemFont</code></td><td>Enum</td><td>逐 Item 字体枚举（如 <code>maplemono-nf-cn-regular</code>）</td></tr>
 <tr><td><code>item-font-size</code></td><td><code>kTreeItemFontSize</code></td><td>Int</td><td>逐 Item 字号（0 = 继承 TreeView 级）</td></tr>
+<tr><td><code>item-text-shadow</code></td><td><code>kTreeItemTextShadow</code></td><td>Color</td><td>逐 Item 文本阴影色（设置即启用；P0-26）</td></tr>
+<tr><td><code>item-shadow-offset-x</code></td><td><code>kTreeItemShadowOffsetX</code></td><td>Float</td><td>逐 Item 阴影偏移（P0-26）</td></tr>
+<tr><td><code>item-shadow-offset-y</code></td><td><code>kTreeItemShadowOffsetY</code></td><td>Float</td><td>逐 Item 阴影偏移（P0-26）</td></tr>
 <tr><td><code>item-id</code></td><td><code>kTreeItemId</code></td><td>String</td><td>定位目标节点（item 级属性的作用对象）</td></tr>
 <tr><td><code>item-leading-control</code></td><td><code>kTreeItemLeadingControl</code></td><td>Ptr</td><td>行前置控件容器句柄（借用语义，可再经通用属性系统操作；运行时 SetPtr 立即挂树，传 NULL 解除并摘树）</td></tr>
 <tr><td><code>item-leading-gap</code></td><td><code>kTreeItemLeadingGap</code></td><td>Float</td><td>行前置控件容器与文本间隔（默认 6）</td></tr>
@@ -481,7 +508,6 @@ item 增强：<code>leadingControl</code>（行前置控件容器，复用控件
 <tr><td><code>harmonyos-sans-sc-regular</code></td><td><code>kFontHarmonySansSCRegular</code></td></tr>
 <tr><td><code>harmonyos-sans-sc-thin</code></td><td><code>kFontHarmonySansSCThin</code></td></tr>
 <tr><td><code>icon</code></td><td><code>kItemIcon</code></td></tr>
-<tr><td><code>image-button</code></td><td><code>kControlTypeImageButton</code></td></tr>
 <tr><td><code>italic</code></td><td><code>kFontStyleItalic</code></td></tr>
 <tr><td><code>left</code></td><td><code>kTabPositionLeft</code></td></tr>
 <tr><td><code>list-view</code></td><td><code>kControlTypeListView</code></td></tr>

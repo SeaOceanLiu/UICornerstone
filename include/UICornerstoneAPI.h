@@ -469,12 +469,6 @@ UICORNERSTONE_API int UICornerstone_SetHandleRectFilter(UIInstance instance, UIC
     UIHandleRectFilter filter, void* userData);
 // Move 手柄可见性（策略开关：设计器可关闭 Move 手柄，移动统一走本体拖动+filter）。返回 1 成功。
 UICORNERSTONE_API int UICornerstone_SetHandleMoveVisible(UIInstance instance, UIControlHandle handle, int show);
-UICORNERSTONE_API UIControlHandle UICornerstone_CreateImageButton(UIInstance instance,
-    const char* normalImage,
-    const char* hoverImage,
-    const char* pressedImage,
-    float x, float y, float w, float h, float xScale, float yScale);
-
 /* ============ Image 图片控件 ============ */
 // image 为文件路径（可为 NULL，之后经 UICornerstone_SetString(inst, ctl, "image", path) 设置；
 // 资源 ID 经 "image-resource" 设置）。w/h 传 0 表示按纹理自然尺寸。
@@ -497,10 +491,10 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateActor(
     float x, float y, float w, float h, float xScale, float yScale);
 
 /* ============ LuotiAni 动画控件 ============ */
-// jsoncPath 为动画描述文件路径（相对路径经基路径拼接），可为 NULL（之后经
-// UICornerstone_SetString(inst, ctl, "animation", path) 设置）；
-// 创建后不自动播放（显式经 UICornerstone_SetBool(inst, ctl, "playing", 1) 控制）；
-// w/h 传 0 → prepare 回退到 JSON overview.view 画布尺寸；加载失败返回 NULL。
+// jsoncPath 为动画描述文件路径（相对路径经基路径拼接），可为 NULL 或空串（占位创建：
+// 不加载/不 prepare，之后经 UICornerstone_SetString(inst, ctl, "animation", path)（"path" 同义）
+// 设置并加载）；创建后不自动播放（显式经 UICornerstone_SetBool(inst, ctl, "playing", 1) 控制）；
+// w/h 传 0 → prepare 回退到 JSON overview.view 画布尺寸；非空路径加载失败返回 NULL。
 // xScale/yScale 为初始缩放系数（默认 1.0f）。
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateAnimation(
     UIInstance instance,
@@ -575,6 +569,9 @@ UICORNERSTONE_API int UICornerstone_ListViewSetCellLeadingControl(UIInstance ins
 // 样式（bg 颜色 + fontSize；font 缺省；JSON/Binding 二期）
 UICORNERSTONE_API int UICornerstone_ListViewSetCellStyle(UIInstance instance, UIControlHandle lv,
     int row, int col, uint8_t bgR, uint8_t bgG, uint8_t bgB, uint8_t bgA, int fontSize);
+// 单元格文本阴影（P0-26：单色 + 偏移；color 的 alpha>0 即启用）。
+UICORNERSTONE_API int UICornerstone_ListViewSetCellShadow(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY);
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHandle lv,
     int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, int fontSize);
 // 自定义排序比较器（返回 <0/0/>0；传 NULL 清除该列回调恢复字典序）
@@ -666,6 +663,13 @@ UICORNERSTONE_API int UICornerstone_SavePixelsToFile(
 /* ============ Dialog/Popup ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateDialog(UIInstance instance,
     const char* confirmText, const char* cancelText,
+    float x, float y, float w, float h, float xScale, float yScale);
+// Popup / ConfirmPopup（P0-27d）：与 CreateDialog 同语义，但**不自动 open**
+// （保持隐藏；显隐经 SetBool(inst, ctl, "visible", 1/0)）；ConfirmPopup 居中（同 Dialog）。
+UICORNERSTONE_API UIControlHandle UICornerstone_CreatePopup(UIInstance instance,
+    float x, float y, float w, float h, float xScale, float yScale);
+UICORNERSTONE_API UIControlHandle UICornerstone_CreateConfirmPopup(UIInstance instance,
+    const char* confirmText,
     float x, float y, float w, float h, float xScale, float yScale);
 
 /* ============ 属性系统 (统一字符串名 + 多类型入口) ============ */

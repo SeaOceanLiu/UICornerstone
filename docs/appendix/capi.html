@@ -91,7 +91,6 @@
 <tr><td><code>UICornerstone_CreateImage(inst, image, x, y, w, h, xScale, yScale)</code></td><td>Image（Actor）</td></tr>
 <tr><td><code>UICornerstone_SetBool(inst, ctl, "clip-children", 1)</code></td><td>Panel 子项裁剪：超出容器不绘制（默认 0=关闭，v1.1.1）</td></tr>
 <tr><td><code>UICornerstone_ActorSetSourceRect(inst, ctl, x, y, w, h)</code></td><td>Actor 源矩形（纹理子区域；对 stretch/tile 生效；x&lt;0 或 w≤0 或 h≤0 恢复整图；v1.1.1）</td></tr>
-<tr><td><code>UICornerstone_CreateImageButton(inst, normal, hover, pressed, x, y, w, h, xScale, yScale)</code></td><td>ImageButton（3 态图片按钮，图片可 NULL）</td></tr>
 <tr><td><code>UICornerstone_CreateLabel(inst, text, fontSize, x, y, w, h, xScale, yScale)</code></td><td>Label</td></tr>
 <tr><td><code>UICornerstone_CreateListView(inst, x, y, w, h, xScale, yScale)</code></td><td>ListView（列/行经 ListViewAddColumn / ListViewAddRow 等）</td></tr>
 <tr><td><code>UICornerstone_CreateMenuBar / CreateMenuPanel / CreateMenuItem(inst, caption, type)</code></td><td>Menu 三件套</td></tr>
@@ -114,7 +113,7 @@
 
 <table>
 <tr><th>函数</th><th>作用</th></tr>
-<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter / ListViewSetColumnHeaderStyle / ListViewSetColumnValues</code></td><td>ListView 数据/列/样式/排序专用</td></tr>
+<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter / ListViewSetColumnHeaderStyle / ListViewSetColumnValues / ListViewSetCellShadow</code></td><td>ListView 数据/列/样式/排序/单元格阴影专用（P0-26）</td></tr>
 <tr><td><code>TreeViewAddNode / TreeViewRemoveNode / TreeViewClearItems / TreeViewSelectNode / TreeViewGetSelectedId / TreeViewClearSelection / TreeViewExpandNode / TreeViewCollapseNode / TreeViewExpandAll / TreeViewCollapseAll / TreeViewSetNodeLabel / TreeViewSetNodeUserData</code></td><td>TreeView 节点操作（亦可走 8.4.1 item-id 属性模式）</td></tr>
 <tr><td><code>ContextMenuAddItem / ContextMenuAddSeparator / ContextMenuShow / ContextMenuClose</code> + <code>SetPtr("context-menu")</code></td><td>ContextMenu 组装与显示/绑定</td></tr>
 <tr><td><code>StatusBarAddItem / StatusBarSetItemText / StatusBarRemoveItem / StatusBarSetItemMenu / StatusBarSetItemIcon</code></td><td>StatusBar 段操作</td></tr>
@@ -207,7 +206,7 @@ UICornerstone_SetFloat( inst, tree, "indent-width", 20.0f);</code></pre>
 <tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂子控件</td></tr>
 <tr><td><code>UICornerstone_DestroyControl(inst, ctl)</code></td><td>销毁控件</td></tr>
 <tr><td><code>UICornerstone_GetControlId(inst, ctl, char*, maxLen)</code></td><td>控件 id（字符串属性 <code>id</code> 的 C ABI 通道）</td></tr>
-<tr><td><code>UICornerstone_GetControlType(inst, ctl, char*, maxLen)</code></td><td>控件运行时类型名（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code>；image-button 返回 <code>"button"</code>；<code>"menu-item"</code> / <code>"menu-panel"</code> / <code>"handle-control"</code> 仅查询返回，实现见 design/CABI_Property_Design.md §8.2）</td></tr>
+<tr><td><code>UICornerstone_GetControlType(inst, ctl, char*, maxLen)</code></td><td>控件运行时类型名（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code>；<code>"menu-item"</code> / <code>"menu-panel"</code> / <code>"handle-control"</code> 仅查询返回，实现见 design/CABI_Property_Design.md §8.2）</td></tr>
 <tr><td><code>UICornerstone_SetRect(inst, ctl, x, y, w, h)</code> / <code>GetRect(inst, ctl, float* x, *y, *w, *h)</code></td><td>位置尺寸读/写（rect 不含缩放）</td></tr>
 </table>
 

@@ -34,7 +34,7 @@ typedef int   (*UISetStringFn)(UIInstance,void*,const char*,const char*);
 typedef int   (*UISetBoolFn)(UIInstance,void*,const char*,int);
 typedef int   (*UIGetRectFn)(UIInstance,void*,float*,float*,float*,float*);
 typedef void* (*UICreateImageFn)(UIInstance,const char*,float,float,float,float,float,float);
-typedef void* (*UICreateImageButtonFn)(UIInstance,const char*,const char*,const char*,float,float,float,float,float,float);
+typedef void* (*UICreateButtonFn)(UIInstance,const char*,float,float,float,float,float,float);
 typedef void* (*UICreateAnimationFn)(UIInstance,const char*,float,float,float,float,float,float);
 
 static UICreateInstanceFn  uiCreateInstance     = nullptr;
@@ -53,7 +53,7 @@ static UISetStringFn       uiSetString          = nullptr;
 static UISetBoolFn         uiSetBool            = nullptr;
 static UIGetRectFn         uiGetRect            = nullptr;
 static UICreateImageFn     uiCreateImage        = nullptr;
-static UICreateImageButtonFn uiCreateImageButton = nullptr;
+static UICreateButtonFn    uiCreateButton       = nullptr;
 static UICreateAnimationFn uiCreateAnimation    = nullptr;
 
 static UIInstance      g_inst = nullptr;
@@ -101,7 +101,7 @@ static void loadAllProcs(HMODULE dll) {
     RESOLVE(SetBool);
     RESOLVE(GetRect);
     RESOLVE(CreateImage);
-    RESOLVE(CreateImageButton);
+    RESOLVE(CreateButton);
     RESOLVE(CreateAnimation);
 #undef RESOLVE
 }
@@ -196,7 +196,7 @@ static int runTest(const char* shortName, const char* displayName) {
                     "font-file": "provider:maple-font"
                 },
                 {
-                    "type": "image-button",
+                    "type": "button",
                     "id": "imgBtn",
                     "rect": { "x": 20, "y": 70, "w": 64, "h": 64 },
                     "actors": {
@@ -227,10 +227,14 @@ static int runTest(const char* shortName, const char* displayName) {
         uiDestroyInstance(g_inst); FreeLibrary(g_uiDll); return 1;
     }
 
-    // ---- 工厂路径分流：CreateImage / CreateImageButton / CreateAnimation ----
+    // ---- 工厂路径分流：CreateImage / 状态图 Button / CreateAnimation（P0-31：ImageButton 已移除）----
     void* img = uiCreateImage(g_inst, "provider:cross-up", 220, 70, 0, 0, 1.0f, 1.0f);
-    void* imgBtn2 = uiCreateImageButton(g_inst, "provider:cross-up", "provider:cross-down",
-                                        "provider:cross-up", 300, 70, 64, 64, 1.0f, 1.0f);
+    void* imgBtn2 = uiCreateButton(g_inst, "", 300, 70, 64, 64, 1.0f, 1.0f);
+    if (imgBtn2) {
+        uiSetString(g_inst, imgBtn2, "normal-image", "provider:cross-up");
+        uiSetString(g_inst, imgBtn2, "hover-image", "provider:cross-down");
+        uiSetString(g_inst, imgBtn2, "pressed-image", "provider:cross-up");
+    }
     void* ani2 = uiCreateAnimation(g_inst, "provider:bomb-ani", 380, 70, 64, 64, 1.0f, 1.0f);
     if (!img || !imgBtn2 || !ani2) { printf("FAIL: factory provider creation\n"); uiDestroyInstance(g_inst); FreeLibrary(g_uiDll); return 1; }
     printf("OK: factory paths resolved provider refs\n");

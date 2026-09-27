@@ -10,6 +10,7 @@ Actor::Actor(Control *parent, float xScale, float yScale):
     m_scaleType(ScaleType::STRETCH)
 {
     m_ctlType = ControlType::Image;
+    setTransparent(true);   // P0-26：缺省无底色（纯图）；显式设背景色自动取消透明
     setParent(parent);
 }
 
@@ -19,6 +20,7 @@ Actor::Actor(Control *parent, bool matchParentRect, float xScale, float yScale):
     m_scaleType(ScaleType::STRETCH)
 {
     m_ctlType = ControlType::Image;
+    setTransparent(true);   // P0-26：缺省无底色（纯图）；显式设背景色自动取消透明
     // setParent(parent);
 }
 
@@ -28,6 +30,7 @@ Actor::Actor(Control *parent, fs::path filePath, bool matchParentRect, float xSc
     m_scaleType(ScaleType::STRETCH)
 {
     m_ctlType = ControlType::Image;
+    setTransparent(true);   // P0-26
     setParent(parent);
     loadFromFile(filePath);
 }
@@ -38,6 +41,7 @@ Actor::Actor(Control *parent, string resourceId, bool matchParentRect, float xSc
     m_scaleType(ScaleType::STRETCH)
 {
     m_ctlType = ControlType::Image;
+    setTransparent(true);   // P0-26
     setParent(parent);
     loadFromResource(resourceId);
 }
@@ -72,11 +76,16 @@ void Actor::create() {
 
 void Actor::loadFromFile(fs::path filePath) {
     std::string p = filePath.string();
+    if (p.empty()) {                     // 空路径：卸载（清空=删除；P0-22）——不拼 basePath、不刷日志
+        clearImage();
+        return;
+    }
     if (p.rfind(PropertyNames::kProviderPrefix, 0) == 0) {  // 内存资源引用：剥前缀走资源 ID 路径
         loadFromResource(p.substr(strlen(PropertyNames::kProviderPrefix)));
         return;
     }
     m_filePath = filePath;
+    m_filePathStr = p;                   // 设置原值（相对保持相对），供 getFilePathStr 读回
     if (GET_CONTEXT == nullptr) return;  // 两阶段：挂树后由 create() 加载
     if (filePath.is_relative()) {
         filePath = fs::path(Platform::GetBasePath()) / filePath;
@@ -105,11 +114,24 @@ void Actor::loadFromFile(fs::path filePath) {
         }
     }
 
+    // 失败=无图（P0-22 补充）：清残留纹理/表面（消除 device null/非 null 分支不一致）；
+    // 路径字段保留（读回=尝试值；recreate 可重试，资源晚挂载场景）
+    m_surface.reset();
+    m_texture.reset();
     Platform::Log("Actor::loadFromFile failed for '%s'\n", filePath.string().c_str());
+}
+
+void Actor::clearImage() {
+    m_surface.reset();
+    m_texture.reset();      // Material::draw 守卫：无纹理即无图
+    m_filePath.clear();
+    m_filePathStr.clear();  // P0-21 读回语义：卸载后 GetString 返回 0
+    m_resourceId.clear();   // 资源引用同清：避免 recreate 把资源图重新加载回来
 }
 
 void Actor::loadFromResource(string resourceId) {
     m_resourceId = resourceId;
+    m_filePathStr.clear();               // 资源引用不冒充文件路径（P0-21：对应 image 键读回返回 0）
     if (GET_CONTEXT == nullptr) return;  // 两阶段：挂树后由 create() 加载
     ResourceProvider* provider = getResourceProvider();
     if (provider == nullptr) {
@@ -295,7 +317,9 @@ shared_ptr<Actor> ActorBuilder::build(void){
 
 void Actor::draw(void) {
     if (!m_visible) return;   // 可见性守卫（Material::draw 覆盖）
+    ControlImpl::beforeDraw();   // P0-26：背景（四态经基类状态机）
     draw(m_rect.left + m_anchorPoint.x, m_rect.top + m_anchorPoint.y, m_alpha);
+    afterDraw();                 // P0-26：边框/焦点环
 }
 
 // ── 属性系统（C ABI 分发，惯例同 ProgressBar.cpp:316-341） ──

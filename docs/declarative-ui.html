@@ -49,7 +49,7 @@
 <tr><td><code>margin</code></td><td><code>{"left","top","right","bottom"}</code></td></tr>
 <tr><td><code>rect</code></td><td><code>{"x","y","w","h"}</code>；支持百分比字符串（<code>"50%"</code>）</td></tr>
 <tr><td><code>scale</code></td><td><code>{"x":1.0,"y":1.0}</code> 本地缩放</td></tr>
-<tr><td><code>type</code></td><td>控件类型（kebab 小写）：<code>label</code> / <code>button</code> / <code>image</code> / <code>image-button</code> / <code>animation</code> / <code>edit-box</code> / <code>check-box</code> / <code>combo-box</code> / <code>context-menu</code>（控件级 context-menu 键）/ <code>list-view</code> / <code>numeric-up-down</code> / <code>progress-bar</code> / <code>scroll-bar</code> / <code>shape</code> / <code>status-bar</code> / <code>tab-control</code> / <code>color-picker</code> / <code>text-area</code> / <code>panel</code> / <code>menu-bar</code> / <code>win-frame</code> / <code>splitter</code> / <code>tree-view</code></td></tr>
+<tr><td><code>type</code></td><td>控件类型（kebab 小写）：<code>label</code> / <code>button</code> / <code>image</code> / <code>animation</code> / <code>edit-box</code> / <code>check-box</code> / <code>combo-box</code> / <code>context-menu</code>（控件级 context-menu 键）/ <code>list-view</code> / <code>numeric-up-down</code> / <code>progress-bar</code> / <code>scroll-bar</code> / <code>shape</code> / <code>status-bar</code> / <code>tab-control</code> / <code>color-picker</code> / <code>text-area</code> / <code>panel</code> / <code>menu-bar</code> / <code>win-frame</code> / <code>splitter</code> / <code>tree-view</code></td></tr>
 <tr><td><code>visible</code> / <code>enabled</code></td><td>可见 / 启用</td></tr>
 </table>
 
@@ -233,8 +233,8 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
 
 <p>引用语法（与 C ABI 属性 / 工厂等价）：</p>
 
-<pre><code>// ① image-button 状态图：actors 对象式（providerName）或字符串式（provider:）
-{ "type": "image-button",
+<pre><code>// ① 四态图按钮（P0-31：image-button 已移除，button + actors）：actors 对象式或字符串式
+{ "type": "button",
   "actors": {
     "normal":  { "providerName": "up-image" },
     "hover":   "provider:cross-down",

@@ -210,3 +210,70 @@
 2. **P1-4（HandleHitTest 注释勘误）**：一行注释修正，随批顺手。
 3. **P1-5/6（手册）**：随 Wheel_Support 实施批落地（§8 已列）。
 4. clip 穿透：待观察。
+
+## 追加（2026-09-22 逐控件属性检查：资源类属性）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-17 | 高 | **Actor::setStringProperty 的 image 分发拼 basePath** | Actor.cpp:304 直传 `fs::path(value)`——相对路径（如 `textures/foo.png`）加载失败；对照 Button.cpp:441 animation 分发的 `Platform::GetBasePath()` 拼接模式（provider: 前缀不拼） |
+| P0-18 | 中 | **providerName/resourceId 运行时 setter** | schema image def 暴露但引擎无 setStringProperty 分发（仅解析期键）——设计器已过滤无效槽；若补分发则设计器恢复生成 |
+| P0-19 | 中 | **schema button def 补运行时资源键** | normal-image/hover-image/pressed-image/disabled-image/animation 五键（引擎 setter 已支持、schema 只有 actors/luotiAni object 解析期形式）——设计器已硬编码补行（CanvasPane.cpp Button 资源段），schema 补齐后设计器删硬编码段 |
+
+## 追加（2026-09-22 Button 运行时状态图不显示——探针实锤）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-20 | 高 | **运行时设置四态状态图不显示** | 双重缺陷：①`make_shared<Actor>` 直接构造（Button.cpp:459 四态图分发）m_visible 默认 false（工厂/ActorBuilder 路径有显式 setVisible，此路径无）；②ensureActor 只在 Button::create 跑一次（Button.cpp:33-36），运行时 setNormalStateActor 的新 Actor 无人 create。探针：test_button.cpp `[probe A] created=0 visible=0`。**修复建议**：setNormalState/Hover/Pressed/DisabledActor 四 setter 统一补 `actor->setVisible(true)` + `if (isCreated() && !actor->isCreated()) { actor->setParent(this); actor->create(); }`；修复后 probe A 应 created=1 visible=1（可转 CHECK 断言）。animation（luotiAni）分发同型待验证 |
+| P0-21 | 中 | **四态图/animation 运行时读回** | setStringProperty 已支持写入，getStringProperty 无对应读回——设计器已 extended 绕行（输入值保持显示），引擎补读回后设计器可去掉兜底 |
+
+## 追加（2026-09-22 资源行联测反馈）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-22 | 低 | **Actor::loadFromFile 空路径防御** | `fs::path("").is_relative()==true` → 拼 basePath 打开 `Debug\` 失败刷日志（设计器已过滤空串写回，引擎侧建议早退防御）；可选：`SetString("image","")` 卸载语义（设计器"清空"才能移除图片，当前保持旧值） |
+
+| P0-22 补充 | 低 | **Actor::loadFromFile 失败应清 m_texture** | 设计器已放行空串写回（"清空=删除"）；Image 同 Actor 复用场景下若失败时旧纹理保留则删除无效——失败=无图语义对齐 |
+
+| P0-23 | 高 | **LuotiAni 帧图资源文件回退** | `getImageFromResource`（LuotiAni.cpp:85-104）仅查 resourceProvider——动画 jsonc 的 `src`（如 `animations/rotateBtn/rotateBtn.svg`）在未注册资源包的宿主（设计器）必然 not found，而 svg 实际就在 jsonc 旁。**建议**：provider miss → 尝试 `basePath/<resourceId>` 文件加载（Surface::loadFromFile），仍失败再 throw——资源包优先语义不变、独立运行/设计器场景零配置即用。对照：Actor::loadFromFile 已有同款 basePath 解析 |
+
+| P0-24 | 低 | **path 键别名统一（92 键原则收敛）** | 布局解析键 `path`（kJsonPath，LayoutParser.cpp:485）与运行时键 `animation`（kAnimation）历史上未对齐——schema（布局语法限定表）写 path、运行时只认 animation。建议：LuotiAni set/getStringProperty 加 `"path"` 别名（= kAnimation），布局键=运行时键；设计器现有特判映射（CanvasPane.cpp）在别名落地后可删 |
+
+| P0-25 | 高 | **CreateAnimation 支持空路径创建** | 设计器 tAni 工具项接入真实 LuotiAni 控件的前置：`UICornerstone_CreateAnimation`（UICornerstoneAPI.cpp:1333）空串会 loadFromFile("") 早退 → prepare 对未加载 throw（LuotiAni.cpp:595-598）→ catch 回滚返回 nullptr。建议：`if (jsoncPath && jsoncPath[0])` 跳过 load/prepare（无路径创建=占位，path 行运行时设置加载）。设计器随后加 createViewportControl 的 tAni 分支（CreateAnimation("")，当前分支缺失落 CreatePanel——动画"占位"工具项故名） |
+
+> **P0-25 状态更新（2026-09-22）**：设计器已采用缺省路径方案（`CreateAnimation("assets/animations/rotateBtn/rotateBtn.jsonc", ...)`——assets 必备文件）绕过空路径创建限制，**引擎侧改动可关闭**；若引擎未来支持无路径占位创建（`if (jsoncPath && jsoncPath[0])`），设计器可改回空路径。
+
+## 追加（2026-09-22 schema 重构讨论——双方达成方向共识）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-26 | 中 | **schema 视觉属性重构：common 下放各类型 def（按视觉适用性声明）** | colors/text-shadow/font/font-size 从 common def 下放 35 个类型 def，三层合一（声明=布局合法=视觉有效），消除引擎/设计器视觉理解差异。**粒度**：colors 子组按需（有文字控件全四组；形状/面板类仅 background/border；image/animation 全不声明），text-shadow/font/font-size 跟随"有无文字"。**兼容**：解析层不动（schema 仅校验层）；既有布局排查 + validate 未声明键 warning 过渡期。**设计器随批简化**：删除 noVisual 补缺排除/固定区显隐等全部特例，纯 schema 驱动 |
+
+## 追加（2026-09-23 P0-26 联测反馈——A 类引擎缺口）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-27a | 中 | **Label 背景纯色填充** | schema 已声明 background（colors-full），但 Label::draw 只调 beforeDraw（画纹理）无纯色背景填充段（对照 Button::draw 的 setStateColor 背景矩形填充）——声明与实现缺口 |
+| P0-27b | 中 | **popup border / dialog 背景自查** | Popup 继承 Panel（beforeDraw/afterDraw 应有效）但实测 border 色不生效；dialog 背景疑似被画布 panel 遮挡（z 序/绘制顺序）——引擎侧自查两控件绘制链 |
+| P0-27c | 低 | **progressbar 文字可达性** | def 有 text/custom-text/text-mode，但 text-mode 缺省 percent 忽略 text——需 text-mode=custom + custom-text 组合；建议 text 键设置时联动/文档说明 |
+
+## 设计器 P1 规划（本轮分诊产出）
+
+| 功能 | 说明 |
+|---|---|
+| **状态预览** | 画布控件不接收鼠标（选择/拖动拦截）→ hover/pressed 恒不可达——选中控件强制渲染指定状态（normal/hover/pressed/disabled），解决四态色设计期不可预览 |
+| **结构化数据编辑** | menu items / TabControl 页签等数组结构，动态区不支持——结构化数据编辑器 |
+
+## 追加（2026-09-23 P0-27b 结案 + 联测收尾）
+
+- **P0-27b 结案（接受引擎不复现结论）**：设计器 dialog/popup 工具项此前为占位映射（tDialog→CreateWinFrame、tPopup→CreatePanel），用户观察的"背景被挡/border 不生效"来自占位组合语义，非引擎绘制缺陷。设计器已接入真实控件（CreateDialog/CreateStatusBar，binding 无 CreatePopup 工厂故 tPopup/tConfirm 维持占位）。
+- **P0-27c 备注**：progressbar 文字需 text-mode=custom + custom-text 组合，设计器联测确认后如有体验问题再议。
+
+| P0-27d | 低 | **binding 补 CreatePopup/CreateConfirmPopup 工厂** | 设计器 tPopup/tConfirm 仍占位（Panel）——Dialog.h 有 Popup/ConfirmPopup 类但 binding 未暴露工厂；补齐后设计器同模式接入 |
+
+| P0-28 | 中 | **Dialog 编辑态常显** | Dialog"点击外部关闭"（dismiss）语义与设计器冲突——画布点其它控件即消失。建议：设计器场景抑制外部点击关闭（实例级标志或默认常显至 setVisible(false)）；或提供 API 供宿主关闭 dismiss 行为 |
+
+| P0-30 | 中 | **各控件 hover/pressed 状态机链路核查** | 设计器画布确实转发鼠标（Button override onMouseEnter/Leave 显式切状态→hover/press 生效），但 Actor/LuotiAni 零鼠标处理代码（依赖基类 ControlImpl::onMouseEnter 默认链，实测 hover 色不生效）、ColorPicker/NUD 主体 hover 亦不生效。请核查：①基类默认 onMouseEnter（ControlBase.cpp:664）是否切 Hover 态、Actor/LuotiAni 未 override 时事件是否到达（hitTest 分发条件）；②ColorPicker/NUD 复合结构的主体 hover 链。目标：colors 四态对所有声明控件真实可达 |
+
+> **P0-28 扩围（2026-09-23）**：ContextMenu 同为 dismiss 语义（设计器取消选择即隐藏）——编辑态常显的控件范围 = Dialog + ContextMenu（+未来 Popup/ConfirmPopup）。
+
+| P0-31 | 中 | **ImageButton 全面移除** | 用户决策：Button + normal/hover/pressed/disabled-image 四态图资源行已完整覆盖图片按钮语义，ImageButton 类冗余。**移除范围**：ImageButton 类（include/src）、UICornerstone_CreateImageButton C ABI、binding CreateImageButton、LayoutParser 的 image-button 类型解析、相关测试。**注意**：①AnimatedButton（luoti 动画按钮）语义不同**保留**；②既有布局的 image-button 类型建议解析层降级为普通 Button 并 Warn（或引擎自查布局后彻底删）；③schema 无 image-button def（已核实）无需动。设计器侧已同步清理（工具项/类型映射/创建分支） |

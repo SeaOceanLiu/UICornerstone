@@ -2,6 +2,7 @@
 #include "PropertyNames.h"
 #include "Utility.h"
 #include "PlatformUtils.h"
+#include "TextDraw.h"
 #include <cstring>
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
@@ -31,6 +32,9 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     m_ctlType = ControlType::Label;
     m_rect = rect;
     m_margin = ConstDef::LABEL_CAPTION_MARGIN;
+    // P0-30：历史缺省态显式化（Label hover/pressed 文本视觉保持）
+    m_textColor.setHover(ConstDef::DEFAULT_TEXT_HOVER_COLOR);
+    m_textColor.setPressed(ConstDef::DEFAULT_TEXT_DOWN_COLOR);
     setVisible(false);
     setTransparent(true);
     setBorderVisible(false);
@@ -351,37 +355,8 @@ void Label::draw(void){
         GET_RENDERDEVICE->drawRect(hotRectScaled);
     }
 
-    SColor shadowColor;
-    switch(getState()) {
-        case ControlState::Disabled:
-            shadowColor = m_textShadowColor.getDisabled();
-            break;
-        case ControlState::Hover:
-            shadowColor = m_textShadowColor.getHover();
-            break;
-        case ControlState::Pressed:
-            shadowColor = m_textShadowColor.getPressed();
-            break;
-        default:
-            shadowColor = m_textShadowColor.getNormal();
-            break;
-    }
-
-    SColor textColor;
-    switch(getState()) {
-        case ControlState::Disabled:
-            textColor = m_textColor.getDisabled();
-            break;
-        case ControlState::Hover:
-            textColor = m_textColor.getHover();
-            break;
-        case ControlState::Pressed:
-            textColor = m_textColor.getPressed();
-            break;
-        default:
-            textColor = m_textColor.getNormal();
-            break;
-    }
+    SColor shadowColor = ControlImpl::resolveStateColor(m_textShadowColor, getState());
+    SColor textColor   = ControlImpl::resolveStateColor(m_textColor, getState());
 
     TextRenderer* renderer = getTextRenderer();
     if (renderer == nullptr) return;
@@ -391,15 +366,12 @@ void Label::draw(void){
         if (i >= m_cachedTexts.size() || m_cachedTexts[i] == nullptr) continue;
 
         SPoint drawPoint = mapToDrawPoint(m_lineOffsets[i]);
+        SPoint shadowDrawPoint = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
 
-        if (m_shadowEnabled) {
-            SPoint shadowDrawPoint = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
-            renderer->drawText(m_cachedTexts[i],
-                               shadowDrawPoint.x, shadowDrawPoint.y, shadowColor);
-        }
-
-        renderer->drawText(m_cachedTexts[i],
-                           drawPoint.x, drawPoint.y, textColor);
+        TextDraw::withShadowCached(renderer, m_cachedTexts[i],
+                                   drawPoint.x, drawPoint.y,
+                                   shadowDrawPoint.x, shadowDrawPoint.y,
+                                   textColor, m_shadowEnabled, shadowColor);
     }
 
     ControlImpl::draw();

@@ -13,6 +13,8 @@
 #include "TabControl.h"
 #include "Actor.h"
 #include "Menu.h"
+#include "Slider.h"
+#include "ColorPicker.h"
 #include "LayoutEngine.h"
 #include "PropertyNames.h"
 #include <fstream>
@@ -265,8 +267,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
     } else if (type == PropertyNames::kControlTypeButton) {
         result = parseButton(j, parent);
     } else if (type == PropertyNames::kControlTypeImageButton) {
-        // image-button：与 button 同语法（caption/actors/styles/scale/events），
-        // 图片经 "actors" 或状态图属性设置；别名避免与普通按钮语义混淆
+        // P0-31：image-button 已移除——降级为 button（同语法）+ 迁移提示（保留一个版本）
+        logWarn("image-button 类型已移除，按 button 处理；请迁移为 button + 四态图（normal/hover/pressed/disabled-image）");
         result = parseButton(j, parent);
     } else if (type == PropertyNames::kControlTypeImage) {
         result = parseImage(j, parent);
@@ -484,11 +486,9 @@ shared_ptr<Control> LayoutParser::parseAnimation(const json& j, Control* parent)
     // 创建后不自动播放，SetBool "playing" 控制）
     if (j.contains(PropertyNames::kJsonPath) && j[PropertyNames::kJsonPath].is_string()) {
         string p = j[PropertyNames::kJsonPath].get<string>();
-        fs::path fp(p);
-        // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-        if (fp.is_relative() && p.rfind(PropertyNames::kProviderPrefix, 0) != 0) fp = fs::path(Platform::GetBasePath()) / fp;
         try {
-            ani->loadFromFile(fp);
+            // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+            ani->loadFromFile(fs::path(p));
         } catch (...) {
             logWarn("animation load failed: " + p);
             return nullptr;
@@ -921,6 +921,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
     }
 
     // Actors (state images)
+    bool normalFromActors = false, hoverFromActors = false, pressedFromActors = false, disabledFromActors = false;
     if (j.contains(PropertyNames::kJsonActors) && j[PropertyNames::kJsonActors].is_object()) {
         pushJsonPath(PropertyNames::kJsonActors);
         const json& actors = j[PropertyNames::kJsonActors];
@@ -965,25 +966,35 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
 
         if (actors.contains(PropertyNames::kStateKeyNormal) && !actors[PropertyNames::kStateKeyNormal].is_null()) {
             auto actor = createActor(actors[PropertyNames::kStateKeyNormal]);
-            if (actor) btn->setNormalStateActor(actor);
+            if (actor) { btn->setNormalStateActor(actor); normalFromActors = true; }
         }
         if (actors.contains(PropertyNames::kStateKeyHover) && !actors[PropertyNames::kStateKeyHover].is_null()) {
             auto actor = createActor(actors[PropertyNames::kStateKeyHover]);
-            if (actor) btn->setHoverStateActor(actor);
+            if (actor) { btn->setHoverStateActor(actor); hoverFromActors = true; }
         }
         if (actors.contains(PropertyNames::kStateKeyPressed) && !actors[PropertyNames::kStateKeyPressed].is_null()) {
             auto actor = createActor(actors[PropertyNames::kStateKeyPressed]);
-            if (actor) btn->setPressedStateActor(actor);
+            if (actor) { btn->setPressedStateActor(actor); pressedFromActors = true; }
         }
         if (actors.contains(PropertyNames::kStateKeyDisabled) && !actors[PropertyNames::kStateKeyDisabled].is_null()) {
             auto actor = createActor(actors[PropertyNames::kStateKeyDisabled]);
-            if (actor) btn->setDisabledStateActor(actor);
+            if (actor) { btn->setDisabledStateActor(actor); disabledFromActors = true; }
     }
 
     
 
     popJsonPath();
     }
+
+    // 运行时资源键字符串形式（P0-19；schema button def）：actors 对象优先，字符串键补空缺
+    if (!normalFromActors && j.contains(PropertyNames::kNormalImage) && j[PropertyNames::kNormalImage].is_string())
+        btn->setStringProperty(PropertyNames::kNormalImage, j[PropertyNames::kNormalImage].get<string>().c_str());
+    if (!hoverFromActors && j.contains(PropertyNames::kHoverImage) && j[PropertyNames::kHoverImage].is_string())
+        btn->setStringProperty(PropertyNames::kHoverImage, j[PropertyNames::kHoverImage].get<string>().c_str());
+    if (!pressedFromActors && j.contains(PropertyNames::kPressedImage) && j[PropertyNames::kPressedImage].is_string())
+        btn->setStringProperty(PropertyNames::kPressedImage, j[PropertyNames::kPressedImage].get<string>().c_str());
+    if (!disabledFromActors && j.contains(PropertyNames::kDisabledImage) && j[PropertyNames::kDisabledImage].is_string())
+        btn->setStringProperty(PropertyNames::kDisabledImage, j[PropertyNames::kDisabledImage].get<string>().c_str());
 
     // LuotiAni (particle animation)
     if (j.contains(PropertyNames::kLuotiAni) && !j[PropertyNames::kLuotiAni].is_null()) {
@@ -1007,10 +1018,8 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
                 // 内嵌动画（setParent 中 m_xxScale = m_xScale * parent scale），
                 // 传按钮 scale 会造成双重缩放
                 auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
-                fs::path rp(filePath);
-                // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-                if (rp.is_relative() && filePath.rfind(PropertyNames::kProviderPrefix, 0) != 0) rp = fs::path(Platform::GetBasePath()) / rp;
-                luotiAni->loadFromFile(rp);
+                // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+                luotiAni->loadFromFile(fs::path(filePath));
                 luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
                 // parse 阶段尚无渲染设备：不 prepare/play，挂树后由
                 // LuotiAni::setRenderDevice 补 prepare（同 CreateAnimation 模式），
@@ -1034,6 +1043,20 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             }
         }
         popJsonPath();
+    }
+
+    // 运行时资源键字符串形式（P0-19）：animation 字符串键（luotiAni 对象优先）
+    if ((!j.contains(PropertyNames::kLuotiAni) || j[PropertyNames::kLuotiAni].is_null()) &&
+        j.contains(PropertyNames::kAnimation) && j[PropertyNames::kAnimation].is_string()) {
+        try {
+            auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
+            luotiAni->loadFromFile(fs::path(j[PropertyNames::kAnimation].get<string>()));
+            luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
+            // parse 阶段尚无渲染设备：不 prepare/play（同 luotiAni 对象形式，挂树后由 setRenderDevice 补 prepare）
+            btn->setLuotiAni(luotiAni);
+        } catch (...) {
+            logWarn("failed to load button animation from string key");
+        }
     }
 
     // playing：声明式启动内嵌动画（挂树前设置 → 记录请求，prepare 完成后自动播放）
@@ -1960,6 +1983,11 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
         progressBar->setTextMode(parseProgressBarTextMode(j[PropertyNames::kTextMode].get<string>()));
     }
 
+    if (j.contains(PropertyNames::kTextContent) && j[PropertyNames::kTextContent].is_string()) {
+        // P0-27c：text 键直达（自动切 custom 模式；后设 custom-text 可覆盖）
+        progressBar->setCustomText(j[PropertyNames::kTextContent].get<string>());
+        progressBar->setTextMode(ProgressBarTextMode::Custom);
+    }
     if (j.contains(PropertyNames::kCustomText) && j[PropertyNames::kCustomText].is_string()) {
         progressBar->setCustomText(j[PropertyNames::kCustomText].get<string>());
     }
@@ -2594,6 +2622,8 @@ static void ApplyFontToControl(Control* ctl, FontName name, float size, bool app
         else if (auto* sb = dynamic_cast<StatusBar*>(ctl)) sb->setFontSize(size);
         else if (auto* mb = dynamic_cast<MenuBar*>(ctl)) mb->setFontSize(size);
         else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFontSize((int)size);
+        else if (auto* sl = dynamic_cast<Slider*>(ctl)) sl->setLabelFontSize((int)size);
+        else if (auto* cp = dynamic_cast<ColorPicker*>(ctl)) cp->setClosedFontSize((int)size);
     }
     // 字体名仅当父显式声明 font.name 时覆盖（未声明时沿用控件自身默认字体名）
     if (!applyName) return;
@@ -2602,6 +2632,8 @@ static void ApplyFontToControl(Control* ctl, FontName name, float size, bool app
     else if (auto* p = dynamic_cast<ProgressBar*>(ctl)) p->setFont(name);
     else if (auto* tr = dynamic_cast<TreeView*>(ctl)) tr->setFont(name);
     else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFont(name);
+    else if (auto* sl = dynamic_cast<Slider*>(ctl)) sl->setLabelFont(name);
+    else if (auto* cp = dynamic_cast<ColorPicker*>(ctl)) cp->setClosedFont(name);
 }
 
 void LayoutParser::applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j) {

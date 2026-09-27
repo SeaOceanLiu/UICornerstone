@@ -16,6 +16,15 @@ Button::Button(Control *parent, SRect rect, float xScale, float yScale):
     m_ctlType = ControlType::Button;
     m_rect = rect;
     setFocusable(true);
+    // P0-30：历史缺省态显式化（保持既有 hover/pressed 视觉）
+    setHoverStateBGColor(ConstDef::DEFAULT_HOVER_COLOR);
+    setPressedStateBGColor(ConstDef::DEFAULT_DOWN_COLOR);
+    setHoverStateBDColor(ConstDef::DEFAULT_BORDER_HOVER_COLOR);
+    setPressedStateBDColor(ConstDef::DEFAULT_BORDER_DOWN_COLOR);
+    m_textColor.setHover(ConstDef::DEFAULT_TEXT_HOVER_COLOR);
+    m_textColor.setPressed(ConstDef::DEFAULT_TEXT_DOWN_COLOR);
+    m_textShadowColor.setHover(ConstDef::DEFAULT_TEXT_SHADOW_HOVER_COLOR);
+    m_textShadowColor.setPressed(ConstDef::DEFAULT_TEXT_SHADOW_DOWN_COLOR);
 }
 
 void Button::create(void){
@@ -248,6 +257,8 @@ void Button::setNormalStateActor(shared_ptr<Actor> actor){
 
     actor->setRect({0, 0, m_rect.width, m_rect.height});
     actor->setParent(this);
+    actor->setVisible(true);                                  // P0-20①：运行时构造的 Actor m_visible 默认 false
+    if (isCreated() && !actor->isCreated()) actor->create();  // P0-20②：ensureActor 只在 Button::create 跑一次
     m_actor = actor;
 }
 void Button::setHoverStateActor(shared_ptr<Actor> actor){
@@ -255,6 +266,8 @@ void Button::setHoverStateActor(shared_ptr<Actor> actor){
 
     actor->setRect({0, 0, m_rect.width, m_rect.height});
     actor->setParent(this);
+    actor->setVisible(true);                                  // P0-20①
+    if (isCreated() && !actor->isCreated()) actor->create();  // P0-20②
     m_hoverActor = actor;
 }
 
@@ -263,6 +276,8 @@ void Button::setPressedStateActor(shared_ptr<Actor> actor){
 
     actor->setRect({0, 0, m_rect.width, m_rect.height});
     actor->setParent(this);
+    actor->setVisible(true);                                  // P0-20①
+    if (isCreated() && !actor->isCreated()) actor->create();  // P0-20②
     m_pressedActor = actor;
 }
 void Button::setDisabledStateActor(shared_ptr<Actor> actor){
@@ -270,6 +285,8 @@ void Button::setDisabledStateActor(shared_ptr<Actor> actor){
 
     actor->setRect({0, 0, m_rect.width, m_rect.height});
     actor->setParent(this);
+    actor->setVisible(true);                                  // P0-20①
+    if (isCreated() && !actor->isCreated()) actor->create();  // P0-20②
     m_disabledActor = actor;
 }
 
@@ -435,15 +452,16 @@ int Button::setPtrProperty(const char* prop, void* value) {
 int Button::setStringProperty(const char* prop, const char* value) {
     if (strcmp(prop, PropertyNames::kCaption) == 0) { setCaption(value); return 1; }
     if (strcmp(prop, PropertyNames::kAnimation) == 0) {
-        if (!value) return 0;
-        fs::path p(value);
-        // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-        if (p.is_relative() && p.string().rfind(PropertyNames::kProviderPrefix, 0) != 0) p = fs::path(Platform::GetBasePath()) / p;
-        auto ani = make_shared<LuotiAni>(this);
-        ani->loadFromFile(p);
-        setLuotiAni(ani);
-        ani->prepare();
-        ani->play();
+        if (!value || !value[0]) return 0;
+        try {   // Bonus A：镜像 LuotiAni::setStringProperty——失败返回 0、保留旧动画、可重试（原无保护会 terminate）
+            auto ani = make_shared<LuotiAni>(this);
+            ani->loadFromFile(fs::path(value));   // 原值直传：basePath 解析与 provider: 分流在 loadFromFile（P0-21 原值读回）
+            setLuotiAni(ani);                     // 加载成功才替换旧动画
+            ani->prepare();
+            ani->play();
+        } catch (...) {
+            return 0;
+        }
         return 1;
     }
     // 状态图：设置后创建对应状态 Actor（matchParentRect=true 跟随按钮框体；
@@ -453,10 +471,8 @@ int Button::setStringProperty(const char* prop, const char* value) {
         strcmp(prop, PropertyNames::kPressedImage) == 0 ||
         strcmp(prop, PropertyNames::kDisabledImage) == 0) {
         if (!value) return 0;
-        fs::path p(value);
-        // provider: 前缀是资源引用（非文件路径）：不拼 base，由 loadFromFile 分流
-        if (p.is_relative() && p.string().rfind(PropertyNames::kProviderPrefix, 0) != 0) p = fs::path(Platform::GetBasePath()) / p;
-        auto actor = make_shared<Actor>(this, p, true, 1.0f, 1.0f);
+        // 原值直传：basePath 解析与 provider: 分流统一在 Actor::loadFromFile（P0-21 原值读回）
+        auto actor = make_shared<Actor>(this, fs::path(value), true, 1.0f, 1.0f);
         actor->setScaleType(ScaleType::FIT_CENTER);
         if (strcmp(prop, PropertyNames::kNormalImage) == 0)         setNormalStateActor(actor);
         else if (strcmp(prop, PropertyNames::kHoverImage) == 0)    setHoverStateActor(actor);
@@ -469,6 +485,8 @@ int Button::setStringProperty(const char* prop, const char* value) {
 
 int Button::getIntProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kFontSize) == 0) { out = (int)getCaptionSize(); return 1; }
+    if ((strcmp(prop, PropertyNames::kTotalFrames) == 0 || strcmp(prop, PropertyNames::kCurrentFrame) == 0) && m_luotiAni)
+        return m_luotiAni->getIntProperty(prop, out);   // Bonus B：内嵌动画 frames 读回转发
     return ControlImpl::getIntProperty(prop, out);
 }
 int Button::getFloatProperty(const char* prop, float& out) {
@@ -477,8 +495,22 @@ int Button::getFloatProperty(const char* prop, float& out) {
     return ControlImpl::getFloatProperty(prop, out);
 }
 
+// P0-21：状态 Actor 文件路径读回（稳定存储于 Actor 成员；未设置/资源引用返回 0）
+static int buttonActorFilePath(const shared_ptr<Actor>& actor, const char*& out) {
+    if (!actor || actor->getFilePathStr().empty()) return 0;
+    out = actor->getFilePathStr().c_str();
+    return 1;
+}
 int Button::getStringProperty(const char* prop, const char*& out) {
     if (strcmp(prop, PropertyNames::kCaption) == 0) { out = m_captionText.c_str(); return 1; }
+    if (strcmp(prop, PropertyNames::kNormalImage) == 0)   return buttonActorFilePath(m_actor, out);
+    if (strcmp(prop, PropertyNames::kHoverImage) == 0)    return buttonActorFilePath(m_hoverActor, out);
+    if (strcmp(prop, PropertyNames::kPressedImage) == 0)  return buttonActorFilePath(m_pressedActor, out);
+    if (strcmp(prop, PropertyNames::kDisabledImage) == 0) return buttonActorFilePath(m_disabledActor, out);
+    if (strcmp(prop, PropertyNames::kAnimation) == 0) {
+        if (m_luotiAni && !m_luotiAni->getFilePathStr().empty()) { out = m_luotiAni->getFilePathStr().c_str(); return 1; }
+        return 0;
+    }
     return ControlImpl::getStringProperty(prop, out);
 }
 

@@ -17,11 +17,13 @@ friend class ActorBuilder;
 private:
     uint8_t m_alpha = 255;
     bool m_explicitSize = false;   // setRect 显式设置过尺寸（w/h>0）→ 换图不再跟随自然尺寸
+    void clearImage();             // 空路径卸载 / 加载失败：清纹理与表面（P0-22）
 protected:
     bool m_matchParentRect; //是否强制使用目标矩形
     ScaleType m_scaleType;
     SRect m_sourceRect{0, 0, 0, 0};   // 源矩形（纹理子区域，空=整图）
     fs::path m_filePath;        // 延迟加载（两阶段创建）：挂树前保存加载参数
+    string m_filePathStr;       // 文件路径设置原值（稳定存储，供 getFilePathStr 读回；resource 路径清空）
     string m_resourceId;
 public:
     Actor(Control *parent, float xScale=1.0f, float yScale=1.0f);
@@ -68,7 +70,8 @@ public:
     int getBoolProperty(const char* prop, int& out) override;             // "match-parent-rect"
     int getIntProperty(const char* prop, int& out) override;              // "alpha"
     int getFloatProperty(const char* prop, float& out) override;          // "anchor-x" / "anchor-y"
-    // image/image-resource 只写不读（m_filePath 为 fs::path，string() 临时对象会悬垂）
+    // image/image-resource 只写不读；文件路径读回经 getFilePathStr（稳定 string 成员，P0-21）
+    const std::string& getFilePathStr() const { return m_filePathStr; }
 
     void draw(void) override;   // 使用成员 alpha（原走 Material::draw 默认 255）
 };

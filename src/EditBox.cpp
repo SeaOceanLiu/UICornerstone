@@ -251,6 +251,7 @@ void EditBox::update(void) {
             m_cursorBlinkTime = 0;
         }
     }
+    ControlImpl::update();   // P0-30：hover 检测 + 子控件递归（Panel 同款约定；原缺失致 EditBox 族 hover 不可达）
 }
 
 void EditBox::draw(void) {
@@ -338,6 +339,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
             m_isDragging = true;
             m_dragStartPosition = newCursor;
             updateTextOffset();
+            applyPressState(true);   // P0-30：按下切态（EditBox 自处理点击不链基类）
 
             return true;
         } else {
@@ -555,10 +557,12 @@ void EditBox::refreshScaleWith(float parentXX, float parentYY){
 
 void EditBox::onMouseEnter(float x, float y) {
     m_mouseInside = true;
+    ControlImpl::onMouseEnter(x, y);   // P0-30：EditBox 族（含 NUD/ComboBox/TextArea）获得 hover 态
 }
 
 void EditBox::onMouseLeave(float x, float y) {
     m_mouseInside = false;
+    ControlImpl::onMouseLeave(x, y);
 }
 
 void EditBox::setText(const std::string& text) {

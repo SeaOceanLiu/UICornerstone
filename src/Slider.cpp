@@ -807,7 +807,21 @@ SliderBuilder& SliderBuilder::setThumbHoverColor(SColor color)
 
 // ── Property system overrides ──
 
+void Slider::setTextStateColor(StateColor stateColor) {   // P0-26：文本四态转发 valueLabel
+    ControlImpl::setTextStateColor(stateColor);
+    if (m_valueLabel) m_valueLabel->setTextStateColor(stateColor);
+}
+void Slider::setTextShadowStateColor(StateColor stateColor) {
+    ControlImpl::setTextShadowStateColor(stateColor);
+    if (m_valueLabel) m_valueLabel->setTextShadowStateColor(stateColor);
+}
+
 int Slider::setColorProperty(const char* prop, SColor color) {
+    if (m_valueLabel && ControlImpl::isTextColorFamilyKey(prop)) {   // P0-26：文本/阴影单态键转发
+        m_valueLabel->setColorProperty(prop, color);
+        ControlImpl::setColorProperty(prop, color);
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTrack) == 0)        { setTrackColor(color);     return 1; }
     if (strcmp(prop, PropertyNames::kTrackFill) == 0)    { setTrackFillColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kThumb) == 0)        { setThumbColor(color);     return 1; }
@@ -822,6 +836,10 @@ int Slider::setBoolProperty(const char* prop, int value) {
     bool b = value != 0;
     if (strcmp(prop, PropertyNames::kReverse) == 0)          { setReverse(b);         return 1; }
     if (strcmp(prop, PropertyNames::kShowValueLabel) == 0)   { setShowValueLabel(b);  return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {         // P0-26：valueLabel 阴影开关
+        if (m_valueLabel) { m_valueLabel->setShadow(b); return 1; }
+        return 0;
+    }
     return ControlImpl::setBoolProperty(prop, value);
 }
 
@@ -835,6 +853,14 @@ int Slider::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kValue) == 0)           { setValue(value);           return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)        { setRange(value, m_maxValue); return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)        { setRange(m_minValue, value); return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {  // P0-26：valueLabel 阴影偏移
+        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.x = value; m_valueLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.y = value; m_valueLabel->setShadowOffset(o); return 1; }
+        return 0;
+    }
     return ControlImpl::setFloatProperty(prop, value);
 }
 
@@ -849,7 +875,7 @@ int Slider::setEnumProperty(const char* prop, const char* value) {
         if (_stricmp(value, PropertyNames::kOrientVertical) == 0)   { setStyle(SliderStyle::Vertical);   return 1; }
         return 0;
     }
-    if (strcmp(prop, PropertyNames::kLabelFont) == 0) {
+    if (strcmp(prop, PropertyNames::kLabelFont) == 0 || strcmp(prop, PropertyNames::kFont) == 0) {
         setLabelFont(FontNameFromString(value));
         return 1;
     }
@@ -870,6 +896,10 @@ int Slider::getColorProperty(const char* prop, SColor& out) {
 int Slider::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kReverse) == 0)        { out = m_reverse ? 1 : 0;         return 1; }
     if (strcmp(prop, PropertyNames::kShowValueLabel) == 0) { out = m_showValueLabel ? 1 : 0;  return 1; }
+    if (strcmp(prop, PropertyNames::kShadow) == 0) {
+        if (m_valueLabel) { out = m_valueLabel->isShadowEnabled() ? 1 : 0; return 1; }
+        return 0;
+    }
     return ControlImpl::getBoolProperty(prop, out);
 }
 
@@ -884,6 +914,14 @@ int Slider::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kValue) == 0)          { out = m_value;          return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)       { out = m_minValue;       return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)       { out = m_maxValue;       return 1; }
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
+        if (m_valueLabel) { out = m_valueLabel->getShadowOffset().x; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
+        if (m_valueLabel) { out = m_valueLabel->getShadowOffset().y; return 1; }
+        return 0;
+    }
     return ControlImpl::getFloatProperty(prop, out);
 }
 
@@ -905,12 +943,12 @@ int Slider::getEnumProperty(const char* prop, const char*& out) {
 }
 
 int Slider::setIntProperty(const char* prop, int value) {
-    if (strcmp(prop, PropertyNames::kLabelFontSize) == 0) { setLabelFontSize(value); return 1; }
+    if (strcmp(prop, PropertyNames::kLabelFontSize) == 0 || strcmp(prop, PropertyNames::kFontSize) == 0) { setLabelFontSize(value); return 1; }
     return ControlImpl::setIntProperty(prop, value);
 }
 
 int Slider::getIntProperty(const char* prop, int& out) {
-    if (strcmp(prop, PropertyNames::kLabelFontSize) == 0) { out = m_labelFontSize; return 1; }
+    if (strcmp(prop, PropertyNames::kLabelFontSize) == 0 || strcmp(prop, PropertyNames::kFontSize) == 0) { out = m_labelFontSize; return 1; }
     return ControlImpl::getIntProperty(prop, out);
 }
 

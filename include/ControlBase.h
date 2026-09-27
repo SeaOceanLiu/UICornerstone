@@ -7,6 +7,7 @@
 #include <string>
 #include "SColor.h"
 #include "ConstDef.h"
+#include "PropertyNames.h"
 #include "UIContext.h"
 #include "Utility.h"
 #include "EventQueue.h"
@@ -43,14 +44,16 @@ public:
                 colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
                 colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
                     ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
-        hover(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_HOVER_COLOR :
-                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_HOVER_COLOR :
-                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_HOVER_COLOR :
-                    ConstDef::DEFAULT_TEXT_SHADOW_HOVER_COLOR),
-        pressed(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_DOWN_COLOR :
-                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_DOWN_COLOR :
-                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_DOWN_COLOR :
-                    ConstDef::DEFAULT_TEXT_SHADOW_DOWN_COLOR),
+        // P0-30：未显式设置 hover/pressed → 回退 normal（全控件切态不再默认变蓝；
+        // 历史缺省由 Button/CheckBox/Label 构造时显式写入保持）
+        hover(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
+                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
+                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
+                    ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
+        pressed(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
+                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
+                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
+                    ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
         disabled(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_DISABLED_COLOR :
                 colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_DISABLED_COLOR :
                 colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_DISABLED_COLOR :
@@ -549,6 +552,28 @@ public:
     void fireCCallback(const char* eventName, CCallbackData data, const void* ptr);
     // 回调订阅查询（滚轮等事件消费门控：无订阅者时应透传而非空转消费）
     bool hasCallback(const char* eventName) const { return m_cCallbacks.count(eventName) > 0; }
+    // 按下/抬起切态（P0-30：子控件未消费时由 handleEvent 自身命中路径调用；EditBox 族显式调用）
+    void applyPressState(bool mouseDown);
+    // 状态色解析（P0-26：统一各控件状态取色分支）
+    static SColor resolveStateColor(StateColor& sc, ControlState state) {
+        switch (state) {
+            case ControlState::Disabled: return sc.getDisabled();
+            case ControlState::Hover:    return sc.getHover();
+            case ControlState::Pressed:  return sc.getPressed();
+            default:                     return sc.getNormal();
+        }
+    }
+    // 文本/文本阴影色族键判定（P0-26：内部文本控件转发过滤）
+    static bool isTextColorFamilyKey(const char* prop) {
+        return strcmp(prop, PropertyNames::kText) == 0 ||
+               strcmp(prop, PropertyNames::kTextHover) == 0 ||
+               strcmp(prop, PropertyNames::kTextPressed) == 0 ||
+               strcmp(prop, PropertyNames::kTextDisabled) == 0 ||
+               strcmp(prop, PropertyNames::kTextShadow) == 0 ||
+               strcmp(prop, PropertyNames::kTextShadowHover) == 0 ||
+               strcmp(prop, PropertyNames::kTextShadowPressed) == 0 ||
+               strcmp(prop, PropertyNames::kTextShadowDisabled) == 0;
+    }
 
     int getColorProperty(const char* prop, SColor& out) override;
     int getStateColorProperty(const char* prop, StateColor& out) override;

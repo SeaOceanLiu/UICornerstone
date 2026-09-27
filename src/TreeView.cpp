@@ -1,5 +1,6 @@
 ﻿#define NOMINMAX
 #include "TreeView.h"
+#include "TextDraw.h"
 #include "Actor.h"
 #include "Texture.h"
 #include "PropertyNames.h"
@@ -20,6 +21,7 @@ TreeView::TreeView(Control* parent, const SRect& rect,
     , m_font()
 {
     m_ctlType = ControlType::TreeView;
+    m_textColor.setNormal(ConstDef::TREEVIEW_TEXT_COLOR);   // P0-26：原自有缺省色迁入基类 StateColor
     m_rect = rect;
     setFocusable(true);
     setBorderVisible(true);
@@ -283,8 +285,12 @@ void TreeView::draw() {
 
             if (renderer && nodeFont) {
                 float textY = y + (scaledRowH - fontH) / 2;
-                renderer->drawText(nodeFont.get(), m_flatRows[i].node->label,
-                                   textX, textY, m_textColor);
+                auto& nd = m_flatRows[i].node;
+                TextDraw::withShadow(renderer, nodeFont.get(), nd->label,
+                                     textX, textY,
+                                     textX + nd->shadowOffsetX * scaleX, textY + nd->shadowOffsetY * scaleY,
+                                     ControlImpl::resolveStateColor(m_textColor, getState()),   // P0-26：文本四态
+                                     nd->shadowEnabled, nd->textShadowColor);   // P0-26：item 阴影
             }
         }
     }
@@ -309,19 +315,19 @@ void TreeView::drawArrow(RenderDevice* dev, float x, float y, bool expanded) {
     float cy = y + m_rowHeight * scale / 2.0f;
     float size = 5.0f * scale;
 
-    dev->setDrawColor(m_textColor);
+    dev->setDrawColor(m_textColor.getNormal());
     if (expanded) {
         dev->drawTriangle(
             cx - size, cy - size * 0.577f,
             cx + size, cy - size * 0.577f,
             cx,        cy + size * 0.577f * 2,
-            m_textColor);
+            m_textColor.getNormal());
     } else {
         dev->drawTriangle(
             cx - size * 0.577f, cy - size,
             cx - size * 0.577f, cy + size,
             cx + size * 0.577f * 2, cy,
-            m_textColor);
+            m_textColor.getNormal());
     }
 }
 
@@ -848,6 +854,11 @@ int TreeView::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kBackground) == 0)   { setBgColor(color);       return 1; }
     if (strcmp(prop, PropertyNames::kBorder) == 0)       { setBorderColor(color);   return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)         { setTextColor(color);     return 1; }
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26：item 文本阴影色（item-id 定位）
+        auto node = findNodeById(m_itemTargetId);
+        if (node) { node->textShadowColor = color; node->shadowEnabled = true; return 1; }
+        return 0;
+    }
     return ControlImpl::setColorProperty(prop, color);
 }
 
@@ -937,6 +948,16 @@ int TreeView::setFloatProperty(const char* prop, float value) {
         if (node) { node->leadingGap = value; return 1; }
         return 0;
     }
+    if (strcmp(prop, PropertyNames::kTreeItemShadowOffsetX) == 0) {   // P0-26
+        auto node = findNodeById(m_itemTargetId);
+        if (node) { node->shadowOffsetX = value; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kTreeItemShadowOffsetY) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (node) { node->shadowOffsetY = value; return 1; }
+        return 0;
+    }
     return ControlImpl::setFloatProperty(prop, value);
 }
 static bool parseItemAlign(const char* value, AlignmentMode& out) {
@@ -991,7 +1012,26 @@ int TreeView::getIntProperty(const char* prop, int& out) {
     }
     return ControlImpl::getIntProperty(prop, out);
 }
+int TreeView::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26：item 阴影色读回
+        auto node = findNodeById(m_itemTargetId);
+        if (node && node->shadowEnabled) { out = node->textShadowColor; return 1; }
+        return 0;
+    }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
 int TreeView::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kTreeItemShadowOffsetX) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (node) { out = node->shadowOffsetX; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kTreeItemShadowOffsetY) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (node) { out = node->shadowOffsetY; return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kIndentWidth) == 0) { out = m_indentWidth; return 1; }
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)   { out = m_rowHeight;   return 1; }
     if (strcmp(prop, PropertyNames::kLineSpacing) == 0) { out = m_lineSpacing; return 1; }

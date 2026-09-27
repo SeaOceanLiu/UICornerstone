@@ -266,10 +266,12 @@ void ScrollBar::setRect(SRect rect) {
 
 void ScrollBar::onMouseEnter(float x, float y) {
     m_thumbHovered = isPointInThumb(x, y);
+    ControlImpl::onMouseEnter(x, y);   // P0-30：控件级 hover 态
 }
 
 void ScrollBar::onMouseLeave(float x, float y) {
     m_thumbHovered = false;
+    ControlImpl::onMouseLeave(x, y);
 }
 
 void ScrollBar::setValue(float value) {
