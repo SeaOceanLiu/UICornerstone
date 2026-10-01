@@ -704,6 +704,7 @@ void ComboBox::setSelectedIndex(int index)
 {
     if (index < -1 || index >= (int)m_items.size()) return;
     if (index >= 0 && m_items[index].disabled) return;
+    const bool changed = (index != m_selectedIndex);   // P0-48：变更守卫（同值写入不触发）
     m_selectedIndex = index;
     if (index >= 0) {
         m_text = m_items[index].label;
@@ -713,6 +714,15 @@ void ComboBox::setSelectedIndex(int index)
     m_cursorPosition = (int)m_text.length();
     clearSelection();
     updateTextOffset();
+
+    // P0-48：程序化写入与 selectItem 同口径触发（解析期回调未注册 → 天然不触发；setSelectedValue 同路径）
+    if (changed) {
+        if (m_onSelectionChanged)
+            m_onSelectionChanged(std::dynamic_pointer_cast<ComboBox>(getThis()),
+                                 index, index >= 0 ? m_items[index].value : string());
+        SelectionPayload sel = { index, index >= 0 ? m_items[index].label.c_str() : "" };
+        fireCCallback(PropertyNames::kEventSelectionChanged, CCallbackData::Selection, &sel);
+    }
 }
 
 void ComboBox::setSelectedValue(const string& value)

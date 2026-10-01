@@ -326,9 +326,13 @@ bool TabControl::handleEvent(shared_ptr<Event> event) {
             // 点击页签 → 聚焦本控件（键盘导航只作用于焦点实例，多实例互不干扰）
             FocusManager* fm = m_context ? m_context->focusManager : nullptr;
             if (fm) fm->focusControl(this);
+            applyPressState(true);   // P032：按下切态（text/shadow 四态可达）
             setCurrentIndex(idx);
             return true;
         }
+    }
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        applyPressState(false);      // P032：抬起复位
     }
 
     if (event->m_type == EventType::KeyDown) {
@@ -361,6 +365,22 @@ void TabControl::setRect(SRect rect) {
     relayout();
 }
 
+// P032：page-background 四态 → 转发所有页 panel 背景
+int TabControl::setStateColorProperty(const char* prop, StateColor stateColor) {
+    if (strcmp(prop, PropertyNames::kPageBackground) == 0) {
+        m_pageBackground = stateColor;
+        for (auto& t : m_tabs) {
+            if (auto* impl = dynamic_cast<ControlImpl*>(t.page.get())) impl->setBackgroundStateColor(stateColor);
+        }
+        return 1;
+    }
+    return ControlImpl::setStateColorProperty(prop, stateColor);
+}
+int TabControl::getStateColorProperty(const char* prop, StateColor& out) {
+    if (strcmp(prop, PropertyNames::kPageBackground) == 0) { out = m_pageBackground; return 1; }
+    return ControlImpl::getStateColorProperty(prop, out);
+}
+
 void TabControl::setTextStateColor(StateColor stateColor) {   // P0-26：页签文字四态
     m_textColor = stateColor;
 }
@@ -369,6 +389,13 @@ void TabControl::setTextShadowStateColor(StateColor stateColor) {   // P0-26：�
 }
 
 int TabControl::setColorProperty(const char* prop, SColor color) {
+    if (strcmp(prop, PropertyNames::kPageBackground) == 0) {   // P032：页背景（单态）
+        m_pageBackground.setNormal(color);
+        for (auto& t : m_tabs) {
+            if (auto* impl = dynamic_cast<ControlImpl*>(t.page.get())) impl->setBackgroundStateColor(m_pageBackground);
+        }
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kText) == 0)         { m_textColor.setNormal(color);   return 1; }
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { m_textColor.setHover(color);    return 1; }
     if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { m_textColor.setPressed(color);  return 1; }
@@ -379,6 +406,7 @@ int TabControl::setColorProperty(const char* prop, SColor color) {
 }
 
 int TabControl::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kPageBackground) == 0) { out = m_pageBackground.getNormal(); return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)         { out = m_textColor.getNormal();   return 1; }
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_textColor.getHover();    return 1; }
     if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { out = m_textColor.getPressed();  return 1; }

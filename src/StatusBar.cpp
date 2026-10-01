@@ -251,6 +251,7 @@ bool StatusBar::handleEvent(shared_ptr<Event> event) {
         event->mouseButton.button == MouseButton::Left) {
         const int idx = hitTestIndex(event->mouseButton.x, event->mouseButton.y);
         if (idx >= 0) {
+            applyPressState(true);   // P032：按下切态
             auto& item = m_items[idx];
             if (item.menuPanel) {
                 openPopup(idx);
@@ -266,6 +267,9 @@ bool StatusBar::handleEvent(shared_ptr<Event> event) {
             // 点击 item 外部 → 关闭弹窗
             closePopup();
         }
+    }
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        applyPressState(false);      // P032：抬起复位
     }
 
     return ControlImpl::handleEvent(event);

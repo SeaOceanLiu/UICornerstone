@@ -29,6 +29,7 @@ private:
 
     string m_captionText;
     float m_captionSize;
+    FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P032：标题字体名（读回）
 
     OnClickHandler m_onClick;
 public:
@@ -67,6 +68,9 @@ public:
     // ── Property system overrides ──
     int setBoolProperty(const char* prop, int value) override;
     int setStringProperty(const char* prop, const char* value) override;
+    int setEnumProperty(const char* prop, const char* value) override;   // P032：font 名
+    int getEnumProperty(const char* prop, const char*& out) override;
+    void setFont(FontName font);                                        // P032
     int setPtrProperty(const char* prop, void* value) override;
     int getPtrProperty(const char* prop, void*& out) override;   // caption-label → 内部 caption Label 句柄
     // 状态联动：Button 状态变化时同步内部 caption Label（Label::draw 按自身 state 取色）

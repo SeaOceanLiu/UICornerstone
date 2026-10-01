@@ -39,6 +39,8 @@ Slider::Slider(Control* parent, SRect rect, float xScale, float yScale):
     m_labelFont(FontName::HarmonyOS_Sans_SC_Regular),
     m_labelFontSize(14),
     m_labelColor(ConstDef::SLIDER_LABEL_COLOR),
+    m_shadowOffsetX(2.0f),
+    m_shadowOffsetY(2.0f),
     m_labelFormat("%.0f"),
     m_labelGap(4.0f),
     m_repeatKey(0),
@@ -69,6 +71,8 @@ void Slider::create(void)
         m_valueLabel->setFontSize(m_labelFontSize);
         m_valueLabel->setTextNormalStateColor(m_labelColor);
         m_valueLabel->setEnableExpand(false);
+        m_valueLabel->setClickable(false);            // P0-39②：内部标签非交互，状态由滑块统一驱动
+        { SPoint so; so.x = m_shadowOffsetX; so.y = m_shadowOffsetY; m_valueLabel->setShadowOffset(so); }   // P0-39①：应用成员缺省
         addControl(m_valueLabel);
         m_valueLabel->create();
         m_valueLabel->setVisible(true);
@@ -361,6 +365,8 @@ void Slider::setShowValueLabel(bool show)
         m_valueLabel->setFontSize(m_labelFontSize);
         m_valueLabel->setTextNormalStateColor(m_labelColor);
         m_valueLabel->setEnableExpand(false);
+        m_valueLabel->setClickable(false);            // P0-39②：内部标签非交互，状态由滑块统一驱动
+        { SPoint so; so.x = m_shadowOffsetX; so.y = m_shadowOffsetY; m_valueLabel->setShadowOffset(so); }   // P0-39①：应用成员缺省
         addControl(m_valueLabel);
         m_valueLabel->create();
         m_valueLabel->setVisible(true);
@@ -450,9 +456,16 @@ void Slider::repositionValueLabel()
 
 void Slider::update(void)
 {
+    if (m_valueLabel) m_valueLabel->setState(getState());   // P0-39②：每帧持续同步（label 非交互）
     if (!getEnable()) return;
     ControlImpl::update();
     handleKeyRepeat();
+}
+
+void Slider::setState(ControlState state)
+{
+    ControlImpl::setState(state);
+    if (m_valueLabel) m_valueLabel->setState(state);   // P0-39②：即时同步
 }
 
 void Slider::draw(void)
@@ -635,6 +648,7 @@ bool Slider::handleEvent(shared_ptr<Event> event)
     if (m_dragging && event->m_type == EventType::MouseUp) {
         m_dragging = false;
         m_thumbHovered = false;
+        applyPressState(false);   // P0-33①：抬起复位（hover）
         commitValue();
         SRect dr = getDrawRect();
         // After release, refresh cursor based on whether mouse is still on thumb
@@ -656,6 +670,7 @@ bool Slider::handleEvent(shared_ptr<Event> event)
         if (!dr.contains(mousePos.x, mousePos.y)) return false;
 
         setFocused(true);
+        applyPressState(true);   // P0-33①：按下切态
         SRect thumbR = getThumbRect();
         if (thumbR.contains(mousePos.x, mousePos.y)) {
             m_dragging = true;
@@ -853,13 +868,15 @@ int Slider::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kValue) == 0)           { setValue(value);           return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)        { setRange(value, m_maxValue); return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)        { setRange(m_minValue, value); return 1; }
-    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {  // P0-26：valueLabel 阴影偏移
-        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.x = value; m_valueLabel->setShadowOffset(o); return 1; }
-        return 0;
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {  // P0-39①：独立存储（label 有无均可读写）
+        m_shadowOffsetX = value;
+        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.x = value; m_valueLabel->setShadowOffset(o); }
+        return 1;
     }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
-        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.y = value; m_valueLabel->setShadowOffset(o); return 1; }
-        return 0;
+        m_shadowOffsetY = value;
+        if (m_valueLabel) { SPoint o = m_valueLabel->getShadowOffset(); o.y = value; m_valueLabel->setShadowOffset(o); }
+        return 1;
     }
     return ControlImpl::setFloatProperty(prop, value);
 }
@@ -914,13 +931,11 @@ int Slider::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kValue) == 0)          { out = m_value;          return 1; }
     if (strcmp(prop, PropertyNames::kRangeMin) == 0)       { out = m_minValue;       return 1; }
     if (strcmp(prop, PropertyNames::kRangeMax) == 0)       { out = m_maxValue;       return 1; }
-    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {
-        if (m_valueLabel) { out = m_valueLabel->getShadowOffset().x; return 1; }
-        return 0;
+    if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) {   // P0-39①：读回成员（缺省 2.0）
+        out = m_shadowOffsetX; return 1;
     }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) {
-        if (m_valueLabel) { out = m_valueLabel->getShadowOffset().y; return 1; }
-        return 0;
+        out = m_shadowOffsetY; return 1;
     }
     return ControlImpl::getFloatProperty(prop, out);
 }
@@ -935,8 +950,8 @@ int Slider::getEnumProperty(const char* prop, const char*& out) {
         out = (m_style == SliderStyle::Horizontal) ? PropertyNames::kOrientHorizontal : PropertyNames::kOrientVertical;
         return 1;
     }
-    if (strcmp(prop, PropertyNames::kLabelFont) == 0) {
-        out = FontNameToString(m_labelFont);
+    if (strcmp(prop, PropertyNames::kLabelFont) == 0 || strcmp(prop, PropertyNames::kFont) == 0) {
+        out = FontNameToString(m_labelFont);   // P0-47①：kFont 与 label-font 等价读回（缺省=实际生效 label 字体）
         return 1;
     }
     return ControlImpl::getEnumProperty(prop, out);

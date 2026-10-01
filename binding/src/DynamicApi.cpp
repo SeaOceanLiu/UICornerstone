@@ -198,6 +198,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(CaptureBench);
     RESOLVE(CaptureControl);
     RESOLVE(SavePixelsToFile);
+    RESOLVE(GetFontCount);
+    RESOLVE(GetFontName);
 
     RESOLVE(SetColor);
     RESOLVE(SetStateColor);

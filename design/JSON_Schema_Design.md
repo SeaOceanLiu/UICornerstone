@@ -92,6 +92,8 @@ flowchart LR
 
 - 理由："全部控件"的本意是"机制一次成型，避免部分控件不可校验的断层"；25 种已覆盖全部现存类型，断层不存在。未立项控件无稳定 JSON 语法，提前录入必然返工。
 
+**增量备注（2026-09-28，P0-45）**：`context-menu` def 随 ContextMenu **独立声明类型**纳入（`type:"context-menu"`；两态 `colors:$colors-basic2` + `border-visible` + `close-on-*`，`items` 随结构化编辑批次补；Schema version **1.2.0**），当前控件 defs 计 **26 个**。
+
 ### 4.5 动态语法边界：components/template/bind/占位符一期跳过
 
 **结论**：布局 JSON 的动态机制——`components` 组件定义与实例化、`template`/`props` 模板、`bind` 数据绑定、`{{}}` 占位符——**一期不做严格校验**（宽松放行）。理由：
@@ -170,7 +172,7 @@ cmake -S tools -B build/tools && cmake --build build/tools --config Debug
 分层约定：
 
 - **语义类型层（$defs 内一组并列 def）**：项目语义类型组合——`color`（正则 `^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$` 与 `{normal/hover/pressed/disabled}` 对象的 oneOf）、`rect`（x/y/w/h 整数对象）、`alignment`（9 值枚举，**照抄 PropertyNames.h**：`top-left`/`mid-left`/`bottom-left`/`top-right`/`mid-right`/`bottom-right`/`top-center`/`center`/`bottom-center`）、`font-name`（28 字体枚举）、`font-spec`（{name, size, style}，v1.1.1：common 挂 font/fontSize 两键，未声明时父链继承）等
-- **`control-any` 包装 def**：`oneOf` 引用全部 25 个控件 def——供顶层 `controls` 数组元素与 panel `children`、tree-view `items` 的递归 `$ref` 复用
+- **`control-any` 包装 def**：`oneOf` 引用全部控件 def（现 26 个，含 context-menu）——供顶层 `controls` 数组元素与 panel `children`、tree-view `items` 的递归 `$ref` 复用
 - **`$defs/common`**：公共属性组（对应 `parseCommonProperties`），各控件经 `allOf: [{"$ref": "#/$defs/common"}]` 组合
 - **每控件一个 def**：`properties.type` 用 `"const": "<type>"` 锁定；`additionalProperties: false` 使未知键可报
 - **递归结构**：panel 的 `children` 数组元素、tree-view `items` 节点的 `children`——用 `$defs` 自引用（`"$ref": "#/$defs/control-any"`）表达，属 draft 2020-12 标准能力，不是 §9 排除的外部循环引用

@@ -51,6 +51,8 @@ private:
     SColor m_progressColor;
     SColor m_backgroundColor;
     SColor m_textColor;
+    StateColor m_textStateColor{StateColor::Type::Text};             // P0-35②：文本三态快照（重建不丢）
+    StateColor m_textShadowStateColor{StateColor::Type::TextShadow}; // P0-35③：阴影三态快照
     float m_animationSpeed;
 
     FontName m_fontName;
@@ -100,8 +102,9 @@ public:
     void setOnValueChanged(OnValueChangedHandler handler);
 
     // ── Property system overrides ──
-    void setTextStateColor(StateColor stateColor) override;        // P0-26：转发 textLabel（四态）
+    void setTextStateColor(StateColor stateColor) override;        // P0-26：转发 textLabel（三态）
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
+    void setState(ControlState state) override;                    // P0-35②：label 状态同步
     int setColorProperty(const char* prop, SColor color) override;
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;

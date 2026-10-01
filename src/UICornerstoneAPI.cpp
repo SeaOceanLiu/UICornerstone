@@ -1996,6 +1996,29 @@ int UICornerstone_SavePixelsToFile(const uint8_t* pixels, int w, int h, const ch
 }
 
 // ============================================================
+// 字体枚举清单（P0-48 扩展②：静态；索引按 FontName 枚举顺序，单一数据源）
+// ============================================================
+static const FontName kUIFontOrder[] = {
+    FontName::Asul_Bold,
+    FontName::HarmonyOS_Sans_SC_Regular,
+    FontName::HarmonyOS_Sans_SC_Thin,
+    FontName::MapleMono_NF_CN_Regular,
+    FontName::Muyao_Softbrush,
+    FontName::Quando_Regular
+};
+
+int UICornerstone_GetFontCount(void) {
+    return static_cast<int>(sizeof(kUIFontOrder) / sizeof(kUIFontOrder[0]));
+}
+
+int UICornerstone_GetFontName(int index, char* out, int maxLen) {
+    if (!out || maxLen <= 0) return 0;
+    if (index < 0 || index >= UICornerstone_GetFontCount()) return 0;
+    strncpy_s(out, maxLen, FontNameToString(kUIFontOrder[index]), _TRUNCATE);
+    return 1;
+}
+
+// ============================================================
 // ColorPicker
 // ============================================================
 UIControlHandle UICornerstone_CreateColorPicker(UIInstance instance,

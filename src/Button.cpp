@@ -501,6 +501,22 @@ static int buttonActorFilePath(const shared_ptr<Actor>& actor, const char*& out)
     out = actor->getFilePathStr().c_str();
     return 1;
 }
+int Button::setEnumProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {   // P032：字体名 → caption Label
+        setFont(FontNameFromString(value));
+        return 1;
+    }
+    return ControlImpl::setEnumProperty(prop, value);
+}
+int Button::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }
+    return ControlImpl::getEnumProperty(prop, out);
+}
+void Button::setFont(FontName font) {
+    m_fontName = font;
+    if (m_caption) m_caption->setFont(font);
+}
+
 int Button::getStringProperty(const char* prop, const char*& out) {
     if (strcmp(prop, PropertyNames::kCaption) == 0) { out = m_captionText.c_str(); return 1; }
     if (strcmp(prop, PropertyNames::kNormalImage) == 0)   return buttonActorFilePath(m_actor, out);

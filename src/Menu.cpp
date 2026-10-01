@@ -156,6 +156,10 @@ void MenuItem::draw() {
         float textY = drawRect.top + (drawRect.height - fontHeight) / 2;
         const float sx = getScaleXX();
         // P0-26：面板文本色（normal/disabled）与阴影（面板级配置）
+        if (panel && !getEnable()) {   // P0-33③：禁用项底色（三态之 disabled）
+            GET_RENDERDEVICE->setDrawColor(panel->getItemDisabledBgColor());
+            GET_RENDERDEVICE->fillRect(drawRect);
+        }
         const bool hovered = panel && panel->isItemHovered(this);
         SColor itemColor = (!getEnable())
             ? (panel ? panel->getItemDisabledTextColor() : MenuColors::ITEM_DISABLED)
@@ -303,6 +307,9 @@ MenuPanel::MenuPanel(Control *parent, float xScale, float yScale)
     , m_bgColor(MenuColors::PANEL_BG)
     , m_borderColor(MenuColors::PANEL_BORDER)
     , m_hoverColor(MenuColors::ITEM_HOVER_BG)
+    , m_disabledBgColor(MenuColors::PANEL_BG)      // 缺省与常态同色（视觉不变）
+    , m_hoverBorderColor(MenuColors::PANEL_BORDER)
+    , m_disabledBorderColor(MenuColors::PANEL_BORDER)
     , m_separatorColor(MenuColors::SEPARATOR)
     , m_textColor(MenuColors::ITEM_TEXT)
     , m_hoverTextColor(MenuColors::ITEM_TEXT)
@@ -626,6 +633,19 @@ int MenuPanel::getStringProperty(const char* prop, const char*& out) {
     return ControlImpl::getStringProperty(prop, out);
 }
 
+// P0-33③：对象路径（colors.background/border）→ 专用成员（三态 N/H/D）
+void MenuPanel::setBackgroundStateColor(StateColor stateColor) {
+    m_bgColor = stateColor.getNormal();
+    m_hoverColor = stateColor.getHover();
+    m_disabledBgColor = stateColor.getDisabled();
+}
+void MenuPanel::setBorderStateColor(StateColor stateColor) {
+    m_borderColor = stateColor.getNormal();
+    m_hoverBorderColor = stateColor.getHover();
+    m_disabledBorderColor = stateColor.getDisabled();
+    setBorderVisible(true);
+}
+
 // P0-26：JSON colors.text 三态（normal/hover/disabled）→ 面板 item 角色色
 void MenuPanel::setTextStateColor(StateColor stateColor) {
     m_textColor = stateColor.getNormal();
@@ -644,7 +664,10 @@ bool MenuPanel::isItemHovered(const MenuItem* item) const {
 int MenuPanel::setColorProperty(const char* prop, SColor color) {   // P0-26：面板/条目颜色属性化
     if (strcmp(prop, PropertyNames::kBackground) == 0)  { m_bgColor = color;        return 1; }
     if (strcmp(prop, PropertyNames::kStateHover) == 0)  { m_hoverColor = color;     return 1; }
+    if (strcmp(prop, PropertyNames::kStateDisabled) == 0){ m_disabledBgColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kBorder) == 0)      { m_borderColor = color;    return 1; }
+    if (strcmp(prop, PropertyNames::kBorderHover) == 0) { m_hoverBorderColor = color; return 1; }
+    if (strcmp(prop, PropertyNames::kBorderDisabled) == 0){ m_disabledBorderColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)        { m_textColor = color;      return 1; }
     if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; return 1; }
@@ -810,12 +833,14 @@ void MenuPanel::draw() {
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, true);
     }
 
-    // 3. 绘制边框（P0-26：border-visible 门控）
+    // 3. 绘制边框（P0-26：border-visible 门控；P0-33③：三态）
     if (getBorderVisible()) {
+        const SColor bc = (getState() == ControlState::Disabled) ? m_disabledBorderColor
+                        : (getState() == ControlState::Hover)    ? m_hoverBorderColor
+                                                                 : m_borderColor;
         GraphTool::DrawingContext dc(getRenderDevice());
         dc.setPen(GraphTool::SPen(
-            GraphTool::SColor(m_borderColor.red(), m_borderColor.green(),
-                             m_borderColor.blue(), m_borderColor.alpha()), 1.0f));
+            GraphTool::SColor(bc.red(), bc.green(), bc.blue(), bc.alpha()), 1.0f));
         dc.drawRoundedRect(::SRect(drawRect.left, drawRect.top,
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, false);
     }
@@ -919,6 +944,9 @@ MenuBar::MenuBar(Control *parent, float xScale, float yScale)
     , m_hoverTextColor(MenuColors::BAR_TEXT)
     , m_activeBgColor(MenuColors::BAR_ACTIVE_BG)
     , m_borderColor(MenuColors::PANEL_BORDER)
+    , m_hoverBorderColor(MenuColors::PANEL_BORDER)
+    , m_disabledBorderColor(MenuColors::PANEL_BORDER)
+    , m_disabledBgColor(MenuColors::BAR_BG)
     , m_disabledTextColor(MenuColors::ITEM_DISABLED)
     , m_itemHeightRatio(MenuColors::DEFAULT_HEIGHT_RATIO)
     , m_menuTextSize(MenuColors::DEFAULT_TEXT_SIZE)
@@ -1215,6 +1243,21 @@ void MenuBar::setFontSize(float size) {
     layoutEntries();
 }
 
+// P0-33③：对象路径（colors.background/border）→ 专用成员（三态 N/H/D）+ 面板传播
+void MenuBar::setBackgroundStateColor(StateColor stateColor) {
+    m_bgColor = stateColor.getNormal();
+    m_hoverBgColor = stateColor.getHover();
+    m_disabledBgColor = stateColor.getDisabled();
+    for (auto& entry : m_entries) if (entry.panel) entry.panel->setBackgroundStateColor(stateColor);
+}
+void MenuBar::setBorderStateColor(StateColor stateColor) {
+    m_borderColor = stateColor.getNormal();
+    m_hoverBorderColor = stateColor.getHover();
+    m_disabledBorderColor = stateColor.getDisabled();
+    setBorderVisible(true);
+    for (auto& entry : m_entries) if (entry.panel) entry.panel->setBorderStateColor(stateColor);
+}
+
 // P0-26：JSON colors.text 三态 → 自身 + 全部面板
 void MenuBar::setTextStateColor(StateColor stateColor) {
     m_textColor = stateColor.getNormal();
@@ -1234,6 +1277,9 @@ int MenuBar::setColorProperty(const char* prop, SColor color) {
     else if (strcmp(prop, PropertyNames::kStateHover) == 0)  { m_hoverBgColor = color;  ok = true; }
     else if (strcmp(prop, PropertyNames::kStatePressed) == 0){ m_activeBgColor = color; ok = true; }
     else if (strcmp(prop, PropertyNames::kBorder) == 0)      { m_borderColor = color;   ok = true; }
+    else if (strcmp(prop, PropertyNames::kBorderHover) == 0) { m_hoverBorderColor = color; ok = true; }
+    else if (strcmp(prop, PropertyNames::kBorderDisabled) == 0){ m_disabledBorderColor = color; ok = true; }
+    else if (strcmp(prop, PropertyNames::kStateDisabled) == 0){ m_disabledBgColor = color; ok = true; }
     else if (strcmp(prop, PropertyNames::kText) == 0)        { m_textColor = color;     ok = true; }
     else if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; ok = true; }
     else if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; ok = true; }
@@ -1251,12 +1297,28 @@ int MenuBar::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kBackground) == 0)   { out = m_bgColor;            return 1; }
     if (strcmp(prop, PropertyNames::kStateHover) == 0)   { out = m_hoverBgColor;       return 1; }
     if (strcmp(prop, PropertyNames::kStatePressed) == 0) { out = m_activeBgColor;      return 1; }
+    if (strcmp(prop, PropertyNames::kStateDisabled) == 0){ out = m_disabledBgColor;    return 1; }   // P0-44：补读回
     if (strcmp(prop, PropertyNames::kBorder) == 0)       { out = m_borderColor;        return 1; }
+    if (strcmp(prop, PropertyNames::kBorderHover) == 0)  { out = m_hoverBorderColor;   return 1; }   // P0-44：补读回
+    if (strcmp(prop, PropertyNames::kBorderDisabled) == 0){ out = m_disabledBorderColor; return 1; } // P0-44：补读回
     if (strcmp(prop, PropertyNames::kText) == 0)         { out = m_textColor;          return 1; }
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_hoverTextColor;     return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_disabledTextColor;  return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
     return ControlImpl::getColorProperty(prop, out);
+}
+
+// P0-44：对象路径三态读回组装（UICornerstone_GetStateColor 全链可读；pressed 取 hover 语义）
+int MenuBar::getStateColorProperty(const char* prop, StateColor& out) {
+    if (strcmp(prop, PropertyNames::kBackground) == 0) {
+        out = StateColor(m_bgColor, m_hoverBgColor, m_hoverBgColor, m_disabledBgColor);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kBorder) == 0) {
+        out = StateColor(m_borderColor, m_hoverBorderColor, m_hoverBorderColor, m_disabledBorderColor);
+        return 1;
+    }
+    return ControlImpl::getStateColorProperty(prop, out);
 }
 
 int MenuBar::setFloatProperty(const char* prop, float value) {
@@ -1322,8 +1384,14 @@ void MenuBar::draw() {
 
     SRect drawRect = getDrawRect();
 
-    // 1. 绘制菜单栏背景
-    GET_RENDERDEVICE->setDrawColor(m_bgColor);
+    // 1. 绘制菜单栏背景（P0-44：disabled/hover 态解析；悬停菜单项时保持 normal，避免与 item hover 底色叠加）
+    SColor barBg = m_bgColor;
+    if (getState() == ControlState::Disabled) {
+        barBg = m_disabledBgColor;
+    } else if (getState() == ControlState::Hover && m_hoveredIndex < 0) {
+        barBg = m_hoverBgColor;
+    }
+    GET_RENDERDEVICE->setDrawColor(barBg);
     GET_RENDERDEVICE->fillRect(SRect(drawRect.left, drawRect.top, drawRect.width, drawRect.height));
 
     // 2. 绘制菜单项（背景 + 标题文本）
@@ -1361,7 +1429,10 @@ void MenuBar::draw() {
     }
 
     // 3. 绘制底部分隔线（P0-26：border 属性化）
-    GET_RENDERDEVICE->setDrawColor(m_borderColor);
+    GET_RENDERDEVICE->setDrawColor(
+        (getState() == ControlState::Disabled) ? m_disabledBorderColor
+      : (getState() == ControlState::Hover)    ? m_hoverBorderColor
+                                               : m_borderColor);   // P0-33③：三态
     GET_RENDERDEVICE->drawLine(drawRect.left, drawRect.top + drawRect.height - 1,
                                drawRect.left + drawRect.width, drawRect.top + drawRect.height - 1);
 

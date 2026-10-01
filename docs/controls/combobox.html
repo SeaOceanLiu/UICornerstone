@@ -70,7 +70,7 @@ UIControlHandle combo = UICornerstone_CreateComboBox(g_inst, 20, 56, 300, 32, 1.
 
 <table>
 <tr><th>事件名</th><th>事件常量</th><th>触发时机</th><th>参数</th></tr>
-<tr><td><code>selection-changed</code></td>（回调名 onSelectionChanged）</td><td><code>kEventSelectionChanged</code></td><td>点击列表项、Enter 选中、闭合态 ↑/↓/滚轮切换时；ESC / 外部点击取消不触发</td><td><code>(shared_ptr&lt;ComboBox&gt;, int index, const string&amp; value)</code> / <code>UIEventData.data.selection{idx, val}</code></td></tr>
+<tr><td><code>selection-changed</code></td>（回调名 onSelectionChanged）</td><td><code>kEventSelectionChanged</code></td><td>点击列表项、Enter 选中、闭合态 ↑/↓/滚轮切换时；ESC / 外部点击取消不触发；<code>selected-index</code> 程序化写入在<b>索引实际变更</b>时同样触发（同值写入不触发，P0-48）</td><td><code>(shared_ptr&lt;ComboBox&gt;, int index, const string&amp; value)</code> / <code>UIEventData.data.selection{idx, val}</code></td></tr>
 </table>
 
 

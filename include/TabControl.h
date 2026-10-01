@@ -56,6 +56,8 @@ public:
     void setRect(SRect rect) override;
 
     // ── 属性系统 ──
+    int setStateColorProperty(const char* prop, StateColor stateColor) override;   // P032：page-background
+    int getStateColorProperty(const char* prop, StateColor& out) override;
     void setTextStateColor(StateColor stateColor) override;      // P0-26：文本四态
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色四态
     int setColorProperty(const char* prop, SColor color) override;   // P0-26：text 族 + selected-text
@@ -77,6 +79,7 @@ private:
     void drawTabBar();
 
     std::vector<TabPage> m_tabs;
+    StateColor m_pageBackground{StateColor::Type::Background};   // P032：页背景四态（转发所有页）
     int m_currentIndex = -1;
     TabPosition m_position = TabPosition::Top;
     float m_fontSize = 13.0f;

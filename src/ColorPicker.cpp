@@ -77,6 +77,15 @@ ColorPicker::ColorPicker(Control* parent, SRect rect,
 }
 
 ColorPicker::~ColorPicker() {
+    if (m_dialog) {                    // P0-34②：回收已打开的弹窗（挂 BENCH 共享持有）
+        if (m_dialog->getVisible()) m_dialog->close();
+        m_dialog.reset();
+    }
+}
+
+void ColorPicker::setState(ControlState state) {
+    ControlImpl::setState(state);
+    if (m_closedLabel) m_closedLabel->setState(state);   // P0-34①：四态经控件状态驱动
 }
 
 void ColorPicker::create() {
@@ -183,8 +192,7 @@ void ColorPicker::createClosedStateControls() {
     m_closedLabel->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
     m_closedLabel->setTextNormalStateColor(m_closedTextColor);
     m_closedLabel->setTextDisabledStateColor(m_closedTextColor);
-    m_closedLabel->setEnable(false);
-    m_closedLabel->create();
+    m_closedLabel->create();   // P0-34①：不再强制禁用（恒 Disabled 导致四态错位）
     addControl(m_closedLabel);
 }
 
@@ -216,9 +224,13 @@ bool ColorPicker::handleEvent(shared_ptr<Event> event) {
         event->mouseButton.button == MouseButton::Left) {
         SPoint mp(event->mouseButton.x, event->mouseButton.y);
         if (isContainsPoint(mp.x, mp.y)) {
+            applyPressState(true);   // P0-33⑤：按下切态
             togglePopup();
             return true;
         }
+    }
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        applyPressState(false);      // P0-33⑤：抬起复位
     }
     return Panel::handleEvent(event);
 }

@@ -66,6 +66,15 @@ UICornerstone_ListViewAddRow(g_inst, lv, "f1", 2, cells);
 
 
 
+<h2>4.12.4.1 item（行级）属性（item-id 定位模式）</h2>
+<p>先 <code>SetString("item-id", 行id)</code> 定位目标行，随后 set/get 作用于该行；样式优先级 <b>cell（CellStyle）&gt; item（行）&gt; 控件级</b>。</p>
+<table>
+<tr><th>属性</th><th>属性常量</th><th>类型</th><th>说明</th></tr>
+<tr><td><code>item-background</code> / <code>item-border</code> / <code>item-text</code> / <code>item-text-shadow</code></td><td><code>kItemBackground</code> / <code>kItemBorder</code> / <code>kItemText</code> / <code>kTreeItemTextShadow</code></td><td>StateColor</td><td>行级四态色（normal/hover/pressed/disabled）</td></tr>
+<tr><td><code>item-shadow</code> / <code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code></td><td><code>kItemShadow</code> / <code>kTreeItemShadowOffsetX</code> / <code>kTreeItemShadowOffsetY</code></td><td>Bool / Float</td><td>行级阴影开关与偏移</td></tr>
+<tr><td><code>item-border-visible</code> / <code>item-disabled</code></td><td><code>kItemBorderVisible</code> / <code>kItemDisabled</code></td><td>Bool</td><td>行边框可见 / 行禁用（disabled 态可达）</td></tr>
+</table>
+
 <h2>4.12.5 JSON 语法</h2>
 
 <pre><code>{

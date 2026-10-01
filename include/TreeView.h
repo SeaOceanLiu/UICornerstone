@@ -28,10 +28,17 @@ struct TreeNode {
     AlignmentMode leadingAlign = AlignmentMode::AM_MID_LEFT;  // 槽位对齐（复用 Label 9 宫格；水平分量忽略，槽位贴文本起点）
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;  // 与 TreeView 默认一致；仅 fontSize>0 时生效
     int fontSize = 0;                         // 0 = 继承 TreeView 级字号
-    SColor textShadowColor{0, 0, 0, 120};     // P0-26：item 文本阴影（单色；shadowEnabled 控制）
+    StateColor textShadowColor{StateColor::Type::TextShadow};   // P032：item 文本阴影四态
     bool   shadowEnabled = false;
     float  shadowOffsetX = 1.0f;
     float  shadowOffsetY = 1.0f;
+    // P032：item 级四态（设置任一即 hasStyle=true，行绘制改用 item 样式）
+    StateColor bgColor{StateColor::Type::Background};
+    StateColor borderColor{StateColor::Type::Border};
+    StateColor textColor{StateColor::Type::Text};
+    bool borderVisible = false;
+    bool disabled = false;
+    bool hasStyle = false;
 };
 
 inline std::shared_ptr<TreeNode> makeNode(
@@ -92,6 +99,7 @@ private:
     std::string m_itemTargetId;   // CABI "item-id" 定位：item 级属性（leadingGap/font/size/leadingControl）的作用目标
     int m_selectedRow = -1;
     int m_hoveredRow = -1;
+    int m_pressedRow = -1;    // P032：item pressed 态（按下行）
 
     std::shared_ptr<ScrollBar> m_scrollBar;
     float m_scrollOffset = 0;
@@ -214,6 +222,8 @@ public:
     int getIntProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getColorProperty(const char* prop, SColor& out) override;   // P0-26：item 阴影色读回
+    int setStateColorProperty(const char* prop, StateColor stateColor) override;   // P032：item 色四态对象
+    int getStateColorProperty(const char* prop, StateColor& out) override;         // P032
     int getEnumProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
     int getStringProperty(const char* prop, const char*& out) override;

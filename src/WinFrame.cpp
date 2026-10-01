@@ -58,6 +58,7 @@ WinFrame::WinFrame(Control* parent, SRect rect, float xScale, float yScale):
         .setOnClick([this](shared_ptr<Button>) { hide(); })
         .setTransparent(false)
         .build());
+    m_closeButton->setBorderVisible(false);   // P0-41：按钮自身无边框线（灰底保留；窗框边框压过其顶/右缘维持现状）
 
     SRect titleRect = {0, 0, m_rect.width - titleH, titleH};
     addControl(m_titleBar = PanelBuilder(this, titleRect)
@@ -178,8 +179,12 @@ bool WinFrame::handleEvent(shared_ptr<Event> event) {
         if (getDrawRect().contains(mousePos.x, mousePos.y)) {
             bringToFront();
             GET_FOCUSMANAGER->focusFirstInScope(this);
+            applyPressState(true);   // P032：按下切态（title 四态可达）
             consumedByFocus = true;
         }
+    }
+    if (hasPos && event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        applyPressState(false);      // P032：抬起复位
     }
 
     // Step 1: During drag, intercept movement
@@ -437,6 +442,14 @@ int WinFrame::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kWinFrameBorder) == 0) { setWinFrameBorderColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kTitleBarBG) == 0)     { setTitleBarBGColor(color);     return 1; }
     if (strcmp(prop, PropertyNames::kTitleText) == 0)      { setTitleTextColor(color);      return 1; }
+    // P032：background 单态键 → ClientPanel；border 单态键 → 整体窗框
+    if (strcmp(prop, PropertyNames::kBackground) == 0 && m_clientPanel) { m_clientPanel->setNormalStateBGColor(color); return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0 && m_clientPanel) { m_clientPanel->setHoverStateBGColor(color);  return 1; }
+    // P0-49：per-state 单态键 1:1 转发 ClientPanel（补齐 pressed/disabled，写读一致）
+    if (strcmp(prop, PropertyNames::kStatePressed) == 0 && m_clientPanel)  { m_clientPanel->setPressedStateBGColor(color);  return 1; }
+    if (strcmp(prop, PropertyNames::kStateDisabled) == 0 && m_clientPanel) { m_clientPanel->setDisabledStateBGColor(color); return 1; }
+    if (strcmp(prop, PropertyNames::kBorder) == 0)      { ControlImpl::setNormalStateBDColor(color); return 1; }
+    if (strcmp(prop, PropertyNames::kBorderHover) == 0) { ControlImpl::setHoverStateBDColor(color);  return 1; }
     // #13：标题文本/阴影四态单色转发（对照 setTitleTextColor 同步模式；normal 由 kTitleText 承载）
     if (m_titleLabel) {
         if (strcmp(prop, PropertyNames::kTextShadow) == 0)         { m_titleLabel->setTextShadowNormalStateColor(color);   return 1; }
@@ -448,6 +461,51 @@ int WinFrame::setColorProperty(const char* prop, SColor color) {
         if (strcmp(prop, PropertyNames::kTextDisabled) == 0)       { m_titleLabel->setTextDisabledStateColor(color);       return 1; }
     }
     return Panel::setColorProperty(prop, color);
+}
+
+// P032：background 两态 → ClientPanel（内容区底色；标题栏装饰保持专用键）
+void WinFrame::setBackgroundStateColor(StateColor stateColor) {
+    if (!m_clientPanel) return;
+    StateColor cp;
+    cp.setNormal(stateColor.getNormal());
+    cp.setHover(stateColor.getHover());
+    cp.setPressed(stateColor.getNormal());     // 仅两态声明
+    cp.setDisabled(stateColor.getNormal());
+    m_clientPanel->setBackgroundStateColor(cp);
+}
+StateColor WinFrame::getBackgroundStateColor(void) {
+    if (!m_clientPanel) return ControlImpl::getBackgroundStateColor();
+    return m_clientPanel->getBackgroundStateColor();   // P0-49：返回实际四态（取消 pressed/disabled→hover 折叠，写读一致）
+}
+
+// P032：border 两态 → 整体窗框（基类存储 + border-visible；hover 由 WinFrame 状态驱动）
+void WinFrame::setBorderStateColor(StateColor stateColor) {
+    ControlImpl::setBorderStateColor(stateColor);
+}
+
+int WinFrame::setEnumProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {   // P032：标题字体名
+        m_fontName = FontNameFromString(value);
+        if (m_titleLabel) m_titleLabel->setFont(m_fontName);
+        return 1;
+    }
+    return Panel::setEnumProperty(prop, value);
+}
+int WinFrame::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }
+    return Panel::getEnumProperty(prop, out);
+}
+int WinFrame::setIntProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) {   // P032：标题字号
+        m_titleFontSize = value;
+        if (m_titleLabel) m_titleLabel->setFontSize(value);
+        return 1;
+    }
+    return Panel::setIntProperty(prop, value);
+}
+int WinFrame::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kFontSize) == 0) { out = m_titleFontSize; return 1; }
+    return Panel::getIntProperty(prop, out);
 }
 
 int WinFrame::setBoolProperty(const char* prop, int value) {
@@ -483,6 +541,9 @@ int WinFrame::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kWinFrameBorder) == 0) { out = m_winFrameBorderColor; return 1; }
     if (strcmp(prop, PropertyNames::kTitleBarBG) == 0)     { out = m_titleBarBg;          return 1; }
     if (strcmp(prop, PropertyNames::kTitleText) == 0)      { out = m_titleTextColor;      return 1; }
+    if (strcmp(prop, PropertyNames::kBackground) == 0 && m_clientPanel) { out = m_clientPanel->getBackgroundStateColor().getNormal(); return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0 && m_clientPanel) { out = m_clientPanel->getBackgroundStateColor().getHover();  return 1; }
+    if (strcmp(prop, PropertyNames::kBorder) == 0)      { out = m_borderColor.getNormal(); return 1; }
     if (strcmp(prop, PropertyNames::kClosedText) == 0)     { out = m_closedTextColor;     return 1; }
     // #13：标题文本/阴影四态单色读回（内部 title Label）
     if (m_titleLabel) {

@@ -743,15 +743,19 @@ void ControlImpl::setDisabledStateBGColor(SColor color){
 }
 void ControlImpl::setNormalStateBDColor(SColor color){
     m_borderColor.setNormal(color);
+    setBorderVisible(true);   // P0-43：单态设色即显示（对齐对象路径 "设色即显示" 语义）
 }
 void ControlImpl::setHoverStateBDColor(SColor color){
     m_borderColor.setHover(color);
+    setBorderVisible(true);   // P0-43
 }
 void ControlImpl::setPressedStateBDColor(SColor color){
     m_borderColor.setPressed(color);
+    setBorderVisible(true);   // P0-43
 }
 void ControlImpl::setDisabledStateBDColor(SColor color){
     m_borderColor.setDisabled(color);
+    setBorderVisible(true);   // P0-43
 }
 void ControlImpl::setTextNormalStateColor(SColor color){
     m_textColor.setNormal(color);
@@ -967,6 +971,9 @@ int ControlImpl::setFloatProperty(const char* prop, float value) {
 }
 
 int ControlImpl::setStringProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {   // P0-46：font 字体名 string 通道 → Enum 通道别名（全控件受益）
+        return setEnumProperty(prop, value);
+    }
     return 0;
 }
 
@@ -1061,6 +1068,10 @@ int ControlImpl::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextPressed) == 0)        { out = txt.getPressed(); return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0)       { out = txt.getDisabled();return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)         { out = shd.getNormal();  return 1; }
+    // P0-49：text-shadow per-state 读回补齐（与 background/border/text 三组四态口径一致）
+    if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)    { out = shd.getHover();    return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0)  { out = shd.getPressed();  return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0) { out = shd.getDisabled(); return 1; }
     if (strcmp(prop, PropertyNames::kFocusRingColor) == 0)     { out = getFocusRingColor(); return 1; }
     return 0;
 }
@@ -1100,6 +1111,11 @@ int ControlImpl::getFloatProperty(const char* prop, float& out) {
 }
 
 int ControlImpl::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kFont) == 0) {   // P0-46：string 通道读回枚举名（FontNameToString 返回静态串）
+        const char* s = nullptr;
+        if (getEnumProperty(prop, s)) { out = s; return 1; }
+        return 0;
+    }
     if (strcmp(prop, PropertyNames::kControlType) == 0) {
         switch (getControlType()) {
         case ControlType::Label:         out = PropertyNames::kControlTypeLabel; return 1;

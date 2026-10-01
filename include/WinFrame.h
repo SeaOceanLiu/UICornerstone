@@ -25,6 +25,8 @@ class WinFrame : public Panel
 private:
     shared_ptr<Panel>  m_titleBar;
     shared_ptr<Label>  m_titleLabel;
+    FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P032：标题字体名（读回）
+    int      m_titleFontSize = 14;                               // P032：标题字号（读回）
     shared_ptr<Button> m_closeButton;
     shared_ptr<Panel>  m_clientPanel;
     string m_title;
@@ -99,14 +101,21 @@ public:
     bool isResizable() const { return m_resizable; }
 
     // ── Property system overrides ──
+    void setBackgroundStateColor(StateColor stateColor) override;   // P032：bg 两态 → ClientPanel
+    void setBorderStateColor(StateColor stateColor) override;       // P032：border 两态 → 整体窗框（基类存储）
+    StateColor getBackgroundStateColor(void) override;              // 读回（从 ClientPanel 组装）
     int setColorProperty(const char* prop, SColor color) override;
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setStringProperty(const char* prop, const char* value) override;
+    int setEnumProperty(const char* prop, const char* value) override;   // P032：font 名
+    int setIntProperty(const char* prop, int value) override;            // P032：font-size
     int getColorProperty(const char* prop, SColor& out) override;
     int getBoolProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getStringProperty(const char* prop, const char*& out) override;
+    int getEnumProperty(const char* prop, const char*& out) override;
+    int getIntProperty(const char* prop, int& out) override;
     int getPtrProperty(const char* prop, void*& out) override;
 };
 

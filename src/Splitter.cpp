@@ -27,6 +27,9 @@ Splitter::Splitter(Control* parent, const SRect& rect,
     , m_colorNormal(ConstDef::SPLITTER_COLOR_NORMAL)
     , m_colorHover(ConstDef::SPLITTER_COLOR_HOVER)
     , m_colorDrag(ConstDef::SPLITTER_COLOR_DRAG)
+    , m_colorDisabled(ConstDef::SPLITTER_COLOR_NORMAL)
+    , m_lineNormalSet(false)
+    , m_lineHoverSet(false)
     , m_hovered(false)
     , m_cursorResize(nullptr), m_cursorDefault(nullptr)
     , m_lastRect()
@@ -57,8 +60,12 @@ void Splitter::draw() {
 
     beforeDraw();  // sets m_frameDrawRect, m_frameDrawRectValid=true, draws background
 
-    dev->setDrawColor(m_dragging ? m_colorDrag
-                      : m_hovered ? m_colorHover : m_colorNormal);
+    // P0-42：把手线色 = 通用组（colors.background 三态）驱动，line* 专用键优先；disabled 独立
+    SColor lineColor = m_colorNormal;
+    if (!m_enable)       lineColor = m_colorDisabled;
+    else if (m_dragging) lineColor = m_colorDrag;
+    else if (m_hovered)  lineColor = m_colorHover;
+    dev->setDrawColor(lineColor);
     dev->fillRect(m_frameDrawRect);
 
     afterDraw();  // draws border, draws focus ring
@@ -537,10 +544,25 @@ void Splitter::updateCursor(bool inside) {
 // ── Property system overrides ──
 
 int Splitter::setColorProperty(const char* prop, SColor color) {
-    if (strcmp(prop, PropertyNames::kLine) == 0)      { m_colorNormal = color; return 1; }
-    if (strcmp(prop, PropertyNames::kLineHover) == 0)  { m_colorHover  = color; return 1; }
+    if (strcmp(prop, PropertyNames::kLine) == 0)      { m_colorNormal = color; m_lineNormalSet = true; return 1; }
+    if (strcmp(prop, PropertyNames::kLineHover) == 0)  { m_colorHover  = color; m_lineHoverSet  = true; return 1; }
     if (strcmp(prop, PropertyNames::kLineDrag) == 0)   { m_colorDrag   = color; return 1; }
+    // P0-42：通用组（colors.background 三态）驱动把手线色；Set 顺序无关（line* 专用键优先）
+    if (strcmp(prop, PropertyNames::kBackground) == 0)    { if (!m_lineNormalSet) m_colorNormal = color; return 1; }
+    if (strcmp(prop, PropertyNames::kStateHover) == 0)    { if (!m_lineHoverSet)  m_colorHover  = color; return 1; }
+    if (strcmp(prop, PropertyNames::kStateDisabled) == 0) { m_colorDisabled = color; return 1; }
     return ControlImpl::setColorProperty(prop, color);
+}
+
+// P0-42：colors.background 对象路径（normal/hover/disabled 三态）→ 把手线色
+void Splitter::setBackgroundStateColor(StateColor stateColor) {
+    if (!m_lineNormalSet) m_colorNormal = stateColor.getNormal();
+    if (!m_lineHoverSet)  m_colorHover  = stateColor.getHover();
+    m_colorDisabled = stateColor.getDisabled();
+}
+StateColor Splitter::getBackgroundStateColor(void) {
+    // 读回 = 有效线色（pressed 取 hover 语义）
+    return StateColor(m_colorNormal, m_colorHover, m_colorHover, m_colorDisabled);
 }
 
 int Splitter::setFloatProperty(const char* prop, float value) {

@@ -1,0 +1,53 @@
+﻿{
+  "version": "1.0",
+  "controls": [
+    {
+      "type": "panel",
+      "id": "p0Root",
+      "rect": { "x": 0, "y": 0, "w": 480, "h": 320 },
+      "colors": { "background": { "normal": "#1a1a1a" } },
+      "children": [
+        {
+          "type": "scroll-bar",
+          "id": "p0Sb",
+          "rect": { "x": 430, "y": 20, "w": 16, "h": 200 },
+          "orientation": "vertical",
+          "thickness": 16,
+          "value": 30,
+          "range": { "min": 0, "max": 100 }
+        },
+        {
+          "type": "splitter",
+          "id": "p0Sp",
+          "rect": { "x": 200, "y": 40, "w": 8, "h": 240 },
+          "orientation": "vertical",
+          "thickness": 8,
+          "colors": {
+            "background": {
+              "normal": "#c83232",
+              "hover": "#3264c8",
+              "disabled": "#32c85a"
+            }
+          }
+        },
+        {
+          "type": "slider",
+          "id": "p0Sl",
+          "rect": { "x": 30, "y": 120, "w": 140, "h": 24 },
+          "value": 40,
+          "range": { "min": 0, "max": 100 },
+          "show-value-label": true
+        },
+        {
+          "type": "context-menu",
+          "id": "p0Cm",
+          "visible": false,
+          "colors": {
+            "background": { "normal": "#202020", "hover": "#303030" },
+            "border": { "normal": "#505050", "hover": "#707070" }
+          }
+        }
+      ]
+    }
+  ]
+}

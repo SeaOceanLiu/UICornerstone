@@ -50,7 +50,8 @@ UIControlHandle sp = UICornerstone_CreateSplitter(g_inst, 244, 60, 6, 200, 1 /*o
 <tr><td><code>first-min</code></td><td><code>kFirstMin</code></td><td>Float</td><td>20</td><td>两侧最小尺寸（get 别名 <code>range-min</code> / <code>range-max</code>）</td></tr>
 <tr><td><code>second-min</code></td><td><code>kSecondMin</code></td><td>Float</td><td>20</td><td>两侧最小尺寸（get 别名 <code>range-min</code> / <code>range-max</code>）</td></tr>
 <tr><td><code>horizontal</code></td><td><code>kHorizontal</code></td><td>Bool</td><td>—</td><td>true=水平分割</td></tr>
-<tr><td><code>line</code></td><td><code>kLine</code></td><td>Color</td><td>灰 / 蓝 / 深蓝</td><td>三态颜色</td></tr>
+<tr><td><code>background</code></td><td><code>kBackground</code></td><td>Color / StateColor</td><td>同 line 缺省</td><td>把手线色（三态：normal/hover/disabled）；<code>line*</code> 专用键优先</td></tr>
+<tr><td><code>line</code></td><td><code>kLine</code></td><td>Color</td><td>灰 / 蓝 / 深蓝</td><td>三态颜色（专用键优先于 background）</td></tr>
 <tr><td><code>line-hover</code></td><td><code>kLineHover</code></td><td>Color</td><td>灰 / 蓝 / 深蓝</td><td>三态颜色</td></tr>
 <tr><td><code>line-drag</code></td><td><code>kLineDrag</code></td><td>Color</td><td>灰 / 蓝 / 深蓝</td><td>三态颜色</td></tr>
 <tr><td><code>ratio</code></td><td><code>kRatio</code></td><td>Float</td><td>0.5</td><td>分割比例（set→setSplitRatio；get 别名 <code>value</code>）</td></tr>

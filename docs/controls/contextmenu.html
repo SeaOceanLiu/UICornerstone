@@ -35,7 +35,7 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 
 <h2>4.7.2 控件的属性</h2>
 
-<p>ContextMenu 为行为型浮层，<b>无独立属性系统键</b>；菜单项内容/样式由 MenuPanel/MenuItem 体系承载，经 JSON <code>context-menu.items[]</code> 声明（<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
+<p>ContextMenu 为行为型浮层：<b>声明式独立类型</b> <code>type:"context-menu"</code>（两态 <code>colors</code>/<code>border-visible</code> + <code>close-on-esc</code>/<code>close-on-click-outside</code>，挂父保持隐藏，由 <code>ContextMenuShow</code> 弹出）；也可作为<b>控件级绑定</b>经 <code>context-menu</code> 键声明。菜单项内容/样式由 MenuPanel/MenuItem 体系承载，经 <code>items[]</code> 声明（<code>caption / shortcut / type / icon</code>，见 4.7.4）。</p>
 
 <h2>4.7.3 控件的回调 / 事件</h2>
 
@@ -53,6 +53,15 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 
 <h2>4.7.4 JSON 语法</h2>
 
+<p>独立声明（P0-45；<code>items</code> 随结构化编辑批次补）：</p>
+<pre><code>{
+  "type": "context-menu", "id": "cm", "visible": false,
+  "colors": { "background": { "normal": "#202020", "hover": "#303030" },
+              "border":     { "normal": "#505050", "hover": "#707070" } },
+  "close-on-esc": true, "close-on-click-outside": true
+}</code></pre>
+
+<p>控件级绑定：</p>
 <pre><code>{
   "type": "label", "id": "lbl", "rect": { "x": 10, "y": 10, "w": 120, "h": 24 },
   "context-menu": {

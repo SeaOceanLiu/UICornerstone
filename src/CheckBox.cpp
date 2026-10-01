@@ -748,6 +748,11 @@ int CheckBox::setIntProperty(const char* prop, int value) {
     return ControlImpl::setIntProperty(prop, value);
 }
 
+void CheckBox::setFont(FontName font) {
+    m_fontName = font;
+    if (m_caption) m_caption->setFont(font);
+}
+
 int CheckBox::setEnumProperty(const char* prop, const char* value) {
     if (strcmp(prop, PropertyNames::kCheckBoxStyle) == 0) {
         setStyle(CheckBoxStyleFromString(value));
@@ -767,6 +772,11 @@ int CheckBox::setEnumProperty(const char* prop, const char* value) {
         if (_stricmp(value, PropertyNames::kVAlignTop)    == 0) { setVerticalAlign(CheckBoxVerticalAlign::Top);    return 1; }
         if (_stricmp(value, PropertyNames::kVAlignBottom) == 0) { setVerticalAlign(CheckBoxVerticalAlign::Bottom); return 1; }
         return 0;
+    }
+    if (strcmp(prop, PropertyNames::kFont) == 0) {   // P032：字体名 → caption Label
+        m_fontName = FontNameFromString(value);
+        if (m_caption) m_caption->setFont(m_fontName);
+        return 1;
     }
     return ControlImpl::setEnumProperty(prop, value);
 }
@@ -829,6 +839,7 @@ int CheckBox::getEnumProperty(const char* prop, const char*& out) {
             case CheckBoxVerticalAlign::Bottom: out = PropertyNames::kVAlignBottom; return 1;
         }
     }
+    if (strcmp(prop, PropertyNames::kFont) == 0) { out = FontNameToString(m_fontName); return 1; }   // P032
     return ControlImpl::getEnumProperty(prop, out);
 }
 

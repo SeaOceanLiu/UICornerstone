@@ -38,6 +38,9 @@ private:
     SColor m_colorNormal;
     SColor m_colorHover;
     SColor m_colorDrag;
+    SColor m_colorDisabled;              // P0-42：colors.background.disabled -> 把手线色（缺省=normal）
+    bool   m_lineNormalSet;              // P0-42：line 专用键优先标记（显式专用 > 通用组）
+    bool   m_lineHoverSet;
     bool   m_hovered;
 
     Cursor* m_cursorResize;
@@ -85,6 +88,8 @@ public:
     void setOnSplitterMoved(OnSplitterMovedHandler handler);
 
     // ── Property system overrides ──
+    void setBackgroundStateColor(StateColor stateColor) override;   // P0-42：通用组 -> 把手线色
+    StateColor getBackgroundStateColor(void) override;              // P0-42：读回（有效线色）
     int setColorProperty(const char* prop, SColor color) override;
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;

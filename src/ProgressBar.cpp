@@ -32,6 +32,7 @@ ProgressBar::ProgressBar(Control *parent, SRect rect, float xScale, float yScale
 }
 
 void ProgressBar::update(void) {
+    if (m_textLabel) m_textLabel->setState(getState());   // P0-38：每帧持续同步（label 非交互，不再随自身 hotRect 抖动）
     if (!getEnable()) return;
     ControlImpl::update();
 
@@ -142,11 +143,15 @@ void ProgressBar::setBackgroundColor(SColor color) {
 
 void ProgressBar::setTextColor(SColor color) {
     m_textColor = color;
+    m_textStateColor.setNormal(color);   // P0-35②：快照同步
     if (m_textLabel != nullptr) {
-        StateColor sc;
-        sc.setNormal(color);
-        m_textLabel->setTextStateColor(sc);
+        m_textLabel->setTextStateColor(m_textStateColor);
     }
+}
+
+void ProgressBar::setState(ControlState state) {
+    ControlImpl::setState(state);
+    if (m_textLabel) m_textLabel->setState(state);   // P0-35②：label 不自行检测，跟随控件态
 }
 
 void ProgressBar::setAnimationSpeed(float speed) {
@@ -204,9 +209,12 @@ void ProgressBar::createTextLabel() {
         .setAlignmentMode(m_alignmentMode)
         .setFontSize(m_fontSize)
         .setCaption(displayText)
-        .setTextStateColor([&]() { StateColor sc; sc.setNormal(m_textColor); return sc; }())
+        .setTextStateColor(m_textStateColor)          // P0-35②：三态快照（重建不丢）
+        .setTextShadowStateColor(m_textShadowStateColor)
+        .setClickable(false)                          // P0-38：内部标签非交互，状态由控件统一驱动
         .build();
 
+    m_textLabel->setState(getState());   // P0-35②：状态同步
     addControl(m_textLabel);
 }
 
@@ -227,6 +235,9 @@ void ProgressBar::updateTextLabel() {
     }
 
     m_textLabel->setCaption(displayText);
+    // P0-35①：尺寸变化后同步 label 矩形（保持居中）
+    m_textLabel->setRect(SRect(0, 0, m_rect.width - ConstDef::PROGRESSBAR_TEXT_MARGIN * 2, m_rect.height));
+    m_textLabel->setState(getState());
 }
 
 /****************************************************************************for Builder mode****************************************************************************/
@@ -293,16 +304,30 @@ int ProgressBar::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kProgress) == 0)   { setProgressColor(color);   return 1; }
     if (strcmp(prop, PropertyNames::kBackground) == 0) { setBackgroundColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)       { setTextColor(color);       return 1; }
+    // P0-35②③：文本/阴影单态键 → 三态快照 + label
+    if (strcmp(prop, PropertyNames::kTextHover) == 0)    { m_textStateColor.setHover(color);    setTextStateColor(m_textStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { m_textStateColor.setPressed(color);  setTextStateColor(m_textStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { m_textStateColor.setDisabled(color); setTextStateColor(m_textStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { m_textShadowStateColor.setNormal(color);   setTextShadowStateColor(m_textShadowStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)   { m_textShadowStateColor.setHover(color);    setTextShadowStateColor(m_textShadowStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0) { m_textShadowStateColor.setPressed(color);  setTextShadowStateColor(m_textShadowStateColor); return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0){ m_textShadowStateColor.setDisabled(color); setTextShadowStateColor(m_textShadowStateColor); return 1; }
     return ControlImpl::setColorProperty(prop, color);
 }
 
-void ProgressBar::setTextStateColor(StateColor stateColor) {   // P0-26：文本四态转发 textLabel
+void ProgressBar::setTextStateColor(StateColor stateColor) {   // P0-26：文本三态转发 textLabel
     ControlImpl::setTextStateColor(stateColor);
-    if (m_textLabel) m_textLabel->setTextStateColor(stateColor);
+    m_textStateColor = stateColor;   // P0-35②：快照（重建不丢）
+    updateTextLabel();
+    if (m_textLabel) {
+        m_textLabel->setTextStateColor(stateColor);
+        m_textLabel->setState(getState());
+    }
 }
 void ProgressBar::setTextShadowStateColor(StateColor stateColor) {
     ControlImpl::setTextShadowStateColor(stateColor);
-    updateTextLabel();   // P0-26：确保懒建 Label 存在后再转发
+    m_textShadowStateColor = stateColor;   // P0-35③：快照
+    updateTextLabel();
     if (m_textLabel) m_textLabel->setTextShadowStateColor(stateColor);
 }
 

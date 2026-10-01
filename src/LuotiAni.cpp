@@ -477,6 +477,7 @@ SharedSurface LuotiAni::getFrameCanvas(uint32_t frame) const {
 
 void LuotiAni::update(void) {
     if (!m_visible) return;
+    ControlImpl::update();   // P0-33④：hover 检测 + 子控件递归（原 override 未链基类）
     if (!m_isPrepared || m_frames.empty()) return;
 
     if (m_isPlaying && m_totalFrames > 0) {

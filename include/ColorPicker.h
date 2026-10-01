@@ -131,6 +131,7 @@ public:
     int setEnumProperty(const char* prop, const char* value) override;
     void setTextStateColor(StateColor stateColor) override;        // P0-26：转发关闭态 Label（四态）
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
+    void setState(ControlState state) override;                    // P0-34①：状态同步关闭态 Label
 
     int getColorProperty(const char* prop, SColor& out) override;
     int getBoolProperty(const char* prop, int& out) override;

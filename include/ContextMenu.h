@@ -27,6 +27,7 @@ public:
 
     // ── 重写：覆盖子菜单区域，避免点击子菜单被误判为外部点击 ──
     bool isContainsPoint(float x, float y) override;
+    void setRect(SRect rect) override;          // P0-37：resize 传播 menu panel
 
     void close(DialogResult result = DialogResult::Cancelled) override;
 

@@ -660,6 +660,12 @@ UICORNERSTONE_API int UICornerstone_CaptureControl(UIInstance instance, UIContro
 UICORNERSTONE_API int UICornerstone_SavePixelsToFile(
     const uint8_t* pixels, int w, int h, const char* filePath);
 
+/* ============ 字体枚举清单（P0-48 扩展②：静态，与实例无关） ============ */
+/* 内置字体名清单（与 PropertyNames.h 的 kFont* 常量 / schema $defs/font-name 单一数据源；
+   返回值可直接用于 SetString/SetEnum("font")）。index 越界或参数无效返回 0。 */
+UICORNERSTONE_API int UICornerstone_GetFontCount(void);
+UICORNERSTONE_API int UICornerstone_GetFontName(int index, char* out, int maxLen);
+
 /* ============ Dialog/Popup ============ */
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateDialog(UIInstance instance,
     const char* confirmText, const char* cancelText,

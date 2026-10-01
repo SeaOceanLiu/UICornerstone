@@ -815,6 +815,27 @@ bool UICornerstone::CaptureControl(Control& ctl, uint8_t* out, int* w, int* h) c
 bool UICornerstone::SavePixelsToFile(const uint8_t* pixels, int w, int h, const std::string& filePath) {
     return Dyn::API().fnSavePixelsToFile(pixels, w, h, filePath.c_str()) != 0;
 }
+
+// 字体枚举清单（P0-48 扩展②）：静态，不需要实例；核心库未加载时安全降级
+int UICornerstone::GetFontCount() {
+    auto& api = Dyn::API();
+    if (!api.fnGetFontCount) return 0;
+    return api.fnGetFontCount();
+}
+std::string UICornerstone::GetFontName(int index) {
+    auto& api = Dyn::API();
+    if (!api.fnGetFontName) return std::string();
+    char buf[64] = {0};
+    if (!api.fnGetFontName(index, buf, static_cast<int>(sizeof(buf)))) return std::string();
+    return std::string(buf);
+}
+std::vector<std::string> UICornerstone::GetFontNames() {
+    std::vector<std::string> names;
+    const int n = GetFontCount();
+    if (n > 0) names.reserve(static_cast<size_t>(n));
+    for (int i = 0; i < n; ++i) names.push_back(GetFontName(i));
+    return names;
+}
 void UICornerstone::MenuPanelAddItem(Control& panel, Control& item) {
     if (m_impl->instance && panel.Handle() && item.Handle())
         Dyn::API().fnMenuPanelAddItem(m_impl->instance, panel.Handle(), item.Handle());

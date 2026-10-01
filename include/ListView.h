@@ -53,6 +53,18 @@ struct ListColumn {
     HeaderStyle style;                           // 列头文本样式
 };
 
+struct RowStyle {                                // P032：行级样式（四态；cell > row > 控件级）
+    StateColor bgColor{StateColor::Type::Background};
+    StateColor borderColor{StateColor::Type::Border};
+    StateColor textColor{StateColor::Type::Text};
+    StateColor textShadowColor{StateColor::Type::TextShadow};
+    bool borderVisible = false;
+    bool shadowEnabled = false;
+    float shadowOffsetX = 1.0f;
+    float shadowOffsetY = 1.0f;
+    bool disabled = false;
+};
+
 struct ListRow {
     string id;
     vector<string> cells;                        // 每列文本（位置映射 + 尾部省略；写 API 强制补足）
@@ -60,6 +72,8 @@ struct ListRow {
     void* userData = nullptr;
     map<int, shared_ptr<Control>> cellControls;  // 单元格级控件（稀疏；排序/移动/删除跟随行）
     map<int, CellStyle> cellStyles;              // 单元格级样式（稀疏）
+    bool hasStyle = false;                       // P032：行级样式已设置
+    RowStyle style;                              // P032：行级样式
 };
 
 class ListView : public ControlImpl {
@@ -170,6 +184,13 @@ public:
     int getBoolProperty(const char* prop, int& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getIntProperty(const char* prop, int& out) override;
+    int setColorProperty(const char* prop, SColor color) override;                  // P032：item 色单态
+    int getColorProperty(const char* prop, SColor& out) override;
+    int setStateColorProperty(const char* prop, StateColor stateColor) override;    // P032：item 色四态对象
+    int getStateColorProperty(const char* prop, StateColor& out) override;
+    int setStringProperty(const char* prop, const char* value) override;            // P032：item-id
+    int getStringProperty(const char* prop, const char*& out) override;
+    int findRowById(const std::string& id) const;   // P032：item-id → 行索引（-1 未命中）
 
 private:
     friend class ListViewBuilder;
@@ -207,6 +228,8 @@ private:
     bool  m_multiSelect = true;
 
     int   m_hoveredRow = -1;
+    int   m_pressedRow = -1;                     // P032：行 pressed 态
+    std::string m_itemTargetId;                  // P032：item-id 定位（行级属性目标）
     int   m_scrollOffsetV = 0;                    // 垂直滚动偏移（px，行级步进）
     float m_hScrollOffset = 0.f;                  // 水平滚动（px，整行平移）
     int   m_dragCol = -1;                         // 列宽拖拽中的列索引；-1 非拖拽

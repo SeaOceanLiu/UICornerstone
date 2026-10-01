@@ -65,6 +65,14 @@ void ContextMenu::show(float x, float y) {
     m_menuPanel->layoutItems();
 }
 
+void ContextMenu::setRect(SRect rect) {
+    Panel::setRect(rect);
+    if (m_menuPanel) {
+        m_menuPanel->setRect(SRect(0, 0, rect.width, rect.height));
+        m_menuPanel->recalculateSize();
+    }
+}
+
 void ContextMenu::close(DialogResult result) {
     if (m_menuPanel) m_menuPanel->hide();
     Popup::close(result);

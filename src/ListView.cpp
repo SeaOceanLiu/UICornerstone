@@ -608,11 +608,23 @@ void ListView::draw(void) {
 
     for (int i = start; i < end; ++i) {
         const float y = oy + dataY * sy + (i * rowH - m_scrollOffsetV * sy);
-        const ListRow& row = m_rows[i];
+        ListRow& row = m_rows[i];   // P032：行级样式需非 const 访问（resolveStateColor）
         const bool selected = m_selectedRows.count(i) != 0;
 
-        // 行背景：选中 > hover
-        if (selected) {
+        // P032：行状态（disabled > pressed > hover > normal）
+        const ControlState rowSt = row.style.disabled ? ControlState::Disabled
+                                 : (i == m_pressedRow) ? ControlState::Pressed
+                                 : (i == m_hoveredRow) ? ControlState::Hover
+                                                       : ControlState::Normal;
+        // 行背景：item 样式（优先）> 选中 > hover
+        if (row.hasStyle) {
+            dev->setDrawColor(ControlImpl::resolveStateColor(row.style.bgColor, rowSt));
+            dev->fillRect(SRect(ox, y, dr.width, rowH));
+            if (row.style.borderVisible) {
+                dev->setDrawColor(ControlImpl::resolveStateColor(row.style.borderColor, rowSt));
+                dev->drawRect(SRect(ox, y, dr.width, rowH));
+            }
+        } else if (selected) {
             dev->setDrawColor(m_selectedColor);
             dev->fillRect(SRect(ox, y, dr.width, rowH));
         }
@@ -644,7 +656,9 @@ void ListView::draw(void) {
             if (text.empty()) continue;
 
             FontName fn = m_fontName; int fs = m_fontSize;
-            SColor tc = ControlImpl::resolveStateColor(m_textColor, getState());   // P0-26：文本四态
+            SColor tc = row.hasStyle
+                      ? ControlImpl::resolveStateColor(row.style.textColor, rowSt)   // P032：行文本四态
+                      : ControlImpl::resolveStateColor(m_textColor, getState());     // P0-26：文本四态
             const CellStyle* csPtr = nullptr;
             if (styleIt != row.cellStyles.end()) {
                 const CellStyle& cs = styleIt->second;
@@ -656,10 +670,12 @@ void ListView::draw(void) {
             SharedFont cf = fontFor(fn, fs);
             if (!cf) cf = m_font;
             const float fh = renderer->getFontHeight(cf.get());
-            const bool shadowEnabled = csPtr ? csPtr->shadowEnabled : false;
-            const SColor shadowColor = csPtr ? csPtr->textShadowColor : SColor(0, 0, 0, 120);
-            const float offX = csPtr ? csPtr->shadowOffsetX : 1.0f;
-            const float offY = csPtr ? csPtr->shadowOffsetY : 1.0f;
+            // P032：阴影优先级 cell > row
+            const bool shadowEnabled = csPtr ? csPtr->shadowEnabled : row.style.shadowEnabled;
+            const SColor shadowColor = csPtr ? csPtr->textShadowColor
+                                             : ControlImpl::resolveStateColor(row.style.textShadowColor, rowSt);
+            const float offX = csPtr ? csPtr->shadowOffsetX : row.style.shadowOffsetX;
+            const float offY = csPtr ? csPtr->shadowOffsetY : row.style.shadowOffsetY;
 
             dev->pushClipRect(SRect(ox + x, y, w, rowH));
             TextDraw::withShadow(renderer, cf.get(), text,
@@ -774,6 +790,7 @@ bool ListView::handleEvent(shared_ptr<Event> event) {
         // 数据区：选择
         const int row = hitTestRow(ly);
         if (row >= 0) {
+            m_pressedRow = row;   // P032：行 pressed 态
             KeyMod mod = KeyMod::None;
         if (auto* ib = getInputBackend()) mod = ib->getModState();
         const bool ctrl = (mod == KeyMod::LCtrl || mod == KeyMod::RCtrl ||
@@ -799,7 +816,10 @@ bool ListView::handleEvent(shared_ptr<Event> event) {
     }
 
     // ── MouseUp：结束拖拽 ──
-    if (event->m_type == EventType::MouseUp) m_dragCol = -1;
+    if (event->m_type == EventType::MouseUp) {
+        m_dragCol = -1;
+        m_pressedRow = -1;   // P032：抬起清除行 pressed
+    }
 
     // ── MouseMove：hover / 列宽拖拽 ──
     if (event->m_type == EventType::MouseMove) {
@@ -868,7 +888,95 @@ int ListView::setEnumProperty(const char* prop, const char* value) {
     }
     return ControlImpl::setEnumProperty(prop, value);
 }
+int ListView::findRowById(const std::string& id) const {
+    for (size_t i = 0; i < m_rows.size(); ++i)
+        if (m_rows[i].id == id) return static_cast<int>(i);
+    return -1;
+}
+
+// P032：item（行）级样式（item-id 定位）
+int ListView::setStringProperty(const char* prop, const char* value) {
+    if (strcmp(prop, "item-id") == 0) {
+        if (!value || !value[0]) { m_itemTargetId.clear(); return 1; }
+        if (findRowById(value) < 0) return 0;
+        m_itemTargetId = value;
+        return 1;
+    }
+    return ControlImpl::setStringProperty(prop, value);
+}
+int ListView::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, "item-id") == 0) { out = m_itemTargetId.c_str(); return 1; }
+    return ControlImpl::getStringProperty(prop, out);
+}
+int ListView::setStateColorProperty(const char* prop, StateColor stateColor) {
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
+        strcmp(prop, PropertyNames::kItemBorder) == 0 ||
+        strcmp(prop, PropertyNames::kItemText) == 0 ||
+        strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {
+        int idx = findRowById(m_itemTargetId);
+        if (idx < 0) return 0;
+        ListRow& row = m_rows[idx];
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      row.style.bgColor = stateColor;
+        else if (strcmp(prop, PropertyNames::kItemBorder) == 0)     row.style.borderColor = stateColor;
+        else if (strcmp(prop, PropertyNames::kItemText) == 0)       row.style.textColor = stateColor;
+        else                                                        row.style.textShadowColor = stateColor;
+        row.hasStyle = true;
+        return 1;
+    }
+    return ControlImpl::setStateColorProperty(prop, stateColor);
+}
+int ListView::getStateColorProperty(const char* prop, StateColor& out) {
+    int idx = findRowById(m_itemTargetId);
+    if (idx < 0) return 0;
+    const RowStyle& st = m_rows[idx].style;
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0)      { out = st.bgColor;         return 1; }
+    if (strcmp(prop, PropertyNames::kItemBorder) == 0)          { out = st.borderColor;     return 1; }
+    if (strcmp(prop, PropertyNames::kItemText) == 0)            { out = st.textColor;       return 1; }
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0)  { out = st.textShadowColor; return 1; }
+    return ControlImpl::getStateColorProperty(prop, out);
+}
+int ListView::setColorProperty(const char* prop, SColor color) {
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
+        strcmp(prop, PropertyNames::kItemBorder) == 0 ||
+        strcmp(prop, PropertyNames::kItemText) == 0 ||
+        strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {
+        int idx = findRowById(m_itemTargetId);
+        if (idx < 0) return 0;
+        ListRow& row = m_rows[idx];
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      row.style.bgColor.setNormal(color);
+        else if (strcmp(prop, PropertyNames::kItemBorder) == 0)     row.style.borderColor.setNormal(color);
+        else if (strcmp(prop, PropertyNames::kItemText) == 0)       row.style.textColor.setNormal(color);
+        else { row.style.textShadowColor.setNormal(color); row.style.shadowEnabled = true; }
+        row.hasStyle = true;
+        return 1;
+    }
+    return ControlImpl::setColorProperty(prop, color);
+}
+int ListView::getColorProperty(const char* prop, SColor& out) {
+    int idx = findRowById(m_itemTargetId);
+    if (idx >= 0) {
+        const RowStyle& st = m_rows[idx].style;
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      { out = st.bgColor.getNormal();         return 1; }
+        if (strcmp(prop, PropertyNames::kItemBorder) == 0)          { out = st.borderColor.getNormal();     return 1; }
+        if (strcmp(prop, PropertyNames::kItemText) == 0)            { out = st.textColor.getNormal();       return 1; }
+        if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0)  { out = st.textShadowColor.getNormal(); return 1; }
+    }
+    return ControlImpl::getColorProperty(prop, out);
+}
+
 int ListView::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
+        strcmp(prop, PropertyNames::kItemShadow) == 0 ||
+        strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032：item 级开关（item-id 定位）
+        int idx = findRowById(m_itemTargetId);
+        if (idx < 0) return 0;
+        ListRow& row = m_rows[idx];
+        if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0) row.style.borderVisible = (value != 0);
+        else if (strcmp(prop, PropertyNames::kItemShadow) == 0)   row.style.shadowEnabled = (value != 0);
+        else                                                      row.style.disabled = (value != 0);
+        row.hasStyle = true;
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kMultiSelect) == 0)       { setMultiSelect(value != 0);      return 1; }
     if (strcmp(prop, PropertyNames::kGridlines) == 0)          { setGridlines(value != 0);         return 1; }
     if (strcmp(prop, PropertyNames::kHorizontalGridlines) == 0){ setHorizontalGridlines(value != 0); return 1; }
@@ -900,6 +1008,17 @@ int ListView::getEnumProperty(const char* prop, const char*& out) {
     return ControlImpl::getEnumProperty(prop, out);
 }
 int ListView::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
+        strcmp(prop, PropertyNames::kItemShadow) == 0 ||
+        strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032
+        int idx = findRowById(m_itemTargetId);
+        if (idx < 0) return 0;
+        const RowStyle& st = m_rows[idx].style;
+        if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0) out = st.borderVisible ? 1 : 0;
+        else if (strcmp(prop, PropertyNames::kItemShadow) == 0)   out = st.shadowEnabled ? 1 : 0;
+        else                                                      out = st.disabled ? 1 : 0;
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kMultiSelect) == 0)       { out = m_multiSelect ? 1 : 0;            return 1; }
     if (strcmp(prop, PropertyNames::kGridlines) == 0)          { out = m_gridlines ? 1 : 0;               return 1; }
     if (strcmp(prop, PropertyNames::kHorizontalGridlines) == 0){ out = m_horizontalGridlines ? 1 : 0;     return 1; }

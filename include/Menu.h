@@ -183,6 +183,7 @@ public:
 
     // P0-26：item 文本色/阴影访问器（MenuItem::draw 读取）
     SColor getItemTextColor() const { return m_textColor; }
+    SColor getItemDisabledBgColor() const { return m_disabledBgColor; }
     SColor getItemHoverTextColor() const { return m_hoverTextColor; }
     SColor getItemDisabledTextColor() const { return m_disabledTextColor; }
     StateColor& getItemTextShadowState() { return m_textShadowColor; }
@@ -193,6 +194,8 @@ public:
     // 属性系统（CABI item-id 定位 + item-leading-* 属性，TreeView v7 同模式）
     void setTextStateColor(StateColor stateColor) override;        // P0-26：文本三态（normal/hover/disabled）
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色三态
+    void setBackgroundStateColor(StateColor stateColor) override;  // P0-33③：对象路径 → 专用成员
+    void setBorderStateColor(StateColor stateColor) override;      // P0-33③
     int setColorProperty(const char* prop, SColor color) override;
     int getColorProperty(const char* prop, SColor& out) override;
     int setBoolProperty(const char* prop, int value) override;
@@ -229,6 +232,9 @@ private:
     SColor m_bgColor;
     SColor m_borderColor;
     SColor m_hoverColor;
+    SColor m_disabledBgColor;      // P0-33③：禁用项底色（三态 N/H/D）
+    SColor m_hoverBorderColor;     // P0-33③：hover 边框
+    SColor m_disabledBorderColor;  // P0-33③：disabled 边框
     SColor m_separatorColor;
     SColor m_textColor;
     SColor m_hoverTextColor;
@@ -326,6 +332,9 @@ private:
     SColor m_hoverTextColor;
     SColor m_activeBgColor;
     SColor m_borderColor;
+    SColor m_hoverBorderColor;     // P0-33③
+    SColor m_disabledBorderColor;  // P0-33③
+    SColor m_disabledBgColor;      // P0-33③
     SColor m_disabledTextColor;
     StateColor m_textShadowColor;
     bool   m_shadowEnabled = false;
@@ -344,8 +353,11 @@ public:
     // ── Property system overrides ──
     void setTextStateColor(StateColor stateColor) override;        // P0-26：文本三态 → 自身 + 面板
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26
+    void setBackgroundStateColor(StateColor stateColor) override;  // P0-33③：对象路径 → 专用成员 + 面板
+    void setBorderStateColor(StateColor stateColor) override;      // P0-33③
     int setColorProperty(const char* prop, SColor color) override;
     int getColorProperty(const char* prop, SColor& out) override;
+    int getStateColorProperty(const char* prop, StateColor& out) override;   // P0-44：三态对象路径读回组装
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setEnumProperty(const char* prop, const char* value) override;

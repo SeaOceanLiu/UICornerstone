@@ -258,6 +258,11 @@ public:
     // 将 RGBA8888 像素缓冲保存为 BMP 文件（与实例无关，线程安全）
     static bool SavePixelsToFile(const uint8_t* pixels, int w, int h, const std::string& filePath);
 
+    // ── 字体枚举清单（P0-48 扩展②，静态；核心库未加载时返回 0/空）──
+    static int GetFontCount();
+    static std::string GetFontName(int index);
+    static std::vector<std::string> GetFontNames();
+
     Control CreateHandleControl(Control target, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
 
     // ── HandleControl 集成（第二批）──

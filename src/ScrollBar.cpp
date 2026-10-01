@@ -142,6 +142,7 @@ bool ScrollBar::shouldShow() const {
 }
 
 void ScrollBar::update(void) {
+    ControlImpl::update();   // P0-033：hover 检测（原空 override 致 hover 不可达）
 }
 
 void ScrollBar::draw(void) {
@@ -203,6 +204,7 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
         if (isPointInThumb(event->mouseButton.x, event->mouseButton.y)) {
             m_dragging = true;
             m_thumbPressed = true;
+            applyPressState(true);   // P0-033：按下切态
             if (m_orientation == ScrollBarOrientation::Vertical) {
                 m_dragOffset = localY - m_thumbRect.top;
             } else {
@@ -231,6 +233,7 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
     if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
         m_dragging = false;
         m_thumbPressed = false;
+        applyPressState(false);   // P0-033：抬起复位
     }
 
     if (event->m_type == EventType::MouseMove) {
@@ -387,6 +390,12 @@ int ScrollBar::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kPageSize) == 0)           { setPageSize(value);        return 1; }
     if (strcmp(prop, PropertyNames::kStepSize) == 0)           { setStepSize(value);        return 1; }
     if (strcmp(prop, PropertyNames::kScrollbarThickness) == 0) { setThickness(value);       return 1; }
+    if (strcmp(prop, PropertyNames::kThickness) == 0) {   // P0-40①：外观厚度 = rect 短边（垂直→width / 水平→height）
+        SRect r = getRect();
+        if (m_orientation == ScrollBarOrientation::Vertical) r.width = value; else r.height = value;
+        setRect(r);
+        return 1;
+    }
     return ControlImpl::setFloatProperty(prop, value);
 }
 
@@ -414,6 +423,11 @@ int ScrollBar::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kPageSize) == 0)           { out = m_pageSize; return 1; }
     if (strcmp(prop, PropertyNames::kStepSize) == 0)           { out = m_stepSize; return 1; }
     if (strcmp(prop, PropertyNames::kScrollbarThickness) == 0) { out = m_thickness; return 1; }
+    if (strcmp(prop, PropertyNames::kThickness) == 0) {   // P0-40①：读回 rect 短边
+        SRect r = getRect();
+        out = (m_orientation == ScrollBarOrientation::Vertical) ? r.width : r.height;
+        return 1;
+    }
     return ControlImpl::getFloatProperty(prop, out);
 }
 

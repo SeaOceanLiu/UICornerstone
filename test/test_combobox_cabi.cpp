@@ -31,6 +31,8 @@ typedef int  (*UISetStringFn)(UIInstance,void*,const char*,const char*);
 typedef int  (*UIGetStringFn)(UIInstance,void*,const char*,char*,int);
 typedef int  (*UIGetIntFn)(UIInstance,void*,const char*,int*);
 typedef void (*UIPushUIEventFn)(UIInstance,const UIEvent*);
+typedef int  (*UISetIntFn)(UIInstance,void*,const char*,int);
+typedef int  (*UISetCallbackFn)(UIInstance,void*,const char*,UIEventCallback,void*);
 
 static UICreateInstanceFn  uiCreateInstance      = nullptr;
 static UIDestroyInstanceFn uiDestroyInstance     = nullptr;
@@ -48,12 +50,22 @@ static UISetStringFn       uiSetString           = nullptr;
 static UIGetStringFn       uiGetString           = nullptr;
 static UIGetIntFn          uiGetInt              = nullptr;
 static UIPushUIEventFn     uiPushUIEvent         = nullptr;
+static UISetIntFn          uiSetInt              = nullptr;
+static UISetCallbackFn     uiSetCallback          = nullptr;
 
 static HMODULE g_uiDll = nullptr;
 static UIInstance g_inst = nullptr;
 
 // ===== 注入模拟（--sim-inject）：进程内事件注入（走 queuedEvents 通路），
 // 不依赖窗口焦点，用于验证 comboEditable 打字 + 回车匹配 =====
+static int g_directFired = 0;
+static int g_directIdx = -99;
+static void onDirectSelectionCB(void* ctl, const UIEventData* ev, void* user) {
+    (void)ctl; (void)user;
+    g_directFired++;
+    g_directIdx = ev ? ev->data.selection.idx : -99;
+}
+
 static bool g_simInject = false;
 static int g_autoSec = 0;   // auto=<秒>：到时注入 WINDOW_CLOSE 自行退出（无人值守）
 static int g_simPhase = 0;
@@ -200,6 +212,8 @@ static void loadAllProcs(HMODULE dll) {
     RESOLVE(GetString);
     RESOLVE(GetInt);
     RESOLVE(PushUIEvent);
+    RESOLVE(SetInt);
+    RESOLVE(SetCallback);
 #undef RESOLVE
 }
 
@@ -316,6 +330,22 @@ static int runTest(const char* shortName, const char* displayName) {
 
     if (!uiLoadLayout(g_inst, layoutJson)) { printf("FAIL: LoadLayout\n"); uiDestroyInstance(g_inst); FreeLibrary(g_uiDll); return 1; }
     printf("OK: layout loaded\n");
+
+    // ===== P0-48锛帰etCallback + selected-index 绋嬪簭鍖栬Е鍙?=====
+    {
+        void* ed = uiFindControl(g_inst, "comboEditable");
+        printf("P0-48 comboEditable=%s\n", ed ? "OK" : "NULL");
+        if (ed && uiSetCallback && uiSetInt) {
+            uiSetCallback(g_inst, ed, "selection-changed", onDirectSelectionCB, nullptr);
+            g_directFired = 0; g_directIdx = -99;
+            int r1 = uiSetInt(g_inst, ed, "selected-index", 1);
+            printf("P0-48 direct SetInt(1)=%d fired=%d idx=%d\n", r1, g_directFired, g_directIdx);
+            int rSame = uiSetInt(g_inst, ed, "selected-index", 1);
+            printf("P0-48 direct SetInt(same)=%d fired=%d (guard)\n", rSame, g_directFired);
+            int r2 = uiSetInt(g_inst, ed, "selected-index", 2);
+            printf("P0-48 direct SetInt(2)=%d fired=%d idx=%d\n", r2, g_directFired, g_directIdx);
+        }
+    }
 
     printf("Frame loop... (interact with the ComboBox or close the window)\n");
     ULONGLONG autoT0 = GetTickCount64();

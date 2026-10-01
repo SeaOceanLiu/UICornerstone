@@ -71,6 +71,8 @@ private:
     FontName      m_labelFont;
     int           m_labelFontSize;
     SColor        m_labelColor;
+    float         m_shadowOffsetX;   // P0-39①：valueLabel 阴影偏移独立存储（缺省 2.0，label 有无均可读写）
+    float         m_shadowOffsetY;
     string        m_labelFormat;
     float         m_labelGap;
 
@@ -108,6 +110,7 @@ public:
     void create(void) override;
     void update(void) override;
     void draw(void) override;
+    void setState(ControlState state) override;   // P0-39②：valueLabel 态同步
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
     void refreshScaleWith(float parentXX, float parentYY) override;

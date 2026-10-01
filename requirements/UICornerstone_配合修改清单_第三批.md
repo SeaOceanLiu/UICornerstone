@@ -277,3 +277,43 @@
 > **P0-28 扩围（2026-09-23）**：ContextMenu 同为 dismiss 语义（设计器取消选择即隐藏）——编辑态常显的控件范围 = Dialog + ContextMenu（+未来 Popup/ConfirmPopup）。
 
 | P0-31 | 中 | **ImageButton 全面移除** | 用户决策：Button + normal/hover/pressed/disabled-image 四态图资源行已完整覆盖图片按钮语义，ImageButton 类冗余。**移除范围**：ImageButton 类（include/src）、UICornerstone_CreateImageButton C ABI、binding CreateImageButton、LayoutParser 的 image-button 类型解析、相关测试。**注意**：①AnimatedButton（luoti 动画按钮）语义不同**保留**；②既有布局的 image-button 类型建议解析层降级为普通 Button 并 Warn（或引擎自查布局后彻底删）；③schema 无 image-button def（已核实）无需动。设计器侧已同步清理（工具项/类型映射/创建分支） |
+
+> **P0-30 复核补充（2026-09-23 二次评审）**：设计"基类仅切 Hover"不完整——未自实现按下的控件 pressed 色槽仍不可达，四态可达目标只完成一半。请引擎补充：基类 onMouseDown/Up 对称切 Pressed（分发条件与点击一致）；非交互控件（isContainsPoint=false）的 pressed 不可达属语义正确（设计期经状态预览/程序化 setState）。详见 Temp/PopupFactories_HoverChain_ImageButton_Design_复核意见.md §1 修正段。
+
+## 追加（2026-09-24 P0-26 落地后第二轮联测——schema 声明与实现对齐）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-32 | 高 | **schema 声明与实现对齐：输入控件收回 shadow 声明** | §3 矩阵决策"输入控件不加阴影"（edit-box/text-area/combo-box/numeric-up-down shadow ✗）但 §4.2 full 清单误含——schema 声明了 shadow 而运行时无实现，设计器按声明生成无效行。**收回 4 类型 shadow 声明**（设计器 def 驱动自动消失）。原则重申：声明=实现，未实现的不要声明 |
+| P0-33 | 高 | **hover/pressed 链路第二批** | ①slider pressed 不生效；②progressbar background.hover/pressed、border.pressed 不生效；③menu-bar background.hover/pressed 不生效（BAR_HOVER/BAR_ACTIVE 映射链）；④Animation(LuotiAni) hover/pressed 均不生效（疑 update override 未调基类，对照 Actor hover 已生效）；⑤ColorPicker pressed 不生效 |
+| P0-34 | 高 | **ColorPicker 文字转发错位 + 弹层生命期** | ①colors.text 四态转发错位：normal/hover 不生效、disabled 色被当作 normal 生效（槽位映射 bug——closedLabel 转发）；②删除已弹窗的 ColorPicker 时弹窗未一并关闭（popupPool 生命期随主体删除） |
+| P0-35 | 中 | **ProgressBar 视觉三处** | ①文本在手柄放大后不居中（文本定位未跟随值变化）；②text 仅 normal 生效（hover/pressed/disabled 转发缺）；③shadow 无颜色生效（enable/offset 已生效——色值转发缺） |
+| P0-36 | 中 | **NUD text.disabled 不生效** | colors.text.disabled 转发链核查 |
+| P0-37 | 低 | **ContextMenu resize 颜色区块跟随** | 大小改变时颜色区块（menu panel/条目背景）未一并改变尺寸 |
+
+> StatusBar/TabControl 文字相关用例依赖结构化编辑（设计器 P1 已列）；background/border 已验证正常。
+> Image pressed 不生效为预期语义（isContainsPoint=false 非交互控件不收按下），非缺陷。
+
+## 追加（2026-09-27 视觉测试第三轮——引擎清单）
+
+| # | 优先级 | 问题 | 说明 |
+|---|---|---|---|
+| P0-38 | 中 | **ProgressBar textLabel 态同步** | text.hover 只在 label 自身 hotRect 内生效——应随 ProgressBar 整体状态（对照 §3.6 Slider setState 同步 valueLabel 模式） |
+| P0-39 | 中 | **Slider 三处** | ①shadow.offset.* 读回缺省 0，实际语义应为 2.0（缺省值对齐）；②valueLabel hover 无法获得滑块 hover 状态（只能自身 hotRect——setState 同步链实测未通）；③text/text-shadow 的 disabled 不生效 |
+| P0-40 | 中 | **ScrollBar 两处** | ①厚度无法被外观手柄（HandleControl）拖动调整；②轨道 background 色无法呈现（疑被滑块遮挡）——建议增加滑块（thumb）色键 |
+| P0-41 | 低 | **WinFrame 关闭按钮边框** | 窗框 border（整体窗框）波及右上关闭按钮——关闭按钮应保持无边框 |
+| P0-42 | 中 | **Splitter 背景色不受控** | colors.background 设置后视觉无变化（自绘把手/分隔线覆盖背景？） |
+| P0-43 | 中 | **ListView border 不生效** | 控件级 colors.border 三态声明但视觉无变化（beforeDraw/afterDraw 绘制链核查） |
+| P0-44 | 高 | **MenuBar background.hover/disabled 不生效且无法读回** | P0-33③ 实施回炉：对象路径映射/读回组装实测未通 |
+| P0-45 | 中 | **ContextMenu 无动态行** | schema 无 context-menu def（defs.contains 失败动态区空）——请补 def（ContextMenu 继承 Popup，能力矩阵两态）或提供属性面板映射方案 |
+| P0-46 | 低 | **font 运行时接口形态确认** | 设计器已生成 font 字体名 string 行（写回 SetString("font")）——请确认引擎分发形态（SetString vs setEnumProperty）并对齐；读回（GetString）同步 |
+
+| P0-47 | 中 | **font 读回两处** | ①Slider：getEnumProperty(kFont)/getStringProperty(kFont) 读回缺失（写回转发已通——读回无）；②WinFrame：getStringProperty(kFont) 返回错位（实测返回 title 的 caption 内容而非字体名——实现串写） |
+
+| P0-48 | 中 | **ComboBox selection-changed 经 Binding 未触发** | 设计器属性面板 font ComboBox：AddItem/selected-index 读写正常，但用户下拉选择后 kEventSelectionChanged 回调（Binding SetCallback 注册）未触发。交互链完整（列表项 MouseDown→selectItem→fireCCallback(Selection)——ComboBox.cpp:534/908-913），setCallbackProperty 支持该事件（:1051）——疑 fireCCallback C 通道与 Binding 桥（Selection 载荷→Event）衔接问题，请引擎自查并提供测试用例 |
+
+| P0-48 扩展 | 高 | **font 设置后控件文字字体不变** | 设计器写回链全通（SetString(kFont)→Enum 别名→读回 match=1，如 Muyao-Softbrush），但控件文字视觉不变。请引擎：①核查 setEnumProperty(kFont) 的字体切换链（枚举名解析→Font 对象→caption Label 字体更新→重绘）；②提供**合法字体枚举名清单**或查询 API（设计器 ComboBox 选项需与引擎枚举对齐——当前清单为设计器 registerFonts 的 6 个字体资源 stem，疑与引擎枚举表不一致） |
+
+| P0-47 扩展 | 中 | **kFont 未设置时读回实际生效的缺省字体名** | 现状：font 未显式设置时 GetString(kFont) 返回空（属性系统回显设置值），设计器无法得知控件实际字体，被迫造"(缺省)"虚拟项。请引擎：kFont 读回在未显式设置时返回**控件实际生效的缺省字体名**（构造字体 → 名字）。设计器随批：删"(缺省)"项，读回实际名直接选中 |
+
+| P0-49 | 中 | **text-shadow per-state 读回失败（hover/pressed）** | 设计器第一轮视觉反馈（漏列，此补）：Button/Label 的 text-shadow 槽 normal/disabled 读回正常，**hover/pressed 读回失败**（caption-label 直控回读链）——写入视觉生效、读回不回。请引擎核查 getTextShadowStateColor 的 per-state 读回分发（text-shadow.hover/.pressed 键），并排查其它 StateColor 组（text/border/background）是否存在同样的 per-state 读回缺失 |

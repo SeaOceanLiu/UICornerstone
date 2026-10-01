@@ -45,6 +45,8 @@ typedef int   (*UIGetStringFn)(UIInstance,void*,const char*,char*,int);
 typedef int   (*UISetEnumFn)(UIInstance,void*,const char*,const char*);
 typedef int   (*UIGetEnumFn)(UIInstance,void*,const char*,char*,int);
 typedef int   (*UISetCallbackFn)(UIInstance,void*,const char*,UIEventCallback,void*);
+typedef int   (*UIGetFontCountFn)(void);
+typedef int   (*UIGetFontNameFn)(int,char*,int);
 
 static UICreateInstanceFn   uiCreateInstance       = nullptr;
 static UISetViewportFn      uiSetViewport          = nullptr;
@@ -74,6 +76,8 @@ static UIGetStringFn        uiGetString            = nullptr;
 static UISetEnumFn          uiSetEnum              = nullptr;
 static UIGetEnumFn          uiGetEnum              = nullptr;
 static UISetCallbackFn      uiSetCallback          = nullptr;
+static UIGetFontCountFn     uiGetFontCount         = nullptr;
+static UIGetFontNameFn      uiGetFontName          = nullptr;
 
 static HMODULE g_uiDll = nullptr;
 static UIInstance g_inst = nullptr;
@@ -93,6 +97,15 @@ static int g_failCount = 0;
     if (_ret != (expected)) { printf("  FAIL: %s (returned %d, expected %d)\n", msg, _ret, (expected)); g_failCount++; } \
     else                    { printf("  PASS: %s\n", msg); g_passCount++; } \
 } while(0)
+
+// ===== P0-48：ComboBox 选择回调统计 =====
+static int g_comboSelFired = 0;
+static int g_comboSelIdx = -1;
+static void onComboSelChanged(void* ctl, const UIEventData* ev, void* user) {
+    (void)ctl; (void)user;
+    g_comboSelFired++;
+    g_comboSelIdx = ev ? ev->data.selection.idx : -99;
+}
 
 // ===== 浜嬩欢鍥炶皟 =====
 static void onEventCallback(void* ctl, const UIEventData* event, void* user) {
@@ -132,6 +145,8 @@ static void loadAllProcs(HMODULE dll) {
     RESOLVE(SetEnum);
     RESOLVE(GetEnum);
     RESOLVE(SetCallback);
+    RESOLVE(GetFontCount);
+    RESOLVE(GetFontName);
 #undef RESOLVE
 }
 
@@ -306,6 +321,103 @@ static int runPropertyTests(void) {
     CHECK_RET(uiSetCallback(g_inst, slider, "value-changed", onEventCallback, NULL), 1, "Slider: SetCallback(value-changed) -> 1");
     CHECK_RET(uiSetCallback(g_inst, slider, "invalid-event", onEventCallback, NULL), 1, "Slider: SetCallback(invalid-event) -> 1");
 
+    // 鈹€鈹€ P0-48 鎵╁睍鈶? 瀛椾綋鏋氫妇娓呭崟 API 鈹€鈹€
+    // P0-49: text-shadow per-state read-back (label/button four states)
+    printf("\n--- text-shadow per-state read-back tests ---\n");
+    {
+        void* shLbl = uiFindControl(g_inst, "lblTitle");
+        void* shBtn = uiFindControl(g_inst, "btnProp");
+        CHECK(shLbl != NULL && shBtn != NULL, "FindControl(label/button) for shadow");
+        const char* shKeys[4] = {"text-shadow", "text-shadow.hover", "text-shadow.pressed", "text-shadow.disabled"};
+        UIColor shCols[4] = {{40,41,42,255}, {50,51,52,255}, {60,61,62,255}, {70,71,72,255}};
+        for (int i = 0; i < 4; ++i) {
+            char msg[96];
+            if (shLbl) {
+                snprintf(msg, sizeof(msg), "label SetColor(%s)", shKeys[i]);
+                CHECK_RET(uiSetColor(g_inst, shLbl, shKeys[i], shCols[i]), 1, msg);
+                UIColor o = {0,0,0,0};
+                int rg = uiGetColor(g_inst, shLbl, shKeys[i], &o);
+                snprintf(msg, sizeof(msg), "label GetColor(%s) round-trip", shKeys[i]);
+                CHECK(rg == 1 && o.r == shCols[i].r && o.g == shCols[i].g && o.b == shCols[i].b, msg);
+            }
+            if (shBtn) {
+                char msg[96];
+                snprintf(msg, sizeof(msg), "button SetColor(%s)", shKeys[i]);
+                CHECK_RET(uiSetColor(g_inst, shBtn, shKeys[i], shCols[i]), 1, msg);
+                UIColor o = {0,0,0,0};
+                int rg = uiGetColor(g_inst, shBtn, shKeys[i], &o);
+                snprintf(msg, sizeof(msg), "button GetColor(%s) round-trip", shKeys[i]);
+                CHECK(rg == 1 && o.r == shCols[i].r && o.g == shCols[i].g && o.b == shCols[i].b, msg);
+            }
+        }
+    }
+
+    // P0-49: WinFrame background per-state round-trip (single keys 1:1 + object path)
+    printf("\n--- WinFrame background per-state tests ---\n");
+    {
+        void* shWf = uiFindControl(g_inst, "wfProp");
+        CHECK(shWf != NULL, "FindControl(wfProp)");
+        if (shWf) {
+            UIColor c1 = {11,22,33,255}; UIColor o1 = {0,0,0,0};
+            CHECK_RET(uiSetColor(g_inst, shWf, "background.pressed", c1), 1, "WF SetColor(background.pressed)");
+            CHECK_RET(uiGetColor(g_inst, shWf, "background.pressed", &o1), 1, "WF GetColor(background.pressed)");
+            CHECK(o1.r == 11 && o1.g == 22 && o1.b == 33, "WF background.pressed round-trip");
+            UIColor c2 = {44,55,66,255}; UIColor o2 = {0,0,0,0};
+            CHECK_RET(uiSetColor(g_inst, shWf, "background.disabled", c2), 1, "WF SetColor(background.disabled)");
+            CHECK_RET(uiGetColor(g_inst, shWf, "background.disabled", &o2), 1, "WF GetColor(background.disabled)");
+            CHECK(o2.r == 44 && o2.g == 55 && o2.b == 66, "WF background.disabled round-trip");
+
+            UIStateColor in;
+            in.normal = {100,1,1,255}; in.hover = {120,2,2,255};
+            in.pressed = {130,3,3,255}; in.disabled = {140,4,4,255};
+            CHECK_RET(uiSetStateColor(g_inst, shWf, "background", in), 1, "WF SetStateColor(background)");
+            UIStateColor out; memset(&out, 0, sizeof(out));
+            CHECK_RET(uiGetStateColor(g_inst, shWf, "background", &out), 1, "WF GetStateColor(background)");
+            CHECK(out.normal.r == 100 && out.hover.r == 120 && out.pressed.r == 100 && out.disabled.r == 100,
+                  "WF object path round-trip (pressed/disabled collapsed to normal)");
+        }
+    }
+
+    printf("\n--- Font list API tests ---\n");
+    CHECK(uiGetFontCount && uiGetFontCount() == 6, "GetFontCount() == 6");
+    char fname[64] = {0};
+    CHECK_RET(uiGetFontName ? uiGetFontName(0, fname, (int)sizeof(fname)) : 0, 1, "GetFontName(0)");
+    CHECK(strcmp(fname, "asul-bold") == 0, "GetFontName(0) == asul-bold");
+    {
+        bool allOk = true;
+        int fc = uiGetFontCount ? uiGetFontCount() : 0;
+        for (int i = 0; i < fc; ++i) {
+            char n[64] = {0};
+            if (!uiGetFontName || !uiGetFontName(i, n, (int)sizeof(n)) || n[0] == 0) allOk = false;
+        }
+        CHECK(allOk, "GetFontName(0..n) all valid");
+    }
+    CHECK_RET(uiGetFontName ? uiGetFontName(-1, fname, (int)sizeof(fname)) : 0, 0, "GetFontName(-1) -> 0");
+    CHECK_RET(uiGetFontName ? uiGetFontName(99, fname, (int)sizeof(fname)) : 0, 0, "GetFontName(out of range) -> 0");
+
+    // 鈹€鈹€ P0-47鈶? Slider font 璇诲洖锛堢己鐪?label 瀛椾綋鍚嶏級 鈹€鈹€
+    printf("\n--- Slider font read-back tests ---\n");
+    {
+        char sf[64] = {0};
+        CHECK_RET(uiGetEnum(g_inst, slider, "font", sf, (int)sizeof(sf)), 1, "Slider GetEnum(font) default");
+        CHECK(strcmp(sf, "harmonyos-sans-sc-regular") == 0, "Slider default font == harmonyos-sans-sc-regular");
+        CHECK_RET(uiSetString(g_inst, slider, "font", "muyao-softbrush"), 1, "Slider SetString(font, muyao-softbrush)");
+        memset(sf, 0, sizeof(sf));
+        CHECK_RET(uiGetString(g_inst, slider, "font", sf, (int)sizeof(sf)), 1, "Slider GetString(font)");
+        CHECK(strcmp(sf, "muyao-softbrush") == 0, "Slider font read-back matches");
+    }
+
+    // 鈹€鈹€ P0-48锛歳elected-index 绋嬪簭鍖栬Е鍙戯紙鍙樻洿瀹堝崼锛? 鈹€鈹€
+    printf("\n--- ComboBox selection trigger tests ---\n");
+    g_comboSelFired = 0; g_comboSelIdx = -1;
+    CHECK_RET(uiSetCallback(g_inst, combo, "selection-changed", onComboSelChanged, NULL), 1, "ComboBox SetCallback(selection-changed)");
+    CHECK_RET(uiSetInt(g_inst, combo, "selected-index", 1), 1, "ComboBox SetInt(selected-index,1)");
+    CHECK(g_comboSelFired == 1 && g_comboSelIdx == 1, "selection-changed fired on change");
+    CHECK_RET(uiSetInt(g_inst, combo, "selected-index", 1), 1, "ComboBox SetInt(same value)");
+    CHECK(g_comboSelFired == 1, "same value does not re-fire (guard)");
+    CHECK_RET(uiSetInt(g_inst, combo, "selected-index", 2), 1, "ComboBox SetInt(selected-index,2)");
+    CHECK(g_comboSelFired == 2 && g_comboSelIdx == 2, "selection-changed fired again on change");
+
     printf("\n========================================\n");
     printf("Property test results: %d passed, %d failed\n", g_passCount, g_failCount);
     printf("========================================\n");
@@ -389,6 +501,18 @@ static int runTest(const char* shortName, const char* displayName) {
                         "id": "nudProp",
                         "type": "numeric-up-down",
                         "rect": { "x": 20, "y": 308, "w": 160, "h": 32 }
+                    },
+                    {
+                        "id": "btnProp",
+                        "type": "button",
+                        "rect": { "x": 240, "y": 60, "w": 160, "h": 32 },
+                        "caption": "Shadow test"
+                    },
+                    {
+                        "id": "wfProp",
+                        "type": "win-frame",
+                        "rect": { "x": 240, "y": 110, "w": 260, "h": 150 },
+                        "title": "WF shadow test"
                     }
                 ]
             }

@@ -50,7 +50,7 @@
 <tr><td><code>visible</code> / <code>enabled</code></td><td>bool</td><td>可见 / 启用</td></tr>
 </table>
 
-<h2>6.3 各控件专用键（全部 27 种）</h2>
+<h2>6.3 各控件专用键（全部 26 种）</h2>
 
 <h3>animation（LuotiAni 动画控件）</h3>
 <pre><code>{ "type":"animation", "id":"ani1x", "rect":{"x":1100,"y":80,"w":256,"h":256},
@@ -286,6 +286,27 @@
   "colors":{"title-bar":{"bg":{"normal":"#2A2A50FF"}},"title-text":{"normal":"#FFFFFFFF"}},
   "children":[ { "type":"label","caption":"Form submitted!" } ] }</code></pre>
 
+<h3>6.3.1 视觉能力矩阵（按控件类型）</h3>
+<p>视觉键（<code>colors</code> / <code>shadow</code> / <code>font</code> / <code>font-size</code> / <code>border-visible</code>）按控件类型声明，<b>列出即"声明=实现"</b>。态子集含义：四态=normal/hover/pressed/disabled，三态=normal/hover/disabled，两态=normal/hover，单态=normal。</p>
+<table>
+<tr><th>控件组</th><th>colors 背景</th><th>colors 边框</th><th>colors 文字</th><th>text-shadow</th><th>shadow（开关+偏移）</th><th>font / font-size</th></tr>
+<tr><td>label / button / check-box</td><td>四态</td><td>四态</td><td>四态</td><td>四态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>win-frame</td><td>两态（作用于 ClientPanel）</td><td>两态（作用于整体窗框）</td><td>四态</td><td>四态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>edit-box / text-area / combo-box / numeric-up-down</td><td>三态</td><td>三态</td><td>单态</td><td>⊘</td><td>⊘</td><td>✓ / ✓</td></tr>
+<tr><td>list-view / tree-view（控件级）</td><td>三态</td><td>三态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>✓ / ✓</td></tr>
+<tr><td>list-view / tree-view（item 级）</td><td>四态</td><td>四态</td><td>四态</td><td>四态</td><td>✓（item）</td><td>item-font / item-font-size</td></tr>
+<tr><td>progress-bar</td><td>三态</td><td>三态</td><td>三态</td><td>三态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>status-bar / tab-control</td><td>四态</td><td>四态</td><td>四态</td><td>四态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>tab-control 页 panel</td><td><code>page-background</code> 四态（转发所有页）</td><td>⊘</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>slider</td><td>四态</td><td>四态</td><td>四态（滑块状态传递 valueLabel）</td><td>四态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>color-picker（闭合态）</td><td>四态（底板；swatch 色块恒为当前色）</td><td>四态</td><td>四态</td><td>四态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>menu-bar</td><td>三态</td><td>三态</td><td>三态</td><td>三态</td><td>✓</td><td>✓ / ✓</td></tr>
+<tr><td>panel / shape / image / animation</td><td>三态</td><td>三态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
+<tr><td>splitter</td><td>三态（驱动把手线色）</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
+<tr><td>scroll-bar</td><td>四态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
+<tr><td>dialog / popup / confirm-popup / context-menu</td><td>两态</td><td>两态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
+</table>
+<p class="note">说明：① 输入控件文字仅 normal（输入框文字态语义牵强）、无阴影；② list/tree 控件级无文字与阴影（表头亦走 item 样式）；<b>item 级键</b>（item-id 定位）：<code>item-background</code> / <code>item-border</code> / <code>item-text</code> / <code>item-text-shadow</code>（四态对象，text-shadow 兼容单色字符串）+ <code>item-shadow</code> / <code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code> / <code>item-border-visible</code> / <code>item-disabled</code>；样式优先级 cell &gt; item（行）&gt; 控件级；③ <code>page-background</code> 转发至所有页 panel（页显式自设 <code>colors.background</code> 优先）；④ win-frame 背景作用于内容区 ClientPanel，边框作用于整体窗框；⑤ pressed 态对非交互控件（image/animation）与三态/两态控件不适用；⑥ 运行时可用的额外态（如输入控件 pressed）保留兼容但不声明；⑦ splitter：<code>colors.background</code> 三态驱动把手线色，<code>line</code> / <code>line-hover</code> / <code>line-drag</code> 专用键优先（显式专用 &gt; 通用组）；⑧ scroll-bar：厚度经 <code>thickness</code>（垂直→width / 水平→height），轨道/滑块色键 <code>track</code> / <code>thumb</code> / <code>thumb-hover</code> / <code>thumb-pressed</code> 经属性通道；⑨ <code>font</code> 支持 string 通道（<code>SetString/GetString("font")</code>，Get 返回字体枚举名）。</p>
 <h2>6.4 颜色格式</h2>
 
 <pre><code>"#RGB" | "#RRGGBB" | "#RRGGBBAA" | { "r":255, "g":0, "b":0, "a":128 }</code></pre>

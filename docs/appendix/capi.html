@@ -299,6 +299,7 @@ UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0);</code></pre>
 <tr><td><code>UICornerstone_CaptureBench(inst, out, &amp;outW, &amp;outH)</code></td><td>画布区截图（画布顶层 getDrawRect 范围）</td></tr>
 <tr><td><code>UICornerstone_CaptureControl(inst, ctl, out, &amp;outW, &amp;outH)</code></td><td>控件包围盒截图（getDrawRect 范围）</td></tr>
 <tr><td><code>UICornerstone_SavePixelsToFile(pixels, w, h, path)</code></td><td>RGBA8888 像素落盘 BMP（32 位 BGRA，bottom-up）</td></tr>
+<tr><td><code>UICornerstone_GetFontCount(void)</code> / <code>UICornerstone_GetFontName(index, out, maxLen)</code></td><td>字体枚举清单（静态，6 项；与 <code>kFont*</code> 常量 / schema <code>font-name</code> 单一数据源；返回值可直接用于 <code>SetString/SetEnum("font")</code>）</td></tr>
 </table>
 
 <div class="note">调用契约：Render 之后、Present 之前调用（帧内读回）；out 由调用方分配 w*h*4 字节；像素为 R,G,B,A 字节序、top-down 行序；坐标零换算（viewport 已含 anchor/scale）。默认布局下 bench 根容器背景覆盖视口背景色，截图像素以根容器/控件为准。</div>

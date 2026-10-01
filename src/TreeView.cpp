@@ -226,7 +226,19 @@ void TreeView::draw() {
             float rowWidth = m_rect.width * scaleX - m_hScrollOffset * scaleX;
             if (rowLeft + rowWidth < cr.left) continue;
 
-            if (i == m_selectedRow) {
+            auto& rowNode = m_flatRows[i].node;
+            const ControlState rowSt = rowNode->disabled ? ControlState::Disabled
+                                     : (i == m_pressedRow) ? ControlState::Pressed
+                                     : (i == m_hoveredRow) ? ControlState::Hover
+                                                           : ControlState::Normal;
+            if (rowNode->hasStyle) {   // P032：item 背景四态（优先于选中/hover 缺省）
+                dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->bgColor, rowSt));
+                dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                if (rowNode->borderVisible) {
+                    dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->borderColor, rowSt));
+                    dev->drawRect(SRect(cr.left, y, cr.width, scaledRowH));
+                }
+            } else if (i == m_selectedRow) {
                 dev->setDrawColor(m_selectedColor);
                 dev->fillRect({cr.left, y, cr.width, scaledRowH});
             } else if (i == m_hoveredRow) {
@@ -289,8 +301,10 @@ void TreeView::draw() {
                 TextDraw::withShadow(renderer, nodeFont.get(), nd->label,
                                      textX, textY,
                                      textX + nd->shadowOffsetX * scaleX, textY + nd->shadowOffsetY * scaleY,
-                                     ControlImpl::resolveStateColor(m_textColor, getState()),   // P0-26：文本四态
-                                     nd->shadowEnabled, nd->textShadowColor);   // P0-26：item 阴影
+                                     nd->hasStyle ? ControlImpl::resolveStateColor(nd->textColor, rowSt)      // P032：item 文本四态
+                                                  : ControlImpl::resolveStateColor(m_textColor, getState()),
+                                     nd->shadowEnabled,
+                                     ControlImpl::resolveStateColor(nd->textShadowColor, rowSt));             // P032：item 阴影四态
             }
         }
     }
@@ -415,6 +429,7 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
 
         int row = hitTestRow(event->mouseButton.x, event->mouseButton.y);
         if (row >= 0) {
+            m_pressedRow = row;   // P032：item pressed 态
             if (hitTestArrow(row, event->mouseButton.x)) {
                 toggleExpand(m_flatRows[row].node->id);
                 return true;
@@ -438,6 +453,10 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
         } else {
             m_hoveredRow = -1;
         }
+    }
+
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        m_pressedRow = -1;   // P032：抬起清除 item pressed
     }
 
     if (event->m_type == EventType::MouseWheel) {
@@ -848,16 +867,54 @@ void TreeView::updateScrollBar() {
 }
 
 // Property system
+// P032：item 级四态（对象路径；item-id 定位）
+int TreeView::setStateColorProperty(const char* prop, StateColor stateColor) {
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
+        strcmp(prop, PropertyNames::kItemBorder) == 0 ||
+        strcmp(prop, PropertyNames::kItemText) == 0 ||
+        strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)     node->bgColor = stateColor;
+        else if (strcmp(prop, PropertyNames::kItemBorder) == 0)    node->borderColor = stateColor;
+        else if (strcmp(prop, PropertyNames::kItemText) == 0)      node->textColor = stateColor;
+        else                                                       node->textShadowColor = stateColor;
+        node->hasStyle = true;
+        return 1;
+    }
+    return ControlImpl::setStateColorProperty(prop, stateColor);
+}
+int TreeView::getStateColorProperty(const char* prop, StateColor& out) {
+    auto node = findNodeById(m_itemTargetId);
+    if (!node) return 0;
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0)     { out = node->bgColor;         return 1; }
+    if (strcmp(prop, PropertyNames::kItemBorder) == 0)         { out = node->borderColor;     return 1; }
+    if (strcmp(prop, PropertyNames::kItemText) == 0)           { out = node->textColor;       return 1; }
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) { out = node->textShadowColor; return 1; }
+    return ControlImpl::getStateColorProperty(prop, out);
+}
+
 int TreeView::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kTreeSelected) == 0) { setSelectedColor(color); return 1; }
     if (strcmp(prop, PropertyNames::kTreeHover) == 0)    { setHoverColor(color);    return 1; }
     if (strcmp(prop, PropertyNames::kBackground) == 0)   { setBgColor(color);       return 1; }
     if (strcmp(prop, PropertyNames::kBorder) == 0)       { setBorderColor(color);   return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)         { setTextColor(color);     return 1; }
-    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26：item 文本阴影色（item-id 定位）
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26/P032：item 文本阴影色（单态→normal）
         auto node = findNodeById(m_itemTargetId);
-        if (node) { node->textShadowColor = color; node->shadowEnabled = true; return 1; }
+        if (node) { node->textShadowColor.setNormal(color); node->shadowEnabled = true; node->hasStyle = true; return 1; }
         return 0;
+    }
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
+        strcmp(prop, PropertyNames::kItemBorder) == 0 ||
+        strcmp(prop, PropertyNames::kItemText) == 0) {              // P032：item 色单态（normal）
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      node->bgColor.setNormal(color);
+        else if (strcmp(prop, PropertyNames::kItemBorder) == 0)     node->borderColor.setNormal(color);
+        else                                                        node->textColor.setNormal(color);
+        node->hasStyle = true;
+        return 1;
     }
     return ControlImpl::setColorProperty(prop, color);
 }
@@ -923,6 +980,17 @@ int TreeView::getPtrProperty(const char* prop, void*& out) {
 }
 
 int TreeView::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
+        strcmp(prop, PropertyNames::kItemShadow) == 0 ||
+        strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032：item 级开关（item-id 定位）
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0) node->borderVisible = (value != 0);
+        else if (strcmp(prop, PropertyNames::kItemShadow) == 0)   node->shadowEnabled = (value != 0);
+        else                                                      node->disabled = (value != 0);
+        node->hasStyle = true;
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kCycleNavigation) == 0) { setCycleNavigation(value != 0); return 1; }
     if (strcmp(prop, PropertyNames::kDefaultExpand) == 0)   { setDefaultExpand(value != 0);   return 1; }
     if (strcmp(prop, PropertyNames::kExpandAll) == 0)       { expandAll(); return 1; }
@@ -999,6 +1067,16 @@ int TreeView::setEnumProperty(const char* prop, const char* value) {
     return ControlImpl::setEnumProperty(prop, value);
 }
 int TreeView::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
+        strcmp(prop, PropertyNames::kItemShadow) == 0 ||
+        strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0) out = node->borderVisible ? 1 : 0;
+        else if (strcmp(prop, PropertyNames::kItemShadow) == 0)   out = node->shadowEnabled ? 1 : 0;
+        else                                                      out = node->disabled ? 1 : 0;
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kCycleNavigation) == 0) { out = m_cycleNavigation ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kDefaultExpand) == 0)   { out = m_defaultExpand ? 1 : 0;   return 1; }
     return ControlImpl::getBoolProperty(prop, out);
@@ -1013,10 +1091,20 @@ int TreeView::getIntProperty(const char* prop, int& out) {
     return ControlImpl::getIntProperty(prop, out);
 }
 int TreeView::getColorProperty(const char* prop, SColor& out) {
-    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26：item 阴影色读回
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26/P032：item 阴影色读回（normal）
         auto node = findNodeById(m_itemTargetId);
-        if (node && node->shadowEnabled) { out = node->textShadowColor; return 1; }
+        if (node) { out = node->textShadowColor.getNormal(); return 1; }
         return 0;
+    }
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
+        strcmp(prop, PropertyNames::kItemBorder) == 0 ||
+        strcmp(prop, PropertyNames::kItemText) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      out = node->bgColor.getNormal();
+        else if (strcmp(prop, PropertyNames::kItemBorder) == 0)     out = node->borderColor.getNormal();
+        else                                                        out = node->textColor.getNormal();
+        return 1;
     }
     return ControlImpl::getColorProperty(prop, out);
 }

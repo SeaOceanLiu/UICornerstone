@@ -204,6 +204,10 @@ struct Api {
     int (*fnCaptureControl)(UIInstance, UIControlHandle, uint8_t*, int*, int*) = nullptr;
     int (*fnSavePixelsToFile)(const uint8_t*, int, int, const char*) = nullptr;
 
+    // 字体枚举清单（P0-48 扩展②）
+    int (*fnGetFontCount)() = nullptr;
+    int (*fnGetFontName)(int, char*, int) = nullptr;
+
     // 属性系统
     int (*fnSetColor)(UIInstance, UIControlHandle, const char*, UIColor) = nullptr;
     int (*fnSetStateColor)(UIInstance, UIControlHandle, const char*, UIStateColor) = nullptr;

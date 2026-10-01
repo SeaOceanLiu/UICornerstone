@@ -210,6 +210,7 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>CaptureViewport(pixels, w, h)</code> / <code>CaptureBench(pixels, w, h)</code></td><td>截取视口 / 根画布</td></tr>
 <tr><td><code>CaptureControl(ctl, pixels, w, h)</code></td><td>截取控件范围</td></tr>
 <tr><td><code>SavePixelsToFile(pixels, w, h, filePath)</code>（静态）</td><td>保存 RGBA8888 像素为 BMP 文件</td></tr>
+<tr><td><code>GetFontCount()</code> / <code>GetFontName(index)</code> / <code>GetFontNames()</code>（静态）</td><td>字体枚举清单（与引擎 <code>kFont*</code> 枚举单一数据源；核心库未加载时返回 0/空）</td></tr>
 </table>
 
 <h3>11.5.7 新控件专用操作（实例方法，与 C ABI 同名）</h3>

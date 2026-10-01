@@ -304,6 +304,8 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
         result = parseConfirmPopup(j, parent);
     } else if (type == PropertyNames::kControlTypeDialog) {
         result = parseDialog(j, parent);
+    } else if (type == PropertyNames::kControlTypeContextMenu) {   // P0-45：独立声明（挂父、隐藏）
+        result = parseContextMenu(j, parent);
     } else if (type == PropertyNames::kControlTypeMenuBar) {
         auto menuBar = parseMenuBar(j, parent);
         if (menuBar) {
@@ -2366,7 +2368,12 @@ shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* paren
     }
 
     if (j.contains(PropertyNames::kThickness) && j[PropertyNames::kThickness].is_number()) {
-        scrollBar->setThickness(j[PropertyNames::kThickness].get<float>());
+        float th = j[PropertyNames::kThickness].get<float>();
+        scrollBar->setThickness(th);
+        // P0-40①：厚度 = rect 短边（垂直→width / 水平→height），与 FLOAT 属性通道语义一致
+        SRect r = scrollBar->getRect();
+        if (orientation == ScrollBarOrientation::Vertical) r.width = th; else r.height = th;
+        scrollBar->setRect(r);
     }
 
     parseEvents(scrollBar, j);
@@ -2414,6 +2421,35 @@ shared_ptr<Popup> LayoutParser::parsePopup(const json& j, Control* parent) {
     parseChildren(popup, j);
     popup->create();
     return popup;
+}
+
+// ==================== ContextMenu（P0-45：独立 type:"context-menu"） ====================
+
+shared_ptr<ContextMenu> LayoutParser::parseContextMenu(const json& j, Control* parent) {
+    float xScale = 1.0f, yScale = 1.0f;
+    if (j.contains(PropertyNames::kJsonScale) && j[PropertyNames::kJsonScale].is_object()) {
+        xScale = j[PropertyNames::kJsonScale].value(PropertyNames::kJsonX, 1.0f);
+        yScale = j[PropertyNames::kJsonScale].value(PropertyNames::kJsonY, 1.0f);
+    }
+
+    auto cm = make_shared<ContextMenu>(parent, xScale, yScale);
+    m_theme.applyCommonColors(cm, PropertyNames::kThemeCatPopup);
+    parseCommonProperties(cm, j);
+    cm->setVisible(false);   // 保持隐藏：右键菜单由 show() 弹出（items 随后续结构化编辑批次补）
+
+    if (j.contains(PropertyNames::kCloseOnEsc) && j[PropertyNames::kCloseOnEsc].is_boolean())
+        cm->setCloseOnEsc(j[PropertyNames::kCloseOnEsc].get<bool>());
+    if (j.contains(PropertyNames::kCloseOnClickOutside) && j[PropertyNames::kCloseOnClickOutside].is_boolean())
+        cm->setCloseOnClickOutside(j[PropertyNames::kCloseOnClickOutside].get<bool>());
+
+    parseEvents(cm, j);
+    parseBindings(cm, j);
+
+    if (j.contains(PropertyNames::kId) && j[PropertyNames::kId].is_string())
+        m_controlsById[j[PropertyNames::kId].get<string>()] = cm;
+
+    cm->create();
+    return cm;
 }
 
 // ==================== ConfirmPopup ====================
@@ -2624,6 +2660,9 @@ static void ApplyFontToControl(Control* ctl, FontName name, float size, bool app
         else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFontSize((int)size);
         else if (auto* sl = dynamic_cast<Slider*>(ctl)) sl->setLabelFontSize((int)size);
         else if (auto* cp = dynamic_cast<ColorPicker*>(ctl)) cp->setClosedFontSize((int)size);
+        else if (auto* b = dynamic_cast<Button*>(ctl)) b->setCaptionSize(size);          // P032
+        else if (auto* cb = dynamic_cast<CheckBox*>(ctl)) cb->setCaptionSize(size);      // P032
+        else if (auto* wf = dynamic_cast<WinFrame*>(ctl)) wf->setIntProperty(PropertyNames::kFontSize, (int)size);   // P032
     }
     // 字体名仅当父显式声明 font.name 时覆盖（未声明时沿用控件自身默认字体名）
     if (!applyName) return;
@@ -2634,6 +2673,9 @@ static void ApplyFontToControl(Control* ctl, FontName name, float size, bool app
     else if (auto* lv = dynamic_cast<ListView*>(ctl)) lv->setFont(name);
     else if (auto* sl = dynamic_cast<Slider*>(ctl)) sl->setLabelFont(name);
     else if (auto* cp = dynamic_cast<ColorPicker*>(ctl)) cp->setClosedFont(name);
+    else if (auto* b = dynamic_cast<Button*>(ctl)) b->setFont(name);                 // P032
+    else if (auto* cb = dynamic_cast<CheckBox*>(ctl)) cb->setFont(name);             // P032
+    else if (auto* wf = dynamic_cast<WinFrame*>(ctl)) wf->setEnumProperty(PropertyNames::kFont, FontNameToString(name));   // P032
 }
 
 void LayoutParser::applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j) {

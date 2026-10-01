@@ -67,7 +67,7 @@
           "x-default": "false"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
@@ -409,14 +409,11 @@
           "type": "string"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-input"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font-size": {
           "type": "integer",
@@ -482,6 +479,9 @@
         },
         {
           "$ref": "#/$defs/combo-box"
+        },
+        {
+          "$ref": "#/$defs/context-menu"
         },
         {
           "$ref": "#/$defs/dialog"
@@ -588,7 +588,7 @@
           "x-default": "false"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic1"
+          "$ref": "#/$defs/colors-basic2"
         },
         "border-visible": {
           "type": "boolean",
@@ -639,14 +639,11 @@
           "x-default": ""
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-input"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font-size": {
           "type": "integer",
@@ -739,7 +736,7 @@
           ]
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
@@ -846,14 +843,11 @@
           "x-default": "-1"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font": {
           "$ref": "#/$defs/font-spec"
@@ -1117,14 +1111,11 @@
           "x-default": "0"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-input"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font": {
           "$ref": "#/$defs/font-spec"
@@ -1211,7 +1202,7 @@
           "x-default": "false"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
@@ -1255,7 +1246,43 @@
           "x-default": "false"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic1"
+          "$ref": "#/$defs/colors-basic2"
+        },
+        "border-visible": {
+          "type": "boolean",
+          "x-default": "true"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "context-menu": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        }
+      ],
+      "properties": {
+        "type": {
+          "const": "context-menu"
+        },
+        "close-on-click-outside": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "close-on-esc": {
+          "type": "boolean",
+          "x-default": "true"
+        },
+        "visible": {
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "colors": {
+          "$ref": "#/$defs/colors-basic2"
         },
         "border-visible": {
           "type": "boolean",
@@ -1314,7 +1341,7 @@
           "x-default": "false"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic1"
+          "$ref": "#/$defs/colors-basic2"
         },
         "border-visible": {
           "type": "boolean",
@@ -1396,7 +1423,7 @@
           "x-default": "0"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-3full"
         },
         "border-visible": {
           "type": "boolean",
@@ -1573,7 +1600,7 @@
           "description": "描边色（缺省黑）"
         },
         "colors": {
-          "$ref": "#/$defs/colors-basic"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
@@ -1733,7 +1760,7 @@
           "type": "number"
         },
         "colors": {
-          "$ref": "#/$defs/colors-bg"
+          "$ref": "#/$defs/colors-bg3"
         }
       },
       "required": [
@@ -1882,14 +1909,11 @@
           "type": "boolean"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-input"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font-size": {
           "type": "integer",
@@ -1947,14 +1971,11 @@
           "type": "integer"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-3state"
         },
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
-        },
-        "shadow": {
-          "$ref": "#/$defs/shadow"
         },
         "font": {
           "$ref": "#/$defs/font-spec"
@@ -2013,7 +2034,7 @@
           "$ref": "#/$defs/color"
         },
         "colors": {
-          "$ref": "#/$defs/colors-full"
+          "$ref": "#/$defs/colors-winframe"
         },
         "border-visible": {
           "type": "boolean",
@@ -2112,32 +2133,6 @@
       "additionalProperties": false,
       "description": "视觉色组（背景/边框/文本/文本阴影，四态）"
     },
-    "colors-basic": {
-      "type": "object",
-      "properties": {
-        "background": {
-          "$ref": "#/$defs/state-color-4"
-        },
-        "border": {
-          "$ref": "#/$defs/state-color-4"
-        }
-      },
-      "additionalProperties": false,
-      "description": "视觉色组（背景/边框，四态）"
-    },
-    "colors-basic1": {
-      "type": "object",
-      "properties": {
-        "background": {
-          "$ref": "#/$defs/state-color-1"
-        },
-        "border": {
-          "$ref": "#/$defs/state-color-1"
-        }
-      },
-      "additionalProperties": false,
-      "description": "视觉色组（背景/边框，仅 normal）"
-    },
     "colors-bg": {
       "type": "object",
       "properties": {
@@ -2152,10 +2147,10 @@
       "type": "object",
       "properties": {
         "background": {
-          "$ref": "#/$defs/state-color-3p"
+          "$ref": "#/$defs/state-color-3d"
         },
         "border": {
-          "$ref": "#/$defs/state-color-1"
+          "$ref": "#/$defs/state-color-3d"
         },
         "text": {
           "$ref": "#/$defs/state-color-3d"
@@ -2165,8 +2160,111 @@
         }
       },
       "additionalProperties": false,
-      "description": "菜单色组（背景三态/边框单态/文本三态/文本阴影三态；统一覆盖 bar/panel/item）"
+      "description": "菜单色组（统一三态 N/H/D；覆盖 bar/panel/item）"
+    },
+    "state-color-2": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/color"
+        },
+        "hover": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false,
+      "description": "状态色对象（normal/hover；值同 color）"
+    },
+    "colors-winframe": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-2"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-2"
+        },
+        "text": {
+          "$ref": "#/$defs/state-color-4"
+        },
+        "text-shadow": {
+          "$ref": "#/$defs/state-color-4"
+        }
+      },
+      "additionalProperties": false,
+      "description": "WinFrame 色组（bg/border 两态→ClientPanel/整体窗框；text/ts 四态）"
+    },
+    "colors-input": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "text": {
+          "$ref": "#/$defs/state-color-1"
+        }
+      },
+      "additionalProperties": false,
+      "description": "输入控件色组（bg/border 三态 N/H/D；text 单态；无 text-shadow）"
+    },
+    "colors-3full": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "text": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "text-shadow": {
+          "$ref": "#/$defs/state-color-3d"
+        }
+      },
+      "additionalProperties": false,
+      "description": "三态全组（progress-bar；无 pressed）"
+    },
+    "colors-3state": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-3d"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-3d"
+        }
+      },
+      "additionalProperties": false,
+      "description": "三态 bg/border（panel/shape/image/animation/list/tree 控件级）"
+    },
+    "colors-bg3": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-3d"
+        }
+      },
+      "additionalProperties": false,
+      "description": "三态背景（splitter）"
+    },
+    "colors-basic2": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/state-color-2"
+        },
+        "border": {
+          "$ref": "#/$defs/state-color-2"
+        }
+      },
+      "additionalProperties": false,
+      "description": "两态 bg/border（dialog/popup/confirm-popup）"
     }
   },
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

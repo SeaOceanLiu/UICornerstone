@@ -36,6 +36,7 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 class UIContext;
+class ContextMenu;   // P0-45：独立 type:"context-menu" 返回类型（前置声明）
 
 class LayoutParser {
 public:
@@ -122,6 +123,7 @@ private:
     shared_ptr<TreeView> parseTreeView(const json& j, Control* parent);
     shared_ptr<Popup>       parsePopup(const json& j, Control* parent);
     shared_ptr<ConfirmPopup> parseConfirmPopup(const json& j, Control* parent);
+    shared_ptr<ContextMenu>  parseContextMenu(const json& j, Control* parent);   // P0-45
     shared_ptr<Dialog>      parseDialog(const json& j, Control* parent);
     shared_ptr<WinFrame>    parseWinFrame(const json& j, Control* parent);
     shared_ptr<MenuBar>     parseMenuBar(const json& j, Control* parent);

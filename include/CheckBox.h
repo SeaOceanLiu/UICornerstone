@@ -68,6 +68,7 @@ private:
 
     float m_sizeRatio;
     float m_captionSize;
+    FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P032：标题字体名（读回）
     bool m_triStateEnabled;
 
     SRect m_boxRect;
@@ -131,6 +132,7 @@ public:
     int setIntProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setStringProperty(const char* prop, const char* value) override;   // caption（#9）
+    void setFont(FontName font);   // P032
     int setEnumProperty(const char* prop, const char* value) override;
 
     int getColorProperty(const char* prop, SColor& out) override;

@@ -18,7 +18,7 @@
 <p>全部属性名可在 <code>include/PropertyNames.h</code> 找到对应 <code>k*</code> 常量。C++ Binding 建议直接使用常量。</p>
 
 <h2>7.1 通用属性（布局 / 交互类，所有控件）</h2>
-<p class="note"><b>P0-26</b>：视觉键（<code>background/border/text/text-shadow/font/font-size/border-visible/shadow</code>）改为<b>按控件类型声明</b>（声明=布局合法=视觉有效）——各类型适用范围见 <a href="#7-1-1">7.1.1 视觉能力矩阵</a>；本表为运行时属性键全量参考。<b>P0-27a</b>：显式设置 <code>background</code>（alpha&gt;0）会<b>自动取消 transparent</b>（Label 等缺省透明控件设色即绘制底色；显式 <code>transparent=1</code> 可再关闭）。</p>
+<p class="note"><b>P0-26</b>：视觉键（<code>background/border/text/text-shadow/font/font-size/border-visible/shadow</code>）改为<b>按控件类型声明</b>（声明=布局合法=视觉有效）——各类型适用范围见 <a href="#7-1-1">7.1.1 视觉能力矩阵</a>；本表为运行时属性键全量参考。<b>P0-27a</b>：显式设置 <code>background</code>（alpha&gt;0）会<b>自动取消 transparent</b>（Label 等缺省透明控件设色即绘制底色；显式 <code>transparent=1</code> 可再关闭）。<b>P0-43</b>：单态边框键（<code>border</code> / <code>border-hover</code> / <code>border-pressed</code> / <code>border-disabled</code>）设色即自动<b>开启 border-visible</b>（与对象路径一致）。<b>P0-46</b>：<code>font</code> 同时支持 string 通道（<code>SetString/GetString("font")</code>；Get 返回枚举名字符串，与 <code>GetEnum</code> 同源）；字体枚举清单经 <code>UICornerstone_GetFontCount/GetFontName</code>（Binding：<code>GetFontNames()</code>）动态获取（P0-48②）。</p>
 
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
@@ -49,21 +49,8 @@
 </table>
 <p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。</p>
 
-<h3>7.1.1 视觉能力矩阵（按控件类型，P0-26）</h3>
-<p>schema 按类型声明视觉键（声明=布局合法=视觉有效）；<code>colors</code> 组内态子集按运行时实际可达状态裁剪。</p>
-<table>
-<tr><th>类型</th><th>colors 组（态）</th><th>shadow（enabled+offset）</th><th>font / font-size</th><th>border-visible</th></tr>
-<tr><td>label / button / check-box / win-frame</td><td>background/border/text/text-shadow（四态）</td><td>✓</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>edit-box / text-area / combo-box / numeric-up-down</td><td>四组（四态）</td><td>—（输入控件不加阴影）</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>list-view / tree-view</td><td>四组（四态）</td><td>✓（item/cell 级：单色+偏移）</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>progress-bar / status-bar / tab-control</td><td>四组（四态）</td><td>✓（文本阴影）</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>slider</td><td>四组（四态）</td><td>✓（valueLabel）</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>color-picker</td><td>四组（四态，作用于关闭态文字）</td><td>✓（关闭态）</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>menu-bar（含下拉 panel/item）</td><td>background 三态（normal/hover/pressed）+ border 单态 + text 三态（normal/hover/disabled）+ text-shadow 三态</td><td>✓</td><td>✓ / ✓</td><td>✓</td></tr>
-<tr><td>panel / shape / image / animation</td><td>background/border（四态；image/animation 为 P0-26 补齐绘制）</td><td>—</td><td>—</td><td>✓</td></tr>
-<tr><td>splitter / scroll-bar</td><td>background（四态）</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>dialog / popup / confirm-popup</td><td>background/border（仅 normal）</td><td>—</td><td>—</td><td>✓</td></tr>
-</table>
+<h3>7.1.1 视觉能力矩阵（按控件类型）</h3>
+<p class="note">矩阵已迁移至用户手册 <a href="declarative-syntax.html">6 声明式 UI 语法速查表 → 6.3.1 视觉能力矩阵（按控件类型）</a>（唯一权威来源，避免双份漂移）。本表为运行时属性键全量参考。</p>
 <p class="note">布局 JSON 的 <code>colors</code> 组为状态对象（<code>{normal,hover,pressed,disabled}</code> 按类型态子集）；顶层 <code>text-shadow</code> 布局键已移除（文本阴影色统一经 <code>colors.text-shadow</code>；运行时属性键 <code>text-shadow</code> 仍可用）。</p>
 
 <h2>7.2 按控件速查（字母序）</h2>

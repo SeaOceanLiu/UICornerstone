@@ -80,6 +80,14 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
 <tr><td><code>item-leading-control</code></td><td><code>kTreeItemLeadingControl</code></td><td>Ptr</td><td>—</td><td>行前置控件容器句柄（<strong>借用语义</strong>，生命周期由调用方保证；类型经 <code>UICornerstone_GetControlType</code> / Binding <code>Control::GetType()</code> 查询，如 <code>"check-box"</code> / <code>"image"</code>，再经通用属性系统操作：<code>GetBool(ctl, "checked")</code> / <code>SetCallback(ctl, "check-changed", ...)</code>；C++ Binding 用 <code>ui-&gt;FromHandle(lc)</code> 包装代理）。<strong>运行时 SetPtr 立即挂树</strong>（结构变更之外无需等待重建），传 <code>NULL</code> 解除容器并摘树</td></tr>
 <tr><td><code>item-leading-gap</code></td><td><code>kTreeItemLeadingGap</code></td><td>Float</td><td>6</td><td>行前置控件容器与文本之间的间隔（局部 px）</td></tr>
 <tr><td><code>item-leading-align</code></td><td><code>kTreeItemLeadingAlign</code></td><td>Enum</td><td><code>kAlignLowerMidLeft</code></td><td>槽位对齐（复用 Label 9 宫格：<code>kAlignLowerTopLeft</code>/<code>kAlignLowerMidLeft</code>/<code>kAlignLowerBottomLeft</code> ...；水平分量忽略，槽位贴文本起点；垂直：顶/中/底）</td></tr>
+<tr><td><code>item-background</code></td><td><code>kItemBackground</code></td><td>StateColor</td><td>—</td><td>item 背景四态（normal/hover/pressed/disabled；设置即启用，行绘制改用 item 样式）</td></tr>
+<tr><td><code>item-border</code></td><td><code>kItemBorder</code></td><td>StateColor</td><td>—</td><td>item 边框四态（配合 <code>item-border-visible</code>）</td></tr>
+<tr><td><code>item-text</code></td><td><code>kItemText</code></td><td>StateColor</td><td>—</td><td>item 文本四态</td></tr>
+<tr><td><code>item-text-shadow</code></td><td><code>kTreeItemTextShadow</code></td><td>StateColor</td><td>—</td><td>item 文本阴影四态（兼容单色字符串，设置即启用）</td></tr>
+<tr><td><code>item-shadow</code></td><td><code>kItemShadow</code></td><td>Bool</td><td>false</td><td>item 阴影开关</td></tr>
+<tr><td><code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code></td><td><code>kTreeItemShadowOffsetX</code> / <code>kTreeItemShadowOffsetY</code></td><td>Float</td><td>1</td><td>item 阴影偏移</td></tr>
+<tr><td><code>item-border-visible</code></td><td><code>kItemBorderVisible</code></td><td>Bool</td><td>false</td><td>item 边框可见</td></tr>
+<tr><td><code>item-disabled</code></td><td><code>kItemDisabled</code></td><td>Bool</td><td>false</td><td>item 禁用（disabled 态可达）</td></tr>
 </table>
 
 
