@@ -67,8 +67,8 @@
 ```
 
 - `label.shadow` 由内联改为 `$ref`（语义等价）；`button`/`check-box`/`win-frame` def 增加 `"shadow": { "$ref": "#/$defs/shadow" }`。
-- **Button `text-shadow-enable` 保留**（既有布局兼容；运行时别名）。
-- **check-box 是否同加 `text-shadow-enable`**：引擎建议**仅加 `shadow`**（统一主键；避免面板出现双开关）；`text-shadow-enable` 运行时支持为别名（直接 API/旧布局可用）——**待评审确认**。
+- **Button `text-shadow-enable` 删除**（**复核已决**：统一迁移至 `shadow.enabled`；布局/测试/文档全量迁移，全库零残留）。
+- **check-box 仅加 `shadow`**（**复核已决**：统一主键，避免面板双开关；`text-shadow-enable` 别名不保留、直接删除）。
 
 ### 3.3 LayoutParser：通用 `shadow` 解析（决策：parseCommonProperties 一处，四类型自动生效）
 
@@ -86,7 +86,7 @@ if (j.contains(PropertyNames::kShadow) && j[PropertyNames::kShadow].is_object())
 ```
 
 - 经属性系统转发 → 声明了 `shadow` 的类型（label/button/check-box/win-frame）按 §3.1 目标生效；未声明者 schema 不放行（validate 保证）。
-- `parseLabel` 既有 shadow 分支**保留**（幂等；避免动已发布解析路径）——评审可决定后续清理。
+- `parseLabel` 既有 shadow 分支**保留**（幂等；避免动已发布解析路径）——**已决：保留现状**（其余类型由通用 `applyShadowDecl` 覆盖）。
 
 ### 3.4 #9：CheckBox caption 字符串分发（决策：属性分发 + 布局自动刷新）
 
@@ -141,17 +141,17 @@ int CheckBox::getStringProperty(const char* prop, const char*& out) {
 - schema 抽 `$defs/shadow`：label 由内联改 $ref——校验语义等价（validate + 布局回归验证）。
 - 三后端无涉（纯逻辑/配置转发）。
 
-## 7. 待审核问题
+## 7. 已决事项（复核结论，2026-09-21 通过）
 
-1. **统一主键**：`shadow` 为主键（`text-shadow-enable` 为运行时别名，Button 保留、CheckBox 支持但不入 schema）——确认？（避免面板双开关）
-2. **schema 抽 `$defs/shadow`**（label 改 $ref + 三段新增）——确认？
-3. **Label 访问器新增**（`isShadowEnabled`/`getShadowOffset` 两个内联 getter，供宿主转发读）——确认？
-4. **Parser 通用化**：parseCommonProperties 统一解析 `shadow`；parseLabel 既有分支保留（幂等）——确认？
-5. **CheckBox 是否另补 C++ `setCaption(string)` 方法**（#9 仅要求属性分发；C++ API 对称性可选）——按需确认。
+1. **统一主键**：`shadow` 为主键——**别名 `text-shadow-enable` 删除**（不保留）；布局/测试/文档全量迁移，全库零残留（grep 核实）。
+2. **schema 抽 `$defs/shadow`**（label 改 $ref + button/check-box/win-frame 新增）——**确认，已实施**（`validate_layout --strict` 全布局 PASS）。
+3. **Label 访问器新增**（`isShadowEnabled`/`getShadowOffset`）——**确认，已实施**（Label.h:118-119）。
+4. **Parser 通用化**：`applyShadowDecl()` 统一解析 `shadow`；parseLabel 既有分支保留——**确认，已实施**。
+5. **CheckBox C++ `setCaption(string)`**：**未实施（可选）**——#9 仅要求属性分发（`SetString("caption")` 已通），C++ API 对称性按需另议。
 
-## 8. 待提交配套改动（实施时随批）
+## 8. 配套改动（已随批实施）
 
-- schema（`$defs/shadow` + 四段）+ `validate_layout --strict` 全布局验证。
-- 测试扩展（§5）+ 全量回归；设计文档状态标注；复核意见归档。
-- 手册：button/checkbox/winframe 章节补 `shadow`/`shadow-offset-x/y` 键说明（含别名注记）；`properties.html` 三段补行；`API_Mapping_Table` 补行。
+- ✅ schema（`$defs/shadow` + 四段）+ `validate_layout --strict` 全布局验证。
+- ✅ 测试扩展（§5，test_colorfixes 37 项全 PASS）+ 全量回归；设计文档状态标注；复核意见归档（`requirements/ClipChildren_ShadowCaption_复核意见.md`）。
+- ✅ 手册：button/checkbox/winframe 章节 `shadow`/`shadow-offset-x/y` 键说明；`properties.html` 三段补行；`API_Mapping_Table` 补行（别名删除口径已同步）。
 - make_release 同步（设计器随后恢复通用 shadow 展开、删除类型分派绕行段）。
