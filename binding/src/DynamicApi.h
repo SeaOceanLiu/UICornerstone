@@ -51,6 +51,7 @@ struct Api {
     void (*fnUpdate)(UIInstance, double) = nullptr;
     void (*fnPushUIEvent)(UIInstance, const UIEvent*) = nullptr;
     void (*fnRender)(UIInstance) = nullptr;
+    void (*fnRenderOverlays)(UIInstance) = nullptr;   // P0-52①
     void (*fnClear)(UIInstance) = nullptr;
     void (*fnPresent)(UIInstance) = nullptr;
     int  (*fnIsQuitRequested)(UIInstance) = nullptr;
@@ -103,6 +104,10 @@ struct Api {
     UIControlHandle (*fnCreateTabControl)(UIInstance, float, float, float, float, float, float) = nullptr;
     int (*fnStatusBarAddItem)(UIInstance, UIControlHandle, const char*, const char*, int) = nullptr;
     int (*fnStatusBarSetItemText)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
+    int (*fnStatusBarSetItemTextColor)(UIInstance, UIControlHandle, const char*, UIColor, const char*) = nullptr;      // P0-55
+    int (*fnStatusBarSetItemBackgroundColor)(UIInstance, UIControlHandle, const char*, UIColor) = nullptr;             // P0-55
+    int (*fnStatusBarSetItemFontSize)(UIInstance, UIControlHandle, const char*, float) = nullptr;                     // P0-58
+    int (*fnStatusBarSetItemTextShadow)(UIInstance, UIControlHandle, const char*, UIColor, float, float) = nullptr;   // P0-58
     int (*fnStatusBarRemoveItem)(UIInstance, UIControlHandle, const char*) = nullptr;
     int (*fnListViewAddRow)(UIInstance, UIControlHandle, const char*, int, const char* const*) = nullptr;
     int (*fnListViewRemoveRow)(UIInstance, UIControlHandle, int) = nullptr;
@@ -118,6 +123,8 @@ struct Api {
     int (*fnListViewSetRowLeadingControl)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnListViewSetCellStyle)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t, int) = nullptr;
     int (*fnListViewSetColumnHeaderStyle)(UIInstance, UIControlHandle, int, uint8_t, uint8_t, uint8_t, uint8_t, int) = nullptr;
+    int (*fnListViewSetColumnHeaderBackground)(UIInstance, UIControlHandle, int, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;           // P0-56
+    int (*fnListViewSetColumnHeaderShadow)(UIInstance, UIControlHandle, int, uint8_t, uint8_t, uint8_t, uint8_t, float, float) = nullptr;  // P0-56
     int (*fnListViewSetColumnIcon)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnListViewSetColumnSorter)(UIInstance, UIControlHandle, int, ListViewSortFn, void*) = nullptr;
     int (*fnListViewSetColumnValues)(UIInstance, UIControlHandle, int, int, const char* const*) = nullptr;
@@ -190,6 +197,8 @@ struct Api {
     void (*fnSetRect)(UIInstance, UIControlHandle, float, float, float, float) = nullptr;
     void (*fnGetRect)(UIInstance, UIControlHandle, float*, float*, float*, float*) = nullptr;
     void (*fnAddChildControl)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
+    UIControlHandle (*fnGetRoot)(UIInstance) = nullptr;   // P0-61
+    int  (*fnRemoveChild)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;   // P0-50
     void (*fnDestroyControl)(UIInstance, UIControlHandle) = nullptr;
     const char* (*fnGetControlId)(UIInstance, UIControlHandle) = nullptr;
 

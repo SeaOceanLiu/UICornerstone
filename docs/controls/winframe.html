@@ -93,9 +93,10 @@ wf.SetBool(PropertyNames::kResizable, true);
 wf.SetCallback(PropertyNames::kEventClose, [](const Event&) {
     printf("window closed\n");
 });
-// 向客户区加控件
-auto lbl = ui->CreateLabel("Form content", 14.0f, 20, 30, 240, 60);
-wf.AddChild(lbl);</code></pre>
+// 向客户区加控件（严格：挂 ClientPanel 代理，不进窗体本体）
+auto lbl    = ui->CreateLabel("Form content", 14.0f, 20, 30, 240, 60);
+auto client = ui->FromHandle(static_cast<UIControlHandle>(wf.GetPtr(PropertyNames::kClientPanel)));
+ui->AddChild(client, lbl);</code></pre>
 
 <div class="note">常量：<code>MIN_WIDTH=100</code>、<code>MIN_HEIGHT=60</code>（缩放钳制）；行为：标题栏拖拽、4px 边缘八方向缩放、边缘双箭头光标、show/点击置顶、焦点作用域边界。</div>
 

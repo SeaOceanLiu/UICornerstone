@@ -27,6 +27,18 @@ struct StatusItem {
     std::function<void(std::shared_ptr<StatusItem>)> onClick;
     std::shared_ptr<MenuPanel> menuPanel;
     SRect hitRect;
+
+    // P0-55：段着色（稀疏语义；未设置=继承控件级/不绘制）
+    StateColor textColor;              // 段文本色（四态；显式设过的态生效）
+    uint8_t    textColorMask = 0;      // bit0 normal / bit1 hover / bit2 pressed / bit3 disabled
+    SColor     background;             // 段背景（单色，铺满 hitRect）
+    bool       hasBackground = false;
+
+    // P0-58：段级字号 / 文字阴影（稀疏语义；未设置=继承控件级）
+    float      fontSize = 0.0f;        // 0 = 继承控件级
+    SColor     shadowColor;
+    bool       hasShadow = false;
+    SPoint     shadowOffset{1.0f, 1.0f};
 };
 
 class StatusBar : public ControlImpl {
@@ -36,6 +48,12 @@ public:
     // ── 数据操作 ──
     void addStatusItem(const string& id, const string& text, bool rightAlign = false);
     void updateStatusItemText(const string& id, const string& text);
+    // P0-55：段着色（未设置=继承控件级四态 / 不绘制背景）
+    void setStatusItemTextColor(const string& id, SColor color, ControlState state);
+    void setStatusItemBackgroundColor(const string& id, SColor color);
+    // P0-58：段级字号（0=继承）/ 文字阴影（未设继承控件级）
+    void setStatusItemFontSize(const string& id, float size);
+    void setStatusItemTextShadow(const string& id, SColor color, float offsetX, float offsetY);
     void removeStatusItem(const string& id);
     void setStatusItemMenu(const string& id, shared_ptr<class MenuPanel> panel);
     void setStatusItemLeadingControl(const string& id, shared_ptr<Control> ctl);
@@ -78,6 +96,7 @@ private:
     void relayout();
     void updateItem(int index);
     void ensureFont();
+    SharedFont fontForSize(float size);   // P0-58：段级字号字体（cache；<=0 回退控件级）
     int hitTestIndex(float screenX, float screenY) const;  // 屏幕→本地逆变换后按 hitRect 二维命中；-1 未命中
     void openPopup(int itemIndex);
     void closePopup();
@@ -90,6 +109,7 @@ private:
     float m_spacing = 8.0f;
     float m_padding = 12.0f;
     SharedFont m_font;
+    std::unordered_map<int, SharedFont> m_itemFonts;   // P0-58：段级字号字体缓存（键=缩放后像素字号）
     FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P0-26：字体名可配
     StateColor m_textColor;                                       // P0-26：段文字四态（ctor 设 normal 缺省）
     StateColor m_textShadowColor;                                 // P0-26：文本阴影色（四态）

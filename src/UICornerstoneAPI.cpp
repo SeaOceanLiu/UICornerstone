@@ -134,6 +134,13 @@ static bool instanceHoldsControl(UIInstance instance, Control* target) {
             if (sp.get() == cur || treeContains(sp.get(), cur)) return true;
         for (auto& sp : instance->menuPool)
             if (sp.get() == cur) return true;
+        // P0-50：摘除保活池（RemoveChild 后句柄仍须有效，可反复 attach/detach；
+        // 池内容器后代的句柄经 treeContains 一并有效）
+        for (auto& sp : instance->detachedControls)
+            if (sp.get() == cur || treeContains(sp.get(), cur)) return true;
+        // 句柄控件池（HandleControl 实例级保留）
+        for (auto& sp : instance->handleControls)
+            if (sp.get() == cur || treeContains(sp.get(), cur)) return true;
     }
     return false;
 }
@@ -174,6 +181,25 @@ static std::shared_ptr<Control> menuPoolTake(UIInstance instance, UIControlHandl
 
 static void registerControlById(UIInstance instance, const std::string& id, UIControlHandle ctl) {
     if (instance && !id.empty()) instance->controlsById[id] = ctl;
+}
+
+// P0-50：容器子控件摘除保活池（RemoveChild 摘除不销毁；AddChild/Destroy 联动 Take）
+static void detachPoolKeep(UIInstance instance, std::shared_ptr<Control> ctl) {
+    if (!instance || !ctl) return;
+    auto& pool = instance->detachedControls;
+    if (std::find(pool.begin(), pool.end(), ctl) == pool.end()) pool.push_back(std::move(ctl));
+}
+static std::shared_ptr<Control> detachPoolTake(UIInstance instance, UIControlHandle ctl) {
+    if (!instance || !ctl) return nullptr;
+    auto& pool = instance->detachedControls;
+    for (auto it = pool.begin(); it != pool.end(); ++it) {
+        if (reinterpret_cast<UIControlHandle>(it->get()) == ctl) {
+            auto sp = *it;
+            pool.erase(it);
+            return sp;
+        }
+    }
+    return nullptr;
 }
 
 // ============================================================
@@ -257,6 +283,35 @@ static UIInstance findViewportByCoord(UIInstance owner, float x, float y) {
         }
     }
     return nullptr;
+}
+
+// ── P0-52：浮层判定与鼠标目标解析 ──
+// 浮层 = bench 顶层可见、类型 ∈ {Popup, ConfirmPopup, Dialog, MenuPanel}（含其子树，
+// ContextMenu 类型即 Popup；ComboBox 下拉为其内部 Popup 子树）
+static bool isOverlayControl(Control* c) {
+    if (!c || !c->getVisible()) return false;
+    switch (c->getControlType()) {
+        case ControlType::Popup:
+        case ControlType::ConfirmPopup:
+        case ControlType::Dialog:
+        case ControlType::MenuPanel:
+            return true;
+        default:
+            return false;
+    }
+}
+static bool hasVisibleOverlay(UIInstance instance) {
+    if (!instance || !instance->bench) return false;
+    for (auto& c : instance->bench->getChildren()) {
+        if (isOverlayControl(c.get())) return true;
+    }
+    return false;
+}
+// P0-52②：鼠标目标解析——浮层可见 → owner 独占（不穿透）；否则按坐标命中子视口；
+// 未命中返回 nullptr（调用方回退 owner）
+static UIInstance resolveMouseTarget(UIInstance owner, float x, float y) {
+    if (hasVisibleOverlay(owner)) return owner;
+    return findViewportByCoord(owner, x, y);
 }
 
 static UIInstance nextViewport(UIInstance owner, UIInstance cur) {
@@ -581,6 +636,11 @@ int UICornerstone_GetViewportScaleMode(UIInstance instance, int* mode) {
     return 1;
 }
 
+UIControlHandle UICornerstone_GetRoot(UIInstance instance) {
+    if (!instance || instance->destroying || !instance->bench) return nullptr;
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(instance->bench));
+}
+
 int UICornerstone_SetCanvasSize(UIInstance instance, float w, float h) {
     if (!instance || instance->destroying || !instance->bench) return 0;
     if (w <= 0.0f || h <= 0.0f) return 0;
@@ -593,10 +653,11 @@ int UICornerstone_SetCanvasSize(UIInstance instance, float w, float h) {
     // recomputeViewportTransform 的 anchorX/Y 携带（含 vp.left/top），
     // getDrawRect 以 {m_rect.left + m_anchorX} 计算不双算。若此处保留
     // bench 原 left/top 会与 anchor 叠加造成嵌入场景双重偏移。
-    if (instance->bench->getViewportScaleMode() != Bench::ViewportScaleMode::Off) {
-        instance->bench->setRect(SRect(0, 0, w, h));
-        instance->bench->recomputeViewportTransform();
-    }
+    // P0-61③：全模式即时应用（显式画布优先与 recompute 的 off 分支语义一致；fit/stretch 行为不变），
+    // 并在根存在布局引擎时重排（根级锚定跟随画布尺寸变化）
+    instance->bench->setRect(SRect(0, 0, w, h));
+    instance->bench->recomputeViewportTransform();
+    instance->bench->reflowChildren();
     return 1;
 }
 
@@ -708,9 +769,12 @@ static bool pumpInstanceEvents(UIInstance instance) {
                 ? evt.mouseWheel.x : evt.mousePos.x;
             float my = (evt.m_type == EventType::MouseWheel)
                 ? evt.mouseWheel.y : evt.mousePos.y;
-            UIInstance target = findViewportByCoord(instance, mx, my);
-            if (!target) {
-                // 兜底：点击 owner 区域视为焦点回到 owner 树
+            // P0-52②：浮层优先——存在可见浮层时 owner 独占鼠标（不穿透；外点关闭/下拉滚动
+            // 归 owner 队列 watcher）；否则按坐标路由子视口（未命中回退 owner）
+            UIInstance target = resolveMouseTarget(instance, mx, my);
+            if (!target || target == instance) {
+                // owner 路径（浮层独占或点击 owner 区域）：按下/抬起回收子视口焦点，
+                // 保证键盘（Esc 关闭等）作用于 owner 浮层；浮层关闭后路由自动恢复
                 if (instance->activeViewport
                     && (evt.m_type == EventType::MouseDown || evt.m_type == EventType::MouseUp)) {
                     instance->activeViewport->focusManager->clearFocus();
@@ -846,6 +910,17 @@ void UICornerstone_Render(UIInstance instance) {
     instance->renderDevice->popClipRect();
 }
 
+void UICornerstone_RenderOverlays(UIInstance instance) {
+    if (!instance || !instance->initialized || instance->destroying) return;
+    if (!instance->renderDevice || !instance->bench) return;
+    // P0-52①：仅重绘 bench 顶层可见浮层（含子树），按 bench 子序（z-order），裁剪同 Render
+    instance->renderDevice->pushClipRect(instance->viewport);
+    for (auto& child : instance->bench->getChildren()) {
+        if (isOverlayControl(child.get())) child->draw();
+    }
+    instance->renderDevice->popClipRect();
+}
+
 void UICornerstone_Clear(UIInstance instance) {
     if (!instance || !instance->initialized || instance->destroying) return;
     if (!instance->renderDevice) return;
@@ -895,6 +970,14 @@ int UICornerstone_Debug_IsControlFocused(UIInstance instance, UIControlHandle co
     if (!instance || instance->destroying || !control) return 0;
     auto* c = static_cast<Control*>(control);
     return c->getFocused() ? 1 : 0;
+}
+
+// P0-52：鼠标目标解析探针（注入事件不经坐标路由，测试用本探针验证浮层优先/
+// 关闭恢复；x/y 为窗口绝对坐标）。返回 1=owner（含浮层优先与空白区）/ 0=子视口。
+int UICornerstone_Debug_RouteMouseTarget(UIInstance instance, float x, float y) {
+    if (!instance || !instance->initialized || instance->destroying) return 1;
+    UIInstance t = resolveMouseTarget(instance, x, y);
+    return (t == nullptr || t == instance) ? 1 : 0;   // nullptr=空白区（回退 owner）
 }
 
 int UICornerstone_Debug_IsControlHovered(UIInstance instance, UIControlHandle control) {
@@ -1464,6 +1547,49 @@ int UICornerstone_StatusBarSetItemText(UIInstance instance, UIControlHandle bar,
     return 1;
 }
 
+int UICornerstone_StatusBarSetItemTextColor(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color, const char* state)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id) return 0;
+    ControlState st = ControlState::Normal;
+    if (state && state[0]) {
+        if (strcmp(state, PropertyNames::kStateKeyHover) == 0)         st = ControlState::Hover;
+        else if (strcmp(state, PropertyNames::kStateKeyPressed) == 0)  st = ControlState::Pressed;
+        else if (strcmp(state, PropertyNames::kStateKeyDisabled) == 0) st = ControlState::Disabled;
+        else if (strcmp(state, PropertyNames::kStateKeyNormal) != 0)   return 0;
+    }
+    v->setStatusItemTextColor(id, SColor(color.r, color.g, color.b, color.a), st);
+    return 1;
+}
+
+int UICornerstone_StatusBarSetItemBackgroundColor(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id) return 0;
+    v->setStatusItemBackgroundColor(id, SColor(color.r, color.g, color.b, color.a));
+    return 1;
+}
+
+int UICornerstone_StatusBarSetItemFontSize(UIInstance instance, UIControlHandle bar,
+    const char* id, float size)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id || size < 0.0f) return 0;
+    v->setStatusItemFontSize(id, size);
+    return 1;
+}
+
+int UICornerstone_StatusBarSetItemTextShadow(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color, float offsetX, float offsetY)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id) return 0;
+    v->setStatusItemTextShadow(id, SColor(color.r, color.g, color.b, color.a), offsetX, offsetY);
+    return 1;
+}
+
 int UICornerstone_StatusBarRemoveItem(UIInstance instance, UIControlHandle bar, const char* id) {
     auto* v = statusBarOf(instance, bar);
     if (!v || !id) return 0;
@@ -1509,6 +1635,7 @@ UIControlHandle UICornerstone_CreateContextMenu(UIInstance instance,
     auto menu = std::make_shared<ContextMenu>(nullptr, xScale, yScale);
     menu->setRect(SRect(x, y, w, h));
     instance->bench->addControl(menu);   // 挂树，确保上下文/渲染设备就绪
+    instance->popupPool.push_back(menu); // 保活（同 Dialog/Popup）：close 摘树后句柄仍有效，可重复 Show/Close
     menu->setVisible(false);
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(menu.get()));
 }
@@ -1778,8 +1905,27 @@ int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHan
     if (!v) return 0;
     HeaderStyle hs;
     hs.textColor = SColor(r, g, b, a);
+    hs.hasTextColor = true;   // P0-56：显式设色（区分占位黑）
     hs.fontSize = fontSize;
     v->setColumnHeaderStyle(colIndex, hs);
+    return 1;
+}
+
+int UICornerstone_ListViewSetColumnHeaderBackground(UIInstance instance, UIControlHandle lv,
+    int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    v->setColumnHeaderBackground(colIndex, SColor(r, g, b, a));
+    return 1;
+}
+
+int UICornerstone_ListViewSetColumnHeaderShadow(UIInstance instance, UIControlHandle lv,
+    int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    v->setColumnHeaderShadow(colIndex, SColor(r, g, b, a), offsetX, offsetY);
     return 1;
 }
 
@@ -1870,9 +2016,24 @@ void UICornerstone_AddChildControl(UIInstance instance, UIControlHandle parent, 
     auto* ctlImpl = dynamic_cast<ControlImpl*>(childV);
     auto* panel = dynamic_cast<Panel*>(parentV);
     if (!ctlImpl || !panel) return;
-    auto sp = ctlImpl->shared_from_this();
-    instance->bench->removeControl(sp);
-    panel->addControl(sp);
+    if (parentV == childV) return;   // P0-50 守卫：自身
+    // P0-50 守卫：祖先环（child 不能是 parent 的祖先）
+    for (Control* p = parentV->getParent(); p != nullptr; p = p->getParent()) {
+        if (p == childV) return;
+    }
+    if (childV->getParent() == parentV) return;   // 已在目标父下：no-op（避免池联动误摘）
+    try {
+        auto sp = ctlImpl->shared_from_this();
+        detachPoolTake(instance, child);           // P0-50：若在摘除保活池则移出（不销毁）
+        // P0-50：任意旧父自动摘除（跨容器 reparent 无双挂载；旧实现仅摘 bench）
+        Control* oldParent = childV->getParent();
+        if (oldParent != nullptr) {
+            oldParent->removeControl(sp);
+        } else {
+            instance->bench->removeControl(sp);
+        }
+        panel->addControl(sp);
+    } catch (...) { /* shared_from_this 失败：非托管对象，忽略 */ }
 }
 
 const char* UICornerstone_GetControlId(UIInstance instance, UIControlHandle ctl) {
@@ -1897,6 +2058,7 @@ void UICornerstone_DestroyControl(UIInstance instance, UIControlHandle ctl) {
     if (!ctrl) return;
     try {
         auto sp = ctrl->shared_from_this();
+        detachPoolTake(instance, ctl);   // P0-50：保活池解除持有（池内对象此后随本函数归零销毁）
         Control* parent = ctrl->getParent();
         if (parent && parent != instance->bench) {
             parent->removeControl(sp);
@@ -1904,6 +2066,23 @@ void UICornerstone_DestroyControl(UIInstance instance, UIControlHandle ctl) {
             instance->bench->removeControl(sp);
         }
     } catch (...) {}
+}
+
+int UICornerstone_RemoveChild(UIInstance instance, UIControlHandle parent, UIControlHandle child) {
+    if (!instance || !parent || !child) return 0;
+    Control* parentV = validateControl(instance, parent);
+    Control* childV = validateControl(instance, child);
+    if (!parentV || !childV || parentV == childV) return 0;
+    auto* ctlImpl = dynamic_cast<ControlImpl*>(childV);
+    if (!ctlImpl) return 0;
+    if (childV->getParent() != parentV) return 0;   // P0-50：防误摘（当前父必须匹配）
+    try {
+        auto sp = ctlImpl->shared_from_this();
+        parentV->removeControl(sp);
+        sp->setParent(nullptr);                     // 修正父指针/复合缩放（摘除不销毁）
+        detachPoolKeep(instance, sp);               // 移入保活池：可反复 attach/detach
+        return 1;
+    } catch (...) { return 0; }
 }
 
 // ============================================================

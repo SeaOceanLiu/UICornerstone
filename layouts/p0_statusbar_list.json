@@ -1,0 +1,48 @@
+﻿{
+  "version": "1.0",
+  "controls": [
+    {
+      "type": "panel",
+      "id": "p0Root2",
+      "rect": { "x": 0, "y": 0, "w": 520, "h": 260 },
+      "children": [
+        {
+          "type": "status-bar",
+          "id": "p0Sb2",
+          "rect": { "x": 0, "y": 0, "w": 520, "h": 24 },
+          "items": [
+            { "id": "hint", "text": "就绪", "text-color": "#cc2222", "background-color": "#222831", "font-size": 14, "text-shadow": "#000000", "text-shadow-offset-x": 1, "text-shadow-offset-y": 1 },
+            { "id": "mode", "text": "未选中控件", "text-color": { "normal": "#dddddd", "hover": "#ffffff" } }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "p0Anch",
+          "rect": { "x": 0, "y": 0, "w": 80, "h": 20 },
+          "caption": "A",
+          "anchor": "top-right",
+          "anchorOffset": { "left": 8, "top": 4 }
+        },
+        {
+          "type": "list-view",
+          "id": "p0Lv2",
+          "rect": { "x": 0, "y": 30, "w": 520, "h": 200 },
+          "header-background": "#101820",
+          "header-text": "#e0e0e0",
+          "header-shadow": "#000000",
+          "header-shadow-offset-x": 2,
+          "header-shadow-offset-y": 2,
+          "columns": [
+            { "title": "Name", "width": 160, "header-background": "#203040" },
+            { "title": "Value", "width": 140, "header-text": "#ffcc00", "header-shadow": "#802020",
+              "header-shadow-offset-x": 1, "header-shadow-offset-y": 1 }
+          ],
+          "rows": [
+            { "id": "r1", "cells": ["alpha", "1"] },
+            { "id": "r2", "cells": ["beta", "2"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

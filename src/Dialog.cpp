@@ -155,7 +155,10 @@ void Popup::close(DialogResult result) {
     if (!getVisible()) return;
     m_result = result;
     setVisible(false);
-    BENCH->removeControl(static_pointer_cast<Control>(getThis()));
+    // 防御性保活：浮层可能以 bench 为唯一持有者（C ABI 裸句柄场景），摘树后须存活至
+    // close 尾部（m_onClose/回调）结束，避免 use-after-free
+    auto selfKeepAlive = static_pointer_cast<Control>(getThis());
+    BENCH->removeControl(selfKeepAlive);
     GET_FOCUSMANAGER->unregisterBoundary(this);
     // 不在此处 removeBeforeEventHandlingWatcher：
     // close() 可能从 beforeEventHandlingWatcher 内部调用（ESC/outside-click），

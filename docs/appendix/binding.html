@@ -44,6 +44,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>bool ProcessEvents()</code></td><td>非阻塞处理事件（多实例主循环调度用）</td></tr>
 <tr><td><code>int Run(FrameCallback, RenderCallback=nullptr)</code></td><td>进入主循环（每帧 update + onRender）</td></tr>
 <tr><td><code>void Render() / Clear() / Present()</code></td><td>渲染三件套（自绘模式）</td></tr>
+<tr><td><code>void RenderOverlays()</code></td><td>浮层渲染通道（P0-52①）：多视口帧序 <code>Clear → owner.Render → 各子视口 Render → RenderOverlays → Present</code>（Present 前调用；浮层恒在子视口之上且可交互）</td></tr>
 <tr><td><code>void Shutdown()</code></td><td>退出并释放实例</td></tr>
 <tr><td><code>void Update(double deltaTime)</code></td><td>推进逻辑（动画/计时）</td></tr>
 </table>
@@ -123,7 +124,9 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>std::string GetType() const</code></td><td>控件运行时类型（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code> / <code>"tree-view"</code>）</td></tr>
 <tr><td><code>UIRect GetRect() const</code></td><td>读取布局矩形</td></tr>
 <tr><td><code>UIControlHandle Handle() const</code></td><td>取原始 C 句柄（传给 C ABI 专用函数，如 <code>ListViewAddColumn</code>）</td></tr>
-<tr><td><code>void AddChild(Control child)</code></td><td>挂子控件</td></tr>
+<tr><td><code>Root()</code></td><td>取根句柄（P0-61：本实例 bench；根级布局/锚定入口，配合 child-id + <code>SetEnum/SetFloat("layout"/"anchor"/…)</code>）</td></tr>
+<tr><td><code>Control AddChild(Control child)</code></td><td>挂子控件（P0-50：返回 child；自动摘旧父）</td></tr>
+<tr><td><code>bool RemoveChild(Control child)</code></td><td>摘除子控件（P0-50：不销毁，保活可再挂）</td></tr>
 <tr><td><code>void Destroy()</code></td><td>销毁控件</td></tr>
 <tr><td><code>void SetCallback(const char* event, EventCallback)</code></td><td>类型安全事件回调（lambda）</td></tr>
 <tr><td><code>void SetRect(float x, float y, float w, float h)</code></td><td>调整布局矩形</td></tr>
@@ -177,7 +180,14 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>EditBoxDeleteSelectedText(ctl)</code></td><td>删除选中文本</td></tr>
 </table>
 
-<h3>11.5.3 ComboBox 选项操作</h3>
+<h3>11.5.3 容器子控件挂载（P0-50）</h3>
+<table>
+<tr><th>方法</th><th>说明</th></tr>
+<tr><td><code>AddChild(parent, child)</code> / <code>Control::AddChild(child)</code></td><td>挂载/重挂子控件；返回 child；任意旧父自动摘除（跨容器 reparent 无双挂载）</td></tr>
+<tr><td><code>RemoveChild(parent, child)</code> / <code>Control::RemoveChild(child)</code></td><td>摘除但<b>不销毁</b>（实例级保活，可反复挂载）；要求 child 当前父 == parent；返回 bool</td></tr>
+</table>
+
+<h3>11.5.4 ComboBox 选项操作</h3>
 
 <table>
 <tr><th>方法</th><th>说明</th></tr>
@@ -187,14 +197,14 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>ComboBoxGetItemCount(ctl)</code></td><td>获取选项数量</td></tr>
 </table>
 
-<h3>11.5.4 NumericUpDown 数值操作</h3>
+<h3>11.5.5 NumericUpDown 数值操作</h3>
 
 <table>
 <tr><th>方法</th><th>说明</th></tr>
 <tr><td><code>NumericUpDownStep(ctl, dir)</code></td><td>步进（dir=+1 增 / -1 减）</td></tr>
 </table>
 
-<h3>11.5.5 LuotiAni 动画操作</h3>
+<h3>11.5.6 LuotiAni 动画操作</h3>
 
 <table>
 <tr><th>方法</th><th>说明</th></tr>
@@ -202,7 +212,7 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>AnimationSetFrameFilter(ctl, bilinear)</code></td><td>帧位图采样过滤</td></tr>
 </table>
 
-<h3>11.5.6 截图读回</h3>
+<h3>11.5.7 截图读回</h3>
 
 <table>
 <tr><th>方法</th><th>说明</th></tr>
@@ -213,18 +223,24 @@ item 级属性（<code>item-id</code> / <code>item-leading-gap</code> /
 <tr><td><code>GetFontCount()</code> / <code>GetFontName(index)</code> / <code>GetFontNames()</code>（静态）</td><td>字体枚举清单（与引擎 <code>kFont*</code> 枚举单一数据源；核心库未加载时返回 0/空）</td></tr>
 </table>
 
-<h3>11.5.7 新控件专用操作（实例方法，与 C ABI 同名）</h3>
+<h3>11.5.8 新控件专用操作（实例方法，与 C ABI 同名）</h3>
 
 <pre><code>// ListView：行/列
 auto lv = ui->CreateListView(30, 60, 420, 240);
 ui->ListViewAddColumn(lv, u8"名称", 180, true);
 std::vector&lt;std::string&gt; cells = { u8"main.cpp", u8"2.1 KB" };
 ui->ListViewAddRow(lv, "f1", cells);
+ui->ListViewSetColumnHeaderBackground(lv, 0, UIColor{32, 48, 64, 255});   // P0-56（per-column）
+ui->ListViewSetColumnHeaderShadow(lv, 0, UIColor{0, 0, 0, 255}, 1.0f, 1.0f);
 
 // StatusBar：段
 auto bar = ui->CreateStatusBar(0, 876, 1400, 24);
 ui->StatusBarAddItem(bar, "branch", u8"main", false);
 ui->StatusBarSetItemText(bar, "branch", u8"dev");
+ui->StatusBarSetItemBackgroundColor(bar, "branch", UIColor{34, 40, 49, 255});
+ui->StatusBarSetItemTextColor(bar, "branch", UIColor{204, 34, 34, 255});   // state 缺省=normal
+ui->StatusBarSetItemFontSize(bar, "branch", 12.0f);                        // P0-58（0=继承）
+ui->StatusBarSetItemTextShadow(bar, "branch", UIColor{0, 0, 0, 255}, 1.0f, 1.0f);
 
 // TabControl：页
 auto tc = ui->CreateTabControl(120, 80, 560, 240);

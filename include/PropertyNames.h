@@ -275,6 +275,11 @@ PROP_CONSTEXPR const char* kShapePolygon           = "polygon";
 PROP_CONSTEXPR const char* kMode                   = "mode";               // 枚举属性：视图模式
 PROP_CONSTEXPR const char* kMultiSelect            = "multi-select";       // bool：Ctrl 多选开关
 PROP_CONSTEXPR const char* kHeaderHeight           = "header-height";      // float：列头行高
+PROP_CONSTEXPR const char* kHeaderText             = "header-text";        // P0-56：列头文字色（控件级）
+PROP_CONSTEXPR const char* kHeaderBackground       = "header-background";  // P0-56：列头背景色（控件级）
+PROP_CONSTEXPR const char* kHeaderShadow           = "header-shadow";      // P0-56：列头文字阴影色（未设=不绘制）
+PROP_CONSTEXPR const char* kHeaderShadowOffsetX    = "header-shadow-offset-x";  // P0-56
+PROP_CONSTEXPR const char* kHeaderShadowOffsetY    = "header-shadow-offset-y";  // P0-56
 PROP_CONSTEXPR const char* kGridlines              = "gridlines";          // bool：竖网格线
 PROP_CONSTEXPR const char* kHorizontalGridlines    = "horizontal-gridlines"; // bool：横网格线
 PROP_CONSTEXPR const char* kHoverHighlight         = "hover";              // bool：hover 高亮开关
@@ -502,6 +507,10 @@ PROP_CONSTEXPR const char* kLuotiAni              = "luotiAni";   // Button 属�
 // -- StatusBar --
 PROP_CONSTEXPR const char* kStatusBar             = "status-bar";
 PROP_CONSTEXPR const char* kItemIcon              = "icon";                // StatusBar/Menu item 图标（资源引用）
+PROP_CONSTEXPR const char* kItemTextColor         = "text-color";          // P0-55：StatusBar 段文本色（字符串=normal / 对象=四态）
+PROP_CONSTEXPR const char* kItemBackgroundColor   = "background-color";    // P0-55：StatusBar 段背景色（单色）
+PROP_CONSTEXPR const char* kItemTextShadowOffsetX = "text-shadow-offset-x";  // P0-58：StatusBar 段级阴影偏移
+PROP_CONSTEXPR const char* kItemTextShadowOffsetY = "text-shadow-offset-y";  // P0-58
 PROP_CONSTEXPR const char* kJsonMenu              = "menu";               // StatusBar item 内嵌菜单（单数）
 PROP_CONSTEXPR const char* kJsonBgColor = "background";
 PROP_CONSTEXPR const char* kJsonBorderColor = "border";
@@ -660,6 +669,7 @@ PROP_CONSTEXPR const char* kBlendMultiply              = "multiply";
 // ============================================================
 
 // 布局引擎类型
+PROP_CONSTEXPR const char* kLayoutTypeAbsolute      = "absolute";   // P0-59：运行期 layout 读回（无引擎）
 PROP_CONSTEXPR const char* kLayoutTypeHFlow        = "h-flow";
 PROP_CONSTEXPR const char* kLayoutTypeVFlow        = "v-flow";
 PROP_CONSTEXPR const char* kLayoutTypeAnchor       = "anchor";

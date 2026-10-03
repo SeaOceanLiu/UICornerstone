@@ -73,6 +73,9 @@ public:
     bool ProcessEvents();   // 返回是否处理了至少一个事件（多实例主循环调度用）
     void Update(double deltaTime);
     void Render();
+    // 浮层渲染通道（P0-52①）：多视口帧序 Clear → owner.Render → 各子视口 Render →
+    // RenderOverlays → Present（Present 前调用；未接入时行为同既有版本）
+    void RenderOverlays();
     void Clear();
     void Present();
     bool IsQuitRequested() const;
@@ -120,6 +123,8 @@ public:
     // 将裸句柄（如 GetPtr("item-leading-control") 返回值）包装为 Control 代理。
     // 句柄须属于本实例；重复包装共享同一代理状态（生命周期/有效性追踪）。
     Control FromHandle(UIControlHandle handle);
+    // P0-61：取根句柄（本实例 bench；子视口实例返回其自身 bench）——根级布局/锚定入口
+    Control Root();
 
     // ── 控件工厂 ──
     Control CreateButton(const std::string& text, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
@@ -129,6 +134,15 @@ public:
     Control CreateProgressBar(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateSlider(float x, float y, float w, float h, float min, float max, float value, float xScale = 1.0f, float yScale = 1.0f);
     Control CreatePanel(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
+    // ── 容器子控件挂载（P0-50）──
+    // AddChild(parent, child)：挂载/重挂 child 到 parent。
+    //   - parent 须为 Panel（WinFrame 严格挂 ClientPanel，传 ui->FromHandle(wf.GetPtr("client-panel")) 代理）；
+    //   - 任意旧父自动摘除（跨容器拖动无双挂载）；非 Panel/自身/祖先环 → 静默无操作；
+    //   - 返回 child（可链式）；失败无异常，需判别时可用 RemoveChild 的返回值校验关系。
+    Control AddChild(Control& parent, Control& child);
+    // RemoveChild(parent, child)：摘除但**不销毁**（实例级保活，可再 AddChild/Destroy）。
+    //   要求 child 当前父 == parent（防误摘）；返回 true 成功 / false 非法或关系不匹配。
+    bool    RemoveChild(Control& parent, Control& child);
     Control CreateTextArea(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateWinFrame(const std::string& title, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateComboBox(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
@@ -163,6 +177,12 @@ public:
     // ── StatusBar 段操作 ──
     bool StatusBarAddItem(Control& bar, const std::string& id, const std::string& text, bool rightAlign = false);
     bool StatusBarSetItemText(Control& bar, const std::string& id, const std::string& text);
+    // P0-55 段着色：state 可为 nullptr=normal 或 "normal"/"hover"/"pressed"/"disabled"
+    bool StatusBarSetItemTextColor(Control& bar, const std::string& id, UIColor color, const char* state = nullptr);
+    bool StatusBarSetItemBackgroundColor(Control& bar, const std::string& id, UIColor color);
+    // P0-58：段级字号（0=继承）/ 文字阴影（未设继承控件级）
+    bool StatusBarSetItemFontSize(Control& bar, const std::string& id, float size);
+    bool StatusBarSetItemTextShadow(Control& bar, const std::string& id, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
     bool StatusBarRemoveItem(Control& bar, const std::string& id);
     bool StatusBarSetItemIcon(Control& bar, const std::string& id, Control& iconControl);
     bool StatusBarSetItemMenu(Control& bar, const std::string& id, Control& menuPanel);
@@ -241,6 +261,9 @@ public:
     bool ListViewSetCellLeadingControl(Control& lv, int row, int col, Control& ctl);
     bool ListViewSetCellStyle(Control& lv, int row, int col, UIColor bg, int fontSize);
     bool ListViewSetColumnHeaderStyle(Control& lv, int colIndex, UIColor color, int fontSize);
+    // P0-56：per-column 表头背景 / 文字阴影（稀疏；未设继承控件级）
+    bool ListViewSetColumnHeaderBackground(Control& lv, int colIndex, UIColor color);
+    bool ListViewSetColumnHeaderShadow(Control& lv, int colIndex, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
     bool ListViewSetColumnIcon(Control& lv, int colIndex, Control& iconControl);
     bool ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData = nullptr);
     bool ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values);

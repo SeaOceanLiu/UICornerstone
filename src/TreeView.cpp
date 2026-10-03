@@ -92,7 +92,7 @@ void TreeView::ensureFont() {
 
     auto it = ConstDef::fontFiles.find(m_fontName);
     if (it == ConstDef::fontFiles.end()) return;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
+    string fontPath = it->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return;
 
@@ -114,7 +114,7 @@ SharedFont TreeView::getNodeFont(const shared_ptr<TreeNode>& node) {
     if (!renderer || !provider) return m_font;
     auto fit = ConstDef::fontFiles.find(node->fontName);
     if (fit == ConstDef::fontFiles.end()) return m_font;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + fit->second;
+    string fontPath = fit->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return m_font;
 

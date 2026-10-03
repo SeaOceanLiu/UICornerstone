@@ -68,6 +68,25 @@ static void runAssertions() {
     float f = 0.f;
     CHECK(g_probe->getFloatProperty("item-height", f) == 1 && f == 28.f, "item-height roundtrip");
 
+    // P0-53：文本更新触发重排（段宽随文本变化）
+    g_probe->addStatusItem("grow", "x", false);
+    const float wShort = g_probe->getStatusItem("grow")->hitRect.width;
+    g_probe->updateStatusItemText("grow", "1234567890123456789012345678901234567890");
+    const float wLong = g_probe->getStatusItem("grow")->hitRect.width;
+    CHECK(wLong > wShort, "P0-53 updateStatusItemText triggers relayout (hitRect grows)");
+
+    // P0-55：段着色（四态 mask 稀疏 + 背景）
+    g_probe->setStatusItemTextColor("grow", SColor(255, 0, 0, 255), ControlState::Normal);
+    g_probe->setStatusItemTextColor("grow", SColor(0, 255, 0, 255), ControlState::Hover);
+    g_probe->setStatusItemBackgroundColor("grow", SColor(0, 0, 255, 255));
+    {
+        StatusItem* it = g_probe->getStatusItem("grow");
+        CHECK(it && it->textColorMask == 3 && it->hasBackground, "P0-55 item color set (mask/bg)");
+        CHECK(it && it->textColor.getNormal().redByte() == 255 && it->textColor.getHover().greenByte() == 255,
+              "P0-55 item text color normal/hover stored");
+        CHECK(it && it->background.blueByte() == 255, "P0-55 item background stored");
+    }
+
     // 图标控件绑定（API 接受）
     auto icon = make_shared<Label>(nullptr, SRect(0, 0, 16, 16));
     g_probe->setStatusItemLeadingControl("branch", icon);
@@ -102,6 +121,27 @@ static void runCabiChecks() {
 
     CHECK(UICornerstone_StatusBarRemoveItem(g_uiInstance, h, "b") == 1,
           "StatusBarRemoveItem");
+
+    // P0-57：运行期 font-size 失效缓存字体（段宽随新字号变化）
+    {
+        auto* bar = dynamic_cast<StatusBar*>(static_cast<Control*>(h));
+        UICornerstone_SetInt(g_uiInstance, h, "font-size", 10);
+        const float w10 = bar->getStatusItem("a")->hitRect.width;
+        UICornerstone_SetInt(g_uiInstance, h, "font-size", 20);
+        const float w20 = bar->getStatusItem("a")->hitRect.width;
+        CHECK(w20 > w10, "P0-57 setFontSize invalidates cached font (hitRect grows)");
+
+        // P0-58：段级字号 / 文字阴影（ABI + 字段）
+        CHECK(UICornerstone_StatusBarSetItemFontSize(g_uiInstance, h, "a", 26.f) == 1,
+              "P0-58 SetItemFontSize");
+        const float wItem = bar->getStatusItem("a")->hitRect.width;
+        CHECK(wItem > w20, "P0-58 item font size affects layout");
+        CHECK(UICornerstone_StatusBarSetItemTextShadow(g_uiInstance, h, "a",
+                  UIColor{10, 20, 30, 255}, 2.f, 3.f) == 1, "P0-58 SetItemTextShadow");
+        StatusItem* it = bar->getStatusItem("a");
+        CHECK(it && it->hasShadow && it->shadowOffset.x == 2.f && it->shadowColor.blueByte() == 30,
+              "P0-58 item shadow stored");
+    }
 
     TestUtil::log("---- CABI checks done: pass=%d fail=%d ----", g_pass, g_fail);
 }

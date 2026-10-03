@@ -185,6 +185,10 @@ int UICornerstone::Run(FrameCallback update, RenderCallback onRender) {
 
 bool UICornerstone::ProcessEvents() { return m_impl->instance ? (Dyn::API().fnProcessEvents(m_impl->instance) != 0) : false; }
 void UICornerstone::Update(double deltaTime) { if (m_impl->instance) Dyn::API().fnUpdate(m_impl->instance, deltaTime); }
+void UICornerstone::RenderOverlays() {
+    if (m_impl->instance && Dyn::API().fnRenderOverlays)
+        Dyn::API().fnRenderOverlays(m_impl->instance);
+}
 void UICornerstone::Render() { if (m_impl->instance) Dyn::API().fnRender(m_impl->instance); }
 void UICornerstone::Clear() { if (m_impl->instance) Dyn::API().fnClear(m_impl->instance); }
 void UICornerstone::Present() { if (m_impl->instance) Dyn::API().fnPresent(m_impl->instance); }
@@ -292,6 +296,11 @@ Control UICornerstone::FromHandle(UIControlHandle handle) {
     return MakeControl(handle);
 }
 
+Control UICornerstone::Root() {
+    if (!m_impl->instance || !Dyn::API().fnGetRoot) return Control();
+    return MakeControl(Dyn::API().fnGetRoot(m_impl->instance));
+}
+
 // ============================================================
 // Control 生命周期注册
 // ============================================================
@@ -337,6 +346,18 @@ UI_FACTORY(CreateProgressBar,
 UI_FACTORY(CreateSlider,
     (float x, float y, float w, float h, float min, float max, float value, float xScale, float yScale),
     x, y, w, h, min, max, value, xScale, yScale)
+// ── 容器子控件挂载（P0-50）──
+Control UICornerstone::AddChild(Control& parent, Control& child) {
+    if (m_impl->instance && parent.IsValid() && child.IsValid())
+        Dyn::API().fnAddChildControl(m_impl->instance, parent.Handle(), child.Handle());
+    return child;
+}
+bool UICornerstone::RemoveChild(Control& parent, Control& child) {
+    if (!m_impl->instance || !parent.IsValid() || !child.IsValid()) return false;
+    if (!Dyn::API().fnRemoveChild) return false;
+    return Dyn::API().fnRemoveChild(m_impl->instance, parent.Handle(), child.Handle()) != 0;
+}
+
 UI_FACTORY(CreatePanel,
     (float x, float y, float w, float h, float xScale, float yScale),
     x, y, w, h, xScale, yScale)
@@ -406,6 +427,27 @@ UI_FACTORY(CreateTabControl,
 bool UICornerstone::StatusBarAddItem(Control& bar, const std::string& id, const std::string& text, bool rightAlign) {
     if (!m_impl->instance || !bar.Handle()) return false;
     return Dyn::API().fnStatusBarAddItem(m_impl->instance, bar.Handle(), id.c_str(), text.c_str(), rightAlign ? 1 : 0) != 0;
+}
+bool UICornerstone::StatusBarSetItemTextColor(Control& bar, const std::string& id, UIColor color, const char* state) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemTextColor) return false;
+    return Dyn::API().fnStatusBarSetItemTextColor(m_impl->instance, bar.Handle(), id.c_str(), color, state) != 0;
+}
+bool UICornerstone::StatusBarSetItemBackgroundColor(Control& bar, const std::string& id, UIColor color) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemBackgroundColor) return false;
+    return Dyn::API().fnStatusBarSetItemBackgroundColor(m_impl->instance, bar.Handle(), id.c_str(), color) != 0;
+}
+bool UICornerstone::StatusBarSetItemFontSize(Control& bar, const std::string& id, float size) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemFontSize) return false;
+    return Dyn::API().fnStatusBarSetItemFontSize(m_impl->instance, bar.Handle(), id.c_str(), size) != 0;
+}
+bool UICornerstone::StatusBarSetItemTextShadow(Control& bar, const std::string& id, UIColor color, float offsetX, float offsetY) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemTextShadow) return false;
+    return Dyn::API().fnStatusBarSetItemTextShadow(m_impl->instance, bar.Handle(), id.c_str(),
+                                                   color, offsetX, offsetY) != 0;
 }
 bool UICornerstone::StatusBarSetItemText(Control& bar, const std::string& id, const std::string& text) {
     if (!m_impl->instance || !bar.Handle()) return false;
@@ -751,6 +793,18 @@ bool UICornerstone::ListViewSetCellStyle(Control& lv, int row, int col, UIColor 
     if (!m_impl->instance || !lv.Handle()) return false;
     return Dyn::API().fnListViewSetCellStyle(m_impl->instance, lv.Handle(), row, col,
         bg.r, bg.g, bg.b, bg.a, fontSize) != 0;
+}
+bool UICornerstone::ListViewSetColumnHeaderBackground(Control& lv, int colIndex, UIColor color) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetColumnHeaderBackground) return false;
+    return Dyn::API().fnListViewSetColumnHeaderBackground(m_impl->instance, lv.Handle(), colIndex,
+                                                          color.r, color.g, color.b, color.a) != 0;
+}
+bool UICornerstone::ListViewSetColumnHeaderShadow(Control& lv, int colIndex, UIColor color, float offsetX, float offsetY) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetColumnHeaderShadow) return false;
+    return Dyn::API().fnListViewSetColumnHeaderShadow(m_impl->instance, lv.Handle(), colIndex,
+                                                      color.r, color.g, color.b, color.a, offsetX, offsetY) != 0;
 }
 bool UICornerstone::ListViewSetColumnHeaderStyle(Control& lv, int colIndex, UIColor color, int fontSize) {
     if (!m_impl->instance || !lv.Handle()) return false;

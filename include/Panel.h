@@ -53,6 +53,9 @@ public:
     int setFloatProperty(const char* prop, float value) override;
     int setIntProperty(const char* prop, int value) override;
     int setEnumProperty(const char* prop, const char* value) override;
+    // P0-59：运行期布局模式读回（layout）/ 锚点读回（child-id + anchor / anchor-offset-x/y）
+    int getEnumProperty(const char* prop, const char*& out) override;
+    int getFloatProperty(const char* prop, float& out) override;
     int getStringProperty(const char* prop, const char*& out) override;
     void setRect(SRect rect) override;
     void resized(SRect newRect) override;

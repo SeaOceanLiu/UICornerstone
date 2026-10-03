@@ -50,7 +50,7 @@ void ListView::ensureFont() {
     if (!renderer || !provider) return;
     auto it = ConstDef::fontFiles.find(m_fontName);
     if (it == ConstDef::fontFiles.end()) return;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
+    string fontPath = it->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return;
     int scaledSize = static_cast<int>(m_fontSize * getScaleXX());
@@ -85,7 +85,7 @@ SharedFont ListView::fontFor(FontName name, int size) {
     if (!renderer || !provider) return nullptr;
     auto fit = ConstDef::fontFiles.find(name);
     if (fit == ConstDef::fontFiles.end()) return nullptr;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + fit->second;
+    string fontPath = fit->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return nullptr;
     int scaledSize = static_cast<int>(size * getScaleXX());
@@ -326,6 +326,18 @@ HeaderStyle ListView::getColumnHeaderStyle(int index) const {
     if (index < 0 || index >= getColumnCount()) return HeaderStyle{};
     return m_columns[index].style;
 }
+void ListView::setColumnHeaderBackground(int index, SColor color) {   // P0-56
+    if (index < 0 || index >= getColumnCount()) return;
+    m_columns[index].style.background = color;
+    m_columns[index].style.hasBackground = true;
+}
+void ListView::setColumnHeaderShadow(int index, SColor color, float offsetX, float offsetY) {   // P0-56
+    if (index < 0 || index >= getColumnCount()) return;
+    auto& st = m_columns[index].style;
+    st.shadowColor = color;
+    st.hasShadow = true;
+    st.shadowOffset = SPoint(offsetX, offsetY);
+}
 
 // ── 列 ──
 int ListView::addColumn(const string& title, float width, bool sortable) {
@@ -565,7 +577,7 @@ void ListView::draw(void) {
 
     // ── 列头行（仅 multi）──
     if (multi) {
-        dev->setDrawColor(m_headerBgColor);
+        dev->setDrawColor(m_headerBgColor);   // P0-56：控件级 header-background（缺省内部常量）
         dev->fillRect(SRect(ox, oy, dr.width, headerH));
 
         for (int c = 0; c < getColumnCount(); ++c) {
@@ -578,19 +590,33 @@ void ListView::draw(void) {
             if (!hf) hf = m_font;
             const float hfh = renderer->getFontHeight(hf.get());
 
-            // 标题文本（leadingControl 槽让位）
+            // 标题文本（leadingControl 槽让位） + P0-56：per-column 背景/文字色优先
             float tx = x + kTextLeftPad * sx;
             if (m_columns[c].leadingControl) tx += headerH - kIconSlotInset * sx;
             dev->pushClipRect(SRect(x, oy, w, headerH));
-            renderer->drawText(hf.get(), m_columns[c].title, tx,
-                               oy + (headerH - hfh) / 2.f, m_headerTextColor);
+            if (st.hasBackground) {
+                dev->setDrawColor(st.background);
+                dev->fillRect(SRect(x, oy, w, headerH));
+            }
+            const SColor headerColor = st.hasTextColor ? st.textColor : m_headerTextColor;
+            const bool useShadow = st.hasShadow || m_headerShadowEnabled;
+            if (useShadow) {
+                const SColor sc = st.hasShadow ? st.shadowColor : m_headerShadowColor;
+                const SPoint so = st.hasShadow ? st.shadowOffset : m_headerShadowOffset;
+                const float ty = oy + (headerH - hfh) / 2.f;
+                TextDraw::withShadow(renderer, hf.get(), m_columns[c].title, tx, ty,
+                                     tx + so.x * sx, ty + so.y * sy, headerColor, true, sc);
+            } else {
+                renderer->drawText(hf.get(), m_columns[c].title, tx,
+                                   oy + (headerH - hfh) / 2.f, headerColor);
+            }
             // 排序箭头（sortable 且当前排序列）
             if (m_columns[c].sortable && c == m_sortColumn) {
                 const float ax = x + w - kSortArrowRightGap * sx, ay = oy + headerH / 2.f;
                 if (m_sortAscending)
-                    dev->drawTriangle(ax, ay + kSortArrowHalf * sx, ax + kSortArrowW * sx, ay + kSortArrowHalf * sx, ax + kSortArrowHalf * sx, ay - kSortArrowTip * sx, m_headerTextColor);
+                    dev->drawTriangle(ax, ay + kSortArrowHalf * sx, ax + kSortArrowW * sx, ay + kSortArrowHalf * sx, ax + kSortArrowHalf * sx, ay - kSortArrowTip * sx, headerColor);
                 else
-                    dev->drawTriangle(ax, ay - kSortArrowHalf * sx, ax + kSortArrowW * sx, ay - kSortArrowHalf * sx, ax + kSortArrowHalf * sx, ay + kSortArrowTip * sx, m_headerTextColor);
+                    dev->drawTriangle(ax, ay - kSortArrowHalf * sx, ax + kSortArrowW * sx, ay - kSortArrowHalf * sx, ax + kSortArrowHalf * sx, ay + kSortArrowTip * sx, headerColor);
             }
             dev->popClipRect();
             // 分隔线
@@ -936,6 +962,10 @@ int ListView::getStateColorProperty(const char* prop, StateColor& out) {
     return ControlImpl::getStateColorProperty(prop, out);
 }
 int ListView::setColorProperty(const char* prop, SColor color) {
+    // P0-56：控件级表头样式
+    if (strcmp(prop, PropertyNames::kHeaderText) == 0)       { m_headerTextColor = color; return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderBackground) == 0) { m_headerBgColor = color;   return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderShadow) == 0)     { m_headerShadowColor = color; m_headerShadowEnabled = true; return 1; }
     if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
         strcmp(prop, PropertyNames::kItemBorder) == 0 ||
         strcmp(prop, PropertyNames::kItemText) == 0 ||
@@ -953,6 +983,10 @@ int ListView::setColorProperty(const char* prop, SColor color) {
     return ControlImpl::setColorProperty(prop, color);
 }
 int ListView::getColorProperty(const char* prop, SColor& out) {
+    // P0-56：控件级表头样式
+    if (strcmp(prop, PropertyNames::kHeaderText) == 0)       { out = m_headerTextColor;  return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderBackground) == 0) { out = m_headerBgColor;    return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderShadow) == 0)     { out = m_headerShadowColor; return 1; }
     int idx = findRowById(m_itemTargetId);
     if (idx >= 0) {
         const RowStyle& st = m_rows[idx].style;
@@ -986,6 +1020,9 @@ int ListView::setBoolProperty(const char* prop, int value) {
     return ControlImpl::setBoolProperty(prop, value);
 }
 int ListView::setFloatProperty(const char* prop, float value) {
+    // P0-56：控件级表头阴影偏移
+    if (strcmp(prop, PropertyNames::kHeaderShadowOffsetX) == 0) { m_headerShadowOffset.x = value; return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderShadowOffsetY) == 0) { m_headerShadowOffset.y = value; return 1; }
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { setRowHeight(value);      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { setHeaderHeight(value);   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { setMinColumnWidth(value); return 1; }
@@ -1028,6 +1065,9 @@ int ListView::getBoolProperty(const char* prop, int& out) {
     return ControlImpl::getBoolProperty(prop, out);
 }
 int ListView::getFloatProperty(const char* prop, float& out) {
+    // P0-56：控件级表头阴影偏移
+    if (strcmp(prop, PropertyNames::kHeaderShadowOffsetX) == 0) { out = m_headerShadowOffset.x; return 1; }
+    if (strcmp(prop, PropertyNames::kHeaderShadowOffsetY) == 0) { out = m_headerShadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)      { out = m_rowHeight;      return 1; }
     if (strcmp(prop, PropertyNames::kHeaderHeight) == 0)   { out = m_headerHeight;   return 1; }
     if (strcmp(prop, PropertyNames::kMinColumnWidth) == 0) { out = m_minColumnWidth; return 1; }

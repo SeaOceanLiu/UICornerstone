@@ -307,15 +307,12 @@ void AnchorLayout::applyAnchor(const SRect& containerRect,
 
     for (auto& child : children) {
         if (!child->getVisible()) continue;
-        SRect childRect = child->getRect();
-
-        string anchor = PropertyNames::kAlignLowerTopLeft;
-        Margin offset;
+        // P0-60：稀疏语义——未显式锚定（含仅设偏移）的子控件保持现有 rect，不参与锚点管理
         auto it = anchorProps.find(child.get());
-        if (it != anchorProps.end()) {
-            anchor = it->second.anchor;
-            offset = it->second.offset;
-        }
+        if (it == anchorProps.end() || !it->second.hasAnchor) continue;
+        SRect childRect = child->getRect();
+        const string& anchor = it->second.anchor;
+        const Margin& offset = it->second.offset;
 
         float x = innerLeft + offset.left;
         float y = innerTop + offset.top;

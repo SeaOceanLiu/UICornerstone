@@ -37,6 +37,7 @@
 <tr><td><code>UICornerstone_GetViewportScaleMode(inst, &amp;mode)</code></td><td>查询当前缩放模式</td></tr>
 <tr><td><code>UICornerstone_IsQuitRequested(inst)</code></td><td>窗口关闭请求查询</td></tr>
 <tr><td><code>UICornerstone_ProcessEvents / Update / Clear / Render / Present</code></td><td>主循环五步</td></tr>
+<tr><td><code>UICornerstone_RenderOverlays(inst)</code></td><td>浮层渲染通道（P0-52①）：仅重绘 BENCH 顶层可见浮层（Popup/ConfirmPopup/Dialog/MenuPanel，含子树），按实例 viewport 裁剪。多视口帧序：<code>Clear → owner.Render → 各子视口 Render → RenderOverlays → Present</code>（Present 前调用；无浮层零开销，未调用行为同既有版本）</td></tr>
 <tr><td><code>UICornerstone_PushUIEvent(inst, ev)</code></td><td>投递事件到实例队列（跨线程安全，自动化测试 auto 退出即经此）</td></tr>
 <tr><td><code>UICornerstone_SetCanvasSize(inst, w, h)</code></td><td>显式基准画布尺寸（fit/stretch 适配基准；off 下仅记录）</td></tr>
 <tr><td><code>UICornerstone_SetViewport(inst, x, y, w, h)</code></td><td>设置视口</td></tr>
@@ -76,7 +77,9 @@
 
 <table>
 <tr><th>函数</th><th>返回控件</th></tr>
-<tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂子控件</td></tr>
+<tr><td><code>UICornerstone_GetRoot(inst)</code></td><td>取根句柄（P0-61：本实例 bench；子视口实例返回其自身 bench）——根级布局/锚定入口（配合 child-id + layout/anchor/anchor-offset-x/y）</td></tr>
+<tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂载/重挂子控件（P0-50：任意旧父自动摘除，跨容器 reparent 无双挂载；非 Panel 父/自身/祖先环 → 静默 no-op）</td></tr>
+<tr><td><code>UICornerstone_RemoveChild(inst, parent, child)</code></td><td>摘除子控件（P0-50：<b>不销毁</b>，实例级保活可反复挂载；要求 child 当前父 == parent；返回 1/0）</td></tr>
 <tr><td><code>UICornerstone_CreateActor(inst, image, x, y, w, h, xScale, yScale)</code></td><td>Actor（静态图片控件，image 可 NULL；w/h=0 → 纹理自然尺寸）</td></tr>
 <tr><td><code>UICornerstone_CreateAnimatedButton(inst, jsoncPath, x, y, w, h, xScale, yScale)</code></td><td>带动画的 Button（jsoncPath 可 NULL=纯按钮；内嵌动画构造 scale 恒 1.0，xScale/yScale 作用于按钮本身，双重缩放陷阱见 <a href="../advanced/scale.html">5.5</a>）</td></tr>
 <tr><td><code>UICornerstone_CreateAnimation(inst, jsoncPath, x, y, w, h, xScale, yScale)</code></td><td>LuotiAni</td></tr>
@@ -113,10 +116,12 @@
 
 <table>
 <tr><th>函数</th><th>作用</th></tr>
-<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter / ListViewSetColumnHeaderStyle / ListViewSetColumnValues / ListViewSetCellShadow</code></td><td>ListView 数据/列/样式/排序/单元格阴影专用（P0-26）</td></tr>
+<tr><td><code>ListViewAddRow / ListViewInsertRow / ListViewRemoveRow / ListViewSetRowCells / ListViewSetCellText / ListViewGetCellText / ListViewAddColumn / ListViewInsertColumn / ListViewRemoveColumn / ListViewSetColumnWidth / ListViewSetColumnIcon / ListViewSetRowLeadingControl / ListViewSetCellLeadingControl / ListViewSetCellStyle / ListViewSetColumnSorter / ListViewSetColumnHeaderStyle / ListViewSetColumnValues / ListViewSetCellShadow / ListViewSetColumnHeaderBackground / ListViewSetColumnHeaderShadow</code></td><td>ListView 数据/列/样式/排序/单元格阴影/表头样式专用（P0-26/P0-56）</td></tr>
 <tr><td><code>TreeViewAddNode / TreeViewRemoveNode / TreeViewClearItems / TreeViewSelectNode / TreeViewGetSelectedId / TreeViewClearSelection / TreeViewExpandNode / TreeViewCollapseNode / TreeViewExpandAll / TreeViewCollapseAll / TreeViewSetNodeLabel / TreeViewSetNodeUserData</code></td><td>TreeView 节点操作（亦可走 8.4.1 item-id 属性模式）</td></tr>
 <tr><td><code>ContextMenuAddItem / ContextMenuAddSeparator / ContextMenuShow / ContextMenuClose</code> + <code>SetPtr("context-menu")</code></td><td>ContextMenu 组装与显示/绑定</td></tr>
 <tr><td><code>StatusBarAddItem / StatusBarSetItemText / StatusBarRemoveItem / StatusBarSetItemMenu / StatusBarSetItemIcon</code></td><td>StatusBar 段操作</td></tr>
+<tr><td><code>StatusBarSetItemTextColor(inst, bar, id, color, state)</code> / <code>StatusBarSetItemBackgroundColor(inst, bar, id, color)</code></td><td>StatusBar 段着色（P0-55）：文本四态（state 可 NULL=normal）、段背景单色；回退链=显式态→段 normal→控件级</td></tr>
+<tr><td><code>StatusBarSetItemFontSize(inst, bar, id, size)</code> / <code>StatusBarSetItemTextShadow(inst, bar, id, color, ox, oy)</code></td><td>StatusBar 段级字号（0=继承控件级）/ 文字阴影（未设继承控件级；P0-58）</td></tr>
 <tr><td><code>TabAddPage / TabSetTitle / TabSetPage / TabSetTabLeadingControl</code></td><td>TabControl 页操作</td></tr>
 <tr><td><code>ShapeSetPoints / ShapeMapToDrawPoint / ShapeAddPrimitive / ShapeSetPrimitiveColor / ShapeSetPrimitiveFloat / ShapeSetPrimitivePoints / ShapeClearPrimitives</code></td><td>Shape 顶点/映射/多图元</td></tr>
 </table>
@@ -203,7 +208,9 @@ UICornerstone_SetFloat( inst, tree, "indent-width", 20.0f);</code></pre>
 
 <table>
 <tr><th>函数</th><th>说明</th></tr>
-<tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂子控件</td></tr>
+<tr><td><code>UICornerstone_GetRoot(inst)</code></td><td>取根句柄（P0-61：本实例 bench；子视口实例返回其自身 bench）——根级布局/锚定入口（配合 child-id + layout/anchor/anchor-offset-x/y）</td></tr>
+<tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂载/重挂子控件（P0-50：任意旧父自动摘除，跨容器 reparent 无双挂载；非 Panel 父/自身/祖先环 → 静默 no-op）</td></tr>
+<tr><td><code>UICornerstone_RemoveChild(inst, parent, child)</code></td><td>摘除子控件（P0-50：<b>不销毁</b>，实例级保活可反复挂载；要求 child 当前父 == parent；返回 1/0）</td></tr>
 <tr><td><code>UICornerstone_DestroyControl(inst, ctl)</code></td><td>销毁控件</td></tr>
 <tr><td><code>UICornerstone_GetControlId(inst, ctl, char*, maxLen)</code></td><td>控件 id（字符串属性 <code>id</code> 的 C ABI 通道）</td></tr>
 <tr><td><code>UICornerstone_GetControlType(inst, ctl, char*, maxLen)</code></td><td>控件运行时类型名（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code>；<code>"menu-item"</code> / <code>"menu-panel"</code> / <code>"handle-control"</code> 仅查询返回，实现见 design/CABI_Property_Design.md §8.2）</td></tr>
@@ -285,6 +292,7 @@ UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0);</code></pre>
 <tr><td><code>UICornerstone_Debug_GetAliveInstance(index) / Debug_GetActiveViewport(instance)</code></td><td>实例巡检 / 活动视口（静态）</td></tr>
 <tr><td><code>UICornerstone_Debug_IsControlFocused(inst, ctl)</code></td><td>焦点查询</td></tr>
 <tr><td><code>UICornerstone_Debug_IsControlHovered(inst, ctl)</code></td><td>hover 查询</td></tr>
+<tr><td><code>UICornerstone_Debug_RouteMouseTarget(inst, x, y)</code></td><td>鼠标目标解析探针（P0-52②）：返回 1=owner（浮层优先/空白区）/ 0=子视口（测试用）</td></tr>
 <tr><td><code>UICornerstone_Debug_SetMousePosition(inst, x, y) / Debug_ClearMousePosition(inst)</code></td><td>鼠标位置调试写入 / 清除（测试用）</td></tr>
 </table>
 

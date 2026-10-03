@@ -60,7 +60,7 @@ SharedFont loadMenuFont(Control* ctl, FontName fontName, float fontSize) {
 
     auto it = ConstDef::fontFiles.find(fontName);
     if (it == ConstDef::fontFiles.end()) return nullptr;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
+    string fontPath = it->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return nullptr;
 

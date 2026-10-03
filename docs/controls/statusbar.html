@@ -70,6 +70,10 @@ UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 <table>
 <tr><th>JSON 键</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>items[].align</code></td><td>Enum</td><td>left（默认）/ right 段对齐</td></tr>
+<tr><td><code>items[].text-color</code></td><td>Color / 四态对象</td><td>段文本色（P0-55）：字符串=normal；<code>{normal,hover,pressed,disabled}</code> 四态；回退链=显式态→段 normal→控件级</td></tr>
+<tr><td><code>items[].background-color</code></td><td>Color</td><td>段背景色（P0-55，单色，铺满段区；缺省不绘制）</td></tr>
+<tr><td><code>items[].font-size</code></td><td>Number</td><td>段级字号（P0-58；0=继承控件级）</td></tr>
+<tr><td><code>items[].text-shadow</code> / <code>text-shadow-offset-x/y</code></td><td>Color / Number</td><td>段级文字阴影（P0-58；未设继承控件级，偏移缺省 1,1）</td></tr>
 <tr><td><code>items[].icon</code></td><td>资源引用</td><td>段图标（任意控件/Actor）</td></tr>
 <tr><td><code>items[].menu</code></td><td>MenuPanel id</td><td>点击弹出菜单</td></tr>
 <tr><td><code>items[].onClick</code></td><td>动作名</td><td>点击事件（C ABI 经 <code>status-item-click</code>，见 4.22.3）</td></tr>

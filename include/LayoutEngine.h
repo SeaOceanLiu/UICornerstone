@@ -17,6 +17,7 @@ struct FlowItemProps {
 struct AnchorInfo {
     string anchor = PropertyNames::kAlignLowerTopLeft;
     Margin offset;
+    bool   hasAnchor = false;   // P0-60：仅显式设过 anchor 才激活锚定管理（offset-only 不激活）
 };
 
 struct GridItemProps;

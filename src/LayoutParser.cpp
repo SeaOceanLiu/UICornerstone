@@ -636,6 +636,17 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
         lv->setRowHeight(j[PropertyNames::kRowHeight].get<float>());
     if (j.contains(PropertyNames::kHeaderHeight) && j[PropertyNames::kHeaderHeight].is_number())
         lv->setHeaderHeight(j[PropertyNames::kHeaderHeight].get<float>());
+    // P0-56：控件级表头样式（header-text/background/shadow + offset-x/y）
+    if (j.contains(PropertyNames::kHeaderText) && j[PropertyNames::kHeaderText].is_string())
+        lv->setColorProperty(PropertyNames::kHeaderText, parseColor(j[PropertyNames::kHeaderText]));
+    if (j.contains(PropertyNames::kHeaderBackground) && j[PropertyNames::kHeaderBackground].is_string())
+        lv->setColorProperty(PropertyNames::kHeaderBackground, parseColor(j[PropertyNames::kHeaderBackground]));
+    if (j.contains(PropertyNames::kHeaderShadow) && j[PropertyNames::kHeaderShadow].is_string())
+        lv->setColorProperty(PropertyNames::kHeaderShadow, parseColor(j[PropertyNames::kHeaderShadow]));
+    if (j.contains(PropertyNames::kHeaderShadowOffsetX) && j[PropertyNames::kHeaderShadowOffsetX].is_number())
+        lv->setFloatProperty(PropertyNames::kHeaderShadowOffsetX, j[PropertyNames::kHeaderShadowOffsetX].get<float>());
+    if (j.contains(PropertyNames::kHeaderShadowOffsetY) && j[PropertyNames::kHeaderShadowOffsetY].is_number())
+        lv->setFloatProperty(PropertyNames::kHeaderShadowOffsetY, j[PropertyNames::kHeaderShadowOffsetY].get<float>());
     if (j.contains(PropertyNames::kGridlines) && j[PropertyNames::kGridlines].is_boolean())
         lv->setGridlines(j[PropertyNames::kGridlines].get<bool>());
     if (j.contains(PropertyNames::kHorizontalGridlines) && j[PropertyNames::kHorizontalGridlines].is_boolean())
@@ -651,9 +662,23 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
             const string title = cj.value(PropertyNames::kTitle, string());
             const float width = cj.value(PropertyNames::kJsonWidth, 100.0f);
             const bool sortable = cj.value(PropertyNames::kJsonSortable, false);
-            lv->addColumn(title, width, sortable);
+            const int ci = lv->addColumn(title, width, sortable);
             if (cj.contains(PropertyNames::kJsonIcon))
                 logWarn("list-view: column icon deferred (StatusBar icon mechanism pending), skipped");
+            // P0-56：per-column 表头样式（与控件级同名同义，作用域=该列）
+            if (cj.contains(PropertyNames::kHeaderText) && cj[PropertyNames::kHeaderText].is_string()) {
+                HeaderStyle st = lv->getColumnHeaderStyle(ci);
+                st.textColor = parseColor(cj[PropertyNames::kHeaderText]);
+                st.hasTextColor = true;
+                lv->setColumnHeaderStyle(ci, st);
+            }
+            if (cj.contains(PropertyNames::kHeaderBackground) && cj[PropertyNames::kHeaderBackground].is_string())
+                lv->setColumnHeaderBackground(ci, parseColor(cj[PropertyNames::kHeaderBackground]));
+            if (cj.contains(PropertyNames::kHeaderShadow) && cj[PropertyNames::kHeaderShadow].is_string()) {
+                const float sox = cj.value(PropertyNames::kHeaderShadowOffsetX, 1.0f);
+                const float soy = cj.value(PropertyNames::kHeaderShadowOffsetY, 1.0f);
+                lv->setColumnHeaderShadow(ci, parseColor(cj[PropertyNames::kHeaderShadow]), sox, soy);
+            }
         }
     }
     // sortColumn/sortAscending（初始排序状态；列存在后触发重排）
@@ -1341,6 +1366,7 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
                 if (children[i].contains(PropertyNames::kAnchor) && children[i][PropertyNames::kAnchor].is_string()) {
                     AnchorInfo info;
                     info.anchor = children[i][PropertyNames::kAnchor].get<string>();
+                    info.hasAnchor = true;   // P0-60：显式声明才激活锚定管理
                     if (children[i].contains(PropertyNames::kJsonAnchorOffset) && children[i][PropertyNames::kJsonAnchorOffset].is_object()) {
                         info.offset = parseMargin(children[i][PropertyNames::kJsonAnchorOffset]);
                     }
@@ -1428,6 +1454,34 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
                     populateMenuPanel(panel, mj[PropertyNames::kItems], xScale, yScale);
                     bar->setStatusItemMenu(id, panel);
                 }
+            }
+
+            // P0-55 段着色：text-color（字符串=normal / 对象=四态）、background-color（字符串单色）
+            if (ij.contains(PropertyNames::kItemTextColor)) {
+                const auto& tc = ij[PropertyNames::kItemTextColor];
+                if (tc.is_string()) {
+                    bar->setStatusItemTextColor(id, parseColor(tc), ControlState::Normal);
+                } else if (tc.is_object()) {
+                    if (tc.contains(PropertyNames::kStateKeyNormal) && tc[PropertyNames::kStateKeyNormal].is_string())
+                        bar->setStatusItemTextColor(id, parseColor(tc[PropertyNames::kStateKeyNormal]), ControlState::Normal);
+                    if (tc.contains(PropertyNames::kStateKeyHover) && tc[PropertyNames::kStateKeyHover].is_string())
+                        bar->setStatusItemTextColor(id, parseColor(tc[PropertyNames::kStateKeyHover]), ControlState::Hover);
+                    if (tc.contains(PropertyNames::kStateKeyPressed) && tc[PropertyNames::kStateKeyPressed].is_string())
+                        bar->setStatusItemTextColor(id, parseColor(tc[PropertyNames::kStateKeyPressed]), ControlState::Pressed);
+                    if (tc.contains(PropertyNames::kStateKeyDisabled) && tc[PropertyNames::kStateKeyDisabled].is_string())
+                        bar->setStatusItemTextColor(id, parseColor(tc[PropertyNames::kStateKeyDisabled]), ControlState::Disabled);
+                }
+            }
+            if (ij.contains(PropertyNames::kItemBackgroundColor) && ij[PropertyNames::kItemBackgroundColor].is_string())
+                bar->setStatusItemBackgroundColor(id, parseColor(ij[PropertyNames::kItemBackgroundColor]));
+
+            // P0-58：段级字号 / 文字阴影（font-size 0=继承；阴影未设继承控件级）
+            if (ij.contains(PropertyNames::kFontSize) && ij[PropertyNames::kFontSize].is_number())
+                bar->setStatusItemFontSize(id, ij[PropertyNames::kFontSize].get<float>());
+            if (ij.contains(PropertyNames::kTextShadow) && ij[PropertyNames::kTextShadow].is_string()) {
+                const float sox = ij.value(PropertyNames::kItemTextShadowOffsetX, 1.0f);
+                const float soy = ij.value(PropertyNames::kItemTextShadowOffsetY, 1.0f);
+                bar->setStatusItemTextShadow(id, parseColor(ij[PropertyNames::kTextShadow]), sox, soy);
             }
 
             // onClick 事件

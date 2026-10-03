@@ -328,6 +328,16 @@
 //   bottom-left bottom-center bottom-right
 //   top-stretch bottom-stretch left-stretch right-stretch fill
 // 含义见下方「anchor 取值含义」表
+// 运行期（P0-59）：SetEnum("layout", "absolute|h-flow|v-flow|anchor|grid") 切换容器布局模式
+//   （absolute/空串=清除引擎回到自由布局；gap/padding 默认 0）；GetEnum("layout") 读回（无引擎返回 "absolute"）。
+// 子控件锚点运行期读写：先 SetString(parent, "child-id", 子控件id)，
+//   再 SetEnum(parent,"anchor","top-right") / SetFloat(parent,"anchor-offset-x",12)；
+//   GetEnum("anchor")/GetFloat("anchor-offset-x/y") 读回（未设置返回 0）。
+// 根级锚定（P0-61）：GetRoot(inst)/Binding Root() 取根句柄后，同样经 child-id + anchor 属性链
+//   锚定顶层控件到设计画布边界（SetCanvasSize 声明的设计画布尺寸，缺省=窗口视口；缩放/窗口变化稳定）；
+//   未锚定叠加物保持自由布局（P0-60 稀疏）；SetCanvasSize 全模式即时应用并触发根重排。
+// 即时生效与稀疏语义（P0-60）：运行期改 anchor/anchor-offset-x/y 立即重排；
+//   anchor 布局中未显式声明锚点（含仅设偏移）的子控件保持自身 rect，不参与锚点管理（自由布局）。
 </code></pre>
 
 <h3>anchor 取值含义</h3>

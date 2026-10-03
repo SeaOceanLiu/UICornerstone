@@ -28,9 +28,14 @@ using std::shared_ptr;
 
 // 列头文本样式（每列一份；缺省 = 继承控件列头默认）
 struct HeaderStyle {
-    SColor textColor;                                          // 缺省占位黑；稀疏语义由列存在性判定
+    SColor textColor;                                          // 缺省占位黑；稀疏语义由 hasTextColor 判定
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;
     int fontSize = 0;                                          // 0 = 继承控件列头字号
+    // P0-56：per-column 稀疏扩展（has* 未设 = 继承控件级）
+    bool   hasTextColor = false;                               // 显式设色（ListViewSetColumnHeaderStyle）
+    SColor background;   bool hasBackground = false;           // 列头背景
+    SColor shadowColor;  bool hasShadow = false;               // 列头文字阴影
+    SPoint shadowOffset{1.0f, 1.0f};
 };
 
 // 单元格样式（稀疏；缺省字段 = 继承控件默认；"缺省继承"由 map 存在性判定）
@@ -111,6 +116,9 @@ public:
     void setColumnLeadingControl(int index, shared_ptr<Control> ctl);
     void setColumnHeaderStyle(int index, const HeaderStyle& style);
     HeaderStyle getColumnHeaderStyle(int index) const;
+    // P0-56：per-column 表头背景 / 文字阴影（稀疏；未设继承控件级）
+    void setColumnHeaderBackground(int index, SColor color);
+    void setColumnHeaderShadow(int index, SColor color, float offsetX, float offsetY);
 
     // ── 列 ──
     int  addColumn(const string& title, float width, bool sortable = false);
@@ -250,6 +258,10 @@ private:
     // ── 配色（一期固定；颜色属性键与 bool "hover" 同串冲突，暂不暴露）──
     // 文本色使用基类 StateColor m_textColor（P0-26 复核：原自有 SColor 遮蔽基类 → 属性路径无效）
     SColor m_headerTextColor{200, 200, 205};
+    // P0-56：控件级表头文字阴影（header-shadow/offset-x/y；未设色 = 不绘制）
+    SColor m_headerShadowColor{0, 0, 0, 255};
+    bool   m_headerShadowEnabled = false;
+    SPoint m_headerShadowOffset{1.0f, 1.0f};
     SColor m_hoverColor{60, 60, 70};
     SColor m_selectedColor{59, 130, 246};
     SColor m_gridlineColor{55, 55, 62};

@@ -53,7 +53,11 @@ public:
     // ── 控件操作（一一对应 C ABI：UICornerstone_*Control / SetRect 等）──
     void SetRect(float x, float y, float w, float h);
     UIRect GetRect() const;
-    void AddChild(Control child);
+    // P0-50：挂载子控件（目标 = this，须为 Panel；WinFrame 请用其 client-panel 代理）。
+    // 返回 child；任意旧父自动摘除；非 Panel/自身/祖先环静默无操作。
+    Control AddChild(Control child);
+    // P0-50：从本控件摘除 child（不销毁，保活可再挂）；要求 child 当前父 == this；返回是否成功。
+    bool RemoveChild(Control child);
     void Destroy();
     std::string GetId() const;
 

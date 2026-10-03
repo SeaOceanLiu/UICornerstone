@@ -47,7 +47,7 @@ void TabControl::ensureFont() {
     if (!renderer || !provider) return;
     auto it = ConstDef::fontFiles.find(m_fontName);   // P0-26：字体名可配
     if (it == ConstDef::fontFiles.end()) return;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
+    string fontPath = it->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (data && !data->empty()) {
         int scaledSize = static_cast<int>(m_fontSize * getScaleXX());

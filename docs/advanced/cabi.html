@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -47,8 +47,9 @@ int main(void) {
     UIControlHandle btn   = UICornerstone_CreateButton(g_inst, "Click Me", 30, 30, 140, 36, 1.0f, 1.0f);
     UIControlHandle cb    = UICornerstone_CreateCheckBox(g_inst, "Enable", 30, 80, 24, 24, 1.0f, 1.0f);
     UIControlHandle lbl   = UICornerstone_CreateLabel(g_inst, "Idle", 16.0f, 30, 130, 200, 28, 1.0f, 1.0f);
-    UICornerstone_AddChildControl(g_inst, panel, btn);   // 挂树
+    UICornerstone_AddChildControl(g_inst, panel, btn);   // 挂树：任意旧父自动摘除；非 Panel/自身/祖先环静默忽略
     UICornerstone_AddChildControl(g_inst, panel, cb);
+    // UICornerstone_RemoveChild(g_inst, panel, btn);    // 摘除不销毁（保活，可再挂）；销毁用 DestroyControl
 
     UICornerstone_SetString(g_inst, lbl, "id", "status");   // 属性系统 + FindControl 检索
     UICornerstone_SetCallback(g_inst, btn, "click", onBtnClick, NULL);

@@ -47,6 +47,12 @@ typedef int   (*UIGetEnumFn)(UIInstance,void*,const char*,char*,int);
 typedef int   (*UISetCallbackFn)(UIInstance,void*,const char*,UIEventCallback,void*);
 typedef int   (*UIGetFontCountFn)(void);
 typedef int   (*UIGetFontNameFn)(int,char*,int);
+typedef void  (*UIAddChildFn)(UIInstance,void*,void*);
+typedef int   (*UIRemoveChildFn)(UIInstance,void*,void*);
+typedef int   (*UIGetPtrFn)(UIInstance,void*,const char*,void**);
+typedef void  (*UIGetRectFn)(UIInstance,void*,float*,float*,float*,float*);
+typedef void* (*UIGetRootFn)(UIInstance);
+typedef int   (*UISetCanvasSizeFn)(UIInstance,float,float);
 
 static UICreateInstanceFn   uiCreateInstance       = nullptr;
 static UISetViewportFn      uiSetViewport          = nullptr;
@@ -78,6 +84,12 @@ static UIGetEnumFn          uiGetEnum              = nullptr;
 static UISetCallbackFn      uiSetCallback          = nullptr;
 static UIGetFontCountFn     uiGetFontCount         = nullptr;
 static UIGetFontNameFn      uiGetFontName          = nullptr;
+static UIAddChildFn         uiAddChildControl      = nullptr;
+static UIRemoveChildFn      uiRemoveChild          = nullptr;
+static UIGetPtrFn           uiGetPtr               = nullptr;
+static UIGetRectFn          uiGetRect              = nullptr;
+static UIGetRootFn          uiGetRoot              = nullptr;
+static UISetCanvasSizeFn    uiSetCanvasSize        = nullptr;
 
 static HMODULE g_uiDll = nullptr;
 static UIInstance g_inst = nullptr;
@@ -147,6 +159,12 @@ static void loadAllProcs(HMODULE dll) {
     RESOLVE(SetCallback);
     RESOLVE(GetFontCount);
     RESOLVE(GetFontName);
+    RESOLVE(AddChildControl);
+    RESOLVE(RemoveChild);
+    RESOLVE(GetPtr);
+    RESOLVE(GetRect);
+    RESOLVE(GetRoot);
+    RESOLVE(SetCanvasSize);
 #undef RESOLVE
 }
 
@@ -375,6 +393,138 @@ static int runPropertyTests(void) {
             CHECK_RET(uiGetStateColor(g_inst, shWf, "background", &out), 1, "WF GetStateColor(background)");
             CHECK(out.normal.r == 100 && out.hover.r == 120 && out.pressed.r == 100 && out.disabled.r == 100,
                   "WF object path round-trip (pressed/disabled collapsed to normal)");
+        }
+    }
+
+    // P0-50: container child mount (reparent / remove-keepalive / guards)
+    printf("\n--- Container child mount tests ---\n");
+    {
+        void* root = uiFindControl(g_inst, "rootPanel");
+        void* mlb  = uiFindControl(g_inst, "lblTitle");
+        void* wfC  = uiFindControl(g_inst, "wfProp");
+        void* client = NULL;
+        if (wfC && uiGetPtr) uiGetPtr(g_inst, wfC, "client-panel", &client);
+        CHECK(root != NULL && mlb != NULL && wfC != NULL && client != NULL, "FindControl(root/label/wf/client)");
+        if (root && mlb && wfC && client && uiAddChildControl && uiRemoveChild) {
+            CHECK_RET(uiRemoveChild(g_inst, root, mlb), 1, "RemoveChild(root,label) -> 1");
+            CHECK_RET(uiRemoveChild(g_inst, root, mlb), 0, "RemoveChild again -> 0 (detached)");
+            uiAddChildControl(g_inst, root, mlb);
+            CHECK_RET(uiRemoveChild(g_inst, root, mlb), 1, "re-add then RemoveChild -> 1 (keep-alive)");
+
+            uiAddChildControl(g_inst, client, mlb);
+            CHECK_RET(uiRemoveChild(g_inst, root, mlb), 0, "cross-container: old parent released (C1)");
+            CHECK_RET(uiRemoveChild(g_inst, client, mlb), 1, "cross-container: new container owns child");
+
+            uiAddChildControl(g_inst, root, mlb);
+            CHECK_RET(uiRemoveChild(g_inst, root, mlb), 1, "restore to root");
+            uiAddChildControl(g_inst, root, mlb);   // 复位（后续帧循环视觉不变）
+
+            CHECK_RET(uiRemoveChild(g_inst, root, root), 0, "RemoveChild(self) -> 0");
+            CHECK_RET(uiRemoveChild(g_inst, mlb, root), 0, "RemoveChild(non-parent) -> 0");
+        }
+    }
+
+    // P0-59: runtime layout mode switch + anchor read-back
+    printf("\n--- Runtime layout & anchor tests ---\n");
+    {
+        void* rt = uiFindControl(g_inst, "rootPanel");
+        void* la = uiFindControl(g_inst, "lblTitle");
+        CHECK(rt != NULL && la != NULL, "FindControl(root/label) for layout tests");
+        if (rt && la && uiGetRect) {
+            float x0 = 0.f, y0 = 0.f, w0 = 0.f, h0 = 0.f;
+            uiGetRect(g_inst, la, &x0, &y0, &w0, &h0);
+            char abuf[32] = {0};
+            CHECK_RET(uiSetString(g_inst, rt, "child-id", "lblTitle"), 1, "Set child-id");
+            CHECK_RET(uiSetEnum(g_inst, rt, "anchor", "top-right"), 1, "Set child anchor");
+            memset(abuf, 0, sizeof(abuf));
+            CHECK_RET(uiGetEnum(g_inst, rt, "anchor", abuf, (int)sizeof(abuf)), 1, "Get child anchor");
+            CHECK(strcmp(abuf, "top-right") == 0, "anchor read-back == top-right");
+            CHECK_RET(uiSetFloat(g_inst, rt, "anchor-offset-x", 12.0f), 1, "Set anchor-offset-x");
+            float ox = 0.f;
+            CHECK_RET(uiGetFloat(g_inst, rt, "anchor-offset-x", &ox), 1, "Get anchor-offset-x");
+            CHECK(ox == 12.0f, "anchor-offset-x read-back");
+
+            char lbuf[32] = {0};
+            CHECK_RET(uiGetEnum(g_inst, rt, "layout", lbuf, (int)sizeof(lbuf)), 1, "Get layout (before)");
+            CHECK(strcmp(lbuf, "absolute") == 0, "layout default == absolute");
+            CHECK_RET(uiSetEnum(g_inst, rt, "layout", "anchor"), 1, "Switch to anchor layout");
+            memset(lbuf, 0, sizeof(lbuf));
+            uiGetEnum(g_inst, rt, "layout", lbuf, (int)sizeof(lbuf));
+            CHECK(strcmp(lbuf, "anchor") == 0, "layout read-back == anchor");
+            float x1 = 0.f, y1 = 0.f, w1 = 0.f, h1 = 0.f;
+            uiGetRect(g_inst, la, &x1, &y1, &w1, &h1);
+            CHECK(x1 != x0 || y1 != y0, "anchor layout repositions child");
+            CHECK_RET(uiSetEnum(g_inst, rt, "layout", "absolute"), 1, "Switch back to absolute");
+            memset(lbuf, 0, sizeof(lbuf));
+            uiGetEnum(g_inst, rt, "layout", lbuf, (int)sizeof(lbuf));
+            CHECK(strcmp(lbuf, "absolute") == 0, "layout read-back == absolute (engine cleared)");
+
+            // ---- P0-60: anchor setter immediate reflow + sparse + offset-only no activation ----
+            void* bt = uiFindControl(g_inst, "btnProp");
+            CHECK(bt != NULL, "FindControl(btnProp) for P0-60");
+            if (bt) {
+                float bx0 = 0.f, by0 = 0.f, bw0 = 0.f, bh0 = 0.f;
+                float bx1 = 0.f, by1 = 0.f, bw1 = 0.f, bh1 = 0.f;
+                // sparse: entering anchor layout keeps unanchored child rect
+                uiGetRect(g_inst, bt, &bx0, &by0, &bw0, &bh0);
+                CHECK_RET(uiSetEnum(g_inst, rt, "layout", "anchor"), 1, "P0-60 re-enter anchor layout");
+                uiGetRect(g_inst, bt, &bx1, &by1, &bw1, &bh1);
+                CHECK(bx0 == bx1 && by0 == by1, "P0-60 sparse: unanchored child keeps rect");
+
+                // anchor change reflows immediately (lblTitle anchored top-right -> bottom-stretch)
+                float lx0 = 0.f, ly0 = 0.f, lw0 = 0.f, lh0 = 0.f;
+                float lx1 = 0.f, ly1 = 0.f, lw1 = 0.f, lh1 = 0.f;
+                uiGetRect(g_inst, la, &lx0, &ly0, &lw0, &lh0);
+                CHECK_RET(uiSetEnum(g_inst, rt, "anchor", "bottom-stretch"), 1, "P0-60 set anchor bottom-stretch");
+                uiGetRect(g_inst, la, &lx1, &ly1, &lw1, &lh1);
+                CHECK(lx1 != lx0 || ly1 != ly0 || lw1 != lw0 || lh1 != lh0, "P0-60 anchor change reflows immediately");
+                // offset change reflows immediately
+                uiGetRect(g_inst, la, &lx0, &ly0, &lw0, &lh0);
+                CHECK_RET(uiSetFloat(g_inst, rt, "anchor-offset-x", 6.0f), 1, "P0-60 set offset-x");
+                uiGetRect(g_inst, la, &lx1, &ly1, &lw1, &lh1);
+                CHECK(lx1 != lx0 || ly1 != ly0 || lw1 != lw0 || lh1 != lh0, "P0-60 offset change reflows immediately");
+
+                // offset-only does not activate btnProp
+                uiGetRect(g_inst, bt, &bx0, &by0, &bw0, &bh0);
+                CHECK_RET(uiSetString(g_inst, rt, "child-id", "btnProp"), 1, "P0-60 target btnProp");
+                CHECK_RET(uiSetFloat(g_inst, rt, "anchor-offset-x", 25.0f), 1, "P0-60 offset-only set");
+                uiGetRect(g_inst, bt, &bx1, &by1, &bw1, &bh1);
+                CHECK(bx0 == bx1 && by0 == by1, "P0-60 offset-only does not activate anchor");
+                char ab2[32] = {0};
+                CHECK_RET(uiGetEnum(g_inst, rt, "anchor", ab2, (int)sizeof(ab2)), 0, "P0-60 anchor read-back unset for offset-only");
+                CHECK_RET(uiSetEnum(g_inst, rt, "anchor", "bottom-right"), 1, "P0-60 activate btnProp anchor");
+                uiGetRect(g_inst, bt, &bx0, &by0, &bw0, &bh0);
+                CHECK(bx0 != bx1 || by0 != by1, "P0-60 anchor activation reflows immediately");
+
+                // restore
+                uiSetEnum(g_inst, rt, "layout", "absolute");
+                uiSetString(g_inst, rt, "child-id", "lblTitle");
+            }
+        }
+    }
+
+    // P0-61: root handle + immediate canvas apply + root anchoring
+    printf("\n--- Root anchor tests ---\n");
+    {
+        void* root = (uiGetRoot) ? uiGetRoot(g_inst) : NULL;
+        CHECK(root != NULL, "P0-61 GetRoot");
+        if (root && uiGetRect && uiSetCanvasSize) {
+            float x = 0.f, y = 0.f, w = 0.f, h = 0.f;
+            CHECK_RET(uiSetCanvasSize(g_inst, 400.0f, 300.0f), 1, "P0-61 SetCanvasSize immediate");
+            uiGetRect(g_inst, root, &x, &y, &w, &h);
+            CHECK(x == 0.f && y == 0.f && w == 400.f && h == 300.f, "P0-61 root rect == canvas (immediate)");
+            CHECK_RET(uiSetEnum(g_inst, root, "layout", "anchor"), 1, "P0-61 root layout=anchor");
+            CHECK_RET(uiSetString(g_inst, root, "child-id", "rootPanel"), 1, "P0-61 root child-id");
+            CHECK_RET(uiSetEnum(g_inst, root, "anchor", "fill"), 1, "P0-61 rootPanel anchor=fill");
+            void* rp = uiFindControl(g_inst, "rootPanel");
+            CHECK(rp != NULL, "P0-61 find rootPanel");
+            uiGetRect(g_inst, rp, &x, &y, &w, &h);
+            CHECK(w == 400.f && h == 300.f, "P0-61 rootPanel follows canvas (fill)");
+            CHECK_RET(uiSetCanvasSize(g_inst, 420.0f, 310.0f), 1, "P0-61 canvas resize");
+            uiGetRect(g_inst, rp, &x, &y, &w, &h);
+            CHECK(w == 420.f && h == 310.f, "P0-61 anchored rootPanel follows immediately");
+            uiSetCanvasSize(g_inst, 540.0f, 520.0f);
+            uiSetEnum(g_inst, root, "layout", "absolute");
         }
     }
 

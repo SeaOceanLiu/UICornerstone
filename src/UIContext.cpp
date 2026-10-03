@@ -109,6 +109,7 @@ void UIContext::destroy() {
     quit = true;
     popupPool.clear();
     menuPool.clear();
+    detachedControls.clear();   // P0-50：摘除保活池随实例销毁级联释放
     controlsById.clear();
     actions.clear();
     while (true) {

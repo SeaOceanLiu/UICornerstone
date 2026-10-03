@@ -308,6 +308,11 @@ UICORNERSTONE_API void UICornerstone_PushUIEvent(UIInstance instance, const UIEv
 // 只渲染视口区域。不清除帧缓冲区、不 present。
 // 调用者必须在外层自行 clear + render + present。
 UICORNERSTONE_API void UICornerstone_Render(UIInstance instance);
+/* 浮层渲染通道（P0-52①）：仅重绘本实例 BENCH 顶层可见浮层（类型 ∈ {Popup, ConfirmPopup,
+   Dialog, MenuPanel}，含其子树），按实例 viewport 裁剪。宿主多视口帧序建议：
+   Clear → owner.Render → 各子视口 Render → RenderOverlays → Present（须在 Present 前调用；
+   未调用时行为与既有版本一致，浮层仍随 owner.Render 绘制一次）。 */
+UICORNERSTONE_API void UICornerstone_RenderOverlays(UIInstance instance);
 
 // 清除帧缓冲区和翻转缓冲区（可选，仅在调用者不自行管理帧时使用）
 UICORNERSTONE_API void UICornerstone_Clear(UIInstance instance);
@@ -326,6 +331,9 @@ UICORNERSTONE_API UIInstance UICornerstone_Debug_GetActiveViewport(UIInstance in
 UICORNERSTONE_API int      UICornerstone_Debug_IsControlFocused(UIInstance instance, UIControlHandle control);
 // 查询控件是否处于鼠标悬停状态（m_mouseInside，_DEBUG；Release 恒 0）
 UICORNERSTONE_API int      UICornerstone_Debug_IsControlHovered(UIInstance instance, UIControlHandle control);
+/* 鼠标目标解析探针（P0-52 测试辅助）：返回 1=owner（浮层优先/空白区）/ 0=子视口。
+   x/y 为窗口绝对坐标（同事件坐标域）。 */
+UICORNERSTONE_API int      UICornerstone_Debug_RouteMouseTarget(UIInstance instance, float x, float y);
 // 调试鼠标注入（_DEBUG；Release 返回 0 不生效）：用注入坐标替代 Window::getMousePosition
 // 驱动本实例 hover 状态——无人值守测试验证跨窗口/跨视口 hover 隔离。坐标为窗口坐标系绝对坐标。
 UICORNERSTONE_API int      UICornerstone_Debug_SetMousePosition(UIInstance instance, float x, float y);
@@ -574,6 +582,11 @@ UICORNERSTONE_API int UICornerstone_ListViewSetCellShadow(UIInstance instance, U
     int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY);
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHandle lv,
     int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, int fontSize);
+/* P0-56：per-column 表头背景 / 文字阴影（稀疏；未设继承控件级；与 SetCellShadow 同风格） */
+UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderBackground(UIInstance instance, UIControlHandle lv,
+    int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderShadow(UIInstance instance, UIControlHandle lv,
+    int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY);
 // 自定义排序比较器（返回 <0/0/>0；传 NULL 清除该列回调恢复字典序）
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnSorter(UIInstance instance, UIControlHandle lv,
     int colIndex, ListViewSortFn cmp, void* userData);
@@ -590,6 +603,17 @@ UICORNERSTONE_API int UICornerstone_StatusBarRemoveItem(UIInstance instance, UIC
     const char* id);
 UICORNERSTONE_API int UICornerstone_StatusBarSetItemMenu(UIInstance instance, UIControlHandle bar,
     const char* id, UIControlHandle menuPanel);
+/* P0-55 段着色：state 可为 NULL=normal，或 "normal"/"hover"/"pressed"/"disabled"。
+   文本色回退链：显式设过的态 -> 该段 normal -> 控件级四态；背景为单色（铺满段区）。 */
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemTextColor(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color, const char* state);
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemBackgroundColor(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color);
+/* P0-58 段级字号/文字阴影：size=0 继承控件级；阴影未设继承控件级（段级偏移缺省 1,1）。 */
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemFontSize(UIInstance instance, UIControlHandle bar,
+    const char* id, float size);
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemTextShadow(UIInstance instance, UIControlHandle bar,
+    const char* id, UIColor color, float offsetX, float offsetY);
 UICORNERSTONE_API int UICornerstone_StatusBarSetItemIcon(UIInstance instance, UIControlHandle bar,
     const char* id, UIControlHandle iconControl);
 
@@ -637,7 +661,23 @@ UICORNERSTONE_API void UICornerstone_SetRect(UIInstance instance, UIControlHandl
 // 读取控件 rect（**直接父局部坐标**，即 m_rect 原值；与 getDrawRect 的窗口全局域不同——
 // 全局域 = 父链递归累加，容器位置判定请用全局域换算）。
 UICORNERSTONE_API void UICornerstone_GetRect(UIInstance instance, UIControlHandle ctl, float* x, float* y, float* w, float* h);
+/* 挂载/重挂子控件（P0-50 语义修订）。使用注意：
+   - parent 必须为容器（Panel；WinFrame 严格挂 ClientPanel——请传 GetPtr("client-panel") 句柄，
+     子控件不进窗体本体）；
+   - 任意旧父自动摘除（跨容器 reparent 无双挂载）；已在目标父下重复调用为 no-op；
+   - 守卫：非 Panel 父 / parent==child / child 为 parent 祖先（环）→ 静默 no-op（void 签名 ABI 兼容，
+     失败无返回码；需判别请改用 Binding 形态或先以 RemoveChild 校验）；
+   - child 的 rect 为父局部坐标，挂载不自动换算全局位置（需保持全局位置请自行换算）。 */
 UICORNERSTONE_API void UICornerstone_AddChildControl(UIInstance instance, UIControlHandle parent, UIControlHandle child);
+/* 取根句柄（P0-61）：返回本实例 bench（画布根）句柄——子视口实例返回其自身 bench；
+   根继承 Panel，可直接经 child-id 定位后读写 layout/anchor/anchor-offset-x/y 等布局属性
+   （运行期布局模式切换、根级锚定）。非法/销毁中返回 NULL。 */
+UICORNERSTONE_API UIControlHandle UICornerstone_GetRoot(UIInstance instance);
+/* 摘除子控件（P0-50）：从指定父摘除但**不销毁**。使用注意：
+   - 摘除后句柄仍有效（实例级保活池），可再 AddChild 到任意容器；真销毁用 UICornerstone_DestroyControl；
+   - 要求 child 当前父 == parent（防误摘；已摘除后再调返回 0）；
+   - 返回 1 成功 / 0 失败（非法参数 / 关系不匹配）。 */
+UICORNERSTONE_API int UICornerstone_RemoveChild(UIInstance instance, UIControlHandle parent, UIControlHandle child);
 UICORNERSTONE_API void UICornerstone_DestroyControl(UIInstance instance, UIControlHandle ctl);
 UICORNERSTONE_API const char* UICornerstone_GetControlId(UIInstance instance, UIControlHandle ctl);
 

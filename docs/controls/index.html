@@ -120,7 +120,7 @@ std::string s = c.GetString(PropertyNames::kCaption);</code></pre>
 
 <table>
 <tr><th>能力</th><th>核心 C++ 类</th><th>C ABI（UICornerstoneAPI.h）</th><th>C++ Binding（Control.h）</th></tr>
-<tr><td>树操作</td><td><code>addControl(...)</code> / <code>removeControl(...)</code></td><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td><code>Control.AddChild(child)</code></td></tr>
+<tr><td>树操作</td><td><code>addControl(...)</code> / <code>removeControl(...)</code></td><td><code>UICornerstone_AddChildControl(inst, parent, child)</code> / <code>UICornerstone_RemoveChild(inst, parent, child)</code></td><td><code>Control.AddChild(child)</code> / <code>Control.RemoveChild(child)</code> / <code>ui-&gt;AddChild(parent, child)</code></td></tr>
 <tr><td>设置文本 / 数值 / 开关</td><td><code>setCaption(...)</code> 等</td><td><code>UICornerstone_SetString / SetInt / SetFloat / SetBool(inst, ctl, 属性名, ...)</code></td><td><code>Control.SetString / SetInt / SetFloat / SetBool(属性名, ...)</code></td></tr>
 <tr><td>设置颜色</td><td><code>setColor(...)</code> 等</td><td><code>UICornerstone_SetColor / SetStateColor(inst, ctl, 属性名, ...)</code></td><td><code>Control.SetColor / SetStateColor(属性名, ...)</code></td></tr>
 <tr><td>绑定事件</td><td><code>setOnClick(...)</code> 等</td><td><code>UICornerstone_SetCallback(inst, ctl, 事件名, cb, ud)</code></td><td><code>Control.SetCallback(事件名, lambda)</code></td></tr>

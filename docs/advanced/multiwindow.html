@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -73,11 +73,12 @@ while (!ui-&gt;IsQuitRequested()) {
     ui-&gt;Clear();
     vpA-&gt;Render();            // 各自 clip 到自身视口区域
     vpB-&gt;Render();
+    ui-&gt;RenderOverlays();     // P0-52：owner 浮层（弹窗/下拉/菜单）重绘于子视口之上；无浮层零开销
     ui-&gt;Present();
 }
 ui-&gt;Shutdown();</code></pre>
 
-<p>事件路由要点：窗口输入按<strong>窗口绝对坐标</strong>路由到命中的子视口；未命中任何子视口 → owner 树；键盘事件先做 Ctrl+Tab 跨视口智能路由，再投递到活动视口。<strong>回退（v1.1.1）</strong>：子视口内<b>未被消费</b>的事件（空白区点击 / 未命中任何控件的 MouseDown 等）经其事件循环回退给 owner 树——覆盖画布的子视口不再吞掉 owner 的 splitter 拖拽等交互。</p>
+<p>事件路由要点：<strong>浮层优先（P0-52②）</strong>——owner 存在可见浮层（Popup/ConfirmPopup/Dialog/MenuPanel）时鼠标事件由 owner 独占（不穿透；外点关闭/下拉滚动归浮层），浮层关闭后按坐标路由自动恢复；常规路径下窗口输入按<strong>窗口绝对坐标</strong>路由到命中的子视口；未命中任何子视口 → owner 树；键盘事件先做 Ctrl+Tab 跨视口智能路由，再投递到活动视口。<strong>回退（v1.1.1）</strong>：子视口内<b>未被消费</b>的事件（空白区点击 / 未命中任何控件的 MouseDown 等）经其事件循环回退给 owner 树——覆盖画布的子视口不再吞掉 owner 的 splitter 拖拽等交互。</p>
 
 <h2>5.2.3 多实例双窗口（C++ Binding）</h2>
 

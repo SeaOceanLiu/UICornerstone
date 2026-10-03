@@ -64,6 +64,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(Update);
     RESOLVE(PushUIEvent);
     RESOLVE(Render);
+    RESOLVE(RenderOverlays);
     RESOLVE(Clear);
     RESOLVE(Present);
     RESOLVE(IsQuitRequested);
@@ -116,6 +117,10 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(CreateTabControl);
     RESOLVE(StatusBarAddItem);
     RESOLVE(StatusBarSetItemText);
+    RESOLVE(StatusBarSetItemTextColor);
+    RESOLVE(StatusBarSetItemBackgroundColor);
+    RESOLVE(StatusBarSetItemFontSize);
+    RESOLVE(StatusBarSetItemTextShadow);
     RESOLVE(StatusBarRemoveItem);
     RESOLVE(ListViewInsertRow);
     RESOLVE(ListViewInsertColumn);
@@ -124,6 +129,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ListViewSetRowLeadingControl);
     RESOLVE(ListViewSetCellStyle);
     RESOLVE(ListViewSetColumnHeaderStyle);
+    RESOLVE(ListViewSetColumnHeaderBackground);
+    RESOLVE(ListViewSetColumnHeaderShadow);
     RESOLVE(ListViewSetColumnIcon);
     RESOLVE(ListViewSetColumnSorter);
     RESOLVE(ListViewSetColumnValues);
@@ -189,6 +196,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(SetRect);
     RESOLVE(GetRect);
     RESOLVE(AddChildControl);
+    RESOLVE(GetRoot);
+    RESOLVE(RemoveChild);
     RESOLVE(DestroyControl);
     RESOLVE(GetControlId);
     RESOLVE(AnimationPrepare);

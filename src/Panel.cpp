@@ -135,6 +135,7 @@ int Panel::setFloatProperty(const char* prop, float value) {
         FlowItemProps p = m_flowItemProps[child];
         p.flexWeight = value;
         setChildFlowProps(child, p);
+        reflowChildren();   // P0-60：运行期修改立即重排
         return 1;
     }
     if (strcmp(prop, PropertyNames::kChildAnchorOffsetX) == 0) {
@@ -143,6 +144,7 @@ int Panel::setFloatProperty(const char* prop, float value) {
         AnchorInfo a = m_anchorItemProps[child];
         a.offset.left = value;
         setChildAnchorProps(child, a);
+        reflowChildren();   // P0-60：偏移立即应用（hasAnchor=true 的条目）
         return 1;
     }
     if (strcmp(prop, PropertyNames::kChildAnchorOffsetY) == 0) {
@@ -151,6 +153,7 @@ int Panel::setFloatProperty(const char* prop, float value) {
         AnchorInfo a = m_anchorItemProps[child];
         a.offset.top = value;
         setChildAnchorProps(child, a);
+        reflowChildren();   // P0-60：偏移立即应用（hasAnchor=true 的条目）
         return 1;
     }
     return ControlImpl::setFloatProperty(prop, value);
@@ -165,15 +168,15 @@ int Panel::setIntProperty(const char* prop, int value) {
         if (!child) return 0;
         GridItemProps g = m_gridItemProps[child];
         if (strcmp(prop, PropertyNames::kChildGridRow) == 0) {
-            g.row = value; setChildGridProps(child, g); return 1;
+            g.row = value; setChildGridProps(child, g); reflowChildren(); return 1;   // P0-60
         }
         if (strcmp(prop, PropertyNames::kChildGridCol) == 0) {
-            g.col = value; setChildGridProps(child, g); return 1;
+            g.col = value; setChildGridProps(child, g); reflowChildren(); return 1;   // P0-60
         }
         if (strcmp(prop, PropertyNames::kChildGridRowSpan) == 0) {
-            g.rowSpan = value; setChildGridProps(child, g); return 1;
+            g.rowSpan = value; setChildGridProps(child, g); reflowChildren(); return 1;   // P0-60
         }
-        g.colSpan = value; setChildGridProps(child, g); return 1;
+        g.colSpan = value; setChildGridProps(child, g); reflowChildren(); return 1;   // P0-60
     }
     return ControlImpl::setIntProperty(prop, value);
 }
@@ -183,10 +186,66 @@ int Panel::setEnumProperty(const char* prop, const char* value) {
         if (!child || !value) return 0;
         AnchorInfo a = m_anchorItemProps[child];
         a.anchor = value;
+        a.hasAnchor = true;   // P0-60：显式设锚点才激活管理
         setChildAnchorProps(child, a);
+        reflowChildren();     // P0-60：立即应用
+        return 1;
+    }
+    // P0-59：运行期布局模式切换（absolute/空串=清除引擎回到自由布局；gap/padding 默认 0）
+    if (strcmp(prop, PropertyNames::kLayout) == 0) {
+        if (!value || value[0] == '\0' || strcmp(value, PropertyNames::kLayoutTypeAbsolute) == 0) {
+            m_layoutEngine.reset();
+            return 1;
+        }
+        Margin pad{0, 0, 0, 0};
+        shared_ptr<LayoutEngine> engine;
+        if (strcmp(value, PropertyNames::kLayoutTypeVFlow) == 0)       engine = make_shared<VFlowLayout>(0.0f, pad);
+        else if (strcmp(value, PropertyNames::kLayoutTypeAnchor) == 0) engine = make_shared<AnchorLayout>(pad);
+        else if (strcmp(value, PropertyNames::kLayoutTypeGrid) == 0)   engine = make_shared<GridLayout>(0.0f, pad);
+        else if (strcmp(value, PropertyNames::kLayoutTypeHFlow) == 0)  engine = make_shared<HFlowLayout>(0.0f, pad);
+        else return 0;
+        setLayoutEngine(engine);
+        reflowChildren();
         return 1;
     }
     return ControlImpl::setEnumProperty(prop, value);
+}
+
+// P0-59：布局模式/锚点读回（配合 child-id）
+int Panel::getEnumProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kLayout) == 0) {
+        if (!m_layoutEngine) { out = PropertyNames::kLayoutTypeAbsolute; return 1; }
+        const std::string type = m_layoutEngine->getType();   // getType 按值返回，须映射到静态常量
+        if (type == PropertyNames::kLayoutTypeHFlow)       out = PropertyNames::kLayoutTypeHFlow;
+        else if (type == PropertyNames::kLayoutTypeVFlow)  out = PropertyNames::kLayoutTypeVFlow;
+        else if (type == PropertyNames::kLayoutTypeAnchor) out = PropertyNames::kLayoutTypeAnchor;
+        else if (type == PropertyNames::kLayoutTypeGrid)   out = PropertyNames::kLayoutTypeGrid;
+        else out = PropertyNames::kLayoutTypeAbsolute;
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kChildAnchor) == 0) {
+        auto* child = findChildById(this, m_childTargetId);
+        if (!child) return 0;
+        auto it = m_anchorItemProps.find(child);
+        if (it == m_anchorItemProps.end() || !it->second.hasAnchor) return 0;   // 未设置/仅偏移（P0-60）
+        out = it->second.anchor.c_str();
+        return 1;
+    }
+    return ControlImpl::getEnumProperty(prop, out);
+}
+
+int Panel::getFloatProperty(const char* prop, float& out) {
+    const bool isOffsetX = strcmp(prop, PropertyNames::kChildAnchorOffsetX) == 0;
+    const bool isOffsetY = strcmp(prop, PropertyNames::kChildAnchorOffsetY) == 0;
+    if (isOffsetX || isOffsetY) {
+        auto* child = findChildById(this, m_childTargetId);
+        if (!child) return 0;
+        auto it = m_anchorItemProps.find(child);
+        if (it == m_anchorItemProps.end()) return 0;   // 未设置
+        out = isOffsetX ? it->second.offset.left : it->second.offset.top;
+        return 1;
+    }
+    return ControlImpl::getFloatProperty(prop, out);
 }
 
 // *********************************************************************************************

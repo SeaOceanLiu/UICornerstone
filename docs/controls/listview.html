@@ -44,6 +44,10 @@ UICornerstone_ListViewAddRow(g_inst, lv, "f1", 2, cells);
 <tr><td><code>multi-select</code></td><td><code>kMultiSelect</code></td><td>Bool</td><td>true</td><td>Ctrl 多选</td></tr>
 <tr><td><code>selected-index</code></td><td><code>kSelectedIndex</code></td><td>Int</td><td>-1</td><td>初始选中行</td></tr>
 <tr><td><code>row-height</code> / <code>header-height</code></td><td><code>kRowHeight</code> / <code>kHeaderHeight</code></td><td>Float</td><td>24 / 28</td><td>行高/列头高</td></tr>
+<tr><td><code>header-text</code></td><td><code>kHeaderText</code></td><td>Color</td><td>(200,200,205)</td><td>列头文字色（控件级；P0-56）</td></tr>
+<tr><td><code>header-background</code></td><td><code>kHeaderBackground</code></td><td>Color</td><td>(45,45,52)</td><td>列头背景色（控件级；P0-56）</td></tr>
+<tr><td><code>header-shadow</code> / <code>header-shadow-offset-x/y</code></td><td><code>kHeaderShadow</code> / <code>kHeaderShadowOffsetX/Y</code></td><td>Color / Float</td><td>— / 1,1</td><td>列头文字阴影（未设色=不绘制；P0-56）</td></tr>
+<tr><td><code>columns[].header-text/-background/-shadow</code> / <code>header-shadow-offset-x/y</code></td><td>同上（作用域=该列）</td><td>Color/Float</td><td>—</td><td>per-column 表头样式（稀疏；未设继承控件级；P0-56）</td></tr>
 <tr><td><code>gridlines</code></td><td><code>kGridlines</code></td><td>Bool</td><td>true / false</td><td>网格线开关</td></tr>
 <tr><td><code>hover</code></td><td><code>kHoverHighlight</code></td><td>Bool</td><td>true</td><td>hover 高亮</td></tr>
 <tr><td><code>min-column-width</code></td><td><code>kMinColumnWidth</code></td><td>Float</td><td>20</td><td>列宽拖拽下限</td></tr>

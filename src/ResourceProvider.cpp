@@ -1,5 +1,6 @@
 ﻿#include "ResourceProvider.h"
 #include "PropertyNames.h"
+#include "ConstDef.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -114,31 +115,50 @@ static std::string stripProviderPrefix(const std::string& s) {
     return s;
 }
 
+// P0-54：绝对路径前缀剥离（assets 前缀 → 相对键重试；内存 provider 精确键匹配场景）
+static std::string stripAssetPrefix(const std::string& s) {
+    const std::string prefix = ConstDef::pathPrefix.string();
+    if (!prefix.empty() && s.rfind(prefix, 0) == 0) {
+        size_t pos = prefix.size();
+        if (pos < s.size() && (s[pos] == '/' || s[pos] == '\\')) ++pos;
+        return s.substr(pos);
+    }
+    return s;
+}
+
 std::shared_ptr<std::vector<char>> MemoryResourceProvider::readFile(const std::string& path) {
     const std::string name = stripProviderPrefix(path);
 
-    auto it = m_impl->entries.find(name);
-    if (it != m_impl->entries.end()) {
-        const Entry& e = it->second;
-        if (e.data) return e.data;  // register 条目：直接共享
-        // adopt 条目：首次读取时包装进 vector（仅此一次拷贝），之后共享
-        auto cached = m_impl->lazy.find(name);
-        if (cached != m_impl->lazy.end()) return cached->second;
-        auto buf = std::make_shared<std::vector<char>>(
-            static_cast<const char*>(e.rawPtr), static_cast<const char*>(e.rawPtr) + e.rawLen);
-        m_impl->lazy[name] = buf;
-        return buf;
-    }
+    auto lookup = [this](const std::string& key) -> std::shared_ptr<std::vector<char>> {
+        auto it = m_impl->entries.find(key);
+        if (it != m_impl->entries.end()) {
+            const Entry& e = it->second;
+            if (e.data) return e.data;  // register 条目：直接共享
+            // adopt 条目：首次读取时包装进 vector（仅此一次拷贝），之后共享
+            auto cached = m_impl->lazy.find(key);
+            if (cached != m_impl->lazy.end()) return cached->second;
+            auto buf = std::make_shared<std::vector<char>>(
+                static_cast<const char*>(e.rawPtr), static_cast<const char*>(e.rawPtr) + e.rawLen);
+            m_impl->lazy[key] = buf;
+            return buf;
+        }
+        auto p = m_impl->paths.find(key);
+        if (p != m_impl->paths.end()) {
+            auto cached = m_impl->lazy.find(key);
+            if (cached != m_impl->lazy.end()) return cached->second;
+            if (!m_impl->delegate) return nullptr;
+            auto buf = m_impl->delegate->readFile(p->second);
+            if (buf) m_impl->lazy[key] = buf;
+            return buf;
+        }
+        return nullptr;
+    };
 
-    auto p = m_impl->paths.find(name);
-    if (p != m_impl->paths.end()) {
-        auto cached = m_impl->lazy.find(name);
-        if (cached != m_impl->lazy.end()) return cached->second;
-        if (!m_impl->delegate) return nullptr;
-        auto buf = m_impl->delegate->readFile(p->second);
-        if (buf) m_impl->lazy[name] = buf;
-        return buf;
-    }
+    auto hit = lookup(name);
+    if (hit) return hit;
+    // P0-54 回退：绝对路径（assets 前缀）→ 剥离后按相对键重试（精确命中优先）
+    const std::string rel = stripAssetPrefix(name);
+    if (rel != name) return lookup(rel);
     return nullptr;
 }
 
@@ -146,6 +166,11 @@ bool MemoryResourceProvider::exists(const std::string& path) {
     const std::string name = stripProviderPrefix(path);
     if (m_impl->entries.find(name) != m_impl->entries.end()) return true;
     if (m_impl->paths.find(name) != m_impl->paths.end()) return true;
+    const std::string rel = stripAssetPrefix(name);
+    if (rel != name) {
+        if (m_impl->entries.find(rel) != m_impl->entries.end()) return true;
+        if (m_impl->paths.find(rel) != m_impl->paths.end()) return true;
+    }
     return false;
 }
 

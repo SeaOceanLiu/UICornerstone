@@ -84,9 +84,13 @@ UIControlHandle panel = UICornerstone_CreatePanel(g_inst, 50, 112, 400, 200, 1.0
 
 <pre><code>auto panel = ui->CreatePanel(50, 112, 400, 200);
 auto btn   = ui->CreateButton("Submit", 280, 140, 100, 35);
-panel.AddChild(btn);                          // Control::AddChild
+panel.AddChild(btn);                          // 挂载（返回 child；自动摘旧父，跨容器 reparent 无双挂载）
+ui->RemoveChild(panel, btn);                  // 摘除但不销毁（实例级保活，可再 AddChild 回挂）
+panel.AddChild(btn);                          // 复挂（复位示例）
 btn.SetBool(PropertyNames::kEnabled, false);  // 统一属性系统
 btn.SetCallback(PropertyNames::kEventClick, [](const Event&) { /* ... */ });</code></pre>
+
+<div class="tip">运行时挂载：<code>AddChild</code> 的父须为 <b>Panel</b>（WinFrame 严格挂 ClientPanel，传 <code>ui-&gt;FromHandle(wf.GetPtr(PropertyNames::kClientPanel))</code> 代理）；子控件 <code>rect</code> 为父局部坐标，跨容器挂载不自动换算全局位置；真销毁用 <code>Control::Destroy()</code>（<code>RemoveChild</code> 只摘除、保活）。</div>
 
 <div class="tip">布局引擎（flow/anchor/grid）的完整 JSON 语法见 <a href="../appendix/declarative-syntax.html">6 声明式 UI 语法速查表</a>。</div>
 
@@ -97,7 +101,9 @@ btn.SetCallback(PropertyNames::kEventClick, [](const Event&) { /* ... */ });</co
 UIControlHandle panel = UICornerstone_CreatePanel(g_inst, 20, 20, 400, 300, 1.0f, 1.0f);
 UIControlHandle btn = UICornerstone_CreateButton(g_inst, "OK", 10, 10, 100, 32, 1.0f, 1.0f);
 
-UICornerstone_AddChildControl(g_inst, panel, btn);   // 挂树（经 Bench 或父容器）
+UICornerstone_AddChildControl(g_inst, panel, btn);   // 挂树：任意旧父自动摘除；非 Panel/自身/祖先环静默忽略
+UICornerstone_RemoveChild(g_inst, panel, btn);       // 摘除不销毁（保活，可再挂）；销毁用 DestroyControl
+UICornerstone_AddChildControl(g_inst, panel, btn);   // 复挂（复位示例）
 UICornerstone_SetBool(g_inst, panel, "transparent", 1);</code></pre>
 <details class="methods">
 <summary>4.16.7 控件的方法（核心引擎内部 API，点击展开）</summary>

@@ -127,6 +127,8 @@ void Bench::resized(SRect newRect) {
     } else {
         recomputeViewportTransform();
     }
+    // P0-61②：根存在布局引擎时重排（窗口/视口 resize 时根级锚定跟随；fit/stretch 下 rect 不变为幂等）
+    reflowChildren();
 }
 
 // 根变换重算：统一公式 rootDR = { m_rect.left+anchorX, m_rect.top+anchorY,

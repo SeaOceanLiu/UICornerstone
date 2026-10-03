@@ -35,6 +35,32 @@ static void runAssertions() {
     g_probe->addColumn(u8"大小", 70.f, true);
     CHECK(g_probe->getColumnCount() == 3, "addColumn x3");
 
+    // P0-56：控件级表头样式（属性系统回环）
+    {
+        SColor hc;
+        CHECK(g_probe->setColorProperty(PropertyNames::kHeaderText, SColor(10, 20, 30, 255)) == 1, "P0-56 set header-text");
+        CHECK(g_probe->getColorProperty(PropertyNames::kHeaderText, hc) == 1 && hc.redByte() == 10, "P0-56 get header-text");
+        CHECK(g_probe->setColorProperty(PropertyNames::kHeaderBackground, SColor(40, 50, 60, 255)) == 1, "P0-56 set header-background");
+        CHECK(g_probe->getColorProperty(PropertyNames::kHeaderBackground, hc) == 1 && hc.greenByte() == 50, "P0-56 get header-background");
+        CHECK(g_probe->setColorProperty(PropertyNames::kHeaderShadow, SColor(70, 80, 90, 255)) == 1, "P0-56 set header-shadow");
+        CHECK(g_probe->getColorProperty(PropertyNames::kHeaderShadow, hc) == 1 && hc.blueByte() == 90, "P0-56 get header-shadow");
+        CHECK(g_probe->setFloatProperty(PropertyNames::kHeaderShadowOffsetX, 3.0f) == 1, "P0-56 set shadow-offset-x");
+        float hoff = 0.f;
+        CHECK(g_probe->getFloatProperty(PropertyNames::kHeaderShadowOffsetY, hoff) == 1 && hoff == 1.0f, "P0-56 get shadow-offset-y default");
+    }
+
+    // P0-56：per-column 稀疏扩展
+    g_probe->setColumnHeaderBackground(0, SColor(1, 2, 3, 255));
+    g_probe->setColumnHeaderShadow(1, SColor(4, 5, 6, 255), 2.0f, 3.0f);
+    {
+        HeaderStyle hs0 = g_probe->getColumnHeaderStyle(0);
+        HeaderStyle hs1 = g_probe->getColumnHeaderStyle(1);
+        HeaderStyle hs2 = g_probe->getColumnHeaderStyle(2);
+        CHECK(hs0.hasBackground && hs0.background.blueByte() == 3, "P0-56 column bg set");
+        CHECK(hs1.hasShadow && hs1.shadowColor.greenByte() == 5 && hs1.shadowOffset.x == 2.0f && hs1.shadowOffset.y == 3.0f, "P0-56 column shadow set");
+        CHECK(!hs2.hasBackground && !hs2.hasShadow, "P0-56 unset column stays sparse");
+    }
+
     // ── 行补足语义（§5.0.3）：不足补空 ──
     g_probe->addRow("r1", {"A"});
     CHECK(g_probe->getRowCells(0).size() == 3 && g_probe->getCell(0, 1).empty(),

@@ -131,9 +131,15 @@ UIRect Control::GetRect() const {
     if (IsValid()) UICornerstone::Dyn::API().fnGetRect(m_state->instance, m_state->handle, &r.x, &r.y, &r.w, &r.h);
     return r;
 }
-void Control::AddChild(Control child) {
+Control Control::AddChild(Control child) {
     if (IsValid() && child.IsValid())
         UICornerstone::Dyn::API().fnAddChildControl(m_state->instance, m_state->handle, child.Handle());
+    return child;
+}
+bool Control::RemoveChild(Control child) {
+    if (!IsValid() || !child.IsValid()) return false;
+    if (!UICornerstone::Dyn::API().fnRemoveChild) return false;
+    return UICornerstone::Dyn::API().fnRemoveChild(m_state->instance, m_state->handle, child.Handle()) != 0;
 }
 void Control::Destroy() {
     if (m_state && m_state->alive && m_state->instance && m_state->handle) {

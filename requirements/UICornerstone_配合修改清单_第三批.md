@@ -207,9 +207,9 @@
 
 1. **P0-3（Panel wheel 嵌套不可达调查）**：机制性缺口，本轮升级为首位。
 2. **P0-1/P0-2（TextArea/NUD wheel 语义）**：直接阻塞容器滚轮体验，建议同批实施。
-2. **P1-4（HandleHitTest 注释勘误）**：一行注释修正，随批顺手。
-3. **P1-5/6（手册）**：随 Wheel_Support 实施批落地（§8 已列）。
-4. clip 穿透：待观察。
+3. **P1-4（HandleHitTest 注释勘误）**：一行注释修正，随批顺手。
+4. **P1-5/6（手册）**：随 Wheel_Support 实施批落地（§8 已列）。
+5. clip 穿透：待观察。
 
 ## 追加（2026-09-22 逐控件属性检查：资源类属性）
 
@@ -317,3 +317,42 @@
 | P0-47 扩展 | 中 | **kFont 未设置时读回实际生效的缺省字体名** | 现状：font 未显式设置时 GetString(kFont) 返回空（属性系统回显设置值），设计器无法得知控件实际字体，被迫造"(缺省)"虚拟项。请引擎：kFont 读回在未显式设置时返回**控件实际生效的缺省字体名**（构造字体 → 名字）。设计器随批：删"(缺省)"项，读回实际名直接选中 |
 
 | P0-49 | 中 | **text-shadow per-state 读回失败（hover/pressed）** | 设计器第一轮视觉反馈（漏列，此补）：Button/Label 的 text-shadow 槽 normal/disabled 读回正常，**hover/pressed 读回失败**（caption-label 直控回读链）——写入视觉生效、读回不回。请引擎核查 getTextShadowStateColor 的 per-state 读回分发（text-shadow.hover/.pressed 键），并排查其它 StateColor 组（text/border/background）是否存在同样的 per-state 读回缺失 |
+
+## 新设计任务：容器类子控件编辑（design/07 已定稿）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| E-4（P0-50） | 高 | **Binding 补 AddChild/RemoveChild 容器挂载** | 设计器容器子控件放置必需：`Control AddChild(Control& parent, Control& child)`（引擎 parent->addControl）/`bool RemoveChild(Control& parent, Control& child)`（摘除不销毁或销毁语义请定）；Binding 封装 + C ABI（如需脚本通道）。设计器 07 设计 P1-a（容器内放置）依赖此能力 |
+
+设计文档：`CornerstoneDesigner/design/07_容器类子控件编辑设计.md`（已定稿——放置双通道/WinFrame 严格 ClientPanel/分期 P1-a→P2）
+
+## 追加（2026-10-02 浮层遮挡子视口——引擎清单）
+
+**背景（设计器实测）**：画布工具栏的 ComboBox（cb_gridcell/tb_align 等）打开下拉后，列表被中央画布（子视口）整片盖住。根因：主实例 `Render()` 时浮层已画（Popup 挂主实例 BENCH 顶层，子列表末尾），随后 `vp->Render()` 在画布区域覆盖；调换渲染顺序不可行——主实例 bench 根背景不透明（`ConstDef::DEFAULT_NORMAL_COLOR = (23,23,24,255)`，见 `Capture_API_Design.md` §像素级覆盖语义）+ root 面板不透明（#202020），先渲画布再渲主实例会把画布整片盖掉。事件侧同病：`findViewportByCoord`（src/UICornerstoneAPI.cpp:277-286）无条件把落在子视口 rect 内的鼠标事件路由给子视口——浮层压在画布上时，点击下拉项进不了主实例 bench（点不中、外点也不关）。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-52① | 高 | **浮层渲染通道（子视口之上）** | 新增 `UICornerstone_RenderOverlays(UIInstance)`（Binding `RenderOverlays()`）：只绘制本实例 BENCH 顶层可见浮层控件（ControlType ∈ {Popup, ConfirmPopup, Dialog, MenuPanel}，含其子树），仍按实例 viewport 裁剪。宿主帧序变为 `Clear → owner.Render → vp.Render → owner.RenderOverlays → Present`；基准 `Render` 行为不变（浮层随主渲染绘制一次，overlay pass 重绘于子视口之上；浮层背景不透明，重绘无叠色问题）。设计器随批：App.cpp 渲染循环加一行 + Binding 同步 |
+| P0-52② | 高 | **浮层优先的事件路由** | 鼠标路由（src/UICornerstoneAPI.cpp:737）在 `findViewportByCoord` 之前先判 owner 顶层是否存在可见浮层：存在 → 鼠标事件优先发 owner bench（浮层 watcher 处理命中/外点关闭；是否穿透由引擎设计定），否则再按坐标路由子视口。否则浮层压画布时下拉项点不中、外点关闭失效 |
+
+> 备选设计（由引擎定）：bench 内联子视口渲染（子视口内容并入主实例绘制序、浮层自然置顶）或浮层延迟渲染通道；目标语义一致——浮层恒在所有子视口之上且可交互。设计器侧集成改动最小者优先。
+
+> **状态（2026-10-02）**：引擎已实施并同步 subModules（含路由探针与 owner 路径 activeViewport 回收，复核附项落实）；设计器 App.cpp 已接线 `RenderOverlays`；构建零警告、冒烟 clean、矩阵/strict 全绿、视觉验证通过（下拉浮层完整显示可点选/外点关闭/画布交互恢复）。本批闭环。
+
+## 追加（2026-10-02 StatusBar 文本更新——引擎清单）
+
+**背景（设计器实测）**：主窗体状态栏左段（statusHint）初始"就绪"、设计器启动时改为"放置目标：画布根"——新文本与中段"未选中控件"**重叠**（放置一个控件后才恢复）。根因：`StatusBar::updateStatusItemText`（src/StatusBar.cpp:46-50）只改 `item.text`，**不触发 `relayout()`**——段 hitRect 宽度仍按旧文本（"就绪"）计算，长文本溢出压到相邻段；`addStatusItem`/`removeStatusItem` 均会 relayout，唯文本更新遗漏（字体首次就绪的 draw 内自愈重排才偶然修正）。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-53 | 中 | **updateStatusItemText 应触发 relayout** | 段宽随文本变化：`updateStatusItemText` 内设置文本后补 `relayout()`（与 add/remove 语义对齐）。设计器过渡：过渡期以"临时段增删"强制 relayout（同帧完成、无视觉影响），引擎修复同步后删除过渡代码 |
+| P0-54 | 中 | **字体路径约定两套不一致（内存 provider 下部分控件无文字）** | Label 走相对路径（`provider->readFile("fonts/…")`）；StatusBar/ListView/Menu/TabControl/TreeView 走绝对路径（`ConstDef::pathPrefix.string() + "/" + rel` = `GetBasePath()+"assets" + "/" + rel`）。视口内存 provider 为精确键匹配——后者在子视口（设计器画布）读不到已按相对键注册的字体 → 状态栏段/列表列头/菜单/页签/树节点**无文字**。建议：`MemoryResourceProvider::readFile` 增加前缀剥离回退（绝对路径以 `ConstDef::pathPrefix` 开头时，去前缀重试相对键）；或统一为 Label 的相对路径约定。设计器过渡：字体按相对+绝对两种键双注册 |
+| P0-55 | 中 | **StatusBar 分段着色（用户需求）** | `StatusItem` 无颜色字段（段文字统一用控件级 text 四态色）——无法分段着色。需求：① per-segment **text 色**（至少 normal，建议四态）；② per-segment **背景色**（VSCode 风格彩色段）。建议：StatusItem 增字段 + API `StatusBarSetItemTextColor(bar, id, rgba[, state])` / `StatusBarSetItemBackgroundColor(bar, id, rgba)` + JSON items 键扩展（`text-color`/`background-color`）+ Binding 封装。设计器随批：行式编辑扩展（如 `文本|#RRGGBB`），模型持有颜色 |
+| P0-56 | 中 | **ListView 表头背景色与文字阴影（用户问询）** | 现状：表头背景 `m_headerBgColor{45,45,52}`、控件级表头文字色 `m_headerTextColor{200,200,205}` 均为内部常量（无属性/API/schema 键）；`HeaderStyle`（per-column：textColor/fontName/fontSize）无阴影字段（`ListViewSetCellShadow` 仅单元格）。需求：① 表头**背景色**（控件级 + 可选 per-column）；② 表头**文字阴影**（色 + 偏移，per-column 可选）；③ 控件级表头文字色暴露（当前仅 per-column API `ListViewSetColumnHeaderStyle`）。schema 键建议 `header-background`/`header-text`/`header-shadow`；设计器随批扩展 columns 行式格式 |
+| P0-57 | 中 | **StatusBar 运行期 font-size 不生效（缺陷）** | `StatusBar::setFontSize`（StatusBar.cpp:127-129）仅 `relayout()`，**未失效缓存字体 `m_font`**——`relayout→ensureFont` 早退，字号/测量宽度均按旧字号。对照：TreeView::setFontSize（m_font.reset()+m_nodeFonts.clear()+ensureFont）、TabControl::setFontSize（m_font.reset()+ensureFont+relayout）均正确。修复：StatusBar::setFontSize 补 `m_font.reset()`（+ relayout）；建议顺带审计同类控件（MenuBar/MenuPanel 等）的 setFontSize 缓存失效 |
+| P0-58 | 低 | **StatusBar 段级字号/文字阴影（用户问询，可选）** | 现状：字号/阴影仅控件级（P0-55 段色已列）。需求（对齐 ListView per-column 能力）：`StatusItem` 增 `fontSize`（0=继承控件级）与 `shadowColor/offset`（可选）；API/JSON items 键（`font-size`/`text-shadow`/`text-shadow-offset-x/y`）+ 绘制分派。若引擎认为需求弱可后置 |
+| P0-59 | 中 | **运行时布局模式切换 + 锚点读回（用户需求：控件固定在窗体某一边）** | 现状：锚点解析期完整（`layout.type=anchor` + 子控件 `anchor`/`anchorOffset`）；运行期子控件级写入已有（`Panel::setEnumProperty("anchor")` / `setFloatProperty("anchor-offset-x/y")`，配合父容器 `SetString("child-id", 子控件id)` 定位）——但：① **容器布局模式无运行时分发**（`layout` 键未实现，`setLayoutEngine` 仅解析期）→ 运行期无法把容器切到 anchor 布局，锚定不生效；② `Panel` 无 `getEnum/getFloat` 覆写 → 锚点**无读回**。需求：① `SetEnum("layout", "h-flow|v-flow|anchor|grid")`（+GetEnum）运行时切换布局引擎并重排；② `GetEnum("anchor")`/`GetFloat("anchor-offset-x/y")` 读回（配合 child-id）；③ schema：`anchor`/`anchorOffset` 从 panel def 下放 common（供设计器枚举行生成）。设计器随批：属性面板"布局模式"下拉（容器）+ "锚定"下拉（9 锚点 + 4 拉伸：top/bottom/left/right-stretch）+ 偏移行；预览验证贴边 |
+| P0-60 | 高 | **锚点 setter 触发重排 + applyAnchor 稀疏语义（P0-59 实测缺陷）** | 设计器实测（P0-59 联测）：① 设完 `anchor`/`anchor-offset-x/y` **不触发重排**——仅切换布局/父 resize 才应用，用户设"底拉伸"后控件仍停在旧位置（实测"底拉伸跑到顶部"）；② `AnchorLayout::applyAnchor` 对**未设锚点**的子控件按默认 `top-left` 处理——切换布局瞬间把全部子控件塌到左上堆叠（实测"切 anchor 后选不中 Panel 内控件"；设计器已加模型同步过渡，但塌左上本身不合直觉）。需求：① `setEnumProperty(kChildAnchor)` / `setFloatProperty(kChildAnchorOffsetX/Y)` 更新 map 后**触发 `reflowChildren()`**（立即应用）；② `applyAnchor` 改**稀疏语义**：`anchorProps` 未命中的子控件**保持现有 rect**（跳过），仅管理显式锚定者（与 per-column 稀疏样式家族一致）。设计器过渡：`forceReflow`（父 SetRect 同值强制 reflow）+ `syncModelsFromEngine`——引擎修复同步后删 `forceReflow` |
+| P0-61 | 中 | **根级锚定（Bench 布局引擎支持）——顶层控件锚定画布/窗体边（用户拍板走 Bench）** | 用户问询：顶层控件（StatusBar 等）直接锚定画布底部。Bench 继承 Panel、天然有 `m_layoutEngine`/`m_anchorItemProps`/`reflowChildren`，路线成立；实际障碍三处：① **设计器拿不到 bench 句柄**（无 `GetRoot`/根 child-anchor API）→ 顶层控件的 `child-id`+`anchor` 无处可写；② `Bench::resized`（Bench.cpp:123-130）仅 `Panel::resized`+`recomputeViewportTransform`，**不触发 `reflowChildren()`** → 视口/窗口 resize 时锚定不重排；③ off 模式 `SetCanvasSize`（UICornerstoneAPI.cpp:639-652）仅记录不即时应用（需下一次 recompute 才置 rect）。需求：① 暴露根句柄（`UICornerstone_GetRoot(instance)` → UIControlHandle；Binding `Root()`；子视口实例返回其 bench）或等效实例级根锚点 API；② `Bench::resized` 存在布局引擎时补 `reflowChildren()`；③ `SetCanvasSize` off 模式即时应用（setRect + recompute）。前提：P0-60 稀疏语义（已放行——根上的 overlay：网格/参考线/框选/手柄不被塌）。设计器随批：顶层控件锚定行父级解析支持"根"；根尺寸=可见逻辑区（`contentW/zoom`，窗口/分割条/缩放变化时同步）→ 锚定目标=可见画布底/边；首次设置顶层锚定时自动确保根为 anchor 布局；删 `forceReflow` 过渡 |
+
+> **状态（2026-10-03）**：P0-53~P0-59 引擎均已实施并同步 subModules，设计器随批完成（删 P0-53 重排过渡、删 P0-54 字体双键注册、StatusBar 段色/段级字号阴影、ListView 表头全样式 + x-color 行、布局模式/锚定/偏移行、SetControlId 注册、设计画布尺寸/平移/滚动条/鼠标坐标）。**待引擎**：P0-60（锚点 setter 即时重排 + applyAnchor 稀疏语义，设计已放行——同步后设计器删 `forceReflow` 过渡、保留 `syncModelsFromEngine`）；P0-61（根级锚定：GetRoot/根 child-anchor + Bench::resized reflow + SetCanvasSize off 即时应用，待设计）。

@@ -43,9 +43,74 @@ void StatusBar::addStatusItem(const string& id, const string& text, bool rightAl
     m_items.push_back(std::move(item));
     relayout();
 }
+// P0-55：态位与回退链（显式设过的态 -> 该段 normal -> 控件级四态）
+static uint8_t statusStateBit(ControlState s) {
+    switch (s) {
+        case ControlState::Hover:    return 2;
+        case ControlState::Pressed:  return 4;
+        case ControlState::Disabled: return 8;
+        default:                     return 1;
+    }
+}
+static SColor resolveItemTextColor(StatusItem& item, StateColor& ctrl, ControlState st) {
+    if (!item.textColorMask) return ControlImpl::resolveStateColor(ctrl, st);
+    if (item.textColorMask & statusStateBit(st)) {
+        switch (st) {
+            case ControlState::Hover:    return item.textColor.getHover();
+            case ControlState::Pressed:  return item.textColor.getPressed();
+            case ControlState::Disabled: return item.textColor.getDisabled();
+            default:                     return item.textColor.getNormal();
+        }
+    }
+    if (item.textColorMask & 1) return item.textColor.getNormal();   // 未设态 -> 该段 normal
+    return ControlImpl::resolveStateColor(ctrl, st);                 // 该段未设色 -> 控件级
+}
+
+void StatusBar::setStatusItemTextColor(const string& id, SColor color, ControlState state) {
+    for (auto& item : m_items) {
+        if (item.id != id) continue;
+        switch (state) {
+            case ControlState::Hover:    item.textColor.setHover(color);    break;
+            case ControlState::Pressed:  item.textColor.setPressed(color);  break;
+            case ControlState::Disabled: item.textColor.setDisabled(color); break;
+            default:                     item.textColor.setNormal(color);   break;
+        }
+        item.textColorMask |= statusStateBit(state);
+        return;
+    }
+}
+void StatusBar::setStatusItemFontSize(const string& id, float size) {   // P0-58
+    for (auto& item : m_items) {
+        if (item.id != id) continue;
+        if (item.fontSize != size) { item.fontSize = size; relayout(); }
+        return;
+    }
+}
+void StatusBar::setStatusItemTextShadow(const string& id, SColor color, float offsetX, float offsetY) {   // P0-58
+    for (auto& item : m_items) {
+        if (item.id != id) continue;
+        item.shadowColor = color;
+        item.hasShadow = true;
+        item.shadowOffset = SPoint(offsetX, offsetY);
+        return;
+    }
+}
+
+void StatusBar::setStatusItemBackgroundColor(const string& id, SColor color) {
+    for (auto& item : m_items) {
+        if (item.id != id) continue;
+        item.background = color;
+        item.hasBackground = true;
+        return;
+    }
+}
+
 void StatusBar::updateStatusItemText(const string& id, const string& text) {
     for (auto& item : m_items) {
-        if (item.id == id) { item.text = text; return; }
+        if (item.id == id) {
+            if (item.text != text) { item.text = text; relayout(); }   // P0-53：段宽随文本变化
+            return;
+        }
     }
 }
 void StatusBar::removeStatusItem(const string& id) {
@@ -77,7 +142,12 @@ StatusItem* StatusBar::getStatusItem(const string& id) {
 }
 
 void StatusBar::setFontSize(float size) {
-    if (size > 0 && m_fontSize != size) { m_fontSize = size; relayout(); }
+    if (size > 0 && m_fontSize != size) {
+        m_fontSize = size;
+        m_font.reset();          // P0-57：失效缓存字体（否则 ensureFont 早退，字号不生效）
+        m_itemFonts.clear();     // P0-58：段级字体缓存随控件级字号失效
+        relayout();
+    }
 }
 void StatusBar::setItemHeight(float px) {
     if (px > 0 && m_itemHeight != px) { m_itemHeight = px; m_rect.height = px; relayout(); }
@@ -90,12 +160,33 @@ void StatusBar::ensureFont() {
     if (!renderer || !provider) return;
     auto it = ConstDef::fontFiles.find(m_fontName);   // P0-26：字体名可配
     if (it == ConstDef::fontFiles.end()) return;
-    string fontPath = ConstDef::pathPrefix.string() + "/" + it->second;
+    string fontPath = it->second;   // P0-54：统一相对路径约定（与 Label/Actor 一致）
     auto data = provider->readFile(fontPath);
     if (data && !data->empty()) {
         int scaledSize = static_cast<int>(m_fontSize * getScaleXX());
         m_font = renderer->loadFontFromMemoryWithText(data->data(), data->size(), scaledSize, "W");
     }
+}
+
+// P0-58：段级字号字体（<=0 或未就绪回退控件级 m_font；按缩放后像素字号缓存）
+SharedFont StatusBar::fontForSize(float size) {
+    if (size <= 0.0f) return m_font;
+    const int px = static_cast<int>(size * getScaleXX());
+    if (px <= 0) return m_font;
+    auto it = m_itemFonts.find(px);
+    if (it != m_itemFonts.end()) return it->second;
+    if (!m_font) return m_font;   // 控件级字体未就绪：沿用（relayout 估算路径）
+    TextRenderer* renderer = getTextRenderer();
+    ResourceProvider* provider = getResourceProvider();
+    if (!renderer || !provider) return m_font;
+    auto fit = ConstDef::fontFiles.find(m_fontName);
+    if (fit == ConstDef::fontFiles.end()) return m_font;
+    auto data = provider->readFile(fit->second);   // P0-54：相对路径约定
+    if (!data || data->empty()) return m_font;
+    SharedFont f = renderer->loadFontFromMemoryWithText(data->data(), data->size(), px, "W");
+    if (!f) return m_font;
+    m_itemFonts[px] = f;
+    return f;
 }
 
 // ── 布局 ──
@@ -111,8 +202,9 @@ void StatusBar::relayout() {
         if (item.rightAlign) continue;
         float w = m_itemHeight;
         if (item.leadingControl) w += m_fontSize * kIconFontRatio;
-        if (renderer && m_font) w += renderer->measureText(m_font.get(), item.text).width;
-        else w += item.text.length() * m_fontSize * kTextEstRatio;
+        SharedFont f = fontForSize(item.fontSize);   // P0-58：按段级字号测量
+        if (renderer && f) w += renderer->measureText(f.get(), item.text).width;
+        else w += item.text.length() * (item.fontSize > 0.0f ? item.fontSize : m_fontSize) * kTextEstRatio;
         item.hitRect = SRect(leftX, cy, w + m_spacing, m_itemHeight);
         leftX += w + m_spacing;
     }
@@ -124,8 +216,9 @@ void StatusBar::relayout() {
         if (!item.rightAlign) continue;
         float w = m_itemHeight;
         if (item.leadingControl) w += m_fontSize * kIconFontRatio;
-        if (renderer && m_font) w += renderer->measureText(m_font.get(), item.text).width;
-        else w += item.text.length() * m_fontSize * kTextEstRatio;
+        SharedFont f = fontForSize(item.fontSize);   // P0-58：按段级字号测量
+        if (renderer && f) w += renderer->measureText(f.get(), item.text).width;
+        else w += item.text.length() * (item.fontSize > 0.0f ? item.fontSize : m_fontSize) * kTextEstRatio;
         item.hitRect = SRect(rightX - w, cy, w + m_spacing, m_itemHeight);
         rightX -= w + m_spacing;
     }
@@ -168,7 +261,13 @@ void StatusBar::draw(void) {
             dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
         }
 
-        for (const auto& item : m_items) {
+        for (auto& item : m_items) {
+            // P0-55：段背景（铺满 hitRect，VSCode 风格；未设置不绘制）
+            if (item.hasBackground) {
+                const auto& r = item.hitRect;
+                dev->setDrawColor(item.background);
+                dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
+            }
             // leadingControl 未挂 bar 子树（无父复合）→ setRect 用【绝对坐标】
             // = drawRect 原点 + 本地布局 × scale
             if (item.leadingControl) {
@@ -181,15 +280,21 @@ void StatusBar::draw(void) {
                     isz * sx, isz * sy));
                 item.leadingControl->draw();
             }
-            if (renderer && m_font) {
+            SharedFont itemFont = fontForSize(item.fontSize);   // P0-58：段级字号
+            if (renderer && itemFont) {
                 const float tx = ox + (item.hitRect.left + kIconLeftPad
                                        + (item.leadingControl ? m_fontSize * kIconFontRatio + kIconTextGap : 0.f)) * sx;
-                const float ty = oy + (item.hitRect.top + (m_itemHeight - m_fontSize) / 2.f) * sy;
-                SColor itemTextColor = ControlImpl::resolveStateColor(m_textColor, getState());   // P0-26：四态
-                TextDraw::withShadow(renderer, m_font.get(), item.text,
-                                     tx, ty, tx + m_shadowOffset.x * sx, ty + m_shadowOffset.y * sy,
-                                     itemTextColor, m_shadowEnabled,
-                                     ControlImpl::resolveStateColor(m_textShadowColor, getState()));
+                const float hfh = static_cast<float>(renderer->getFontHeight(itemFont.get()));
+                const float ty = oy + (item.hitRect.top + (m_itemHeight - hfh) / 2.f) * sy;   // P0-58：按段字体居中
+                SColor itemTextColor = resolveItemTextColor(item, m_textColor, getState());   // P0-55：段色回退链
+                // P0-58：阴影优先级 = 段级（hasShadow）-> 控件级
+                const bool shadowOn = item.hasShadow ? true : m_shadowEnabled;
+                const SPoint so = item.hasShadow ? item.shadowOffset : m_shadowOffset;
+                const SColor sc = item.hasShadow ? item.shadowColor
+                                                 : ControlImpl::resolveStateColor(m_textShadowColor, getState());
+                TextDraw::withShadow(renderer, itemFont.get(), item.text,
+                                     tx, ty, tx + so.x * sx, ty + so.y * sy,
+                                     itemTextColor, shadowOn, sc);
             }
         }
     }

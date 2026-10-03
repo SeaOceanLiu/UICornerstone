@@ -92,6 +92,10 @@ struct UIContext {
     std::vector<std::shared_ptr<Popup>> popupPool;
     std::vector<std::shared_ptr<Control>> menuPool;
 
+    // ── 容器子控件摘除保活池（P0-50 RemoveChild）：摘除不销毁，可反复 attach/detach；
+    //     AddChildControl/DestroyControl 联动 Take；随实例销毁级联释放 ──
+    std::vector<std::shared_ptr<Control>> detachedControls;
+
     // ── 实例内字符串缓冲（GetControlId 输出） ──
     std::string strBuf;
 

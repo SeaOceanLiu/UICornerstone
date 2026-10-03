@@ -295,7 +295,7 @@ endif()
 # UIBackend_xxx.dll. Unlike test_api (import-lib link), these do NOT
 # link UICornerstone_dll — everything is resolved at runtime.
 # ============================================================
-foreach(cabi_test_name test_multi_instance_cabi test_multiviewport_cabi test_multiinstance_visual_cabi test_multiviewport_visual_cabi test_image test_capture_cabi test_handlecontrol_cabi test_wheel_cabi test_wheel_nested_cabi)
+foreach(cabi_test_name test_multi_instance_cabi test_multiviewport_cabi test_multiinstance_visual_cabi test_multiviewport_visual_cabi test_overlay_viewport_cabi test_image test_capture_cabi test_handlecontrol_cabi test_wheel_cabi test_wheel_nested_cabi)
     if(UICORNERSTONE_BUILD_DLL AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${cabi_test_name}.cpp")
         add_executable(${cabi_test_name} ${cabi_test_name}.cpp)
 
