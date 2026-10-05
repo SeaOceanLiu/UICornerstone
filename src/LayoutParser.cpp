@@ -1472,8 +1472,22 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
                         bar->setStatusItemTextColor(id, parseColor(tc[PropertyNames::kStateKeyDisabled]), ControlState::Disabled);
                 }
             }
-            if (ij.contains(PropertyNames::kItemBackgroundColor) && ij[PropertyNames::kItemBackgroundColor].is_string())
-                bar->setStatusItemBackgroundColor(id, parseColor(ij[PropertyNames::kItemBackgroundColor]));
+            if (ij.contains(PropertyNames::kItemBackgroundColor)) {
+                const auto& bc = ij[PropertyNames::kItemBackgroundColor];
+                if (bc.is_string()) {
+                    bar->setStatusItemBackgroundColor(id, parseColor(bc));
+                } else if (bc.is_object()) {
+                    // P0-64：对象形态（normal → 段背景；hover → 显式悬停背景；pressed/disabled 段不支持，忽略）
+                    if (bc.contains(PropertyNames::kStateKeyNormal) && bc[PropertyNames::kStateKeyNormal].is_string())
+                        bar->setStatusItemBackgroundColor(id, parseColor(bc[PropertyNames::kStateKeyNormal]));
+                    if (bc.contains(PropertyNames::kStateKeyHover) && bc[PropertyNames::kStateKeyHover].is_string())
+                        bar->setStatusItemHoverBackgroundColor(id, parseColor(bc[PropertyNames::kStateKeyHover]));
+                }
+            }
+
+            // P0-63⑤：段级字体名
+            if (ij.contains(PropertyNames::kItemFontName) && ij[PropertyNames::kItemFontName].is_string())
+                bar->setStatusItemFontName(id, FontNameFromString(ij[PropertyNames::kItemFontName].get<string>().c_str()));
 
             // P0-58：段级字号 / 文字阴影（font-size 0=继承；阴影未设继承控件级）
             if (ij.contains(PropertyNames::kFontSize) && ij[PropertyNames::kFontSize].is_number())
@@ -2334,6 +2348,73 @@ shared_ptr<TreeView> LayoutParser::parseTreeView(const json& j, Control* parent)
                     node->fontName = FontNameFromString(item[PropertyNames::kJsonItemFont].get<string>().c_str());
                 if (item.contains(PropertyNames::kJsonItemFontSize) && item[PropertyNames::kJsonItemFontSize].is_number())
                     node->fontSize = item[PropertyNames::kJsonItemFontSize].get<int>();
+                // P0-62②：节点样式简写键（与 ListView 表头同族；text-color 字符串=normal / 对象=四态）
+                if (item.contains(PropertyNames::kItemTextColor)) {
+                    const auto& tc = item[PropertyNames::kItemTextColor];
+                    if (tc.is_string()) {
+                        node->textColor.setNormal(parseColor(tc));
+                        node->textColorMask |= 1;
+                        node->hasTextStyle = true;
+                        node->hasStyle = true;
+                    } else if (tc.is_object()) {
+                        if (tc.contains(PropertyNames::kStateKeyNormal) && tc[PropertyNames::kStateKeyNormal].is_string()) {
+                            node->textColor.setNormal(parseColor(tc[PropertyNames::kStateKeyNormal]));
+                            node->textColorMask |= 1;
+                        }
+                        if (tc.contains(PropertyNames::kStateKeyHover) && tc[PropertyNames::kStateKeyHover].is_string()) {
+                            node->textColor.setHover(parseColor(tc[PropertyNames::kStateKeyHover]));
+                            node->textColorMask |= 2;
+                        }
+                        if (tc.contains(PropertyNames::kStateKeyPressed) && tc[PropertyNames::kStateKeyPressed].is_string()) {
+                            node->textColor.setPressed(parseColor(tc[PropertyNames::kStateKeyPressed]));
+                            node->textColorMask |= 4;
+                        }
+                        if (tc.contains(PropertyNames::kStateKeyDisabled) && tc[PropertyNames::kStateKeyDisabled].is_string()) {
+                            node->textColor.setDisabled(parseColor(tc[PropertyNames::kStateKeyDisabled]));
+                            node->textColorMask |= 8;
+                        }
+                        node->hasTextStyle = true;
+                        node->hasStyle = true;
+                    }
+                }
+                if (item.contains(PropertyNames::kItemBackgroundColor)) {
+                    const auto& bc = item[PropertyNames::kItemBackgroundColor];
+                    if (bc.is_string()) {
+                        const SColor c = parseColor(bc);
+                        node->bgColor = StateColor(c, c, c, c);   // 单色四态同色（bgMask=0 → 叠加生效）
+                        node->hasBgStyle = true;
+                        node->hasStyle = true;
+                    } else if (bc.is_object()) {                  // P0-64②：对象四态（显式态经 bgMask 豁免叠加）
+                        if (bc.contains(PropertyNames::kStateKeyNormal) && bc[PropertyNames::kStateKeyNormal].is_string()) {
+                            node->bgColor.setNormal(parseColor(bc[PropertyNames::kStateKeyNormal]));
+                            node->bgMask |= 1;
+                        }
+                        if (bc.contains(PropertyNames::kStateKeyHover) && bc[PropertyNames::kStateKeyHover].is_string()) {
+                            node->bgColor.setHover(parseColor(bc[PropertyNames::kStateKeyHover]));
+                            node->bgMask |= 2;
+                        }
+                        if (bc.contains(PropertyNames::kStateKeyPressed) && bc[PropertyNames::kStateKeyPressed].is_string()) {
+                            node->bgColor.setPressed(parseColor(bc[PropertyNames::kStateKeyPressed]));
+                            node->bgMask |= 4;
+                        }
+                        if (bc.contains(PropertyNames::kStateKeyDisabled) && bc[PropertyNames::kStateKeyDisabled].is_string()) {
+                            node->bgColor.setDisabled(parseColor(bc[PropertyNames::kStateKeyDisabled]));
+                            node->bgMask |= 8;
+                        }
+                        node->hasBgStyle = true;
+                        node->hasStyle = true;
+                    }
+                }
+                if (item.contains(PropertyNames::kTextShadow) && item[PropertyNames::kTextShadow].is_string()) {
+                    const float sox = item.value(PropertyNames::kItemTextShadowOffsetX, 1.0f);
+                    const float soy = item.value(PropertyNames::kItemTextShadowOffsetY, 1.0f);
+                    const SColor c = parseColor(item[PropertyNames::kTextShadow]);
+                    node->textShadowColor = StateColor(c, c, c, c);
+                    node->shadowOffsetX = sox;
+                    node->shadowOffsetY = soy;
+                    node->shadowEnabled = true;
+                    node->hasStyle = true;
+                }
                 if (item.contains(PropertyNames::kJsonLeadingControl) && item[PropertyNames::kJsonLeadingControl].is_object()) {
                     // 前置控件容器：复用控件 JSON（type + 控件属性），
                     // parent 传 nullptr，由 TreeView::syncRowControls 挂树（create 在挂树后重放）

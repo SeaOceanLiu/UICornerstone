@@ -183,6 +183,8 @@ public:
     // P0-58：段级字号（0=继承）/ 文字阴影（未设继承控件级）
     bool StatusBarSetItemFontSize(Control& bar, const std::string& id, float size);
     bool StatusBarSetItemTextShadow(Control& bar, const std::string& id, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
+    bool StatusBarSetItemFontName(Control& bar, const std::string& id, const std::string& name);   // P0-63⑤
+    bool StatusBarSetItemHoverBackgroundColor(Control& bar, const std::string& id, UIColor color); // P0-64④
     bool StatusBarRemoveItem(Control& bar, const std::string& id);
     bool StatusBarSetItemIcon(Control& bar, const std::string& id, Control& iconControl);
     bool StatusBarSetItemMenu(Control& bar, const std::string& id, Control& menuPanel);
@@ -268,6 +270,19 @@ public:
     bool ListViewSetColumnSorter(Control& lv, int colIndex, ListViewSortFn cmp, void* userData = nullptr);
     bool ListViewSetColumnValues(Control& lv, int colIndex, const std::vector<std::string>& values);
     bool ListViewSetCellShadow(Control& lv, int row, int col, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
+    // P0-62①：单元格文字色（稀疏——未设继承行/控件级）
+    bool ListViewSetCellTextColor(Control& lv, int row, int col, UIColor color);
+    // P0-63②③：字体名（稀疏——未设继承控件级）
+    bool ListViewSetCellFontName(Control& lv, int row, int col, const std::string& name);
+    bool ListViewSetColumnHeaderFontName(Control& lv, int colIndex, const std::string& name);
+    bool ListViewSetCellHoverBackgroundColor(Control& lv, int row, int col, UIColor color);   // P0-64③
+
+    // ── P0-62②：TreeView 节点级着色（稀疏；未设继承控件级）──
+    bool TreeViewSetNodeTextColor(Control& tree, const std::string& id, UIColor color, const char* state = nullptr);
+    bool TreeViewSetNodeBackgroundColor(Control& tree, const std::string& id, UIColor color);
+    bool TreeViewSetNodeShadow(Control& tree, const std::string& id, UIColor color, float offsetX = 1.0f, float offsetY = 1.0f);
+    bool TreeViewSetNodeFont(Control& tree, const std::string& id, const std::string& name, int size = 0);   // P0-63④（size<=0 继承）
+    bool TreeViewSetNodeHoverBackgroundColor(Control& tree, const std::string& id, UIColor color);           // P0-64④
 
     // ── LuotiAni 动画操作 ──
     bool AnimationPrepare(Control& ctl, int startFrame = 0);

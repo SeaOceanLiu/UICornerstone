@@ -2024,7 +2024,7 @@
         },
         "items": {
           "type": "array",
-          "description": "节点树 [{id,label,expanded,userData,children,leadingControl,leadingGap,leadingAlign,font,size}]（元素键走全局层）",
+          "description": "节点树 [{id,label,expanded,userData,children,leadingControl,leadingGap,leadingAlign,font,size,text-color,background-color,text-shadow,text-shadow-offset-x/y}]（元素键走全局层；样式键 P0-62②，text-color 字符串=normal/对象=四态，未设继承控件级）",
           "items": {
             "type": "object"
           }

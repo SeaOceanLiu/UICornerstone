@@ -121,6 +121,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(StatusBarSetItemBackgroundColor);
     RESOLVE(StatusBarSetItemFontSize);
     RESOLVE(StatusBarSetItemTextShadow);
+    RESOLVE(StatusBarSetItemFontName);
+    RESOLVE(StatusBarSetItemHoverBackgroundColor);
     RESOLVE(StatusBarRemoveItem);
     RESOLVE(ListViewInsertRow);
     RESOLVE(ListViewInsertColumn);
@@ -135,6 +137,15 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ListViewSetColumnSorter);
     RESOLVE(ListViewSetColumnValues);
     RESOLVE(ListViewSetCellShadow);
+    RESOLVE(ListViewSetCellTextColor);
+    RESOLVE(ListViewSetCellFontName);
+    RESOLVE(ListViewSetColumnHeaderFontName);
+    RESOLVE(ListViewSetCellHoverBackgroundColor);
+    RESOLVE(TreeViewSetNodeTextColor);
+    RESOLVE(TreeViewSetNodeBackgroundColor);
+    RESOLVE(TreeViewSetNodeShadow);
+    RESOLVE(TreeViewSetNodeFont);
+    RESOLVE(TreeViewSetNodeHoverBackgroundColor);
     RESOLVE(StatusBarSetItemIcon);
     RESOLVE(StatusBarSetItemMenu);
     RESOLVE(ContextMenuAddItem);

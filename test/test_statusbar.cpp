@@ -87,6 +87,16 @@ static void runAssertions() {
         CHECK(it && it->background.blueByte() == 255, "P0-55 item background stored");
     }
 
+    // P0-64②④：控件级 hover 键 + 段显式 hover 背景
+    {
+        SColor hc;
+        CHECK(g_probe->setColorProperty(PropertyNames::kTreeHover, SColor(9, 8, 7, 255)) == 1, "P0-64b set hover key");
+        CHECK(g_probe->getColorProperty(PropertyNames::kTreeHover, hc) == 1 && hc.blueByte() == 7, "P0-64b get hover key");
+        g_probe->setStatusItemHoverBackgroundColor("grow", SColor(111, 222, 3, 255));
+        StatusItem* ih = g_probe->getStatusItem("grow");
+        CHECK(ih && ih->hasHoverBackground && ih->hoverBackground.redByte() == 111, "P0-64④ segment hover bg stored");
+    }
+
     // 图标控件绑定（API 接受）
     auto icon = make_shared<Label>(nullptr, SRect(0, 0, 16, 16));
     g_probe->setStatusItemLeadingControl("branch", icon);

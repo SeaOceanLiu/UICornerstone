@@ -82,6 +82,7 @@ public:
 
     // 按钮相关常量
     static const float BUTTON_CAPTION_SIZE;
+    static const float LIST_HIGHLIGHT_OVERLAY_ALPHA;   // P0-63①：cell bg 行 hover/选中高亮叠加 alpha
     static const SColor BUTTON_NORMAL_COLOR;
     static const SColor BUTTON_HOVER_COLOR;
     static const SColor BUTTON_DOWN_COLOR;

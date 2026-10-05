@@ -806,6 +806,68 @@ bool UICornerstone::ListViewSetColumnHeaderShadow(Control& lv, int colIndex, UIC
     return Dyn::API().fnListViewSetColumnHeaderShadow(m_impl->instance, lv.Handle(), colIndex,
                                                       color.r, color.g, color.b, color.a, offsetX, offsetY) != 0;
 }
+bool UICornerstone::ListViewSetCellHoverBackgroundColor(Control& lv, int row, int col, UIColor color) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetCellHoverBackgroundColor) return false;
+    return Dyn::API().fnListViewSetCellHoverBackgroundColor(m_impl->instance, lv.Handle(), row, col,
+                                                            color.r, color.g, color.b, color.a) != 0;
+}
+bool UICornerstone::ListViewSetCellFontName(Control& lv, int row, int col, const std::string& name) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetCellFontName) return false;
+    return Dyn::API().fnListViewSetCellFontName(m_impl->instance, lv.Handle(), row, col, name.c_str()) != 0;
+}
+bool UICornerstone::ListViewSetColumnHeaderFontName(Control& lv, int colIndex, const std::string& name) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetColumnHeaderFontName) return false;
+    return Dyn::API().fnListViewSetColumnHeaderFontName(m_impl->instance, lv.Handle(), colIndex, name.c_str()) != 0;
+}
+bool UICornerstone::TreeViewSetNodeHoverBackgroundColor(Control& tree, const std::string& id, UIColor color) {
+    if (!m_impl->instance || !tree.IsValid()) return false;
+    if (!Dyn::API().fnTreeViewSetNodeHoverBackgroundColor) return false;
+    return Dyn::API().fnTreeViewSetNodeHoverBackgroundColor(m_impl->instance, tree.Handle(), id.c_str(),
+                                                            color.r, color.g, color.b, color.a) != 0;
+}
+bool UICornerstone::TreeViewSetNodeFont(Control& tree, const std::string& id, const std::string& name, int size) {
+    if (!m_impl->instance || !tree.IsValid()) return false;
+    if (!Dyn::API().fnTreeViewSetNodeFont) return false;
+    return Dyn::API().fnTreeViewSetNodeFont(m_impl->instance, tree.Handle(), id.c_str(), name.c_str(), size) != 0;
+}
+bool UICornerstone::StatusBarSetItemHoverBackgroundColor(Control& bar, const std::string& id, UIColor color) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemHoverBackgroundColor) return false;
+    return Dyn::API().fnStatusBarSetItemHoverBackgroundColor(m_impl->instance, bar.Handle(), id.c_str(),
+                                                             color.r, color.g, color.b, color.a) != 0;
+}
+bool UICornerstone::StatusBarSetItemFontName(Control& bar, const std::string& id, const std::string& name) {
+    if (!m_impl->instance || !bar.IsValid()) return false;
+    if (!Dyn::API().fnStatusBarSetItemFontName) return false;
+    return Dyn::API().fnStatusBarSetItemFontName(m_impl->instance, bar.Handle(), id.c_str(), name.c_str()) != 0;
+}
+bool UICornerstone::TreeViewSetNodeTextColor(Control& tree, const std::string& id, UIColor color, const char* state) {
+    if (!m_impl->instance || !tree.IsValid()) return false;
+    if (!Dyn::API().fnTreeViewSetNodeTextColor) return false;
+    return Dyn::API().fnTreeViewSetNodeTextColor(m_impl->instance, tree.Handle(), id.c_str(),
+                                                 color.r, color.g, color.b, color.a, state) != 0;
+}
+bool UICornerstone::TreeViewSetNodeBackgroundColor(Control& tree, const std::string& id, UIColor color) {
+    if (!m_impl->instance || !tree.IsValid()) return false;
+    if (!Dyn::API().fnTreeViewSetNodeBackgroundColor) return false;
+    return Dyn::API().fnTreeViewSetNodeBackgroundColor(m_impl->instance, tree.Handle(), id.c_str(),
+                                                       color.r, color.g, color.b, color.a) != 0;
+}
+bool UICornerstone::TreeViewSetNodeShadow(Control& tree, const std::string& id, UIColor color, float offsetX, float offsetY) {
+    if (!m_impl->instance || !tree.IsValid()) return false;
+    if (!Dyn::API().fnTreeViewSetNodeShadow) return false;
+    return Dyn::API().fnTreeViewSetNodeShadow(m_impl->instance, tree.Handle(), id.c_str(),
+                                              color.r, color.g, color.b, color.a, offsetX, offsetY) != 0;
+}
+bool UICornerstone::ListViewSetCellTextColor(Control& lv, int row, int col, UIColor color) {
+    if (!m_impl->instance || !lv.IsValid()) return false;
+    if (!Dyn::API().fnListViewSetCellTextColor) return false;
+    return Dyn::API().fnListViewSetCellTextColor(m_impl->instance, lv.Handle(), row, col,
+                                                 color.r, color.g, color.b, color.a) != 0;
+}
 bool UICornerstone::ListViewSetColumnHeaderStyle(Control& lv, int colIndex, UIColor color, int fontSize) {
     if (!m_impl->instance || !lv.Handle()) return false;
     return Dyn::API().fnListViewSetColumnHeaderStyle(m_impl->instance, lv.Handle(), colIndex,

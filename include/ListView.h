@@ -30,6 +30,7 @@ using std::shared_ptr;
 struct HeaderStyle {
     SColor textColor;                                          // 缺省占位黑；稀疏语义由 hasTextColor 判定
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;
+    bool hasFontName = false;                                  // P0-63③：字体名稀疏（未设继承控件级）
     int fontSize = 0;                                          // 0 = 继承控件列头字号
     // P0-56：per-column 稀疏扩展（has* 未设 = 继承控件级）
     bool   hasTextColor = false;                               // 显式设色（ListViewSetColumnHeaderStyle）
@@ -40,6 +41,11 @@ struct HeaderStyle {
 
 // 单元格样式（稀疏；缺省字段 = 继承控件默认；"缺省继承"由 map 存在性判定）
 struct CellStyle {
+    bool   hasBg = false;          // P0-65①：常态背景显式位（仅 setCellStyle 置位；hover-only 不置 → 常态不填）
+    bool   hasTextColor = false;   // P0-62①：文字色稀疏（未设 → 行走行/控件级链，避免默认黑覆盖）
+    bool   hasFontName = false;    // P0-63②：字体名稀疏（未设 → 控件级，避免默认 regular 覆盖）
+    bool   hasHoverBg = false;     // P0-64③：显式 hover 背景（优先于叠加；仅悬停态）
+    SColor hoverBgColor;
     SColor bgColor;
     SColor textColor;
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;
@@ -136,6 +142,10 @@ public:
 
     // ── 单元格样式（稀疏）──
     void setCellStyle(int row, int col, const CellStyle& style);
+    void setCellTextColor(int row, int col, SColor color);   // P0-62①（置 hasTextColor）
+    void setCellHoverBackgroundColor(int row, int col, SColor color);   // P0-64③（置 hasHoverBg）
+    void setCellFontName(int row, int col, FontName name);   // P0-63②（置 hasFontName）
+    void setColumnHeaderFontName(int col, FontName name);    // P0-63③（置 hasFontName）
     CellStyle getCellStyle(int row, int col) const;              // 未设置 → 默认
     void clearCellStyle(int row, int col);
 

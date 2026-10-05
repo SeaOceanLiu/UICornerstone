@@ -199,6 +199,51 @@ static void runAssertions() {
           "item-click fired on row click");
     CHECK(gEvRow == 0 && gEvCol == 0, "item-click payload row/col");
 
+
+    // P0-62①：单元格文字色（hasTextColor 稀疏：仅设背景不变黑字）
+    {
+        CellStyle bgOnly;
+        bgOnly.bgColor = SColor(10, 20, 30, 255);
+        g_probe->setCellStyle(0, 0, bgOnly);
+        CHECK(!g_probe->getCellStyle(0, 0).hasTextColor, "P0-62a cell style bg-only hasTextColor=false");
+        g_probe->setCellTextColor(0, 0, SColor(200, 30, 30, 255));
+        CellStyle cs = g_probe->getCellStyle(0, 0);
+        CHECK(cs.hasTextColor && cs.textColor.redByte() == 200 && cs.bgColor.blueByte() == 30,
+              "P0-62a cell text color set (hasTextColor + color kept)");
+        g_probe->clearCellStyle(0, 0);
+    }
+
+    // P0-64②③：控件级 hover/selected 键 + 单元格显式 hover 背景
+    {
+        SColor hc;
+        CHECK(g_probe->setColorProperty(PropertyNames::kTreeHover, SColor(11, 22, 33, 255)) == 1, "P0-64b set hover key");
+        CHECK(g_probe->getColorProperty(PropertyNames::kTreeHover, hc) == 1 && hc.blueByte() == 33, "P0-64b get hover key");
+        CHECK(g_probe->setColorProperty(PropertyNames::kTreeSelected, SColor(44, 55, 66, 255)) == 1, "P0-64b set selected key");
+        CHECK(g_probe->getColorProperty(PropertyNames::kTreeSelected, hc) == 1 && hc.greenByte() == 55, "P0-64b get selected key");
+        g_probe->setCellHoverBackgroundColor(0, 0, SColor(200, 100, 50, 255));
+        CellStyle cs2 = g_probe->getCellStyle(0, 0);
+        CHECK(cs2.hasHoverBg && cs2.hoverBgColor.redByte() == 200, "P0-64③ cell hover bg set");
+        CHECK(!cs2.hasBg, "P0-65① hover-only cell style hasBg=false (常态不填)");
+        g_probe->clearCellStyle(0, 0);
+    }
+
+    // P0-63②③：字体名 API + hasFontName 稀疏（既有 SetCellStyle 不隐式覆盖字体）
+    {
+        CellStyle bg2;
+        bg2.bgColor = SColor(9, 9, 9, 255);
+        g_probe->setCellStyle(0, 0, bg2);
+        CHECK(!g_probe->getCellStyle(0, 0).hasFontName, "P0-63b cell style bg-only hasFontName=false");
+        g_probe->setCellFontName(0, 0, FontName::MapleMono_NF_CN_Regular);
+        CHECK(g_probe->getCellStyle(0, 0).hasFontName
+              && g_probe->getCellStyle(0, 0).fontName == FontName::MapleMono_NF_CN_Regular,
+              "P0-63b cell font name set");
+        g_probe->setColumnHeaderFontName(1, FontName::Quando_Regular);
+        CHECK(g_probe->getColumnHeaderStyle(1).hasFontName
+              && g_probe->getColumnHeaderStyle(1).fontName == FontName::Quando_Regular,
+              "P0-63b column header font name set");
+        g_probe->clearCellStyle(0, 0);
+    }
+
     TestUtil::log("---- assertions done: pass=%d fail=%d ----", g_pass, g_fail);
 }
 

@@ -355,4 +355,62 @@
 | P0-60 | 高 | **锚点 setter 触发重排 + applyAnchor 稀疏语义（P0-59 实测缺陷）** | 设计器实测（P0-59 联测）：① 设完 `anchor`/`anchor-offset-x/y` **不触发重排**——仅切换布局/父 resize 才应用，用户设"底拉伸"后控件仍停在旧位置（实测"底拉伸跑到顶部"）；② `AnchorLayout::applyAnchor` 对**未设锚点**的子控件按默认 `top-left` 处理——切换布局瞬间把全部子控件塌到左上堆叠（实测"切 anchor 后选不中 Panel 内控件"；设计器已加模型同步过渡，但塌左上本身不合直觉）。需求：① `setEnumProperty(kChildAnchor)` / `setFloatProperty(kChildAnchorOffsetX/Y)` 更新 map 后**触发 `reflowChildren()`**（立即应用）；② `applyAnchor` 改**稀疏语义**：`anchorProps` 未命中的子控件**保持现有 rect**（跳过），仅管理显式锚定者（与 per-column 稀疏样式家族一致）。设计器过渡：`forceReflow`（父 SetRect 同值强制 reflow）+ `syncModelsFromEngine`——引擎修复同步后删 `forceReflow` |
 | P0-61 | 中 | **根级锚定（Bench 布局引擎支持）——顶层控件锚定画布/窗体边（用户拍板走 Bench）** | 用户问询：顶层控件（StatusBar 等）直接锚定画布底部。Bench 继承 Panel、天然有 `m_layoutEngine`/`m_anchorItemProps`/`reflowChildren`，路线成立；实际障碍三处：① **设计器拿不到 bench 句柄**（无 `GetRoot`/根 child-anchor API）→ 顶层控件的 `child-id`+`anchor` 无处可写；② `Bench::resized`（Bench.cpp:123-130）仅 `Panel::resized`+`recomputeViewportTransform`，**不触发 `reflowChildren()`** → 视口/窗口 resize 时锚定不重排；③ off 模式 `SetCanvasSize`（UICornerstoneAPI.cpp:639-652）仅记录不即时应用（需下一次 recompute 才置 rect）。需求：① 暴露根句柄（`UICornerstone_GetRoot(instance)` → UIControlHandle；Binding `Root()`；子视口实例返回其 bench）或等效实例级根锚点 API；② `Bench::resized` 存在布局引擎时补 `reflowChildren()`；③ `SetCanvasSize` off 模式即时应用（setRect + recompute）。前提：P0-60 稀疏语义（已放行——根上的 overlay：网格/参考线/框选/手柄不被塌）。设计器随批：顶层控件锚定行父级解析支持"根"；根尺寸=可见逻辑区（`contentW/zoom`，窗口/分割条/缩放变化时同步）→ 锚定目标=可见画布底/边；首次设置顶层锚定时自动确保根为 anchor 布局；删 `forceReflow` 过渡 |
 
-> **状态（2026-10-03）**：P0-53~P0-59 引擎均已实施并同步 subModules，设计器随批完成（删 P0-53 重排过渡、删 P0-54 字体双键注册、StatusBar 段色/段级字号阴影、ListView 表头全样式 + x-color 行、布局模式/锚定/偏移行、SetControlId 注册、设计画布尺寸/平移/滚动条/鼠标坐标）。**待引擎**：P0-60（锚点 setter 即时重排 + applyAnchor 稀疏语义，设计已放行——同步后设计器删 `forceReflow` 过渡、保留 `syncModelsFromEngine`）；P0-61（根级锚定：GetRoot/根 child-anchor + Bench::resized reflow + SetCanvasSize off 即时应用，待设计）。
+> **状态（2026-10-03）**：**P0-53~P0-61 全部闭环**——引擎均已实施并同步 subModules；设计器随批完成（删 P0-53/P0-54/P0-60 三处过渡、结构化编辑、段色/段级字号阴影、表头全样式、布局模式/锚定/偏移、设计画布尺寸、平移/滚动条/鼠标坐标、顶层根锚定、`SetControlId` 子视口实例注册修复）。本批无待引擎项。
+
+## 追加（2026-10-03 单元格/树行着色——引擎清单）
+
+**背景（设计器实测/用户问询）**：结构化编辑（ListView rows / TreeView items）已可用，但单元格/树行着色能力盘点：① ListView `CellStyle`（ListView.h:42-51）**有 textColor 字段但 ABI 仅暴露 `SetCellStyle`（bg+fontSize）与 `SetCellShadow`（阴影色+偏移）——单元格文字色无 setter**；② TreeView `TreeNode`（TreeView.h:18-43）**有 item 级四态 bg/text/border + textShadow + hasStyle 字段，但绑定/C ABI 无任何运行时着色 API**（仅 AddNode/RemoveNode/SetNodeLabel/UserData）。需求如下（设计器随批将扩展行式格式：单元格/节点样式字段 + x-color 之外的色键）：
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-62① | 中 | **ListView 单元格文字色 API** | `CellStyle.textColor` 已有字段无 setter：新增 `UICornerstone_ListViewSetCellTextColor(inst, lv, row, col, r,g,b,a)`（或 `ListViewSetCellStyle` 扩展变体——建议新增独立 API 保 ABI 兼容）+ Binding 封装；设计器随批：rows 行式格式扩展单元格文字色 |
+| P0-62② | 中 | **TreeView 节点级着色 API** | `TreeNode` 字段齐备（bg/text/border 四态 + textShadow + hasStyle）但无入口：新增 `TreeViewSetNodeTextColor(tree, id, rgba[, state])` / `TreeViewSetNodeBackgroundColor(tree, id, rgba)` / `TreeViewSetNodeShadow(tree, id, rgba, ox, oy)`（设置任一 → hasStyle=true；稀疏——未设继承控件级）+ JSON items 键（`text-color`/`background-color`/`text-shadow`/`text-shadow-offset-x/y`，与 ListView 表头键同族）+ Binding 封装；设计器随批：items 行式格式扩展节点样式字段 |
+
+> **P0-62 状态（2026-10-03）**：**已闭环**——引擎已实施（`ListViewSetCellTextColor` + `CellStyle.hasTextColor` 稀疏修复；`TreeViewSetNodeTextColor/BackgroundColor/Shadow`，bg/阴影四态同色、text 走 mask 回退——复核建议已采纳）并同步；设计器随批完成（rows 单元格着色、tree 节点着色、统一行式格式）。
+
+## 追加（2026-10-03 统一行式格式联测——引擎清单 P0-63）
+
+**背景**：用户实测统一结构化格式（`@` 属性 / `|` 分隔 / 属性序 背景色→字体色→字号→字体名→阴影色→偏移x→偏移y）后提出：① 单元格背景设置后 hover/选中无视觉反馈；② 字体名支持（各控件）。设计器侧已实现统一格式（字体名：tree 节点走通用链即时生效；cells/columns/statusbar 模型保留待 API）。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-63① | 中高 | **单元格背景与 hover/选中反馈（体验缺陷）** | `ListView` 单元格背景绘制于行高亮**之上**（ListView.cpp:676-680「覆盖高亮之上，差异着色可见」）→ 设了单元格背景的行 hover/选中**完全无反馈**。需求：引擎设计（如高亮以半透明叠加于 cell bg 之上；或 hover/selected 时对 cell bg 做亮度调制）——保证 per-cell 着色与交互反馈并存 |
+| P0-63② | 中 | **ListView 单元格字体名 API** | `CellStyle.fontName` 有字段无 API（`SetCellStyle` 仅 bg+fontSize、`SetCellTextColor` 仅色）→ 新增 `ListViewSetCellFontName(lv, row, col, name)`（或 `SetCellStyle` 扩展变体保 ABI）+ Binding；设计器随批接线（行式格式字体名已解析入模型） |
+| P0-63③ | 中 | **ListView 列头字体名 API** | `HeaderStyle.fontName` 有字段无 API（`SetColumnHeaderStyle` 仅 color+fontSize）→ 新增 `ListViewSetColumnHeaderFontName(lv, col, name)`（或扩展）+ Binding；设计器随批接线 |
+| P0-63④ | 中 | **TreeView 逐节点字体：名称单独设置不生效（缺陷）+ 专用 API（便利）** | ① 缺陷：`getNodeFont`（TreeView.cpp:111）`if (!node \|\| node->fontSize <= 0) return m_font;`——**仅设字体名（fontSize=0）永不生效**。建议：fontSize<=0 时以控件级 `m_fontSize` 驱动逐节点字体（名称生效、字号随控件级）；设计器已加过渡（名称单独设置时读控件级字号写入节点），引擎修复后删；② 便利：专用 `TreeViewSetNodeFont(tree, id, name, size)` 免共享 `item-id` 状态误写 |
+| P0-63⑤ | 低 | **StatusBar 段级字体名（可选）** | 段结构（StatusBar.h:31-42）无 fontName 字段 → 需引擎加字段 + API/JSON 键；设计器行式格式已解析入模型（`font-name`），引擎支持后接线。若认为需求弱可后置/拒绝 |
+| P0-63⑥ | 中 | **ComboBox 逐项样式（用户问询）** | `ComboBoxItem`（ComboBox.h:16-20）仅 label/value/disabled——无逐项样式。需求：逐项 背景色/字体色/字号/字体名/阴影/偏移（对齐统一属性序）+ API（如 `ComboBoxSetItemStyle`，按 index/id）+ JSON items 键 + 下拉列表绘制分派（注意 hover/选中态与逐项背景的叠加——同 P0-63① 家族）。引擎评估范围/优先级 |
+| P0-63⑦ | 中 | **字体枚举不一致：schema 28 token vs FontName 枚举 6** | `declarative-ui.schema.json` fontName enum 列 28 个 token，但 `FontName` 枚举（ConstDef.h:42-49）仅 6 项，`FontNameFromString` 对**其余 22 个 token 静默回退 regular**（如 `harmonyos-sans-sc-bold`/`-black`/`-light`/`-medium`、maplemono 斜体族等）——设计器属性面板字体下拉（schema 驱动）同样受影响（选 22 个无效字体无任何提示）。建议：引擎补字体实现（FontName 扩展）或 schema enum 收窄到实际支持的 6 项（+文档标注）【**已更正：引擎核实 schema 实际 6 项；本项系设计器基于过期 Temp 副本误报——无需处理**】 |
+
+> **P0-63 状态（2026-10-04）**：**已闭环**——引擎实施并同步（① 半透明高亮叠加；②③ hasFontName 稀疏 + 字体名 API；④ getNodeFont 门槛修复 + 专用 API；⑤ 段级字体名；⑦ 更正）；设计器随批完成（rows/columns/statusbar 字体名接线、tree 过渡删除）。段阴影经 C ABI 像素探针复核（同步 DLL：red_before=0 → red_after=67，绘制正常）。
+
+## 追加（2026-10-04 hover 体验——引擎清单 P0-64）
+
+**背景**：P0-63 联测后用户实测/建议：① TreeView 节点设背景后 hover 无反馈（同 P0-63① 家族，引擎未覆盖 TreeView）；② 建议 ListView、TreeView、ComboBox、StatusBar、Menu 支持设置鼠标 Hover 时的彩色体验（逐项 hover 态颜色可配）。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-64① | 中高 | **TreeView 节点背景与 hover/选中反馈（缺陷）** | TreeView.cpp:234-243：`if (rowNode->hasBgStyle) { fill bg } else if (selected) … else if (hover) …`——节点设背景后选中/hover 高亮被**完全替换**（无反馈）。建议与 ListView P0-63① 同机制：hasBgStyle 且 hover/selected → 半透明高亮叠加（复用 alpha 常量）；disabled 不叠加 |
+| P0-64② | 中 | **逐项/控件级 hover 彩色体验（用户建议，跨控件）** | 需求：ListView、TreeView、ComboBox、StatusBar、Menu 的 hover（+选中）态颜色可配。现状盘点：TreeView 控件级 `setHoverColor` 内部有（无属性/API 通道待确认）；ListView `m_hoverColor` 私有；StatusBar `kHoverColor` 常量（不可配）；ComboBox 控件级 item-hover/selected/disabled 色已具备（配置通道待确认）；Menu 待引擎盘点。建议引擎设计统一方案：① 控件级 hover/selected 色可配（属性/API）；② **per-item hover 覆盖**（稀疏/mask 回退家族）：ListView cell（单色 → 四态或 hover 字段）、TreeView node（bgColor 已四态——API 加 `state` 参数即可）、StatusBar 段（背景单色 → state 参数；文字色已四态）、ComboBox 逐项（P0-63⑥ 暂缓项——用户本次点名，请重新评估最小子集 `text-color`+`background-color`）、Menu 项；③ 与 P0-63① 叠加机制协同（显式设 hover 色 → 用显式色；未设 → 叠加/控件级回退）。设计器随批：行式格式扩展 hover 色字段（统一属性序追加，如 悬停背景色/悬停字体色） |
+
+### P0-64 增补（2026-10-04 用户拍板——撤销 P064 设计的"暂缓"）
+
+**背景**：P064 设计将"ListView cell / StatusBar 段显式 hover 色"列为暂缓（控件级通道 + 叠加已覆盖体验）；**用户明确要求逐项显式 hover 色——撤销暂缓，纳入本批**。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-64③ | 中 | **ListView 单元格显式 hover 背景色** | `CellStyle` 增 hover 背景字段 + 掩码（稀疏家族，对齐 `hasTextColor` 形态）：建议 `SColor hoverBgColor; bool hasHoverBg = false;`（selected 态可选——引擎评估 `selectedBgColor/hasSelectedBg`）。API（保 ABI，独立函数或带 state 变体——引擎定形）：如 `ListViewSetCellHoverBackgroundColor(lv,row,col,rgba)`。绘制：显式 hover 态 → 用显式色（不叠加）；未设 → P0-63① 叠加（现有行为）；selected 同理（若纳入）。JSON rows cells 键：`hover-background-color`（或 `background-color` 对象四态——引擎定形）+ Binding 封装 |
+| P0-64④ | 中 | **StatusBar 段级显式 hover 背景色** | `StatusItem` 增 hover 背景字段 + 掩码：建议 `SColor hoverBackground; bool hasHoverBackground = false;`。API：`StatusBarSetItemHoverBackgroundColor(bar,id,rgba)`（或现有 `SetItemBackgroundColor` 带 state 变体——引擎定形）。绘制：显式 hover 态 → 用显式色；未设 → 控件级 `m_hoverColor` 叠加（P0-64 本批机制）。JSON items 键：`hover-background-color`（或 `background-color` 对象四态）+ Binding 封装 |
+
+**设计器随批（格式定案）**：行式格式新增键前缀 **`hb#`（悬停背景色）**——TreeView 节点 / ListView 单元格 / StatusBar 段按各引擎支持面接线；**`ht#`（悬停字体色）暂不加**（用户拍板：一个 hover 前缀即可，后续按需）。验收建议：像素探针（设 `hb#` 后 hover 显式色、未设走叠加）+ C ABI 断言（字段/掩码）+ 回归。
+
+## 追加（2026-10-04 P0-64 联测缺陷——引擎清单 P0-65）
+
+**背景**：P0-64 已实施并同步；设计器随批（`hb#`）联测发现 **"仅设 hover 背景"（无常态背景）时常态落默认色**——两处：
+
+| # | 优先级 | 缺陷 | 说明 |
+|---|---|---|---|
+| P0-65① | 中高 | **ListView 单元格 hover-only 常态填黑** | `setCellHoverBackgroundColor`（ListView.cpp:426-431）创建的 CellStyle **默认 `bgColor = SColor()`（α=1.0）**；draw 常态门槛 `hasBase = csC.bgColor.alpha() > 0`（:700）→ **为真 → 常态填黑**（设计注释"无常态 bg 也可用"未成立）。修复建议：CellStyle 增显式位（如 `bool hasBg = false;`，仅 `setCellStyle`/ABI 置位），draw 改判 `csC.hasBg`（显式透明仍可不填） |
+| P0-65② | 中高 | **TreeView 节点 hover-only 常态落默认深色** | `setNodeHoverBackgroundColor`（TreeView.cpp:931-938）置 `hasBgStyle=true` + `bgMask|=2`；draw base fill（:240-244）**不看掩码** → 常态 `resolveStateColor(bgColor, Normal)` = StateColor 默认 normal（DEFAULT_NORMAL_COLOR 深色）→ **常态深色**。修复建议：base fill 按状态掩码判定——`hasBgStyle && (bgMask == 0 || (bgMask & stateBit(bgSt)))`（bgMask==0=单色全态 API；位命中=显式态；未命中不填充 → 常态透明、hover 显式） |
+
+**设计器过渡（已加，引擎修复后删）**：① rows：hover-only（无常态 bg/字号）先 `SetCellStyle(透明,0)` 再 hover 色；② tree：hover-only 先 `SetNodeBackgroundColor(透明)` 再 hover 色。StatusBar 段无此问题（`hasBackground` 独立位）✓。

@@ -30,6 +30,8 @@ const SColor ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR(0, 0, 0, 120);
 const SColor ConstDef::DEFAULT_TEXT_SHADOW_HOVER_COLOR(0, 0, 0, 120);
 const SColor ConstDef::DEFAULT_TEXT_SHADOW_DOWN_COLOR(0, 0, 0, 120);
 
+const float ConstDef::LIST_HIGHLIGHT_OVERLAY_ALPHA = 0.35f;   // P0-63①
+
 const float ConstDef::BUTTON_CAPTION_SIZE = 16;
 const SColor ConstDef::BUTTON_NORMAL_COLOR(70, 130, 180, 255);
 const SColor ConstDef::BUTTON_HOVER_COLOR(100, 149, 237, 255);

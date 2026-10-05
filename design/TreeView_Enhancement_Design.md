@@ -1,4 +1,4 @@
-# TreeView 增强设计文档（Item 前置控件容器 + 逐 Item 字体）
+﻿# TreeView 增强设计文档（Item 前置控件容器 + 逐 Item 字体）
 
 > 状态：**已实施**（2026-08-17，提交 73a6f3d）· 与源码一致
 > 关联：[TreeView_Design.md](TreeView_Design.md)、[ControlBase_Design.md](ControlBase_Design.md)、[CheckBox_Design.md](CheckBox_Design.md)
@@ -98,7 +98,7 @@ MouseDown 左键分支顺序：滚动条优先 → `hitTestRow` → `hitTestArro
   "id": "n1", "label": "Root",
   "leadingControl": { "type": "check-box", "checkState": "checked" },
   "leadingGap": 8,
-  "font": "harmonyos-sans-sc-bold",
+  "font": "maplemono-nf-cn-regular",
   "size": 16
 }]
 ```

@@ -232,6 +232,16 @@ std::vector&lt;std::string&gt; cells = { u8"main.cpp", u8"2.1 KB" };
 ui->ListViewAddRow(lv, "f1", cells);
 ui->ListViewSetColumnHeaderBackground(lv, 0, UIColor{32, 48, 64, 255});   // P0-56（per-column）
 ui->ListViewSetColumnHeaderShadow(lv, 0, UIColor{0, 0, 0, 255}, 1.0f, 1.0f);
+ui->ListViewSetCellTextColor(lv, 0, 0, UIColor{230, 30, 30, 255});          // P0-62①
+ui->TreeViewSetNodeBackgroundColor(tree, "n1", UIColor{200, 60, 20, 255});  // P0-62②
+ui->TreeViewSetNodeTextColor(tree, "n1", UIColor{255, 255, 255, 255});
+ui->ListViewSetCellFontName(lv, 0, 0, "maplemono-nf-cn-regular");          // P0-63②
+ui->ListViewSetColumnHeaderFontName(lv, 0, "maplemono-nf-cn-regular");     // P0-63③
+ui->TreeViewSetNodeFont(tree, "n1", "maplemono-nf-cn-regular", 0);         // P0-63④（0=继承）
+ui->StatusBarSetItemFontName(bar, "branch", "maplemono-nf-cn-regular");    // P0-63⑤
+ui->ListViewSetCellHoverBackgroundColor(lv, 0, 0, UIColor{200, 100, 50, 255});   // P0-64③
+ui->TreeViewSetNodeHoverBackgroundColor(tree, "n1", UIColor{200, 100, 50, 255}); // P0-64④
+ui->StatusBarSetItemHoverBackgroundColor(bar, "branch", UIColor{200, 100, 50, 255});
 
 // StatusBar：段
 auto bar = ui->CreateStatusBar(0, 876, 1400, 24);

@@ -369,6 +369,8 @@ static const char* ENH_JSON = R"({
           "leadingControl": { "type": "image", "image": "assets/images/cross_down.png" },
           "font": "harmonyos-sans-sc-regular", "size": 16 },
         { "id": "j3", "label": "JSON align row",
+          "text-color": "#dd2222", "background-color": { "normal": "#112233", "hover": "#445566" },
+          "text-shadow": "#000000", "text-shadow-offset-x": 2, "text-shadow-offset-y": 3,
           "leadingControl": { "type": "check-box" },
           "alignment": "bottom-left" }
       ]
@@ -399,6 +401,64 @@ void initTestJsonEnh(Bench* bench) {
     }
 
     // item 级字段
+    // P0-62②：节点级着色专用 API（稀疏 + 未设态回退）
+    {
+        tv->setNodeBackgroundColor("j1", SColor(20, 40, 60, 255));
+        auto nb = tv->findNodeById("j1");
+        check(nb && nb->hasBgStyle && nb->bgColor.getNormal().blueByte() == 60
+              && nb->bgColor.getHover().blueByte() == 60 && nb->bgColor.getDisabled().blueByte() == 60,
+              "P0-62b node bg single color fills four states");
+        tv->setNodeTextColor("j1", SColor(210, 30, 30, 255), ControlState::Normal);
+        check(nb && nb->hasTextStyle && (nb->textColorMask & 1) && nb->textColor.getNormal().redByte() == 210,
+              "P0-62b node text color normal (mask=normal)");
+        tv->setNodeTextColor("j1", SColor(30, 210, 30, 255), ControlState::Hover);
+        check(nb && (nb->textColorMask & 2) && nb->textColor.getHover().greenByte() == 210,
+              "P0-62b node text color hover explicit");
+        tv->setNodeShadow("j1", SColor(5, 5, 5, 255), 2.0f, 3.0f);
+        check(nb && nb->shadowEnabled && nb->shadowOffsetX == 2.0f && nb->shadowOffsetY == 3.0f
+              && nb->textShadowColor.getHover().redByte() == 5,
+              "P0-62b node shadow (four-state fill + offsets)");
+        // 通用属性链同步稀疏标记（item-text 单态 → mask normal）
+        tv->setStringProperty(PropertyNames::kTreeItemId, "j2");
+        tv->setColorProperty(PropertyNames::kItemText, SColor(1, 2, 3, 255));
+        auto n2 = tv->findNodeById("j2");
+        check(n2 && n2->hasTextStyle && (n2->textColorMask & 1), "P0-62b generic item-text sets sparse mask");
+        // P0-62②：JSON items 样式键解析（j3 未被 API 块修改）
+        auto pj3 = tv->findNodeById("j3");
+        check(pj3 && pj3->hasTextStyle && (pj3->textColorMask & 1) && pj3->textColor.getNormal().redByte() == 0xDD,
+              "P0-62b json item text-color parsed");
+        check(pj3 && pj3->hasBgStyle && pj3->bgColor.getNormal().redByte() == 0x11 && pj3->bgColor.getHover().redByte() == 0x44
+              && (pj3->bgMask & 2) && (pj3->bgMask & 1),
+              "P0-62b json item background-color object parsed (mask bits)");
+        check(pj3 && pj3->shadowEnabled && pj3->shadowOffsetX == 2.0f && pj3->shadowOffsetY == 3.0f,
+              "P0-62b json item text-shadow parsed");
+        // P0-64④/P0-65②：专用显式 hover 背景 API（hasHoverBg 解耦，不置 bgMask/hasBgStyle）
+        auto n2Pre = tv->findNodeById("j2");
+        const bool n2PreBg = n2Pre->hasBgStyle;
+        const uint8_t n2PreMask = n2Pre->bgMask;
+        tv->setNodeHoverBackgroundColor("j2", SColor(90, 80, 70, 255));
+        auto n2h = tv->findNodeById("j2");
+        check(n2h && n2h->hasHoverBg && n2h->bgColor.getHover().redByte() == 90
+              && n2h->bgMask == n2PreMask && n2h->hasBgStyle == n2PreBg,
+              "P0-65b node hover API decoupled (hasHoverBg; mask/bgStyle 不变)");
+        // P0-64：对象路径 item-background → bgMask=0xF
+        tv->setStringProperty(PropertyNames::kTreeItemId, "j1");
+        StateColor sc4(SColor(1,1,1,255), SColor(2,2,2,255), SColor(3,3,3,255), SColor(4,4,4,255));
+        tv->setStateColorProperty(PropertyNames::kItemBackground, sc4);
+        auto j1b = tv->findNodeById("j1");
+        check(j1b && j1b->bgMask == 0xF, "P0-64b object path sets bgMask=0xF");
+
+        // P0-63④：仅设字体名（size=0）生效 + 专用 API
+        auto j3n = tv->findNodeById("j3");
+        auto j1n = tv->findNodeById("j1");
+        tv->setNodeFont("j3", FontName::MapleMono_NF_CN_Regular, 0);   // size=0 继承控件级
+        SharedFont f3 = tv->getNodeFont(j3n);
+        SharedFont f1 = tv->getNodeFont(j1n);
+        check(f3 != nullptr && f1 != nullptr && f3 != f1,
+              "P0-63b node font name-only effective (font differs from control-level)");
+        check(static_cast<int>(tv->getNodeFont(tv->findNodeById("j3")) != tv->getNodeFont(tv->findNodeById("j1"))),
+              "P0-63b node font cache stable across calls");
+    }
     auto j1 = tv->findNodeById("j1");
     auto j2 = tv->findNodeById("j2");
     auto j3 = tv->findNodeById("j3");

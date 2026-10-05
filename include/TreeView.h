@@ -30,6 +30,12 @@ struct TreeNode {
     int fontSize = 0;                         // 0 = 继承 TreeView 级字号
     StateColor textShadowColor{StateColor::Type::TextShadow};   // P032：item 文本阴影四态
     bool   shadowEnabled = false;
+    // P0-62②：样式稀疏标记（未设 → 不参与绘制/继承控件级；hasStyle 保留为聚合兼容位）
+    bool    hasBgStyle = false;         // 背景已显式设置（未设不填充，不遮挡选中/hover 缺省）
+    bool    hasTextStyle = false;       // 文字色已显式设置
+    uint8_t textColorMask = 0;          // bit0 normal / bit1 hover / bit2 pressed / bit3 disabled
+    uint8_t bgMask = 0;                 // P0-64①：背景显式态掩码（仅对象路径置位；单色四态同色=0 → 叠加生效）
+    bool    hasHoverBg = false;         // P0-65②：专用 hover API 置位（与 bgMask 解耦；不置 hasBgStyle）
     float  shadowOffsetX = 1.0f;
     float  shadowOffsetY = 1.0f;
     // P032：item 级四态（设置任一即 hasStyle=true，行绘制改用 item 样式）
@@ -135,7 +141,6 @@ private:
     OnClearNodeHandler m_onClearNode;
 
     void ensureFont();
-    SharedFont getNodeFont(const std::shared_ptr<TreeNode>& node);  // 逐节点字体（fontSize>0 生效，否则 m_font）
     void syncRowControls();                                         // rebuildFlatRows 内调用：行控件挂/摘 + 登记
     bool toggleExpand(const string& id);
     void rebuildFlatRows();
@@ -166,6 +171,13 @@ public:
     bool addRootItem(std::shared_ptr<TreeNode> node);
     bool removeNode(const std::string& id);
     bool setNodeLabel(const std::string& id, const std::string& label);
+    // P0-62②：节点级着色专用（直写节点字段；含未设态回退：bg 单色四态同色 / text 未设态回退节点 normal）
+    void setNodeTextColor(const std::string& id, SColor color, ControlState state);
+    void setNodeBackgroundColor(const std::string& id, SColor color);
+    void setNodeShadow(const std::string& id, SColor color, float offsetX, float offsetY);
+    void setNodeFont(const std::string& id, FontName name, int size);   // P0-63④（size<=0 继承控件级）
+    void setNodeHoverBackgroundColor(const std::string& id, SColor color);   // P0-64④：显式 hover 背景（bgMask hover 位）
+    SharedFont getNodeFont(const std::shared_ptr<TreeNode>& node);   // 逐节点字体（P0-63④：fontSize<=0 用控件级字号驱动）
     bool setNodeUserData(const std::string& id, void* userData);
     void clearItems();
     std::shared_ptr<TreeNode> findNodeById(const std::string& id);

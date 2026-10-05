@@ -88,6 +88,11 @@ UIControlHandle tree = UICornerstone_CreateTreeView(g_inst, 20, 20, 240, 300, 1.
 <tr><td><code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code></td><td><code>kTreeItemShadowOffsetX</code> / <code>kTreeItemShadowOffsetY</code></td><td>Float</td><td>1</td><td>item 阴影偏移</td></tr>
 <tr><td><code>item-border-visible</code></td><td><code>kItemBorderVisible</code></td><td>Bool</td><td>false</td><td>item 边框可见</td></tr>
 <tr><td><code>item-disabled</code></td><td><code>kItemDisabled</code></td><td>Bool</td><td>false</td><td>item 禁用（disabled 态可达）</td></tr>
+<tr><td><code>item-text</code> / <code>item-background</code> / <code>item-border</code> / <code>item-text-shadow</code></td><td>StateColor</td><td>—</td><td>节点级四态色（P0-32；设置即 hasStyle）</td></tr>
+<tr><td><code>TreeViewSetNodeTextColor/SetNodeBackgroundColor/SetNodeShadow</code></td><td>API</td><td>—</td><td>节点着色专用（P0-62②；稀疏 + 未设态回退；等价 item-id 链，免共享定位）</td></tr>
+<tr><td><code>TreeViewSetNodeFont(tree,id,name,size)</code></td><td>API</td><td>—</td><td>逐节点字体（P0-63④；size<=0 继承控件级字号；仅设字体名亦生效）</td></tr>
+<tr><td><code>TreeViewSetNodeHoverBackgroundColor(tree,id,rgba)</code></td><td>API</td><td>—</td><td>节点显式悬停背景（P0-64④；悬停原色不叠加；selected 仍叠加）。<b>hover-only</b> 常态透明、与单色 API 合并使用常态单色保留（P0-65②，hasHoverBg 解耦）</td></tr>
+<tr><td><code>background-color</code> 对象四态 / <code>hover</code>/<code>selected</code> 控件级键</td><td>—</td><td>—</td><td>P0-64：节点背景对象四态（显式 hover/pressed 经 bgMask 豁免叠加）+ 控件级高亮色可配</td></tr>
 </table>
 
 

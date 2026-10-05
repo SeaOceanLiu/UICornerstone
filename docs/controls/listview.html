@@ -48,6 +48,11 @@ UICornerstone_ListViewAddRow(g_inst, lv, "f1", 2, cells);
 <tr><td><code>header-background</code></td><td><code>kHeaderBackground</code></td><td>Color</td><td>(45,45,52)</td><td>列头背景色（控件级；P0-56）</td></tr>
 <tr><td><code>header-shadow</code> / <code>header-shadow-offset-x/y</code></td><td><code>kHeaderShadow</code> / <code>kHeaderShadowOffsetX/Y</code></td><td>Color / Float</td><td>— / 1,1</td><td>列头文字阴影（未设色=不绘制；P0-56）</td></tr>
 <tr><td><code>columns[].header-text/-background/-shadow</code> / <code>header-shadow-offset-x/y</code></td><td>同上（作用域=该列）</td><td>Color/Float</td><td>—</td><td>per-column 表头样式（稀疏；未设继承控件级；P0-56）</td></tr>
+<tr><td><code>ListViewSetCellTextColor(lv,row,col,rgba)</code></td><td>API</td><td>—</td><td>—</td><td>单元格文字色（P0-62①；稀疏——未设继承行/控件级；既有 <code>SetCellStyle</code> 仅设背景不再覆盖文字色）</td></tr>
+<tr><td><code>ListViewSetCellFontName(lv,row,col,name)</code> / <code>ListViewSetColumnHeaderFontName(lv,col,name)</code></td><td>API</td><td>—</td><td>—</td><td>单元格/列头字体名（P0-63②③；稀疏——未设继承控件级）</td></tr>
+<tr><td><code>hover</code> / <code>selected</code></td><td>Color</td><td>—</td><td>—</td><td>控件级行悬停/选中高亮色（P0-64②，通用键与 TreeView 一致）</td></tr>
+<tr><td><code>ListViewSetCellHoverBackgroundColor(lv,row,col,rgba)</code></td><td>API</td><td>—</td><td>—</td><td>单元格显式悬停背景（P0-64③；优先于叠加；selected 优先）。<b>hover-only</b>（未设常态背景）时常态不填、与 <code>SetCellStyle</code> 合并使用常态保留（P0-65①）</td></tr>
+<tr><td colspan="5">cell 背景行 hover/选中：以半透明高亮叠加于 cell bg 之上（P0-63①；选中优先 hover、disabled 不叠加）——per-cell 着色与交互反馈并存</td></tr>
 <tr><td><code>gridlines</code></td><td><code>kGridlines</code></td><td>Bool</td><td>true / false</td><td>网格线开关</td></tr>
 <tr><td><code>hover</code></td><td><code>kHoverHighlight</code></td><td>Bool</td><td>true</td><td>hover 高亮</td></tr>
 <tr><td><code>min-column-width</code></td><td><code>kMinColumnWidth</code></td><td>Float</td><td>20</td><td>列宽拖拽下限</td></tr>

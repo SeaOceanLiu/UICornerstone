@@ -10,6 +10,10 @@
 #include <algorithm>
 #include <cmath>
 
+// P0-62②：节点着色辅助（定义见 Property system 段；draw 先于此定义使用，需前置声明）
+static uint8_t nodeStateBit(ControlState s);
+static SColor resolveNodeTextColor(TreeNode* nd, StateColor& ctrl, ControlState st);
+
 TreeView::TreeView(Control* parent, const SRect& rect,
                    float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
@@ -104,8 +108,10 @@ void TreeView::ensureFont() {
 // 逐节点字体：fontSize>0 且与 TreeView 级不同 → 按节点 fontName/fontSize 创建并缓存；
 // 否则（未设置/与级相同/加载失败）回退 m_font。节点销毁时缓存由 clearItems/setItems/removeNode 清理
 SharedFont TreeView::getNodeFont(const shared_ptr<TreeNode>& node) {
-    if (!node || node->fontSize <= 0) return m_font;
-    if (node->fontName == m_fontName && node->fontSize == m_fontSize) return m_font;
+    if (!node) return m_font;
+    // P0-63④：fontSize<=0 时以控件级字号驱动逐节点字体（仅设字体名也生效；字号随控件级）
+    const int effSize = node->fontSize > 0 ? node->fontSize : static_cast<int>(m_fontSize);
+    if (node->fontName == m_fontName && effSize == static_cast<int>(m_fontSize)) return m_font;
     auto it = m_nodeFonts.find(node.get());
     if (it != m_nodeFonts.end()) return it->second;
 
@@ -118,7 +124,7 @@ SharedFont TreeView::getNodeFont(const shared_ptr<TreeNode>& node) {
     auto data = provider->readFile(fontPath);
     if (!data || data->empty()) return m_font;
 
-    int scaledSize = static_cast<int>(node->fontSize * getScaleXX());
+    int scaledSize = static_cast<int>(effSize * getScaleXX());
     SharedFont f = renderer->loadFontFromMemoryWithText(
         data->data(), data->size(), scaledSize, "W");
     m_nodeFonts[node.get()] = f;
@@ -231,19 +237,42 @@ void TreeView::draw() {
                                      : (i == m_pressedRow) ? ControlState::Pressed
                                      : (i == m_hoveredRow) ? ControlState::Hover
                                                            : ControlState::Normal;
-            if (rowNode->hasStyle) {   // P032：item 背景四态（优先于选中/hover 缺省）
-                dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->bgColor, rowSt));
-                dev->fillRect({cr.left, y, cr.width, scaledRowH});
-                if (rowNode->borderVisible) {
-                    dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->borderColor, rowSt));
-                    dev->drawRect(SRect(cr.left, y, cr.width, scaledRowH));
+            // P0-64①/P0-65②：背景绘制链（bgMask 位命中态填充；hover 显式解耦；selected 叠加）
+            {
+                const ControlState bgSt = (i == m_selectedRow) ? ControlState::Normal : rowSt;
+                const bool bgHit = rowNode->hasBgStyle
+                    && (rowNode->bgMask == 0 || (rowNode->bgMask & nodeStateBit(bgSt)));
+                const bool hoverExplicit = (rowSt == ControlState::Hover)
+                    && rowNode->hasHoverBg && (i != m_selectedRow);   // selected 优先（P0-64③ 同口径）
+                if (bgHit) {
+                    dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->bgColor, bgSt));
+                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                } else if (i == m_selectedRow) {
+                    dev->setDrawColor(m_selectedColor);
+                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                } else if (i == m_hoveredRow && !rowNode->hasHoverBg) {
+                    dev->setDrawColor(m_hoverColor);
+                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
                 }
-            } else if (i == m_selectedRow) {
-                dev->setDrawColor(m_selectedColor);
-                dev->fillRect({cr.left, y, cr.width, scaledRowH});
-            } else if (i == m_hoveredRow) {
-                dev->setDrawColor(m_hoverColor);
-                dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                if (hoverExplicit) {   // 显式 hover 优先（覆盖 base/既有链）
+                    dev->setDrawColor(rowNode->bgColor.getHover());
+                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                }
+                if (!rowNode->disabled) {   // 叠加 tint（hover 显式/掩码豁免；selected 恒叠加）
+                    const SColor* tint = nullptr;
+                    if (i == m_selectedRow) tint = &m_selectedColor;
+                    else if (rowSt == ControlState::Hover && !hoverExplicit && !(rowNode->bgMask & 2)) tint = &m_hoverColor;
+                    else if (rowSt == ControlState::Pressed && !(rowNode->bgMask & 4)) tint = &m_hoverColor;
+                    if (tint) {
+                        dev->setDrawColor(SColor(tint->red(), tint->green(), tint->blue(),
+                                                 ConstDef::LIST_HIGHLIGHT_OVERLAY_ALPHA));
+                        dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                    }
+                }
+            }
+            if (rowNode->borderVisible) {   // P0-62②：边框独立稀疏
+                dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->borderColor, rowSt));
+                dev->drawRect(SRect(cr.left, y, cr.width, scaledRowH));
             }
 
             float arrowX = leftX + LEFT_PADDING * scaleX + m_flatRows[i].depth * m_indentWidth * scaleX;
@@ -301,8 +330,7 @@ void TreeView::draw() {
                 TextDraw::withShadow(renderer, nodeFont.get(), nd->label,
                                      textX, textY,
                                      textX + nd->shadowOffsetX * scaleX, textY + nd->shadowOffsetY * scaleY,
-                                     nd->hasStyle ? ControlImpl::resolveStateColor(nd->textColor, rowSt)      // P032：item 文本四态
-                                                  : ControlImpl::resolveStateColor(m_textColor, getState()),
+                                     resolveNodeTextColor(nd.get(), m_textColor, rowSt),   // P0-62②：稀疏回退链
                                      nd->shadowEnabled,
                                      ControlImpl::resolveStateColor(nd->textShadowColor, rowSt));             // P032：item 阴影四态
             }
@@ -497,7 +525,9 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
 }
 
 int TreeView::hitTestRow(float mx, float my) {
-    float relY = (my - m_frameDrawRect.top) / getScaleYY() + m_scrollOffset;
+    (void)mx;
+    // P0-64：改用 getDrawRect()（m_frameDrawRect 仅在首次 draw 后有效，创建后立即 hover 会错位）
+    float relY = (my - getDrawRect().top) / getScaleYY() + m_scrollOffset;
     int row = (int)(relY / getStride());
     if (row >= 0 && row < (int)m_flatRows.size()) return row;
     return -1;
@@ -866,6 +896,70 @@ void TreeView::updateScrollBar() {
     m_hScrollBar->setRect({0, viewH - sb, hW, sb});
 }
 
+// P0-62②：节点着色状态位与未设态回退（显式态 -> 节点 normal -> 控件级）
+static uint8_t nodeStateBit(ControlState s) {
+    switch (s) {
+        case ControlState::Hover:    return 2;
+        case ControlState::Pressed:  return 4;
+        case ControlState::Disabled: return 8;
+        default:                     return 1;
+    }
+}
+static SColor resolveNodeTextColor(TreeNode* nd, StateColor& ctrl, ControlState st) {
+    if (nd->textColorMask & nodeStateBit(st)) {
+        switch (st) {
+            case ControlState::Hover:    return nd->textColor.getHover();
+            case ControlState::Pressed:  return nd->textColor.getPressed();
+            case ControlState::Disabled: return nd->textColor.getDisabled();
+            default:                     return nd->textColor.getNormal();
+        }
+    }
+    if (nd->textColorMask & 1) return nd->textColor.getNormal();   // 未设态回退节点 normal
+    return ControlImpl::resolveStateColor(ctrl, st);               // 未设文字色 -> 控件级
+}
+void TreeView::setNodeTextColor(const string& id, SColor color, ControlState state) {
+    auto node = findNodeById(id);
+    if (!node) return;
+    switch (state) {
+        case ControlState::Hover:    node->textColor.setHover(color);    break;
+        case ControlState::Pressed:  node->textColor.setPressed(color);  break;
+        case ControlState::Disabled: node->textColor.setDisabled(color); break;
+        default:                     node->textColor.setNormal(color);   break;
+    }
+    node->textColorMask |= nodeStateBit(state);
+    node->hasTextStyle = true;
+    node->hasStyle = true;
+}
+void TreeView::setNodeBackgroundColor(const string& id, SColor color) {
+    auto node = findNodeById(id);
+    if (!node) return;
+    node->bgColor = StateColor(color, color, color, color);   // 单色语义：四态同色（无回退需求）
+    node->hasBgStyle = true;
+    node->hasStyle = true;
+}
+void TreeView::setNodeHoverBackgroundColor(const string& id, SColor color) {   // P0-64④ / P0-65②
+    auto node = findNodeById(id);
+    if (!node) return;
+    node->bgColor.setHover(color);   // hover 色存储
+    node->hasHoverBg = true;         // P0-65②：解耦标记（不置 bgMask/hasBgStyle → 不影响常态背景）
+}
+void TreeView::setNodeFont(const string& id, FontName name, int size) {   // P0-63④
+    auto node = findNodeById(id);
+    if (!node) return;
+    node->fontName = name;
+    node->fontSize = size > 0 ? size : 0;   // <=0 继承控件级
+    m_nodeFonts.clear();
+}
+void TreeView::setNodeShadow(const string& id, SColor color, float offsetX, float offsetY) {
+    auto node = findNodeById(id);
+    if (!node) return;
+    node->textShadowColor = StateColor(color, color, color, color);
+    node->shadowOffsetX = offsetX;
+    node->shadowOffsetY = offsetY;
+    node->shadowEnabled = true;
+    node->hasStyle = true;
+}
+
 // Property system
 // P032：item 级四态（对象路径；item-id 定位）
 int TreeView::setStateColorProperty(const char* prop, StateColor stateColor) {
@@ -875,9 +969,9 @@ int TreeView::setStateColorProperty(const char* prop, StateColor stateColor) {
         strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {
         auto node = findNodeById(m_itemTargetId);
         if (!node) return 0;
-        if (strcmp(prop, PropertyNames::kItemBackground) == 0)     node->bgColor = stateColor;
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)     { node->bgColor = stateColor; node->bgMask = 0xF; node->hasBgStyle = true; }
         else if (strcmp(prop, PropertyNames::kItemBorder) == 0)    node->borderColor = stateColor;
-        else if (strcmp(prop, PropertyNames::kItemText) == 0)      node->textColor = stateColor;
+        else if (strcmp(prop, PropertyNames::kItemText) == 0)      { node->textColor = stateColor; node->textColorMask = 0xF; node->hasTextStyle = true; }
         else                                                       node->textShadowColor = stateColor;
         node->hasStyle = true;
         return 1;
@@ -900,9 +994,14 @@ int TreeView::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kBackground) == 0)   { setBgColor(color);       return 1; }
     if (strcmp(prop, PropertyNames::kBorder) == 0)       { setBorderColor(color);   return 1; }
     if (strcmp(prop, PropertyNames::kText) == 0)         { setTextColor(color);     return 1; }
-    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26/P032：item 文本阴影色（单态→normal）
+    if (strcmp(prop, PropertyNames::kTreeItemTextShadow) == 0) {   // P0-26/P032：item 文本阴影色（单色语义）
         auto node = findNodeById(m_itemTargetId);
-        if (node) { node->textShadowColor.setNormal(color); node->shadowEnabled = true; node->hasStyle = true; return 1; }
+        if (node) {
+            node->textShadowColor = StateColor(color, color, color, color);   // P0-62②：单色四态同色（防未设态回退缺省）
+            node->shadowEnabled = true;
+            node->hasStyle = true;
+            return 1;
+        }
         return 0;
     }
     if (strcmp(prop, PropertyNames::kItemBackground) == 0 ||
@@ -910,9 +1009,9 @@ int TreeView::setColorProperty(const char* prop, SColor color) {
         strcmp(prop, PropertyNames::kItemText) == 0) {              // P032：item 色单态（normal）
         auto node = findNodeById(m_itemTargetId);
         if (!node) return 0;
-        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      node->bgColor.setNormal(color);
+        if (strcmp(prop, PropertyNames::kItemBackground) == 0)      { node->bgColor = StateColor(color, color, color, color); node->hasBgStyle = true; }   // P0-62②：单色四态同色
         else if (strcmp(prop, PropertyNames::kItemBorder) == 0)     node->borderColor.setNormal(color);
-        else                                                        node->textColor.setNormal(color);
+        else                                                        { node->textColor.setNormal(color); node->textColorMask |= 1; node->hasTextStyle = true; }
         node->hasStyle = true;
         return 1;
     }

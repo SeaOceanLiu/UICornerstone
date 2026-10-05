@@ -415,7 +415,32 @@ void ListView::setCellLeadingControl(int row, int col, shared_ptr<Control> ctl) 
 // ── 单元格样式 ──
 void ListView::setCellStyle(int row, int col, const CellStyle& style) {
     if (row < 0 || row >= getRowCount() || col < 0) return;
-    m_rows[row].cellStyles[col] = style;
+    CellStyle s = style;
+    s.hasBg = true;   // P0-65①：仅常态背景显式入口置位（hover-only 条目常态不填）
+    m_rows[row].cellStyles[col] = std::move(s);
+}
+void ListView::setCellTextColor(int row, int col, SColor color) {   // P0-62①
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    CellStyle& cs = m_rows[row].cellStyles[col];
+    cs.textColor = color;
+    cs.hasTextColor = true;
+}
+void ListView::setCellHoverBackgroundColor(int row, int col, SColor color) {   // P0-64③
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    CellStyle& cs = m_rows[row].cellStyles[col];
+    cs.hoverBgColor = color;
+    cs.hasHoverBg = true;
+}
+void ListView::setCellFontName(int row, int col, FontName name) {   // P0-63②
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    CellStyle& cs = m_rows[row].cellStyles[col];
+    cs.fontName = name;
+    cs.hasFontName = true;
+}
+void ListView::setColumnHeaderFontName(int col, FontName name) {    // P0-63③
+    if (col < 0 || col >= getColumnCount()) return;
+    m_columns[col].style.fontName = name;
+    m_columns[col].style.hasFontName = true;
 }
 CellStyle ListView::getCellStyle(int row, int col) const {
     if (row < 0 || row >= getRowCount()) return CellStyle{};
@@ -586,7 +611,8 @@ void ListView::draw(void) {
             if (x + w < ox || x > ox + dr.width) continue;
 
             const HeaderStyle& st = m_columns[c].style;
-            SharedFont hf = fontFor(st.fontName, st.fontSize > 0 ? st.fontSize : m_fontSize);
+            SharedFont hf = fontFor(st.hasFontName ? st.fontName : m_fontName,   // P0-63③：字体名稀疏
+                                    st.fontSize > 0 ? st.fontSize : m_fontSize);
             if (!hf) hf = m_font;
             const float hfh = renderer->getFontHeight(hf.get());
 
@@ -669,9 +695,31 @@ void ListView::draw(void) {
 
             // cellStyle 背景（覆盖高亮之上，差异着色可见）
             auto styleIt = row.cellStyles.find(c);
-            if (styleIt != row.cellStyles.end() && styleIt->second.bgColor.alpha() > 0) {
-                dev->setDrawColor(styleIt->second.bgColor);
-                dev->fillRect(SRect(ox + x, y, w, rowH));
+            const bool cellRowDisabled = row.style.disabled;
+            const bool cellHovered = (i == m_hoveredRow && m_hoverHighlight) && !selected && !cellRowDisabled;
+            if (styleIt != row.cellStyles.end()) {
+                const CellStyle& csC = styleIt->second;
+                const bool hasBase = csC.hasBg && csC.bgColor.alpha() > 0;   // P0-65①：hover-only 条目常态不填
+                if (hasBase) {
+                    dev->setDrawColor(csC.bgColor);
+                    dev->fillRect(SRect(ox + x, y, w, rowH));
+                }
+                if (csC.hasHoverBg && cellHovered) {
+                    // P0-64③：显式 hover 背景（优先；不叠加）——无常态 bg 也可用
+                    dev->setDrawColor(csC.hoverBgColor);
+                    dev->fillRect(SRect(ox + x, y, w, rowH));
+                } else if (hasBase && !cellRowDisabled) {
+                    // P0-63①：cell bg 之上以半透明高亮叠加（selected 优先 hover），
+                    // 保证 per-cell 着色与交互反馈并存；文字/网格线绘制仍在叠加之后
+                    const SColor* tint = nullptr;
+                    if (selected) tint = &m_selectedColor;
+                    else if (i == m_hoveredRow && m_hoverHighlight) tint = &m_hoverColor;
+                    if (tint) {
+                        dev->setDrawColor(SColor(tint->red(), tint->green(), tint->blue(),
+                                                 ConstDef::LIST_HIGHLIGHT_OVERLAY_ALPHA));
+                        dev->fillRect(SRect(ox + x, y, w, rowH));
+                    }
+                }
             }
 
             // 文本（首列让位 leadingControl/cellControl 槽）
@@ -689,8 +737,8 @@ void ListView::draw(void) {
             if (styleIt != row.cellStyles.end()) {
                 const CellStyle& cs = styleIt->second;
                 if (cs.fontSize > 0) fs = cs.fontSize;
-                if (cs.textColor.alpha() > 0) tc = cs.textColor;
-                fn = cs.fontName;
+                if (cs.hasTextColor) tc = cs.textColor;   // P0-62①：未设走行/控件级链
+                if (cs.hasFontName) fn = cs.fontName;     // P0-63②：字体名稀疏（未设 → 控件级）
                 csPtr = &cs;
             }
             SharedFont cf = fontFor(fn, fs);
@@ -962,6 +1010,9 @@ int ListView::getStateColorProperty(const char* prop, StateColor& out) {
     return ControlImpl::getStateColorProperty(prop, out);
 }
 int ListView::setColorProperty(const char* prop, SColor color) {
+    // P0-64②：控件级行 hover/选中色（复用通用键 hover/selected，与 TreeView 一致）
+    if (strcmp(prop, PropertyNames::kTreeHover) == 0)    { m_hoverColor = color;    return 1; }
+    if (strcmp(prop, PropertyNames::kTreeSelected) == 0) { m_selectedColor = color; return 1; }
     // P0-56：控件级表头样式
     if (strcmp(prop, PropertyNames::kHeaderText) == 0)       { m_headerTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kHeaderBackground) == 0) { m_headerBgColor = color;   return 1; }
@@ -983,6 +1034,9 @@ int ListView::setColorProperty(const char* prop, SColor color) {
     return ControlImpl::setColorProperty(prop, color);
 }
 int ListView::getColorProperty(const char* prop, SColor& out) {
+    // P0-64②：控件级行 hover/选中色
+    if (strcmp(prop, PropertyNames::kTreeHover) == 0)    { out = m_hoverColor;    return 1; }
+    if (strcmp(prop, PropertyNames::kTreeSelected) == 0) { out = m_selectedColor; return 1; }
     // P0-56：控件级表头样式
     if (strcmp(prop, PropertyNames::kHeaderText) == 0)       { out = m_headerTextColor;  return 1; }
     if (strcmp(prop, PropertyNames::kHeaderBackground) == 0) { out = m_headerBgColor;    return 1; }

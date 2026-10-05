@@ -1589,6 +1589,22 @@ int UICornerstone_StatusBarSetItemTextShadow(UIInstance instance, UIControlHandl
     v->setStatusItemTextShadow(id, SColor(color.r, color.g, color.b, color.a), offsetX, offsetY);
     return 1;
 }
+int UICornerstone_StatusBarSetItemFontName(UIInstance instance, UIControlHandle bar,
+    const char* id, const char* name)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id || !name) return 0;
+    v->setStatusItemFontName(id, FontNameFromString(name));
+    return 1;
+}
+int UICornerstone_StatusBarSetItemHoverBackgroundColor(UIInstance instance, UIControlHandle bar,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    auto* v = statusBarOf(instance, bar);
+    if (!v || !id) return 0;
+    v->setStatusItemHoverBackgroundColor(id, SColor(r, g, b, a));
+    return 1;
+}
 
 int UICornerstone_StatusBarRemoveItem(UIInstance instance, UIControlHandle bar, const char* id) {
     auto* v = statusBarOf(instance, bar);
@@ -1897,6 +1913,43 @@ int UICornerstone_ListViewSetCellShadow(UIInstance instance, UIControlHandle lv,
     v->setCellStyle(row, col, st);
     return 1;
 }
+int UICornerstone_ListViewSetCellTextColor(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    if (row < 0 || row >= v->getRowCount() || col < 0 || col >= v->getColumnCount()) return 0;
+    v->setCellTextColor(row, col, SColor(r, g, b, a));
+    return 1;
+}
+int UICornerstone_ListViewSetCellFontName(UIInstance instance, UIControlHandle lv,
+    int row, int col, const char* name)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v || !name) return 0;
+    if (row < 0 || row >= v->getRowCount() || col < 0 || col >= v->getColumnCount()) return 0;
+    v->setCellFontName(row, col, FontNameFromString(name));
+    return 1;
+}
+int UICornerstone_ListViewSetCellHoverBackgroundColor(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    if (row < 0 || row >= v->getRowCount() || col < 0 || col >= v->getColumnCount()) return 0;
+    v->setCellHoverBackgroundColor(row, col, SColor(r, g, b, a));
+    return 1;
+}
+int UICornerstone_ListViewSetColumnHeaderFontName(UIInstance instance, UIControlHandle lv,
+    int colIndex, const char* name)
+{
+    auto* v = listViewOf(instance, lv);
+    if (!v || !name) return 0;
+    if (colIndex < 0 || colIndex >= v->getColumnCount()) return 0;
+    v->setColumnHeaderFontName(colIndex, FontNameFromString(name));
+    return 1;
+}
+
 
 int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHandle lv,
     int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, int fontSize)
@@ -2467,6 +2520,49 @@ int UICornerstone_TreeViewRemoveNode(UIInstance instance, UIControlHandle tree, 
     return tv->removeNode(id) ? 1 : 0;
 }
 
+int UICornerstone_TreeViewSetNodeTextColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a, const char* state) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id) return 0;
+    ControlState st = ControlState::Normal;
+    if (state && state[0]) {
+        if (strcmp(state, PropertyNames::kStateKeyHover) == 0)         st = ControlState::Hover;
+        else if (strcmp(state, PropertyNames::kStateKeyPressed) == 0)  st = ControlState::Pressed;
+        else if (strcmp(state, PropertyNames::kStateKeyDisabled) == 0) st = ControlState::Disabled;
+        else if (strcmp(state, PropertyNames::kStateKeyNormal) != 0)   return 0;
+    }
+    if (!tv->findNodeById(id)) return 0;
+    tv->setNodeTextColor(id, SColor(r, g, b, a), st);
+    return 1;
+}
+int UICornerstone_TreeViewSetNodeBackgroundColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id || !tv->findNodeById(id)) return 0;
+    tv->setNodeBackgroundColor(id, SColor(r, g, b, a));
+    return 1;
+}
+int UICornerstone_TreeViewSetNodeShadow(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id || !tv->findNodeById(id)) return 0;
+    tv->setNodeShadow(id, SColor(r, g, b, a), offsetX, offsetY);
+    return 1;
+}
+int UICornerstone_TreeViewSetNodeFont(UIInstance instance, UIControlHandle tree,
+    const char* id, const char* name, int size) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id || !name || !tv->findNodeById(id)) return 0;
+    tv->setNodeFont(id, FontNameFromString(name), size);
+    return 1;
+}
+int UICornerstone_TreeViewSetNodeHoverBackgroundColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id || !tv->findNodeById(id)) return 0;
+    tv->setNodeHoverBackgroundColor(id, SColor(r, g, b, a));
+    return 1;
+}
 int UICornerstone_TreeViewSetNodeLabel(UIInstance instance, UIControlHandle tree,
     const char* id, const char* label) {
     TreeView* tv = treeViewOf(instance, tree);

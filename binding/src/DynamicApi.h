@@ -108,6 +108,8 @@ struct Api {
     int (*fnStatusBarSetItemBackgroundColor)(UIInstance, UIControlHandle, const char*, UIColor) = nullptr;             // P0-55
     int (*fnStatusBarSetItemFontSize)(UIInstance, UIControlHandle, const char*, float) = nullptr;                     // P0-58
     int (*fnStatusBarSetItemTextShadow)(UIInstance, UIControlHandle, const char*, UIColor, float, float) = nullptr;   // P0-58
+    int (*fnStatusBarSetItemFontName)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;               // P0-63⑤
+    int (*fnStatusBarSetItemHoverBackgroundColor)(UIInstance, UIControlHandle, const char*, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;  // P0-64④
     int (*fnStatusBarRemoveItem)(UIInstance, UIControlHandle, const char*) = nullptr;
     int (*fnListViewAddRow)(UIInstance, UIControlHandle, const char*, int, const char* const*) = nullptr;
     int (*fnListViewRemoveRow)(UIInstance, UIControlHandle, int) = nullptr;
@@ -129,6 +131,15 @@ struct Api {
     int (*fnListViewSetColumnSorter)(UIInstance, UIControlHandle, int, ListViewSortFn, void*) = nullptr;
     int (*fnListViewSetColumnValues)(UIInstance, UIControlHandle, int, int, const char* const*) = nullptr;
     int (*fnListViewSetCellShadow)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t, float, float) = nullptr;
+    int (*fnListViewSetCellTextColor)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;   // P0-62①
+    int (*fnListViewSetCellFontName)(UIInstance, UIControlHandle, int, int, const char*) = nullptr;                            // P0-63②
+    int (*fnListViewSetColumnHeaderFontName)(UIInstance, UIControlHandle, int, const char*) = nullptr;                         // P0-63③
+    int (*fnListViewSetCellHoverBackgroundColor)(UIInstance, UIControlHandle, int, int, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;  // P0-64③
+    int (*fnTreeViewSetNodeTextColor)(UIInstance, UIControlHandle, const char*, uint8_t, uint8_t, uint8_t, uint8_t, const char*) = nullptr;   // P0-62②
+    int (*fnTreeViewSetNodeBackgroundColor)(UIInstance, UIControlHandle, const char*, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;           // P0-62②
+    int (*fnTreeViewSetNodeShadow)(UIInstance, UIControlHandle, const char*, uint8_t, uint8_t, uint8_t, uint8_t, float, float) = nullptr;      // P0-62②
+    int (*fnTreeViewSetNodeFont)(UIInstance, UIControlHandle, const char*, const char*, int) = nullptr;                                        // P0-63④
+    int (*fnTreeViewSetNodeHoverBackgroundColor)(UIInstance, UIControlHandle, const char*, uint8_t, uint8_t, uint8_t, uint8_t) = nullptr;       // P0-64④
     int (*fnStatusBarSetItemIcon)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnStatusBarSetItemMenu)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnContextMenuAddItem)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;

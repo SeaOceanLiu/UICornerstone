@@ -412,6 +412,22 @@ UICORNERSTONE_API int UICornerstone_TreeViewAddNode(UIInstance instance,
     UIControlHandle tree, const char* parentId, const char* id, const char* label, int expanded);
 UICORNERSTONE_API int UICornerstone_TreeViewRemoveNode(UIInstance instance,
     UIControlHandle tree, const char* id);
+/* P0-62②：节点级着色专用（稀疏；未设继承控件级）。
+   - SetNodeTextColor：state 可 NULL=normal；未设态回退该节点 normal；
+   - SetNodeBackgroundColor：单色四态同色；
+   - SetNodeShadow：单色（置阴影开关），偏移 >0 有效。节点不存在返回 0。 */
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeTextColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a, const char* state);
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeBackgroundColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeShadow(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY);
+/* P0-63④：逐节点字体（name + size；size<=0 继承控件级）——免 item-id 两步定位。 */
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeFont(UIInstance instance, UIControlHandle tree,
+    const char* id, const char* name, int size);
+/* P0-64④：节点显式悬停背景色（bgMask hover 位置位 → 悬停原色不叠加）。 */
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeHoverBackgroundColor(UIInstance instance, UIControlHandle tree,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 UICORNERSTONE_API int UICornerstone_TreeViewSetNodeLabel(UIInstance instance,
     UIControlHandle tree, const char* id, const char* label);
 UICORNERSTONE_API int UICornerstone_TreeViewSetNodeUserData(UIInstance instance,
@@ -580,6 +596,17 @@ UICORNERSTONE_API int UICornerstone_ListViewSetCellStyle(UIInstance instance, UI
 // 单元格文本阴影（P0-26：单色 + 偏移；color 的 alpha>0 即启用）。
 UICORNERSTONE_API int UICornerstone_ListViewSetCellShadow(UIInstance instance, UIControlHandle lv,
     int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float offsetX, float offsetY);
+/* P0-62①：单元格文字色（稀疏——未设继承行/控件级文字色）。越界返回 0。 */
+UICORNERSTONE_API int UICornerstone_ListViewSetCellTextColor(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+/* P0-63②③：单元格/列头字体名（稀疏——未设继承控件级；名称经 FontNameFromString） */
+UICORNERSTONE_API int UICornerstone_ListViewSetCellFontName(UIInstance instance, UIControlHandle lv,
+    int row, int col, const char* name);
+/* P0-64③：单元格显式悬停背景色（优先于叠加；仅悬停态；无常态 bg 也可用）。 */
+UICORNERSTONE_API int UICornerstone_ListViewSetCellHoverBackgroundColor(UIInstance instance, UIControlHandle lv,
+    int row, int col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderFontName(UIInstance instance, UIControlHandle lv,
+    int colIndex, const char* name);
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnHeaderStyle(UIInstance instance, UIControlHandle lv,
     int colIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a, int fontSize);
 /* P0-56：per-column 表头背景 / 文字阴影（稀疏；未设继承控件级；与 SetCellShadow 同风格） */
@@ -614,6 +641,12 @@ UICORNERSTONE_API int UICornerstone_StatusBarSetItemFontSize(UIInstance instance
     const char* id, float size);
 UICORNERSTONE_API int UICornerstone_StatusBarSetItemTextShadow(UIInstance instance, UIControlHandle bar,
     const char* id, UIColor color, float offsetX, float offsetY);
+/* P0-63⑤：段级字体名（稀疏——未设继承控件级；名称经 FontNameFromString）。 */
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemFontName(UIInstance instance, UIControlHandle bar,
+    const char* id, const char* name);
+/* P0-64④：段显式悬停背景色（优先于控件级叠加）。 */
+UICORNERSTONE_API int UICornerstone_StatusBarSetItemHoverBackgroundColor(UIInstance instance, UIControlHandle bar,
+    const char* id, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 UICORNERSTONE_API int UICornerstone_StatusBarSetItemIcon(UIInstance instance, UIControlHandle bar,
     const char* id, UIControlHandle iconControl);
 

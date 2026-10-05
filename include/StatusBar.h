@@ -33,7 +33,12 @@ struct StatusItem {
     uint8_t    textColorMask = 0;      // bit0 normal / bit1 hover / bit2 pressed / bit3 disabled
     SColor     background;             // 段背景（单色，铺满 hitRect）
     bool       hasBackground = false;
+    SColor     hoverBackground;        // P0-64④：显式悬停背景（优先于控件级叠加）
+    bool       hasHoverBackground = false;
 
+    // P0-63⑤：段级字体名（稀疏；未设置=继承控件级）
+    FontName   fontName = FontName::HarmonyOS_Sans_SC_Regular;
+    bool       hasFontName = false;
     // P0-58：段级字号 / 文字阴影（稀疏语义；未设置=继承控件级）
     float      fontSize = 0.0f;        // 0 = 继承控件级
     SColor     shadowColor;
@@ -51,8 +56,10 @@ public:
     // P0-55：段着色（未设置=继承控件级四态 / 不绘制背景）
     void setStatusItemTextColor(const string& id, SColor color, ControlState state);
     void setStatusItemBackgroundColor(const string& id, SColor color);
+    void setStatusItemHoverBackgroundColor(const string& id, SColor color);   // P0-64④
     // P0-58：段级字号（0=继承）/ 文字阴影（未设继承控件级）
     void setStatusItemFontSize(const string& id, float size);
+    void setStatusItemFontName(const string& id, FontName name);   // P0-63⑤（稀疏：未设继承控件级）
     void setStatusItemTextShadow(const string& id, SColor color, float offsetX, float offsetY);
     void removeStatusItem(const string& id);
     void setStatusItemMenu(const string& id, shared_ptr<class MenuPanel> panel);
@@ -96,7 +103,7 @@ private:
     void relayout();
     void updateItem(int index);
     void ensureFont();
-    SharedFont fontForSize(float size);   // P0-58：段级字号字体（cache；<=0 回退控件级）
+    SharedFont fontForSize(const StatusItem& item);   // P0-58/63⑤：段级字体（name,size 键缓存；未设回退控件级）
     int hitTestIndex(float screenX, float screenY) const;  // 屏幕→本地逆变换后按 hitRect 二维命中；-1 未命中
     void openPopup(int itemIndex);
     void closePopup();
@@ -109,9 +116,10 @@ private:
     float m_spacing = 8.0f;
     float m_padding = 12.0f;
     SharedFont m_font;
-    std::unordered_map<int, SharedFont> m_itemFonts;   // P0-58：段级字号字体缓存（键=缩放后像素字号）
+    std::unordered_map<std::string, SharedFont> m_itemFonts;   // P0-58/63⑤：段级字体缓存（键=name#像素字号）
     FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P0-26：字体名可配
     StateColor m_textColor;                                       // P0-26：段文字四态（ctor 设 normal 缺省）
+    SColor     m_hoverColor{36, 142, 222};                        // P0-64②：控件级悬停高亮色（属性键 "hover"）
     StateColor m_textShadowColor;                                 // P0-26：文本阴影色（四态）
     bool   m_shadowEnabled = false;
     SPoint m_shadowOffset{1, 1};

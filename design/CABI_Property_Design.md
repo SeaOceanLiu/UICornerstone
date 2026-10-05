@@ -1107,7 +1107,7 @@ FontName（28 值）延续现有 `FontNameFromString` 函数，模式一致。
 
 > TreeView item 级属性（**item-id 定位模式**：先 `SetString("item-id", id)` 定位，随后读写作用于该节点）：
 > `"item-leading-gap"`（Float，容器与文本间隔，默认 6）、`"item-font-size"`（Int，0=继承）、
-> `"item-font"`（Enum，逐 Item 字体，如 `"harmonyos-sans-sc-bold"` 粗体）、
+> `"item-font"`（Enum，逐 Item 字体，如 `"maplemono-nf-cn-regular"`）、
 > `"item-id"`（String，定位/查询当前目标）。对应 JSON 键：`leadingGap` / `size` / `font` / item 内 `leadingControl` 对象（复用控件 JSON）。
 
 ---

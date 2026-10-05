@@ -1,4 +1,4 @@
-# Menu 增强设计文档（Item 前置控件容器 + 逐 Item 字体）
+﻿# Menu 增强设计文档（Item 前置控件容器 + 逐 Item 字体）
 
 > 状态：**已实施**（2026-08-17，决策点 1/2/3/4/5/6 全部定稿，实施前复审修订 v5 已并入）· 与源码核对一致
 > 关联：[Menu_Design.md](Menu_Design.md)、[TreeView_Enhancement_Design.md](TreeView_Enhancement_Design.md)（同型增强，已实施，本文多处复用其结论）
@@ -110,7 +110,7 @@ std::string m_itemId;                     // CABI item-id 定位（第二期）�
 { "caption": "保存(S)",
   "leadingControl": { "type": "check-box", "checkState": "checked" },
   "leadingGap": 8,
-  "font": "harmonyos-sans-sc-bold",
+  "font": "maplemono-nf-cn-regular",
   "size": 16 }
 ```
 

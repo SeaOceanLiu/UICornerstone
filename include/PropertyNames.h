@@ -511,6 +511,7 @@ PROP_CONSTEXPR const char* kItemTextColor         = "text-color";          // P0
 PROP_CONSTEXPR const char* kItemBackgroundColor   = "background-color";    // P0-55：StatusBar 段背景色（单色）
 PROP_CONSTEXPR const char* kItemTextShadowOffsetX = "text-shadow-offset-x";  // P0-58：StatusBar 段级阴影偏移
 PROP_CONSTEXPR const char* kItemTextShadowOffsetY = "text-shadow-offset-y";  // P0-58
+PROP_CONSTEXPR const char* kItemFontName          = "font-name";             // P0-63⑤：StatusBar 段级字体名
 PROP_CONSTEXPR const char* kJsonMenu              = "menu";               // StatusBar item 内嵌菜单（单数）
 PROP_CONSTEXPR const char* kJsonBgColor = "background";
 PROP_CONSTEXPR const char* kJsonBorderColor = "border";
@@ -561,7 +562,7 @@ PROP_CONSTEXPR const char* kJsonUserData            = "userData";
 // TreeView item 级增强（二期）：前置控件容器 + 逐 Item 字体/间隔
 PROP_CONSTEXPR const char* kJsonLeadingControl      = "leadingControl";   // 前置控件描述（复用控件 JSON：type/checked/image 等）
 PROP_CONSTEXPR const char* kJsonLeadingGap          = "leadingGap";       // 控件容器与文本之间的间隔（局部 px）
-PROP_CONSTEXPR const char* kJsonItemFont            = "font";             // 逐 Item 字体枚举（如 "harmonyos-sans-sc-bold"）
+PROP_CONSTEXPR const char* kJsonItemFont            = "font";             // 逐 Item 字体枚举（如 "maplemono-nf-cn-regular"）
 PROP_CONSTEXPR const char* kJsonItemFontSize        = "size";             // 逐 Item 字号（0 = 继承 TreeView 级）
 PROP_CONSTEXPR const char* kJsonTemplate            = "template";
 PROP_CONSTEXPR const char* kJsonProps               = "props";
