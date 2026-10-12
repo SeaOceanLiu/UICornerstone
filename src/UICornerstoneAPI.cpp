@@ -108,11 +108,11 @@ static int applyBackendDefaults(UIInstance inst) {
 }
 
 // ============================================================
-// 句柄归属校验（仅 _DEBUG；Release 直接透传）
-// 跨实例句柄误用是调用方 bug（§7 风险 5）：Debug 下 O(n) 遍历
-// 控件树 + popupPool/menuPool 确认句柄属于本实例，否则断言失败
+// 句柄归属校验（P0-84a：全构建启用——跨实例句柄误用是调用方 bug（§7 风险 5），
+// Release 此前静默透传导致"控件属错实例 → 输入通路不达"类问题不可诊断；
+// 现统一 O(n) 遍历控件树 + popupPool/menuPool/detached/handleControls，
+// 不属于本实例 → 日志 + 拒绝（Debug 另加断言）
 // ============================================================
-#ifdef _DEBUG
 static bool treeContains(Control* root, Control* target) {
     auto* impl = dynamic_cast<ControlImpl*>(root);
     if (!impl) return false;
@@ -150,14 +150,11 @@ static Control* validateControl(UIInstance instance, UIControlHandle ctl) {
     Control* target = static_cast<Control*>(ctl);
     if (instanceHoldsControl(instance, target)) return target;
     UI_LOGE(instance, "control handle %p NOT owned by instance", ctl);
+#ifdef _DEBUG
     assert(false && "UICornerstone: control handle not owned by this instance");
+#endif
     return nullptr;
 }
-#else
-static inline Control* validateControl(UIInstance, UIControlHandle ctl) {
-    return static_cast<Control*>(ctl);
-}
-#endif
 
 // ============================================================
 // 实例内辅助（menuPool / controlsById）
@@ -314,6 +311,53 @@ static UIInstance resolveMouseTarget(UIInstance owner, float x, float y) {
     return findViewportByCoord(owner, x, y);
 }
 
+static void dispatchToBench(UIInstance instance, const Event& event);   // 前向声明（定义见下）
+
+// P0-67：鼠标事件统一路由（轮询/注入两通路共用）——捕获 > 浮层优先 > 坐标路由
+static void dispatchMouseByRouting(UIInstance instance, const Event& evt) {
+    float mx = 0.0f, my = 0.0f;
+    if (evt.m_type == EventType::MouseWheel) {
+        mx = evt.mouseWheel.x; my = evt.mouseWheel.y;
+    } else if (evt.m_type == EventType::MouseDown || evt.m_type == EventType::MouseUp) {
+        mx = evt.mouseButton.x; my = evt.mouseButton.y;
+    } else {
+        mx = evt.mousePos.x; my = evt.mousePos.y;
+    }
+    const bool isDown = (evt.m_type == EventType::MouseDown);
+    const bool isUp = (evt.m_type == EventType::MouseUp);
+
+    // P0-67 捕获：左键按下期间（Move/Up）一律发活动子视口（光标移出视口亦不丢失释放）
+    if (instance->mouseButtonDown && instance->activeViewport
+        && (evt.m_type == EventType::MouseMove || isUp)) {
+        if (isUp) instance->mouseButtonDown = false;
+        dispatchToBench(instance->activeViewport, evt);
+        return;
+    }
+
+    UIInstance target = resolveMouseTarget(instance, mx, my);
+    if (!target || target == instance) {
+        // owner 路径（浮层独占或点击 owner 区域）：按下/抬起回收子视口焦点
+        if (instance->activeViewport && (isDown || isUp)) {
+            instance->activeViewport->focusManager->clearFocus();
+            instance->activeViewport = nullptr;
+        }
+        if (isDown) instance->mouseButtonDown = true;
+        if (isUp) instance->mouseButtonDown = false;
+        dispatchToBench(instance, evt);
+        return;
+    }
+    // 跨视口焦点转移（仅按下/抬起触发）
+    if (target != instance->activeViewport && (isDown || isUp)) {
+        if (instance->activeViewport) {
+            instance->activeViewport->focusManager->clearFocus();
+        }
+        instance->activeViewport = target;
+    }
+    if (isDown) instance->mouseButtonDown = true;
+    if (isUp) instance->mouseButtonDown = false;
+    dispatchToBench(target, evt);
+}
+
 static UIInstance nextViewport(UIInstance owner, UIInstance cur) {
     auto& cs = owner->children;
     if (cs.empty()) return nullptr;
@@ -331,6 +375,15 @@ static UIInstance prevViewport(UIInstance owner, UIInstance cur) {
 }
 
 // Ctrl+Tab 智能路由：跨视口切换。返回 true 表示事件已消费。
+// P0-84b：键盘/文本输入目标——焦点归属优先：owner 聚焦 → owner；否则活动子视口；
+// 否则 owner 兜底。消除 stale activeViewport（owner 已聚焦控件仍被发往子视口）类。
+static UIInstance keyboardTarget(UIInstance instance) {
+    if (instance->focusManager && instance->focusManager->getCurrentFocused() != nullptr) {
+        return instance;
+    }
+    return instance->activeViewport ? instance->activeViewport : instance;
+}
+
 static bool tryViewportScopeSwitch(UIInstance owner, Event& keyEvent) {
     KeyCode code = keyEvent.keyEvent.keycode;
     KeyMod  mod  = keyEvent.keyEvent.mod;
@@ -366,6 +419,8 @@ UIInstance UICornerstone_CreateInstance(
 
     auto* ctx = new UIContext();
     ctx->callbacks = callbacks;
+    // P0-77：主实例缺省不透明深色（替代原 bench 自绘底；子视口保持透明，viewport.background 可覆盖）
+    ctx->viewportBackground = ConstDef::DEFAULT_NORMAL_COLOR;
 
     if (config) {
         if (config->debugLabel) ctx->debugLabel = config->debugLabel;
@@ -764,47 +819,16 @@ static bool pumpInstanceEvents(UIInstance instance) {
         case EventType::MouseMove:
         case EventType::MouseDown:
         case EventType::MouseUp:
-        case EventType::MouseWheel: {
-            float mx = (evt.m_type == EventType::MouseWheel)
-                ? evt.mouseWheel.x : evt.mousePos.x;
-            float my = (evt.m_type == EventType::MouseWheel)
-                ? evt.mouseWheel.y : evt.mousePos.y;
-            // P0-52②：浮层优先——存在可见浮层时 owner 独占鼠标（不穿透；外点关闭/下拉滚动
-            // 归 owner 队列 watcher）；否则按坐标路由子视口（未命中回退 owner）
-            UIInstance target = resolveMouseTarget(instance, mx, my);
-            if (!target || target == instance) {
-                // owner 路径（浮层独占或点击 owner 区域）：按下/抬起回收子视口焦点，
-                // 保证键盘（Esc 关闭等）作用于 owner 浮层；浮层关闭后路由自动恢复
-                if (instance->activeViewport
-                    && (evt.m_type == EventType::MouseDown || evt.m_type == EventType::MouseUp)) {
-                    instance->activeViewport->focusManager->clearFocus();
-                    instance->activeViewport = nullptr;
-                }
-                dispatchToBench(instance, evt);
-                break;
-            }
-            // 跨视口焦点转移（仅按下/抬起触发）
-            if (target != instance->activeViewport
-                && (evt.m_type == EventType::MouseDown || evt.m_type == EventType::MouseUp)) {
-                if (instance->activeViewport) {
-                    instance->activeViewport->focusManager->clearFocus();
-                }
-                instance->activeViewport = target;
-            }
-            // 事件保持窗口绝对坐标分发（控件命中/绘制均基于绝对坐标
-            // getDrawRect；若在此转视口本地坐标，则子视口偏移非零时
-            // 命中测试与坐标换算全部错位）
-            dispatchToBench(target, evt);
+        case EventType::MouseWheel:
+            // P0-67：统一路由（捕获 > 浮层优先 > 坐标路由；事件保持窗口绝对坐标分发）
+            dispatchMouseByRouting(instance, evt);
             break;
-        }
         case EventType::KeyDown:
         case EventType::KeyUp:
             // 键盘事件：先经 Ctrl+Tab 智能路由，未消费则发到当前活动视口
             // （activeViewport 为 null 时回退 owner 自身 bench）
             if (!tryViewportScopeSwitch(instance, evt)) {
-                UIInstance kbdTarget = instance->activeViewport
-                    ? instance->activeViewport : instance;
-                dispatchToBench(kbdTarget, evt);
+                dispatchToBench(keyboardTarget(instance), evt);   // P0-84b
             }
             break;
         case EventType::FocusLost:
@@ -817,12 +841,8 @@ static bool pumpInstanceEvents(UIInstance instance) {
         case EventType::FocusGained:
             break;
         case EventType::TextInput:
-            // 文本输入事件：直接发到当前活动视口（焦点控件处理）
-            {
-                UIInstance kbdTarget = instance->activeViewport
-                    ? instance->activeViewport : instance;
-                dispatchToBench(kbdTarget, evt);
-            }
+            // 文本输入事件：焦点归属优先（P0-84b；owner 聚焦 → owner，否则活动子视口）
+            dispatchToBench(keyboardTarget(instance), evt);
             break;
         default:
             // 窗口事件 → owner 自身处理
@@ -878,8 +898,14 @@ int UICornerstone_ProcessEvents(UIInstance instance) {
                 instance->activeViewport->focusManager->clearFocus();
         } else if (event.m_type == EventType::KeyDown || event.m_type == EventType::KeyUp) {
             if (!tryViewportScopeSwitch(instance, event)) {
-                dispatchToBench(instance, event);
+                dispatchToBench(keyboardTarget(instance), event);   // P0-84b
             }
+        } else if (event.m_type == EventType::MouseMove || event.m_type == EventType::MouseDown ||
+                   event.m_type == EventType::MouseUp || event.m_type == EventType::MouseWheel) {
+            // P0-67（复核 Q-3）：注入与真实事件统一路由（浮层优先/子视口捕获/坐标路由）
+            dispatchMouseByRouting(instance, event);
+        } else if (event.m_type == EventType::TextInput) {
+            dispatchToBench(keyboardTarget(instance), event);   // P0-84b
         } else {
             dispatchToBench(instance, event);
         }
@@ -974,6 +1000,12 @@ int UICornerstone_Debug_IsControlFocused(UIInstance instance, UIControlHandle co
 
 // P0-52：鼠标目标解析探针（注入事件不经坐标路由，测试用本探针验证浮层优先/
 // 关闭恢复；x/y 为窗口绝对坐标）。返回 1=owner（含浮层优先与空白区）/ 0=子视口。
+// P0-84c：句柄归属校验（Release 可用；1=属于本实例 0=不属于/非法）——供调用方构建期自检
+int UICornerstone_Debug_ValidateHandle(UIInstance instance, UIControlHandle ctl) {
+    if (!instance || !ctl) return 0;
+    return instanceHoldsControl(instance, static_cast<Control*>(ctl)) ? 1 : 0;
+}
+
 int UICornerstone_Debug_RouteMouseTarget(UIInstance instance, float x, float y) {
     if (!instance || !instance->initialized || instance->destroying) return 1;
     UIInstance t = resolveMouseTarget(instance, x, y);
@@ -1305,6 +1337,19 @@ void UICornerstone_MenuBarAddMenu(UIInstance instance, UIControlHandle bar, cons
     if (!sp) return;
     auto* mb = dynamic_cast<MenuBar*>(barV);
     if (mb) mb->addMenu(caption ? caption : "", std::dynamic_pointer_cast<MenuPanel>(sp));
+}
+
+// P0-69①：菜单移除（P0-69 复核 Q-1：仅 RemoveMenu，无需 ClearMenus）。
+// 摘除后面板放回 menuPool 保活：句柄持续有效、可经 MenuBarAddMenu 原句柄再挂载。
+int UICornerstone_MenuBarRemoveMenu(UIInstance instance, UIControlHandle bar, const char* caption) {
+    if (!instance || !bar || !caption) return 0;
+    Control* barV = validateControl(instance, bar);
+    auto* mb = barV ? dynamic_cast<MenuBar*>(barV) : nullptr;
+    if (!mb) return 0;
+    auto panel = mb->detachMenu(caption);
+    if (!panel) return 0;
+    menuPoolKeep(instance, panel);
+    return 1;
 }
 
 void UICornerstone_MenuPanelAddItem(UIInstance instance, UIControlHandle panel, UIControlHandle item) {
@@ -1729,7 +1774,50 @@ int UICornerstone_TabSetPage(UIInstance instance, UIControlHandle tab,
     if (!v || index < 0) return 0;
     Control* pg = page ? validateControl(instance, page) : nullptr;
     if (page && !pg) return 0;
-    v->setTabPage(index, pg ? pg->getThis() : nullptr);
+
+    // P0-69②/Q-2：替换旧页全摘除 + 保活（防 bench 残留鬼影与句柄销毁）
+    shared_ptr<Control> oldPage = (index < v->getTabCount()) ? v->getTabs()[index].page : nullptr;
+    shared_ptr<Control> newPage;
+    if (pg) {
+        detachPoolTake(instance, page);   // 池内页移出（P0-50 同款）
+        try {
+            auto* impl = dynamic_cast<ControlImpl*>(pg);
+            if (impl) {
+                newPage = impl->shared_from_this();
+                // 挂载前摘除旧父残留（CreatePanel 先挂 bench → 双挂载根因）
+                Control* oldParent = pg->getParent();
+                if (oldParent != nullptr && oldParent != static_cast<Control*>(v)) {
+                    oldParent->removeControl(newPage);
+                } else if (oldParent == nullptr) {
+                    instance->bench->removeControl(newPage);
+                }
+            }
+        } catch (...) { /* 非托管对象，忽略 */ }
+    }
+    v->setTabPage(index, newPage);
+    if (oldPage && oldPage != newPage) {
+        v->removeControl(oldPage);                 // setTabPage 已做；幂等防御
+        instance->bench->removeControl(oldPage);   // 清 CreatePanel 双挂载残留
+        oldPage->setParent(nullptr);
+        oldPage->setVisible(false);
+        detachPoolKeep(instance, oldPage);
+    }
+    return 1;
+}
+
+// P0-69②：页移除（全摘除 + detachedControls 保活；句柄有效、可经 TabSetPage 再挂载）
+int UICornerstone_TabRemovePage(UIInstance instance, UIControlHandle tab, int index) {
+    auto* v = tabControlOf(instance, tab);
+    if (!v || index < 0 || index >= v->getTabCount()) return 0;
+    auto page = v->getTabs()[index].page;
+    v->removeTab(index);
+    if (page) {
+        v->removeControl(page);                    // removeTab 已做；幂等防御
+        instance->bench->removeControl(page);      // 清 CreatePanel 双挂载残留（防鬼影）
+        page->setParent(nullptr);
+        page->setVisible(false);
+        detachPoolKeep(instance, page);
+    }
     return 1;
 }
 
@@ -1905,12 +1993,8 @@ int UICornerstone_ListViewSetCellShadow(UIInstance instance, UIControlHandle lv,
 {
     auto* v = listViewOf(instance, lv);
     if (!v) return 0;
-    CellStyle st = v->getCellStyle(row, col);   // 保留既有字段，叠加阴影
-    st.textShadowColor = SColor(r, g, b, a);
-    st.shadowEnabled = (a > 0);
-    st.shadowOffsetX = offsetX;
-    st.shadowOffsetY = offsetY;
-    v->setCellStyle(row, col, st);
+    // P0-66③：粒度写入（精确保留其余字段；不再经 setCellStyle → 修复"仅设阴影常态填黑"回归）
+    v->setCellShadow(row, col, SColor(r, g, b, a), offsetX, offsetY);
     return 1;
 }
 int UICornerstone_ListViewSetCellTextColor(UIInstance instance, UIControlHandle lv,

@@ -156,6 +156,13 @@ ui->LoadLayout(layoutJson);</code></pre>
 
 <div class="note">组件系统会将组件中的控件（<code>$id</code> 形式）实例化到 <code>layouts</code> 数组指定的布局中；事件处理器同样经 <code>RegisterAction</code> 注册。</div>
 
+<p>组件实例支持<strong>数据绑定</strong>：<code>layouts</code> 条目上的 <code>bind</code> 对象把控件属性绑定到数据源键（默认单向 <code>oneway</code>；<code>twoway</code> 双向回写）：</p>
+<pre><code>{ "use": "SearchBar", "id": "topSearch",
+  "bind": {
+    "text": "user.keyword",                                  // 简写：字符串=源键（oneway）
+    "caption": { "source": "user.title", "mode": "twoway" }  // 对象：source + mode（oneway|twoway）
+  } }</code></pre>
+
 <h2>3.4.4 声明式 UI 的事件回调</h2>
 
 <table>
@@ -193,7 +200,7 @@ parser.parseLayoutFile("layouts/main.json");</code></pre>
       "border":{ "normal": "#505050FF" },
       "text":  { "normal": "#FFFFFFFF" }
     },
-    "checkbox": { "check-color": "#66BB6AFF", "cross-color": "#FF5722FF", "box-border-color": "#53535AFF" },
+    "checkbox": { "check": "#66BB6AFF", "cross": "#FF5722FF", "indeterminate": "#FFC107FF", "boxBorder": "#53535AFF" },
     "progressbar": { "progress": "#66BB6AFF", "track": "#333333FF" }
   },
   "fonts": {
@@ -202,7 +209,7 @@ parser.parseLayoutFile("layouts/main.json");</code></pre>
   }
 }</code></pre>
 
-<p>支持类别（category）：<code>button / label / editbox / textarea / checkbox / progressbar / panel / scrollbar / menubar</code>；字体未定义时回退 <code>default</code>，再回退内置默认（HarmonyOS Sans SC Regular 16）。</p>
+<p>支持类别（category）：<code>button / label / editbox / textarea / checkbox / progressbar / panel / scrollbar / menubar / colorpicker / numericupdown / splitter / treeview / popup / confirmpopup / dialog</code>；字体未定义时回退 <code>default</code>，再回退内置默认（HarmonyOS Sans SC Regular 16）。公共颜色路径为 <code>colors.&lt;类别&gt;.bg / .border / .text / .textShadow</code>（状态对象 <code>{normal,hover,pressed,disabled}</code> 子集）；CheckBox 专有色键为 <code>colors.checkbox.check</code> / <code>colors.checkbox.cross</code> / <code>colors.checkbox.indeterminate</code> / <code>colors.checkbox.boxBorder</code>，ProgressBar 为 <code>colors.progressbar.progress</code> / <code>colors.progressbar.track</code>。</p>
 
 <h2>3.4.6 热加载</h2>
 
@@ -220,7 +227,7 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
 
 <h2>3.4.7 资源提供者（ResourceProviders）</h2>
 
-<p>支持在初始化前把资源读入内存注册（<code>MemoryResourceProvider</code>），或经布局顶层 <code>resourceProviders</code> 键把磁盘路径挂载为资源名（懒加载 + 缓存）。挂载后控件引用一律使用 <code>provider:</code> 前缀，引擎在 <code>loadFromFile</code> 入口自动分流，绝不触碰磁盘（挂载点在 <code>controls</code> 之前）：</p>
+<p>支持在初始化前把资源读入内存注册（<code>MemoryResourceProvider</code>），或经布局顶层 <code>resourceProviders</code> 键把磁盘路径挂载为资源名（懒加载 + 缓存；顶层主实例同样生效，未注册/未挂载键按 <code>resourceRoot</code> 文件系统回退——P0-78）。<code>path</code> 可为文件（精确键 <code>provider:name</code>）或目录（经 <code>provider:name/相对路径</code> 引用，最长挂载名匹配；<code>..</code> 与盘符子路径被拒绝）。挂载后控件引用一律使用 <code>provider:</code> 前缀，引擎在 <code>loadFromFile</code> 入口自动分流，绝不触碰磁盘（挂载点在 <code>controls</code> 之前）：</p>
 
 <pre><code>{
   "version": "1.0",

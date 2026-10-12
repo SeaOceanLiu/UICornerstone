@@ -130,6 +130,8 @@ private:
     void populateMenuPanel(shared_ptr<MenuPanel> panel, const json& items, float xScale, float yScale);
 
     void parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j);
+    // P0-81：解析期上下文绑定（构造后立即 setContext(目标实例)，单漏斗于 parseControl 尾调用）
+    void adoptContext(const std::shared_ptr<Control>& ctrl);
     // 字体：JSON 字体键解析（font{name,size} / font-size / fontSize）→ 控件上下文 + 应用；
     // 未声明时由 resolveFontInheritance 沿父链继承最近显式字体
     void applyFontDecl(shared_ptr<ControlImpl> ctl, const json& j);
@@ -151,6 +153,10 @@ private:
     Margin     parseMargin(const json& j);
     SColor  parseColor(const json& j);
     StateColor parseStateColor(const json& j, StateColor::Type type);
+    // P0-74④：单色取值（字符串 / {r,g,b,a} / {normal:...} 对象均可）
+    SColor  parseSingleColor(const json& j);
+    // P0-76：按组逐键写（未给键不写=天然合并；子类 setColorProperty override 可达；字符串=normal）
+    void applyColorGroupPerKey(ControlImpl* ctrl, const json& v, const char* groupKey);
     FontName   parseFontName(const string& name);
     AlignmentMode parseAlignment(const string& align);
     int parseFontStyle(const json& styleNode);

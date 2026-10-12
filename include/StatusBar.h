@@ -84,6 +84,7 @@ public:
     void setRect(SRect rect) override;
 
     // ── 属性系统 override ──
+    void setBackgroundStateColor(StateColor stateColor) override;   // P0-74⑤：显式 hover 标记
     void setTextStateColor(StateColor stateColor) override;      // P0-26：文本四态
     void setTextShadowStateColor(StateColor stateColor) override;  // P0-26：阴影色四态
     int setColorProperty(const char* prop, SColor color) override;   // P0-26：text/text.hover/.pressed/.disabled
@@ -120,6 +121,7 @@ private:
     FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P0-26：字体名可配
     StateColor m_textColor;                                       // P0-26：段文字四态（ctor 设 normal 缺省）
     SColor     m_hoverColor{36, 142, 222};                        // P0-64②：控件级悬停高亮色（属性键 "hover"）
+    bool       m_bgHoverExplicit = false;                         // P0-74⑤：colors.background.hover 显式设置过（优先于 hover 键）
     StateColor m_textShadowColor;                                 // P0-26：文本阴影色（四态）
     bool   m_shadowEnabled = false;
     SPoint m_shadowOffset{1, 1};

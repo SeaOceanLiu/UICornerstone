@@ -7,7 +7,7 @@
 void Bench::initial(void){
     // setBGColor(INITIAL_BG_COLOR);
     // setBorderColor(INITIAL_BORDER_COLOR);
-    setTransparent(false);
+    // P0-77：保持构造透明（视口背景由 viewportBackground 承担；主实例缺省不透明深色）
 
     m_isInitialed = true;
     Platform::Log("Loading finished, waiting user starting game................................");

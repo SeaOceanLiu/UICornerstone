@@ -181,6 +181,7 @@
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td></tr>
 <tr><td><code>password-mode</code></td><td><code>kPasswordMode</code></td><td>Bool / String</td><td>false / "●"</td></tr>
+<tr><td><code>read-only</code></td><td><code>kReadOnly</code></td><td>Bool</td><td>false（P0-83：EditBox/TextArea 禁编辑，保留选择/复制/滚动）</td></tr>
 <tr><td><code>password-char</code></td><td><code>kPasswordChar</code></td><td>Bool / String</td><td>false / "●"</td></tr>
 <tr><td><code>text</code></td><td><code>kTextContent</code></td><td>String</td><td>空</td></tr>
 <tr><td><code>placeholder</code></td><td><code>kPlaceholder</code></td><td>String</td><td>空</td></tr>
@@ -205,6 +206,7 @@
 <tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Bool</td><td>false</td></tr>
 <tr><td><code>shadow-offset-x</code></td><td><code>kShadowOffsetX</code></td><td>Float</td><td>阴影偏移分量</td></tr>
 <tr><td><code>shadow-offset-y</code></td><td><code>kShadowOffsetY</code></td><td>Float</td><td>阴影偏移分量</td></tr>
+<tr><td><code>shadow-radius</code></td><td><code>kShadowRadius</code></td><td>Float</td><td>菜单面板阴影半径（P0-72①；缺省 8，0=无模糊；MenuPanel/Bar 传播）</td></tr>
 <tr><td><code>font-style</code></td><td><code>kFontStyle</code></td><td>Enum</td><td><code>kFontStyleNormal</code> / <code>kFontStyleBold</code> / <code>kFontStyleItalic</code> / <code>kFontStyleUnderline</code> / <code>kFontStyleStrikethrough</code>（单值）</td></tr>
 <tr><td><code>font-bold</code></td><td><code>kFontBold</code></td><td>Bool</td><td>false（字体样式分位开关，可组合）</td></tr>
 <tr><td><code>font-italic</code></td><td><code>kFontItalic</code></td><td>Bool</td><td>false（字体样式分位开关，可组合）</td></tr>
@@ -255,11 +257,16 @@
 <tr><td><code>border</code></td><td><code>kBorder</code></td><td>Color</td><td>下拉面板边框（bar 无边框；P0-26）</td></tr>
 <tr><td><code>text</code> / <code>text.hover</code> / <code>text.disabled</code></td><td><code>kText</code> / <code>kTextHover</code> / <code>kTextDisabled</code></td><td>Color</td><td>菜单文本三态（P0-26）</td></tr>
 <tr><td><code>text-shadow</code> + <code>shadow</code> / <code>shadow-offset-x</code> / <code>shadow-offset-y</code></td><td><code>kTextShadow</code> / <code>kShadow</code> / <code>kShadowOffsetX</code> / <code>kShadowOffsetY</code></td><td>Color / Bool / Float</td><td>菜单文本阴影（P0-26）</td></tr>
-<tr><td><code>value</code></td><td><code>kValue</code></td><td>Float</td><td>MenuBar 字号</td></tr>
+<tr><td><code>value</code></td><td><code>kValue</code></td><td>Float</td><td>MenuBar 字号（历史别名）</td></tr>
+<tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>MenuBar 字号（P0-72：与 JSON/schema 同键直通）</td></tr>
 <tr><td><code>bar-height</code></td><td><code>kBarHeight</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
 <tr><td><code>item-height-ratio</code></td><td><code>kItemHeightRatio</code></td><td>Float</td><td>MenuBar 尺寸</td></tr>
 <tr><td><code>manual-position</code></td><td><code>kManualPosition</code></td><td>Bool</td><td>MenuBar 手动定位（跳过全宽布局，setRect 自由生效）</td></tr>
-<tr><td><code>hovered-index</code></td><td><code>kHoveredIndex</code></td><td>Int</td><td>MenuPanel 悬停项索引（读写）</td></tr>
+<tr><td><code>hovered-index</code></td><td><code>kHoveredIndex</code></td><td>Int</td><td>MenuPanel 悬停项索引（读写）；MenuBar 只读读回（P0-82）</td></tr>
+<tr><td><code>active-index</code></td><td><code>kActiveIndex</code></td><td>Int</td><td>MenuBar 激活菜单索引只读读回（P0-88；-1=无）</td></tr>
+<tr><td><code>item-text</code></td><td><code>kItemText</code></td><td>Color / StateColor</td><td>菜单项文本色（item-id 定向；单态=normal / 四态对象；P0-72④）</td></tr>
+<tr><td><code>item-background</code></td><td><code>kItemBackground</code></td><td>Color</td><td>菜单项背景色（item-id 定向；P0-72④）</td></tr>
+<tr><td><code>item-hover-background</code></td><td><code>kItemHoverBackground</code></td><td>Color</td><td>菜单项悬停背景（item-id 定向；P0-72④）</td></tr>
 </table>
 
 <h3>NumericUpDown（类型 <code>numeric-up-down</code>）</h3>
@@ -407,6 +414,7 @@
 <tr><td><code>text</code></td><td><code>kTextContent</code></td><td>String</td><td>空</td></tr>
 <tr><td><code>placeholder</code></td><td><code>kPlaceholder</code></td><td>String</td><td>空</td></tr>
 <tr><td><code>word-wrap</code></td><td><code>kWordWrap</code></td><td>Bool</td><td>—</td></tr>
+<tr><td><code>auto-scroll</code></td><td><code>kAutoScroll</code></td><td>Bool</td><td>false</td></tr>
 </table>
 
 <h3>TreeView（类型 <code>tree-view</code>）</h3>
@@ -430,6 +438,9 @@
 <tr><td><code>row-height</code></td><td><code>kRowHeight</code></td><td>Float</td><td>行高</td></tr>
 <tr><td><code>selected-id</code></td><td><code>kSelectedId</code></td><td>String（只读）</td><td>当前选中节点 id</td></tr>
 <tr><td><code>selected-user-data</code></td><td><code>kSelectedUserData</code></td><td>Ptr</td><td>选中节点 userData 读写（借用语义）</td></tr>
+<tr><td><code>hover</code></td><td><code>kTreeHover</code></td><td>Color</td><td>行悬停底色（P0-64②/P0-74②：JSON 键 + 属性读写）</td></tr>
+<tr><td><code>hover-background-color</code></td><td><code>kHoverBackgroundColor</code></td><td>Color</td><td>items 独立悬停背景键（P0-75：tree-view / status-bar / list-view cell / 菜单项同族）</td></tr>
+<tr><td><code>selected</code></td><td><code>kTreeSelected</code></td><td>Color</td><td>行选中底色（P0-74②：JSON 键 + 属性读写）</td></tr>
 <tr><td><code>scroll-bar</code></td><td><code>kScrollBarProp</code></td><td>Ptr（只读）</td><td>垂直/水平滚动条句柄</td></tr>
 <tr><td><code>h-scroll-bar</code></td><td><code>kHScrollBarProp</code></td><td>Ptr（只读）</td><td>垂直/水平滚动条句柄</td></tr>
 <tr><td><code>expand</code></td><td><code>kExpand</code></td><td>String（命令式）</td><td>按节点 id 展开 / 折叠</td></tr>

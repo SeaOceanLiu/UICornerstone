@@ -48,6 +48,8 @@ UICornerstone_ListViewAddRow(g_inst, lv, "f1", 2, cells);
 <tr><td><code>header-background</code></td><td><code>kHeaderBackground</code></td><td>Color</td><td>(45,45,52)</td><td>列头背景色（控件级；P0-56）</td></tr>
 <tr><td><code>header-shadow</code> / <code>header-shadow-offset-x/y</code></td><td><code>kHeaderShadow</code> / <code>kHeaderShadowOffsetX/Y</code></td><td>Color / Float</td><td>— / 1,1</td><td>列头文字阴影（未设色=不绘制；P0-56）</td></tr>
 <tr><td><code>columns[].header-text/-background/-shadow</code> / <code>header-shadow-offset-x/y</code></td><td>同上（作用域=该列）</td><td>Color/Float</td><td>—</td><td>per-column 表头样式（稀疏；未设继承控件级；P0-56）</td></tr>
+<tr><td><code>columns[].header-font-size</code> / <code>header-font-name</code></td><td>Number / String</td><td>—</td><td>—</td><td>per-column 列头字号/字体名（P0-66①；字号 0/缺省=继承控件级，字体名置 hasFontName）</td></tr>
+<tr><td><code>rows[].cells[]</code> 对象形态</td><td>Object</td><td>—</td><td>—</td><td>单元格样式（P0-66②）：<code>{text, background-color(串/对象四态 normal+hover), hover-background-color, text-color, font-size, font-name, text-shadow, text-shadow-offset-x/y}</code>；字符串形态保持兼容</td></tr>
 <tr><td><code>ListViewSetCellTextColor(lv,row,col,rgba)</code></td><td>API</td><td>—</td><td>—</td><td>单元格文字色（P0-62①；稀疏——未设继承行/控件级；既有 <code>SetCellStyle</code> 仅设背景不再覆盖文字色）</td></tr>
 <tr><td><code>ListViewSetCellFontName(lv,row,col,name)</code> / <code>ListViewSetColumnHeaderFontName(lv,col,name)</code></td><td>API</td><td>—</td><td>—</td><td>单元格/列头字体名（P0-63②③；稀疏——未设继承控件级）</td></tr>
 <tr><td><code>hover</code> / <code>selected</code></td><td>Color</td><td>—</td><td>—</td><td>控件级行悬停/选中高亮色（P0-64②，通用键与 TreeView 一致）</td></tr>

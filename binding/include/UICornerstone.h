@@ -125,6 +125,8 @@ public:
     Control FromHandle(UIControlHandle handle);
     // P0-61：取根句柄（本实例 bench；子视口实例返回其自身 bench）——根级布局/锚定入口
     Control Root();
+    // P0-84c：句柄归属校验（Release 可用）——行/控件构建期自检，防跨实例句柄误用
+    int DebugValidateHandle(Control& ctl);
 
     // ── 控件工厂 ──
     Control CreateButton(const std::string& text, float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
@@ -163,6 +165,7 @@ public:
     Control CreateMenuPanel(float xScale = 1.0f, float yScale = 1.0f);
     Control CreateMenuItem(const std::string& caption, int type, float xScale = 1.0f, float yScale = 1.0f);
     void MenuBarAddMenu(Control& bar, const std::string& caption, Control& panel);
+    int  MenuBarRemoveMenu(Control& bar, const std::string& caption);   // P0-69：1=移除 0=未找到
     void MenuPanelAddItem(Control& panel, Control& item);
     void MenuPanelAddSeparator(Control& panel);
     void MenuItemSetSubMenu(Control& item, Control& panel);
@@ -197,6 +200,7 @@ public:
 
     // ── TabControl 页操作 ──
     int  TabAddPage(Control& tab, const std::string& title);
+    int  TabRemovePage(Control& tab, int index);   // P0-69：1=移除 0=越界
     bool TabSetPage(Control& tab, int index, Control& page);
     bool TabSetTitle(Control& tab, int index, const std::string& title);
     bool TabSetTabLeadingControl(Control& tab, int index, Control& ctl);

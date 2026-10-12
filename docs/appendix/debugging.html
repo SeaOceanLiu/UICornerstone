@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -44,7 +44,15 @@ test_button.exe auto=3                            :: 自动跑 3 秒，exit=0 �
   <li>创建实例时传 <code>debugLabel</code>（UIInstanceConfig），多实例问题可分辨日志来源。</li>
 </ul>
 
-<h2>9.3 常见错误模式</h2>
+<h2>9.3 调试 API（Release 可用）</h2>
+
+<table>
+<tr><th>API</th><th>用途</th></tr>
+<tr><td><code>UICornerstone_Debug_RouteMouseTarget(inst, x, y)</code></td><td>鼠标目标解析探针（P0-52②）：返回 1=owner（浮层优先/空白区）/ 0=子视口——路由问题快速定位</td></tr>
+<tr><td><code>UICornerstone_Debug_ValidateHandle(inst, ctl)</code> / Binding <code>DebugValidateHandle(ctl)</code></td><td>句柄归属校验（P0-84c）：1=属于本实例，0=不属于/非法。跨实例句柄误用（Release 下曾静默容忍）会导致"控件属错实例 → 输入/焦点通路不达"类问题；建议在动态行/控件构建后自检并记录日志。核心库同时已全构建启用归属校验（不属于即日志+拒绝）</td></tr>
+</table>
+
+<h2>9.5 常见错误模式</h2>
 
 <table>
 <tr><th>现象</th><th>原因</th><th>处置</th></tr>
@@ -58,7 +66,7 @@ test_button.exe auto=3                            :: 自动跑 3 秒，exit=0 �
 <tr><td>焦点环不显示</td><td>m_focusRingAlwaysVisible=false 且非键盘聚焦</td><td>Tab 键聚焦；或设 alwaysVisible</td></tr>
 </table>
 
-<h2>9.4 最小复现模板</h2>
+<h2>9.5 最小复现模板</h2>
 
 <p>把问题收敛到最小工程（一个 main + 一个控件），对照 <code>test/</code> 中同控件用例的结构。若你的用法与测试一致仍出错，可到 GitHub 提交 issue，附：后端、版本、最小代码、<code>auto=</code> 测试输出。</p>
 

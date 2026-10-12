@@ -1205,6 +1205,9 @@ int TreeView::getColorProperty(const char* prop, SColor& out) {
         else                                                        out = node->textColor.getNormal();
         return 1;
     }
+    // P0-74②：控件级行悬停/选中色读回（此前落基类 → "hover"/"selected" 读回失败）
+    if (strcmp(prop, PropertyNames::kTreeHover) == 0)    { out = getHoverColor();    return 1; }
+    if (strcmp(prop, PropertyNames::kTreeSelected) == 0) { out = getSelectedColor(); return 1; }
     return ControlImpl::getColorProperty(prop, out);
 }
 

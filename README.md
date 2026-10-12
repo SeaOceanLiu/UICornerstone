@@ -1,4 +1,4 @@
-# UICornerstone
+﻿# UICornerstone
 
 <p align="center">
   <img src="docs/assets/UICornerstone_Logo.svg" alt="UICornerstone Logo" width="200"/>
@@ -57,6 +57,7 @@ LuotiAni 是内置的关键帧动画引擎，采用"JSON 描述 → 一次性烘
 - **运行时零插值**：所有帧在加载时全部烘焙为贴图，播放只做跳帧，CPU 开销极低
 - **动画能力**：多图层（每层一张贴图 + 关键帧）、平移/缩放/旋转/透明度/可见性操作、`loop` 循环、`frameRate` 帧率
 - **绑定方式**：Button 的 `animation` 属性、JSON 布局 `luotiAni` 节点、C ABI `UICornerstone_CreateAnimation`
+- **资源引用**：动画描述（`path`/`animation`）与帧图 `src` 均支持 `provider:` 资源 ID（内存 provider 加载；未注册键经文件系统回退并记录日志——P0-78/P0-79）
 - **多实例共享**：`LuotiInstance` 共享同一份帧数据多路播放，内存只存一份
 - 视觉校验工具：`test_aniviewer <动画.jsonc> [loop=0|1] [auto=<秒>] [vsync=0|1]`（任意顺序），窗口覆盖层实时显示设定/实际 fps
 - 详见 [LuotiAni 动画开发手册](design/LuotiAni_DevGuide.md)

@@ -334,6 +334,8 @@ UICORNERSTONE_API int      UICornerstone_Debug_IsControlHovered(UIInstance insta
 /* 鼠标目标解析探针（P0-52 测试辅助）：返回 1=owner（浮层优先/空白区）/ 0=子视口。
    x/y 为窗口绝对坐标（同事件坐标域）。 */
 UICORNERSTONE_API int      UICornerstone_Debug_RouteMouseTarget(UIInstance instance, float x, float y);
+// P0-84c：句柄归属校验（Release 可用；1=属于本实例，0=不属于/非法）——构建期自检/现网取证
+UICORNERSTONE_API int      UICornerstone_Debug_ValidateHandle(UIInstance instance, UIControlHandle ctl);
 // 调试鼠标注入（_DEBUG；Release 返回 0 不生效）：用注入坐标替代 Window::getMousePosition
 // 驱动本实例 hover 状态——无人值守测试验证跨窗口/跨视口 hover 隔离。坐标为窗口坐标系绝对坐标。
 UICORNERSTONE_API int      UICornerstone_Debug_SetMousePosition(UIInstance instance, float x, float y);
@@ -386,6 +388,9 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateMenuItem(UIInstance instan
     float xScale, float yScale);
 UICORNERSTONE_API void UICornerstone_MenuBarAddMenu(UIInstance instance,
     UIControlHandle bar, const char* caption, UIControlHandle panel);
+// P0-69：移除菜单（按 caption 摘除；面板保活——句柄有效、可再 AddMenu）；返回 1=移除 0=未找到/非法
+UICORNERSTONE_API int UICornerstone_MenuBarRemoveMenu(UIInstance instance,
+    UIControlHandle bar, const char* caption);
 UICORNERSTONE_API void UICornerstone_MenuPanelAddItem(UIInstance instance,
     UIControlHandle panel, UIControlHandle item);
 UICORNERSTONE_API void UICornerstone_MenuPanelAddSeparator(UIInstance instance, UIControlHandle panel);
@@ -667,6 +672,8 @@ UICORNERSTONE_API int UICornerstone_ContextMenuClose(UIInstance instance, UICont
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateTabControl(UIInstance instance,
     float x, float y, float w, float h, float xScale, float yScale);
 UICORNERSTONE_API int UICornerstone_TabAddPage(UIInstance instance, UIControlHandle tab, const char* title);
+// P0-69：移除页（全摘除 + 保活；句柄有效、可经 TabSetPage 再挂载）；返回 1=移除 0=越界/非法
+UICORNERSTONE_API int UICornerstone_TabRemovePage(UIInstance instance, UIControlHandle tab, int index);
 UICORNERSTONE_API int UICornerstone_TabSetTitle(UIInstance instance, UIControlHandle tab,
     int index, const char* title);
 UICORNERSTONE_API int UICornerstone_TabSetPage(UIInstance instance, UIControlHandle tab,

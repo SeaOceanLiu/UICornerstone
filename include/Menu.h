@@ -79,6 +79,17 @@ public:
     int getOwnFontSize() const { return fontSize; }
     void setItemId(const string& id) { m_itemId = id; }
     const string& getItemId() const { return m_itemId; }
+
+    // P0-72④：item 级颜色（显式设置才生效；未设回退面板级）
+    void setTextStateColor(const StateColor& sc) { m_itemTextColor = sc; m_hasTextColor = true; }
+    const StateColor& getTextStateColor() const { return m_itemTextColor; }
+    bool hasTextColor() const { return m_hasTextColor; }
+    void setBackgroundColor(const SColor& c) { m_itemBackground = c; m_hasBackground = true; }
+    const SColor& getBackgroundColor() const { return m_itemBackground; }
+    bool hasBackground() const { return m_hasBackground; }
+    void setHoverBackgroundColor(const SColor& c) { m_itemHoverBackground = c; m_hasHoverBackground = true; }
+    const SColor& getHoverBackgroundColor() const { return m_itemHoverBackground; }
+    bool hasHoverBackground() const { return m_hasHoverBackground; }
     // fontSize>0 时按自身 fontName/fontSize 重建字体（加载失败保持现状回退）
     void ensureOwnFont();
     // 惰性创建 leading 组件
@@ -103,6 +114,13 @@ private:
     shared_ptr<MenuPanel> m_subMenu;
     SharedFont m_font;
     float m_fontSize;
+    // P0-72④：item 级颜色
+    StateColor m_itemTextColor{StateColor::Type::Text};
+    bool m_hasTextColor = false;
+    SColor m_itemBackground;
+    bool m_hasBackground = false;
+    SColor m_itemHoverBackground;
+    bool m_hasHoverBackground = false;
 
     // Menu 增强：前置控件统一由 LeadingControlSlot 组件承载（挂载/对齐/间隙/命中，
     // 见 LeadingControlSlot.h，供 TreeView/Menu/未来 ListView 等复用）
@@ -132,6 +150,10 @@ public:
     void addItem(shared_ptr<MenuItem> item);
     void addSeparator();
     void removeItem(shared_ptr<MenuItem> item);
+
+    // P0-88：所属 MenuBar 背指针（weak 防悬垂；打开态父链经 bench 断裂时关闭链兜底）
+    void setOwnerBar(const std::shared_ptr<MenuBar>& bar);
+    std::shared_ptr<MenuBar> ownerBar() const;
 
     // 显示/隐藏
     void show();
@@ -170,6 +192,7 @@ public:
     void setItemHeightRatio(float ratio);
     float getItemHeightRatio() const { return m_heightRatio; }
     void setFontName(FontName fontName);
+    FontName getFontName() const { return m_fontName; }   // P0-72③：回放/读回对称
 
     // Menu 增强：icon 区宽（max(各行字体高度, 20)，实例状态，随逐项字体变化；
     // 面板内没有任何 leadingControl 时 = 0，不预留 icon 区空间）
@@ -198,6 +221,8 @@ public:
     void setBorderStateColor(StateColor stateColor) override;      // P0-33③
     int setColorProperty(const char* prop, SColor color) override;
     int getColorProperty(const char* prop, SColor& out) override;
+    int setStateColorProperty(const char* prop, StateColor stateColor) override;   // P0-72④：item 定向四态
+    int getStateColorProperty(const char* prop, StateColor& out) override;         // P0-72④
     int setBoolProperty(const char* prop, int value) override;
     int getBoolProperty(const char* prop, int& out) override;
     int setIntProperty(const char* prop, int value) override;
@@ -213,6 +238,7 @@ public:
 
 private:
     vector<shared_ptr<MenuItem>> m_items;
+    std::weak_ptr<MenuBar> m_ownerBar;   // P0-88：所属 MenuBar（weak 防悬垂）
     float m_fontSize;
     float m_heightRatio;
     float m_itemHeight;
@@ -266,11 +292,16 @@ public:
     void setRect(SRect rect) override;
     void setContext(UIContext* ctx) override;
     void refreshScaleWith(float parentXX, float parentYY) override;
+    void onMouseLeave(float x, float y) override;   // P0-82：清 per-item 悬停（不退出菜单模式）
 
     // 添加顶级菜单
     void addMenu(const string& caption, shared_ptr<MenuPanel> panel);
+    // P0-72③：bar 当前状态（11 色 + 字号/字体名/行高比/文本阴影/阴影半径）应用到面板
+    void applyStateToPanel(const shared_ptr<MenuPanel>& panel);
     shared_ptr<MenuPanel> getMenuPanel(int index) const;  // 第 index 个菜单面板（越界返回 nullptr）
     void removeMenu(const string& caption);
+    // P0-69①：摘除菜单并返回面板（未找到 nullptr）；CABI 移除后经 menuPool 保活，可原句柄再挂载
+    shared_ptr<MenuPanel> detachMenu(const string& caption);
 
     // 关闭所有下拉菜单
     void closeAllMenus();
@@ -298,6 +329,11 @@ public:
     bool isInMenuMode() const { return m_menuMode; }
     void enterMenuMode(int index);
     void exitMenuMode();
+
+    // P0-82：悬停索引只读读回（探针/状态显示；写回不暴露——状态机单一驱动）
+    int getHoveredIndex() const { return m_hoveredIndex; }
+    // P0-88：激活索引只读读回（断言钩子；写回不暴露）
+    int getActiveIndex() const { return m_activeIndex; }
 
     // 命中测试：输入绘制（像素）坐标，返回条目索引（未命中 -1）
     int hitTest(float x, float y);
@@ -341,6 +377,7 @@ private:
     SPoint m_shadowOffset{1, 1};
 
     float m_itemHeightRatio;
+    float m_panelShadowRadius = 8.0f;   // P0-72①③：下拉面板阴影半径（MenuColors::PANEL_SHADOW_BLUR 缺省）
     float m_menuTextSize;
     SharedFont m_font;
     FontName m_fontName;
@@ -358,6 +395,7 @@ public:
     int setColorProperty(const char* prop, SColor color) override;
     int getColorProperty(const char* prop, SColor& out) override;
     int getStateColorProperty(const char* prop, StateColor& out) override;   // P0-44：三态对象路径读回组装
+    int getIntProperty(const char* prop, int& out) override;   // P0-82：hovered-index 只读
     int setBoolProperty(const char* prop, int value) override;
     int setFloatProperty(const char* prop, float value) override;
     int setEnumProperty(const char* prop, const char* value) override;

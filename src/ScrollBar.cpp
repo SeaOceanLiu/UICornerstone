@@ -3,6 +3,7 @@
 #include "ScrollBar.h"
 #include "PropertyNames.h"
 #include "MainWindow.h"
+#include "EventQueue.h"
 #include <algorithm>
 #include <cstring>
 
@@ -210,6 +211,12 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
             } else {
                 m_dragOffset = localX - m_thumbRect.left;
             }
+            // P0-67：懒注册拖拽 watcher（捕获 Move/Up；不注销，自守卫防递归锁 UB，同 Splitter）
+            if (!m_watcherRegistered && m_context && m_context->eventQueue) {
+                m_context->eventQueue->addBeforeEventHandlingWatcher(EventType::MouseMove, getThis());
+                m_context->eventQueue->addBeforeEventHandlingWatcher(EventType::MouseUp, getThis());
+                m_watcherRegistered = true;
+            }
             return true;
         }
 
@@ -231,33 +238,62 @@ bool ScrollBar::handleEvent(shared_ptr<Event> event) {
     }
 
     if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
-        m_dragging = false;
-        m_thumbPressed = false;
-        applyPressState(false);   // P0-033：抬起复位
+        endDragState();   // P0-67：统一复位（watcher/命中两路径）
     }
 
     if (event->m_type == EventType::MouseMove) {
-        if (!m_dragging) return false;
-        float localX = (event->mousePos.x - drawRect.left) / scaleX;
-        float localY = (event->mousePos.y - drawRect.top) / scaleY;
-
-        float trackLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_trackRect.height : m_trackRect.width;
-        float thumbLength = (m_orientation == ScrollBarOrientation::Vertical) ? m_thumbRect.height : m_thumbRect.width;
-        float thumbTravel = trackLength - thumbLength;
-
-        float newPos;
-        if (m_orientation == ScrollBarOrientation::Vertical) {
-            newPos = localY - m_dragOffset;
-        } else {
-            newPos = localX - m_dragOffset;
-        }
-        newPos = std::max(0.0f, std::min(newPos, thumbTravel));
-
-        float newValue = positionToValue(newPos);
-        setValue(newValue);
-        return true;
+        return dragTo(event->mousePos.x, event->mousePos.y);
     }
 
+    return false;
+}
+
+// P0-67：拖拽体（handleEvent 与 watcher 共用）
+bool ScrollBar::dragTo(float x, float y) {
+    if (!m_dragging) return false;
+    SRect drawRect = getDrawRect();
+    float scaleX = getScaleXX();
+    bool isVertical = (m_orientation == ScrollBarOrientation::Vertical);
+    float scaleY = isVertical ? getScaleYY() : getScaleXX();
+    float localX = (x - drawRect.left) / scaleX;
+    float localY = (y - drawRect.top) / scaleY;
+
+    float trackLength = isVertical ? m_trackRect.height : m_trackRect.width;
+    float thumbLength = isVertical ? m_thumbRect.height : m_thumbRect.width;
+    float thumbTravel = trackLength - thumbLength;
+
+    float newPos;
+    if (isVertical) {
+        newPos = localY - m_dragOffset;
+    } else {
+        newPos = localX - m_dragOffset;
+    }
+    newPos = std::max(0.0f, std::min(newPos, thumbTravel));
+
+    float newValue = positionToValue(newPos);
+    setValue(newValue);
+    return true;
+}
+
+// P0-67：拖拽结束复位（幂等）
+void ScrollBar::endDragState() {
+    m_dragging = false;
+    m_thumbPressed = false;
+    applyPressState(false);
+}
+
+// P0-67：拖拽捕获 watcher——按下期间 Move/Up 由本控件优先处理（同实例拦截/路由未达兜底）；
+// 释放消费（return true）防止拖拽释放穿透为下层控件点击
+bool ScrollBar::beforeEventHandlingWatcher(shared_ptr<Event> event) {
+    if (!m_dragging) return false;
+    if (event->m_type == EventType::MouseMove) {
+        dragTo(event->mousePos.x, event->mousePos.y);
+        return true;
+    }
+    if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
+        endDragState();
+        return true;
+    }
     return false;
 }
 

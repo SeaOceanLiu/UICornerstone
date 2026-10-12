@@ -640,6 +640,11 @@
           "type": "boolean",
           "x-default": "false"
         },
+        "read-only": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "只读（P0-83）：禁编辑/插入，保留选择/复制/滚动/光标/焦点"
+        },
         "placeholder": {
           "type": "string",
           "x-default": ""
@@ -873,7 +878,7 @@
         },
         "rows": {
           "type": "array",
-          "description": "行数据 [{id,cells[],cellControls:[{col,control}]}]（元素宽松校验）",
+          "description": "行定义 [{id,cells[],cellControls:[{col,control}]}]（元素宽松；P0-66②：cells 元素支持字符串或对象 {text,background-color(串/对象四态 normal+hover),hover-background-color,text-color,font-size,font-name,text-shadow,text-shadow-offset-x/y}）",
           "items": {
             "type": "object"
           }
@@ -1009,14 +1014,15 @@
           "type": "array"
         },
         "resourceProviders": {
-          "type": "array"
+          "type": "array",
+          "description": "挂载点数组 [{name, path}]；path 可为文件或目录（目录经 provider:name/相对路径 引用，P0-70）"
         },
         "theme": {
           "type": "object"
         },
         "viewport": {
           "type": "object",
-          "description": "{x,y,w,h,scale-mode}（内部宽松校验）"
+          "description": "{width,height,scale-mode,background,id}（内部宽松校验）；background 为 #RRGGBB[AA] 或 {r,g,b,a}，alpha=0 表示不填充/不清屏（UI 透出底层画面，P0-74①）；id 为画布代码引用（宿主 FindControl 可定位根画布，P0-74⑥）"
         }
       },
       "additionalProperties": false
@@ -1067,7 +1073,7 @@
         },
         "menus": {
           "type": "array",
-          "description": "顶级菜单 [{caption, items:[{caption,shortcut,checked,type,items,font,size,leadingGap,leadingControl}]}]（元素键走全局层）",
+          "description": "顶级菜单 [{caption, items:[...], font, size, item-height-ratio, shadow-radius}]；items 元素 [{id,caption,shortcut,checked,type,items,font,size,leadingGap,leadingControl,text-color,background-color,hover-background-color}]（元素键走全局层；text-color 字符串=normal/对象四态；background-color 字符串或 {normal,hover}；P0-72①④）。items 的 id 注册进实例 id 表（FindControl 可达；与控件 id 同表，重名后注册覆盖——P0-87）",
           "items": {
             "type": "object"
           }
@@ -1829,9 +1835,13 @@
           "type": "number",
           "x-default": "24（默认=rect 高）"
         },
+        "hover": {
+          "$ref": "#/$defs/color",
+          "description": "控件级悬停反馈色（P0-74⑤；段回退链：item 显式 → background.hover → hover → 缺省）"
+        },
         "items": {
           "type": "array",
-          "description": "段定义 [{id,text,align:right,icon,menu,onClick,text-color,background-color}]（元素宽松校验；text-color 字符串=normal / 对象=四态，background-color 单色）",
+          "description": "段定义 [{id,text,align:right,icon,menu,onClick,text-color,background-color,hover-background-color}]（元素宽松校验；text-color 字符串=normal / 对象=四态，background-color 单色或 {normal,hover}，hover-background-color 独立悬停色（P0-75））",
           "items": {
             "type": "object",
             "properties": {
@@ -1979,6 +1989,16 @@
           "type": "string",
           "x-default": ""
         },
+        "auto-scroll": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "true=日志式恒滚到底；false=编辑式光标跟随（缺省）"
+        },
+        "read-only": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "只读（P0-83，继承 EditBox）：禁编辑/插入，保留选择/复制/滚动/光标/焦点"
+        },
         "word-wrap": {
           "type": "boolean"
         },
@@ -2018,13 +2038,21 @@
           "type": "boolean",
           "x-default": "false"
         },
+        "hover": {
+          "$ref": "#/$defs/color",
+          "description": "行悬停底色（P0-74②，单色）"
+        },
         "indent-width": {
           "type": "number",
           "x-default": "16"
         },
+        "selected": {
+          "$ref": "#/$defs/color",
+          "description": "行选中底色（P0-74②，单色）"
+        },
         "items": {
           "type": "array",
-          "description": "节点树 [{id,label,expanded,userData,children,leadingControl,leadingGap,leadingAlign,font,size,text-color,background-color,text-shadow,text-shadow-offset-x/y}]（元素键走全局层；样式键 P0-62②，text-color 字符串=normal/对象=四态，未设继承控件级）",
+          "description": "节点树 [{id,label,expanded,userData,children,leadingControl,leadingGap,leadingAlign,font,size,text-color,background-color,hover-background-color,text-shadow,text-shadow-offset-x/y}]（元素键走全局层；样式键 P0-62②，text-color 字符串=normal/对象=四态，未设继承控件级；hover-background-color 独立悬停色 P0-75）",
           "items": {
             "type": "object"
           }
@@ -2221,7 +2249,7 @@
       "type": "object",
       "properties": {
         "background": {
-          "$ref": "#/$defs/state-color-3d"
+          "$ref": "#/$defs/state-color-4"
         },
         "border": {
           "$ref": "#/$defs/state-color-3d"

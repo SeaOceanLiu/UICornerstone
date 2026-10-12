@@ -31,6 +31,7 @@ typedef int        (*UIContextMenuShowFn)(UIInstance, void*, float, float);
 typedef int        (*UIContextMenuCloseFn)(UIInstance, void*);
 typedef int        (*UIDebugRouteMouseTargetFn)(UIInstance, float, float);
 typedef int        (*UICaptureRectFn)(UIInstance, float, float, float, float, uint8_t*, int*, int*);
+typedef void       (*UISetViewportBackgroundColorFn)(UIInstance, uint8_t, uint8_t, uint8_t, uint8_t);
 
 static UIPluginCreateInstanceFn uiCreateInstanceFromPlugin = nullptr;
 static UIDestroyInstanceFn      uiDestroyInstance = nullptr;
@@ -47,6 +48,7 @@ static UIContextMenuShowFn      uiContextMenuShow = nullptr;
 static UIContextMenuCloseFn     uiContextMenuClose = nullptr;
 static UIDebugRouteMouseTargetFn uiDebug_RouteMouseTarget = nullptr;
 static UICaptureRectFn          uiCaptureRect = nullptr;
+static UISetViewportBackgroundColorFn uiSetViewportBackgroundColor = nullptr;
 
 static int g_pass = 0, g_fail = 0;
 #define CHECK(cond, msg) do { \
@@ -73,6 +75,7 @@ static void loadProcs(HMODULE dll) {
     RESOLVE(ContextMenuClose);
     RESOLVE(Debug_RouteMouseTarget);
     RESOLVE(CaptureRect);
+    RESOLVE(SetViewportBackgroundColor);
 #undef RESOLVE
 }
 
@@ -105,6 +108,9 @@ int main(int argc, char* argv[]) {
     UIRect vpRect = { 200.0f, 100.0f, 240.0f, 240.0f };
     UIInstance vp = uiCreateViewport(inst, vpRect);
     CHECK(vp != nullptr, "CreateViewport(200,100,240,240)");
+    // P0-77：bench 默认透明（画布/游戏叠加语义）——本用例为"子视口覆盖浮层"像素差分，
+    // 显式给子视口不透明底色以恢复覆盖语义（否则 vp.Render 不遮挡、差分恒零）
+    if (uiSetViewportBackgroundColor) uiSetViewportBackgroundColor(vp, 30, 30, 30, 255);
 
     frame(inst, vp);
     frame(inst, vp);

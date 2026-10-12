@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <string>
 
 #include "../../include/UICornerstoneAPI.h"
 
@@ -258,6 +260,50 @@ static int runTest(const char* shortName, const char* displayName) {
     void* imgBad = uiCreateImage(g_inst, "provider:not-exists", 460, 70, 64, 64, 1.0f, 1.0f);
     if (!imgBad) { printf("FAIL: negative case should create control anyway\n"); uiDestroyInstance(g_inst); FreeLibrary(g_uiDll); return 1; }
     printf("OK: negative case (provider:not-exists) survives with empty texture\n");
+
+    // ---- P0-70②：resourceProviders 目录挂载（绝对目录 + provider:name/子路径）----
+    namespace fs = std::filesystem;
+    {
+        fs::path cwd = fs::current_path();
+        fs::path dirMount = cwd / "_p070_dir_mount";
+        std::error_code ec;
+        fs::create_directories(dirMount, ec);
+        fs::copy_file(cwd / "assets" / "images" / "cross_up.png",
+                      dirMount / "cross_up.png", fs::copy_options::overwrite_existing, ec);
+
+        std::string layout2 =
+            "{\"version\":\"1.0\",\"resourceProviders\":[{\"name\":\"imgdir\",\"path\":\"" +
+            dirMount.generic_string() +
+            "\"}],\"controls\":[{\"type\":\"panel\",\"id\":\"p070root\",\"rect\":{\"x\":0,\"y\":0,\"w\":2,\"h\":2}}]}";
+        if (!uiLoadLayout(g_inst, layout2.c_str())) {
+            printf("FAIL: P0-70 dir-mount layout load\n");
+        } else {
+            printf("OK: P0-70 dir-mount layout loaded\n");
+        }
+
+        // 正例：provider:imgdir/cross_up.png（32x32）
+        void* imgDir = uiCreateImage(g_inst, "provider:imgdir/cross_up.png", 460, 140, 0, 0, 1.0f, 1.0f);
+        float dx = 0, dy = 0, dw = 0, dh = 0;
+        if (imgDir) uiGetRect(g_inst, imgDir, &dx, &dy, &dw, &dh);
+        if (dw != 32.0f || dh != 32.0f) printf("FAIL: P0-70 dir-mount image %.0fx%.0f (expected 32x32)\n", dw, dh);
+        else printf("OK: P0-70 dir-mount image 32x32\n");
+
+        // 反斜杠归一化：provider:imgdir\cross_up.png（等价正例）
+        void* imgBs = uiCreateImage(g_inst, "provider:imgdir\\cross_up.png", 530, 140, 0, 0, 1.0f, 1.0f);
+        float bx = 0, by = 0, bw = 0, bh = 0;
+        if (imgBs) uiGetRect(g_inst, imgBs, &bx, &by, &bw, &bh);
+        if (bw != 32.0f || bh != 32.0f) printf("FAIL: P0-70 backslash normalize %.0fx%.0f\n", bw, bh);
+        else printf("OK: P0-70 backslash normalized to slash\n");
+
+        // 负例：.. 逃逸（若不拒绝会解析到 assets/images/../images/cross_up.png 成功）
+        void* imgEsc = uiCreateImage(g_inst, "provider:imgdir/../images/cross_up.png", 460, 210, 0, 0, 1.0f, 1.0f);
+        float ex = 0, ey = 0, ew = 0, eh = 0;
+        if (imgEsc) uiGetRect(g_inst, imgEsc, &ex, &ey, &ew, &eh);
+        if (ew != 0.0f || eh != 0.0f) printf("FAIL: P0-70 escape not rejected (%.0fx%.0f)\n", ew, eh);
+        else printf("OK: P0-70 '..' escape rejected (empty texture)\n");
+
+        fs::remove_all(dirMount, ec);
+    }
 
     printf("Frame loop... (closed automatically)\n");
     ULONGLONG autoT0 = GetTickCount64();

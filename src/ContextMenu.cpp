@@ -3,6 +3,7 @@
 // ============================================================================
 #include "ContextMenu.h"
 #include "MainWindow.h"
+#include "Bench.h"   // P0-71①：BENCH 宏类型完整（getDrawRect/getScaleXX 换算）
 
 // 视口兜底（context 未就绪时的假想视口，仅参与钳制）
 static const SRect kFallbackViewport(0, 0, 1024, 768);   // SRect 构造非 constexpr
@@ -60,7 +61,15 @@ void ContextMenu::show(float x, float y) {
     if (px < vp.left) px = vp.left;
     if (py < vp.top)  py = vp.top;
 
-    setRect(SRect(px, py, w, h));
+    // P0-71①（复核 Q-1）：ContextMenu 父级为 bench（画布局部域）——Popup::open 内
+    // computeTargetRect 的正确换算被此处覆盖；钳制仍在视口/全局域进行，落到 setRect 前
+    // 换算回 bench 局部（anchor + 根复合反查）；主实例 anchor=0/scale=1 时行为不变
+    SRect benchDraw = BENCH ? BENCH->getDrawRect() : SRect(0, 0, 0, 0);
+    float bsx = BENCH ? BENCH->getScaleXX() : 1.0f;
+    float bsy = BENCH ? BENCH->getScaleYY() : 1.0f;
+    float lx = (bsx != 0.0f) ? (px - benchDraw.left) / bsx : px;
+    float ly = (bsy != 0.0f) ? (py - benchDraw.top) / bsy : py;
+    setRect(SRect(lx, ly, w, h));
     m_menuPanel->setRect(SRect(0, 0, w, h));
     m_menuPanel->layoutItems();
 }

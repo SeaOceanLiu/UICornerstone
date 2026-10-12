@@ -50,6 +50,15 @@ public:
     // 重载字体颜色设置相关函数，以同步调用Caption相关设置接口
     void setTextStateColor(StateColor stateColor) override;
     void setTextShadowStateColor(StateColor stateColor) override;
+    // P0-76：单态转发（JSON 逐键写路径 → 基类 + caption label 双同步）
+    void setTextNormalStateColor(SColor color) override;
+    void setTextHoverStateColor(SColor color) override;
+    void setTextPressedStateColor(SColor color) override;
+    void setTextDisabledStateColor(SColor color) override;
+    void setTextShadowNormalStateColor(SColor color) override;
+    void setTextShadowHoverStateColor(SColor color) override;
+    void setTextShadowPressedStateColor(SColor color) override;
+    void setTextShadowDisabledStateColor(SColor color) override;
     void setTextShadowEnable(bool enable);
 
     void setCaption(string caption);

@@ -460,6 +460,22 @@
 
 ---
 
+## 近期批次补充（2026-10-09，P0-62~P0-79）
+
+> 说明：本表主体为 2026-09-21 快照；以下为后续批次新增的 JSON 键 / 属性键 / CABI，均已实现并经回归/探针验证。
+
+| 批次 | 内容 | JSON | 属性键 | CABI / Binding | 缺口 |
+|---|---|---|---|---|---|
+| P0-69 | MenuBar 菜单移除 / TabControl 页移除 | — | — | `MenuBarRemoveMenu(bar,caption)` / `TabRemovePage(tab,index)`（int） | ✅ |
+| P0-68 | TextArea `auto-scroll` | `auto-scroll` | `kAutoScroll` | 通用 SetBool/GetBool | ✅ |
+| P0-72 | 菜单阴影半径 / 字号直通 / item 级颜色 | `menus[].shadow-radius`；items `text-color`/`background-color`/`hover-background-color` | `shadow-radius` / `font-size`（bar）/ `item-text`（SetStateColor）/ `item-background` / `item-hover-background` | 通用 SetFloat/SetColor/SetStateColor（item-id 定向） | ✅ |
+| P0-74 | viewport 背景/画布 id；tree `hover`/`selected`；statusbar `hover`；colors 逐键合并 | `viewport.background`/`viewport.id`；tree `hover`/`selected`；statusbar `hover` | `kTreeHover`/`kTreeSelected`（颜色）/ `kShadowRadius` 等 | 通用通道 | ✅ |
+| P0-75 | tree/statusbar items 独立悬停背景 | `hover-background-color` | `kHoverBackgroundColor` | 通用 SetColor（定向/段 API） | ✅ |
+| P0-78 | 顶层 `resourceProviders` 挂载 + 文件系统回退 | `resourceProviders`（主实例生效） | — | 引擎 `MemoryResourceProvider::setFilesystemFallback`（非 ABI） | ✅ |
+| P0-79 | 动画描述 / 帧 `src` 经 provider | `path`/`animation`/`src` 支持 `provider:` | — | — | ✅ |
+
+---
+
 ## 待决策:getId / getControlType 转属性
 
 - **getControlType**:已补 `control-type` 只读字符串属性(getter),与 `GetControlType` CABI 并存(映射表已标 ✅)。删除 CABI 会破坏现有 DLL 用户,建议保留。

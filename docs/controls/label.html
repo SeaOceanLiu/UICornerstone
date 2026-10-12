@@ -71,6 +71,7 @@ UIControlHandle label = UICornerstone_CreateLabel(g_inst, "Hello", 24.0f, 20, 20
 <tr><td><code>click</code></td><td><code>kEventClick</code></td><td>鼠标左键在文本热区按下 / 抬起（需 <code>setClickable(true)</code>）</td><td>无</td></tr>
 <tr><td><code>property-changed</code></td><td><code>kEventPropertyChanged</code></td><td>recreate() 后（字体 / 文本 / 对齐 / 边距等变化）</td><td>无</td></tr>
 </table>
+<p class="note">JSON 键 <code>events.onPropertyChanged</code>（常量 <code>kEventKeyPropertyChanged</code>）：绑定 Label 属性变化处理器（经 <code>RegisterAction</code> 注册；CheckBox 内部 caption Label 亦经此回调自动刷新布局）。</p>
 
 
 <h2>4.11.4 JSON 语法</h2>

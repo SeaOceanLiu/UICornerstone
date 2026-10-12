@@ -302,6 +302,39 @@ void Button::setTextShadowStateColor(StateColor stateColor){
         m_caption->setTextShadowStateColor(stateColor);
     }
 }
+// P0-76：单态转发（与整态同口径；JSON 逐键写路径必需）
+void Button::setTextNormalStateColor(SColor color) {
+    ControlImpl::setTextNormalStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextNormalStateColor(color);
+}
+void Button::setTextHoverStateColor(SColor color) {
+    ControlImpl::setTextHoverStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextHoverStateColor(color);
+}
+void Button::setTextPressedStateColor(SColor color) {
+    ControlImpl::setTextPressedStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextPressedStateColor(color);
+}
+void Button::setTextDisabledStateColor(SColor color) {
+    ControlImpl::setTextDisabledStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextDisabledStateColor(color);
+}
+void Button::setTextShadowNormalStateColor(SColor color) {
+    ControlImpl::setTextShadowNormalStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowNormalStateColor(color);
+}
+void Button::setTextShadowHoverStateColor(SColor color) {
+    ControlImpl::setTextShadowHoverStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowHoverStateColor(color);
+}
+void Button::setTextShadowPressedStateColor(SColor color) {
+    ControlImpl::setTextShadowPressedStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowPressedStateColor(color);
+}
+void Button::setTextShadowDisabledStateColor(SColor color) {
+    ControlImpl::setTextShadowDisabledStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowDisabledStateColor(color);
+}
 
 void Button::setState(ControlState state){
     ControlImpl::setState(state);

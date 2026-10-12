@@ -94,6 +94,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(CreateMenuPanel);
     RESOLVE(CreateMenuItem);
     RESOLVE(MenuBarAddMenu);
+    RESOLVE(MenuBarRemoveMenu);
     RESOLVE(MenuPanelAddItem);
     RESOLVE(MenuPanelAddSeparator);
     RESOLVE(MenuItemSetSubMenu);
@@ -153,6 +154,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ContextMenuShow);
     RESOLVE(ContextMenuClose);
     RESOLVE(TabAddPage);
+    RESOLVE(TabRemovePage);
     RESOLVE(TabSetPage);
     RESOLVE(TabSetTitle);
     RESOLVE(TabSetTabLeadingControl);
@@ -208,6 +210,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(GetRect);
     RESOLVE(AddChildControl);
     RESOLVE(GetRoot);
+    RESOLVE(Debug_ValidateHandle);
     RESOLVE(RemoveChild);
     RESOLVE(DestroyControl);
     RESOLVE(GetControlId);

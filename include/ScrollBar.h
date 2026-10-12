@@ -33,6 +33,7 @@ private:
     bool m_thumbHovered;
     bool m_thumbPressed;
     bool m_dragging;
+    bool m_watcherRegistered = false;   // P0-67：拖拽 watcher 懒注册（不注销，自守卫）
     float m_dragOffset;
 
     SRect m_thumbRect;
@@ -56,6 +57,10 @@ public:
     void draw(void) override;
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
+    // P0-67：拖拽捕获（watcher）与拖拽体抽取
+    bool dragTo(float x, float y);
+    void endDragState();
+    bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
 
     void onMouseEnter(float x, float y) override;
     void onMouseLeave(float x, float y) override;

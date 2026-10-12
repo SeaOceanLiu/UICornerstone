@@ -34,6 +34,7 @@ UIControlHandle ta = UICornerstone_CreateTextArea(g_inst, 5, 5, 750, 160, 1.0f, 
   "rect": { "x": 20, "y": 432, "w": 200, "h": 80 },
   "placeholder": "Multi-line notes...",
   "word-wrap": true,
+  "auto-scroll": false,
   "font": { "size": 12 },
   "colors": { "background": { "normal": "#353535FF" }, "border": { "normal": "#606060FF" } },
   "events": { "onTextChanged": "onNotesChanged" } }</code></pre>
@@ -55,6 +56,7 @@ UIControlHandle ta = UICornerstone_CreateTextArea(g_inst, 5, 5, 750, 160, 1.0f, 
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>多类型</td><td>—</td><td>见 <a href="editbox.html">4.24 EditBox</a></td></tr>
 <tr><td><code>align</code></td><td><code>kAlign</code></td><td>多类型</td><td>—</td><td>见 <a href="editbox.html">4.24 EditBox</a></td></tr>
 <tr><td><code>word-wrap</code></td><td><code>kWordWrap</code></td><td>Bool</td><td>—</td><td>自动换行</td></tr>
+<tr><td><code>auto-scroll</code></td><td><code>kAutoScroll</code></td><td>Bool</td><td>false</td><td>false=编辑式光标跟随（缺省）；true=日志式恒滚到底。false 下 <code>setText</code> 整体替换不自动滚动，需显式 <code>scrollToBottom()</code> 或设 true</td></tr>
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 
@@ -76,6 +78,7 @@ UIControlHandle ta = UICornerstone_CreateTextArea(g_inst, 5, 5, 750, 160, 1.0f, 
   "rect": { "x": 20, "y": 432, "w": 200, "h": 80 },
   "placeholder": "Multi-line notes...",
   "word-wrap": true,
+  "auto-scroll": false,
   "font": { "size": 12 },
   "colors": { "background": { "normal": "#353535FF" }, "border": { "normal": "#606060FF" } },
   "events": { "onTextChanged": "onNotesChanged" }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -58,7 +58,8 @@
 
 <pre><code>// 1) JSON 布局顶层键（先于控件树解析）
 { "version":"1.0",
-  "viewport": { "width":1920, "height":1080, "scale-mode":"fit" },
+  "viewport": { "width":1920, "height":1080, "scale-mode":"fit",
+                "background":"#202124FF", "id":"mainCanvas" },
   "controls":[...] }
 
 // 2) C ABI
@@ -70,6 +71,7 @@ ui-&gt;SetCanvasSize(1920, 1080);
 ui-&gt;SetViewportScaleMode(1);</code></pre>
 
 <p>缺省基准 = 跟随窗口：在 <code>off</code> 模式下仅是记录；切换到 fit / stretch 后以最后一次声明的基准为适配依据。</p>
+<p><code>viewport.background</code>（P0-74①）：画布底色（<code>#RRGGBB[AA]</code> 或 <code>{r,g,b,a}</code>）。主实例缺省不透明深色 (23,23,24,255)；<b>alpha=0 表示不填充/不清屏</b>（UI 透出底层游戏画面）；子视口缺省透明。<code>viewport.id</code>（P0-74⑥）：画布代码引用，宿主 <code>FindControl(id)</code> 可定位根画布。</p>
 
 <h2>5.6.4 运行时切换</h2>
 
@@ -92,7 +94,7 @@ ui-&gt;SetViewportScaleMode(2);</code></pre>
 
 <ul>
   <li><code>SetViewportAnchor(ax, ay)</code> — 手动锚点偏移（增量叠加）。fit 下配合居中定位；off 模式下可用作手动平移；</li>
-  <li><code>SetViewportBackgroundColor(r, g, b, a)</code> — 视口背景色（RGBA8888，默认透明=不填充）。fit 的等比黑边区域在渲染时以该色填充（clip 范围内）；stretch 铺满无黑边。</li>
+  <li><code>SetViewportBackgroundColor(r, g, b, a)</code> — 视口背景色（RGBA8888，默认透明=不填充；布局 JSON 等价键 <code>viewport.background</code>）。fit 的等比黑边区域在渲染时以该色填充（clip 范围内）；stretch 铺满无黑边。</li>
 </ul>
 
 <h2>5.6.6 字号随画布缩放</h2>

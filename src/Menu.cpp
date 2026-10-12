@@ -161,10 +161,16 @@ void MenuItem::draw() {
             GET_RENDERDEVICE->fillRect(drawRect);
         }
         const bool hovered = panel && panel->isItemHovered(this);
-        SColor itemColor = (!getEnable())
-            ? (panel ? panel->getItemDisabledTextColor() : MenuColors::ITEM_DISABLED)
-            : (hovered && panel ? panel->getItemHoverTextColor()
-                                : (panel ? panel->getItemTextColor() : MenuColors::ITEM_TEXT));
+        SColor itemColor;
+        if (m_hasTextColor) {   // P0-72④：item 显式文本四态 → 面板级回退
+            itemColor = !getEnable() ? m_itemTextColor.getDisabled()
+                      : (hovered ? m_itemTextColor.getHover() : m_itemTextColor.getNormal());
+        } else {
+            itemColor = (!getEnable())
+                ? (panel ? panel->getItemDisabledTextColor() : MenuColors::ITEM_DISABLED)
+                : (hovered && panel ? panel->getItemHoverTextColor()
+                                    : (panel ? panel->getItemTextColor() : MenuColors::ITEM_TEXT));
+        }
         SColor shadowColor = panel
             ? (!getEnable() ? panel->getItemTextShadowState().getDisabled()
                             : (hovered ? panel->getItemTextShadowState().getHover()
@@ -242,7 +248,7 @@ bool MenuItem::handleEvent(shared_ptr<Event> event) {
 }
 
 void MenuItem::closeMenuChain() {
-    // 向上查找MenuPanel或MenuBar，关闭整个菜单链
+    // 向上查找MenuPanel或MenuBar，关闭整个菜单链（离线/单测路径：面板父级为 bar 时天然命中）
     Control* p = getParent();
     while (p) {
         auto panel = dynamic_cast<MenuPanel*>(p);
@@ -259,6 +265,17 @@ void MenuItem::closeMenuChain() {
             return;
         }
         p = p->getParent();
+    }
+    // P0-88：打开态父链经 bench 断裂（attachMenuPanel setParent(bench)）→ owner 背指针兜底
+    // （祖先循环取最近 MenuPanel 的 ownerBar；含子菜单链：item→subPanel→item→panel→bench）
+    for (Control* q = getParent(); q != nullptr; q = q->getParent()) {
+        if (auto* panel = dynamic_cast<MenuPanel*>(q)) {
+            if (auto bar = panel->ownerBar()) {
+                bar->closeAllMenus();
+                bar->exitMenuMode();
+                return;
+            }
+        }
     }
 }
 
@@ -415,6 +432,7 @@ void MenuPanel::addItem(shared_ptr<MenuItem> item) {
     else item->setMenuFont(m_font, m_fontSize);
     m_items.push_back(item);
     if (getContext()) item->setContext(getContext());
+    if (item->getSubMenu()) item->getSubMenu()->setOwnerBar(ownerBar());   // P0-88：先建后挂兜底
     recalculateSize();
 }
 
@@ -560,6 +578,13 @@ shared_ptr<MenuItem> MenuPanel::getItemAt(float x, float y) {
     return nullptr;
 }
 
+void MenuPanel::setOwnerBar(const std::shared_ptr<MenuBar>& bar) {
+    m_ownerBar = bar;
+}
+std::shared_ptr<MenuBar> MenuPanel::ownerBar() const {
+    return m_ownerBar.lock();
+}
+
 void MenuPanel::setOpenSubMenu(shared_ptr<MenuPanel> panel) {
     if (m_openSubMenu == panel) return;
 
@@ -569,6 +594,7 @@ void MenuPanel::setOpenSubMenu(shared_ptr<MenuPanel> panel) {
     }
     m_openSubMenu = panel;
     if (m_openSubMenu) {
+        m_openSubMenu->setOwnerBar(ownerBar());   // P0-88：子菜单 owner 传播（多层递归）
         m_openSubMenu->show();
     }
 }
@@ -672,7 +698,41 @@ int MenuPanel::setColorProperty(const char* prop, SColor color) {   // P0-26：�
     if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { m_textShadowColor.setNormal(color); return 1; }
+    // P0-72④：item 级颜色（item-id 定向；item-text 单态=normal）
+    if (strcmp(prop, PropertyNames::kItemText) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item) return 0;
+        StateColor sc = item->getTextStateColor();
+        sc.setNormal(color);
+        item->setTextStateColor(sc);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item) return 0;
+        item->setBackgroundColor(color);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kItemHoverBackground) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item) return 0;
+        item->setHoverBackgroundColor(color);
+        return 1;
+    }
     return ControlImpl::setColorProperty(prop, color);
+}
+
+int MenuPanel::setStateColorProperty(const char* prop, StateColor stateColor) {   // P0-72④：item 定向四态
+    auto item = getItemById(m_itemTargetId);
+    if (!item) return 0;
+    if (strcmp(prop, PropertyNames::kItemText) == 0) { item->setTextStateColor(stateColor); return 1; }
+    return ControlImpl::setStateColorProperty(prop, stateColor);
+}
+int MenuPanel::getStateColorProperty(const char* prop, StateColor& out) {   // P0-72④
+    auto item = getItemById(m_itemTargetId);
+    if (!item) return 0;
+    if (strcmp(prop, PropertyNames::kItemText) == 0) { out = item->getTextStateColor(); return 1; }
+    return ControlImpl::getStateColorProperty(prop, out);
 }
 
 int MenuPanel::getColorProperty(const char* prop, SColor& out) {
@@ -683,6 +743,32 @@ int MenuPanel::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextHover) == 0)   { out = m_hoverTextColor;    return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ out = m_disabledTextColor; return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { out = m_textShadowColor.getNormal(); return 1; }
+    // P0-74④：合并读回补齐（此前缺失 → 基类兜底读到未同步成员）
+    if (strcmp(prop, PropertyNames::kStateDisabled) == 0){ out = m_disabledBgColor;      return 1; }
+    if (strcmp(prop, PropertyNames::kBorderHover) == 0)  { out = m_hoverBorderColor;     return 1; }
+    if (strcmp(prop, PropertyNames::kBorderDisabled) == 0){ out = m_disabledBorderColor; return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)   { out = m_textShadowColor.getHover();    return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0) { out = m_textShadowColor.getPressed();  return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0){ out = m_textShadowColor.getDisabled(); return 1; }
+    // P0-72④：item 级颜色读回（item-id 定向）
+    if (strcmp(prop, PropertyNames::kItemText) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item) return 0;
+        out = item->getTextStateColor().getNormal();
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kItemBackground) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item || !item->hasBackground()) return 0;
+        out = item->getBackgroundColor();
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kItemHoverBackground) == 0) {
+        auto item = getItemById(m_itemTargetId);
+        if (!item || !item->hasHoverBackground()) return 0;
+        out = item->getHoverBackgroundColor();
+        return 1;
+    }
     return ControlImpl::getColorProperty(prop, out);
 }
 
@@ -699,6 +785,7 @@ int MenuPanel::getBoolProperty(const char* prop, int& out) {
 int MenuPanel::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { m_shadowOffset.x = value; return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { m_shadowOffset.y = value; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowRadius) == 0)  { if (value >= 0.0f) m_shadowRadius = value; return 1; }   // P0-72①
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { setItemHeightRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -713,6 +800,7 @@ int MenuPanel::setFloatProperty(const char* prop, float value) {
 int MenuPanel::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowRadius) == 0)  { out = m_shadowRadius; return 1; }   // P0-72①
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { out = m_heightRatio; return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -794,6 +882,7 @@ void MenuPanel::closeWithChildren() {
 }
 
 void MenuPanel::drawShadow() {
+    if (m_shadowRadius <= 0.0f) return;   // P0-77①：r#0 = 禁用面板投影
     SRect drawRect = getDrawRect();
 
     // 使用GraphTool绘制阴影
@@ -806,7 +895,7 @@ void MenuPanel::drawShadow() {
 
     // 绘制阴影矩形（偏移+模糊区域）
     float offset = MenuColors::PANEL_SHADOW_OFFSET;
-    float blur = MenuColors::PANEL_SHADOW_BLUR;
+    float blur = m_shadowRadius;   // P0-72①：阴影半径可配（缺省 = PANEL_SHADOW_BLUR）
     dc.drawRoundedRect(
         ::SRect(drawRect.left + offset - blur/2,
                         drawRect.top + offset - blur/2,
@@ -859,10 +948,16 @@ void MenuPanel::draw() {
             GET_RENDERDEVICE->setDrawColor(m_separatorColor);
             GET_RENDERDEVICE->fillRect(lineRect);
         } else {
+            SRect itemRect = item->getDrawRect();
+            SRect bgRect(drawRect.left, itemRect.top, drawRect.width, itemRect.height);
+            // P0-72④：item 显式背景；悬停时 item 显式 hover → 面板 hover 回退
+            if (item->hasBackground()) {
+                GET_RENDERDEVICE->setDrawColor(item->getBackgroundColor());
+                GET_RENDERDEVICE->fillRect(bgRect);
+            }
             if ((int)i == m_hoveredIndex) {
-                SRect itemRect = item->getDrawRect();
-                SRect bgRect(drawRect.left, itemRect.top, drawRect.width, itemRect.height);
-                GET_RENDERDEVICE->setDrawColor(m_hoverColor);
+                GET_RENDERDEVICE->setDrawColor(item->hasHoverBackground() ? item->getHoverBackgroundColor()
+                                                                          : m_hoverColor);
                 GET_RENDERDEVICE->fillRect(bgRect);
             }
             item->draw();
@@ -919,6 +1014,8 @@ bool MenuPanel::handleEvent(shared_ptr<Event> event) {
             }
             return true;
         }
+        // P0-82：指针移出面板 → 清 item 悬停（子菜单已在上方优先消费；此处未命中含"离开子菜单"）
+        if (event->m_type == EventType::MouseMove) setHoveredIndex(-1);
     }
     return false;
 }
@@ -1048,10 +1145,34 @@ void MenuBar::addMenu(const string& caption, shared_ptr<MenuPanel> panel) {
     entry.panel->setFontSize(m_menuTextSize);
     entry.panel->setItemHeightRatio(m_itemHeightRatio);
     entry.panel->hide();
+    entry.panel->setOwnerBar(std::dynamic_pointer_cast<MenuBar>(getThis()));   // P0-88：owner 挂载单点
     if (getContext()) entry.panel->setContext(getContext());
 
+    applyStateToPanel(panel);   // P0-72③：bar 当前状态回放到新面板（重建菜单保持色/字）
     m_entries.push_back(std::move(entry));
     layoutEntries();
+}
+
+// P0-72③：bar 状态 → 面板（addMenu 与各 setter 共用口径）
+void MenuBar::applyStateToPanel(const shared_ptr<MenuPanel>& panel) {
+    if (!panel) return;
+    panel->setColorProperty(PropertyNames::kBackground,     m_bgColor);
+    panel->setColorProperty(PropertyNames::kStateHover,     m_hoverBgColor);
+    panel->setColorProperty(PropertyNames::kStateDisabled,  m_disabledBgColor);
+    panel->setColorProperty(PropertyNames::kBorder,         m_borderColor);
+    panel->setColorProperty(PropertyNames::kBorderHover,    m_hoverBorderColor);
+    panel->setColorProperty(PropertyNames::kBorderDisabled, m_disabledBorderColor);
+    panel->setColorProperty(PropertyNames::kText,           m_textColor);
+    panel->setColorProperty(PropertyNames::kTextHover,      m_hoverTextColor);
+    panel->setColorProperty(PropertyNames::kTextDisabled,   m_disabledTextColor);
+    panel->setTextShadowStateColor(m_textShadowColor);
+    panel->setFontSize(m_menuTextSize);
+    panel->setFontName(m_fontName);
+    panel->setItemHeightRatio(m_itemHeightRatio);
+    panel->setBoolProperty(PropertyNames::kShadow, m_shadowEnabled ? 1 : 0);
+    panel->setFloatProperty(PropertyNames::kShadowOffsetX, m_shadowOffset.x);
+    panel->setFloatProperty(PropertyNames::kShadowOffsetY, m_shadowOffset.y);
+    panel->setFloatProperty(PropertyNames::kShadowRadius,  m_panelShadowRadius);
 }
 
 shared_ptr<MenuPanel> MenuBar::getMenuPanel(int index) const {
@@ -1060,12 +1181,19 @@ shared_ptr<MenuPanel> MenuBar::getMenuPanel(int index) const {
 }
 
 void MenuBar::removeMenu(const string& caption) {
+    detachMenu(caption);
+}
+
+// P0-69①：摘除原语——返回被摘除的面板（未找到 nullptr）；removeMenu 复用
+shared_ptr<MenuPanel> MenuBar::detachMenu(const string& caption) {
     auto it = std::find_if(m_entries.begin(), m_entries.end(),
         [&caption](const MenuEntry& e) { return e.caption == caption; });
-    if (it != m_entries.end()) {
-        m_entries.erase(it);
-        layoutEntries();
-    }
+    if (it == m_entries.end()) return nullptr;
+    auto panel = it->panel;
+    m_entries.erase(it);
+    if (panel) panel->hide();   // 防摘除时下拉处于展开态残留
+    layoutEntries();
+    return panel;
 }
 
 void MenuBar::layoutEntries() {
@@ -1154,10 +1282,14 @@ void MenuBar::attachMenuPanel(int index) {
         SRect barDraw = getDrawRect();
         float sx = getScaleXX(), sy = getScaleYY();
         SRect logicSize = entry.panel->getRect();
-        // 绝对坐标 = MenuBar 绘制矩形 + hitRect×复合缩放（hitRect 为菜单栏局部逻辑坐标）
+        // P0-71①：面板父级为 bench（画布局部域），定位须把全局/窗口域目标换算回 bench 局部
+        // （anchor + 根复合反查，与 Popup::computeTargetRect 同公式）；主实例 anchor=0、
+        // benchScale=1 时与旧式逐位等价；hitRect 为菜单栏局部逻辑坐标，×复合后同样除以根复合
+        float bsx = bench->getScaleXX(), bsy = bench->getScaleYY();
+        SPoint anchor = bench->mapViewportToCanvas(SPoint(barDraw.left, barDraw.top));
         entry.panel->setRect(SRect(
-            barDraw.left + entry.hitRect.left * sx,
-            barDraw.top + (entry.hitRect.top + entry.hitRect.height) * sy,
+            anchor.x + ((bsx != 0.0f) ? entry.hitRect.left * sx / bsx : 0.0f),
+            anchor.y + ((bsy != 0.0f) ? (entry.hitRect.top + entry.hitRect.height) * sy / bsy : 0.0f),
             logicSize.width,
             logicSize.height));
         entry.panel->show();
@@ -1305,6 +1437,10 @@ int MenuBar::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_hoverTextColor;     return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_disabledTextColor;  return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
+    // P0-74④：合并读回补齐（shadow 四态）
+    if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)   { out = m_textShadowColor.getHover();    return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0) { out = m_textShadowColor.getPressed();  return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0){ out = m_textShadowColor.getDisabled(); return 1; }
     return ControlImpl::getColorProperty(prop, out);
 }
 
@@ -1329,7 +1465,14 @@ int MenuBar::setFloatProperty(const char* prop, float value) {
     }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { setItemHeightRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kValue) == 0)           { setFontSize(value);        return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)        { setFontSize(value);        return 1; }   // P0-72：font-size 属性直通（与 JSON/schema 同键）
     if (strcmp(prop, PropertyNames::kBarHeight) == 0)       { setBarHeight(value);       return 1; }
+    if (strcmp(prop, PropertyNames::kShadowRadius) == 0) {   // P0-72①③：面板阴影半径（bar 存值 + 传播）
+        if (value < 0.0f) return 0;
+        m_panelShadowRadius = value;
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setFloatProperty(prop, value);
+        return 1;
+    }
     return ControlImpl::setFloatProperty(prop, value);
 }
 
@@ -1370,8 +1513,15 @@ int MenuBar::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { out = m_itemHeightRatio; return 1; }
     if (strcmp(prop, PropertyNames::kValue) == 0)           { out = m_menuTextSize;    return 1; }
+    if (strcmp(prop, PropertyNames::kFontSize) == 0)        { out = m_menuTextSize;    return 1; }   // P0-72：font-size 读回
     if (strcmp(prop, PropertyNames::kBarHeight) == 0)       { out = m_barHeight;       return 1; }
     return ControlImpl::getFloatProperty(prop, out);
+}
+
+int MenuBar::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kHoveredIndex) == 0) { out = m_hoveredIndex; return 1; }   // P0-82
+    if (strcmp(prop, PropertyNames::kActiveIndex) == 0)  { out = m_activeIndex;  return 1; }   // P0-88 只读
+    return ControlImpl::getIntProperty(prop, out);
 }
 
 int MenuBar::getEnumProperty(const char* prop, const char*& out) {
@@ -1484,13 +1634,13 @@ bool MenuBar::handleEvent(shared_ptr<Event> event) {
         }
 
         if (event->m_type == EventType::MouseMove) {
+            // P0-82：两种模式均更新悬停索引（-1 自然清除；消除展开后来源项残留底色）
+            m_hoveredIndex = index;
             if (m_menuMode) {
                 if (index >= 0 && index != m_activeIndex) {
                     switchMenu(index);
                 }
-                return true;
-            } else {
-                m_hoveredIndex = index;
+                return true;   // 仅菜单模式消费（原语义）；非菜单模式落入下方 drawRect 判定
             }
         }
 
@@ -1502,6 +1652,12 @@ bool MenuBar::handleEvent(shared_ptr<Event> event) {
         }
     }
     return false;
+}
+
+// P0-82：指针离开栏（帧级/跨控件路径）清 per-item 悬停；不退出菜单模式（展开保持标准行为）
+void MenuBar::onMouseLeave(float x, float y) {
+    ControlImpl::onMouseLeave(x, y);
+    m_hoveredIndex = -1;
 }
 
 bool MenuBar::isContainsPoint(float x, float y) {

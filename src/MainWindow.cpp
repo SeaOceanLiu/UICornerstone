@@ -9,8 +9,7 @@
 // ============================================================
 MainWindow::MainWindow(UIContext* ctx):
     m_context(ctx),
-    m_resourceProvider(ResourceProvider::createFilesystem(
-        (ctx && !ctx->resourceRoot.empty()) ? ctx->resourceRoot : ConstDef::pathPrefix.string())),
+    m_resourceProvider(nullptr),   // P0-78：构造体内建 MemoryResourceProvider + 文件系统回退
     m_size({INITIAL_WIDTH, INITIAL_HEIGHT}),
     m_pos({INITIAL_POSX, INITIAL_POSY}),
     m_displayWidth(0),
@@ -20,6 +19,13 @@ MainWindow::MainWindow(UIContext* ctx):
     m_nextRepeatTick(0),
     m_lastAction(nullptr)
 {
+    // P0-78：顶层实例改内存 provider（布局 resourceProviders 挂载生效）+ 文件系统回退
+    {
+        auto mem = std::make_unique<MemoryResourceProvider>();
+        mem->setFilesystemFallback((ctx && !ctx->resourceRoot.empty()) ? ctx->resourceRoot
+                                                                       : ConstDef::pathPrefix.string());
+        m_resourceProvider = std::move(mem);
+    }
     Window* w = getWindow();
     if (w) {
         m_size = w->getSize();

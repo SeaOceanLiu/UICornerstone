@@ -367,7 +367,7 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
     }
 
     if (event->m_type == EventType::TextInput) {
-        if (m_focused) {
+        if (m_focused && !m_readOnly) {   // P0-83：只读禁输入
             std::string data(event->textInput.text);
             std::string filtered;
             for (char c : data) {
@@ -406,13 +406,14 @@ bool EditBox::handleEvent(shared_ptr<Event> event) {
                 copy();
                 return true;
             } else if (key.keycode == KeyCode::V) {
-                paste();
+                if (!m_readOnly) paste();   // P0-83
                 return true;
             } else if (key.keycode == KeyCode::X) {
-                cut();
+                if (!m_readOnly) cut();     // P0-83
                 return true;
             }
         } else if (key.keycode == KeyCode::Backspace) {
+            if (m_readOnly) return true;   // P0-83
             if (hasSelection()) {
                 deleteSelectedText();
             } else if (m_cursorPosition > 0 && !m_text.empty()) {
@@ -633,6 +634,7 @@ void EditBox::copy() {
 }
 
 void EditBox::cut() {
+    if (m_readOnly) return;   // P0-83
     if (!hasSelection() || m_passwordMode) return;
 
     copy();
@@ -640,6 +642,7 @@ void EditBox::cut() {
 }
 
 void EditBox::paste() {
+    if (m_readOnly) return;   // P0-83
     InputBackend* ib = getInputBackend();
     if (!ib) return;
     std::string text = ib->getClipboardText();
@@ -721,6 +724,7 @@ bool EditBox::beforeEventHandlingWatcher(shared_ptr<Event> event) {
 // ── Property system overrides ──
 int EditBox::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kPasswordMode) == 0) { setPasswordMode(value != 0); return 1; }
+    if (strcmp(prop, PropertyNames::kReadOnly) == 0)     { setReadOnly(value != 0);     return 1; }   // P0-83
     return ControlImpl::setBoolProperty(prop, value);
 }
 int EditBox::setIntProperty(const char* prop, int value) {
@@ -753,6 +757,7 @@ int EditBox::setEnumProperty(const char* prop, const char* value) {
     return ControlImpl::setEnumProperty(prop, value);
 }
 int EditBox::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kReadOnly) == 0) { out = m_readOnly ? 1 : 0; return 1; }   // P0-83
     if (strcmp(prop, PropertyNames::kPasswordMode) == 0) { out = m_passwordMode ? 1 : 0; return 1; }
     return ControlImpl::getBoolProperty(prop, out);
 }

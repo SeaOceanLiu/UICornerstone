@@ -127,6 +127,17 @@ public:
     SColor getBoxBorderColor();
 
     // ── Property system overrides ──
+    // P0-76：文本族转发（JSON/CABI 写路径 → 基类 + caption label 双同步）
+    void setTextStateColor(StateColor stateColor) override;
+    void setTextShadowStateColor(StateColor stateColor) override;
+    void setTextNormalStateColor(SColor color) override;
+    void setTextHoverStateColor(SColor color) override;
+    void setTextPressedStateColor(SColor color) override;
+    void setTextDisabledStateColor(SColor color) override;
+    void setTextShadowNormalStateColor(SColor color) override;
+    void setTextShadowHoverStateColor(SColor color) override;
+    void setTextShadowPressedStateColor(SColor color) override;
+    void setTextShadowDisabledStateColor(SColor color) override;
     int setColorProperty(const char* prop, SColor color) override;
     int setBoolProperty(const char* prop, int value) override;
     int setIntProperty(const char* prop, int value) override;

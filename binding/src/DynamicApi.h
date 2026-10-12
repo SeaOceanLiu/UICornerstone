@@ -84,6 +84,7 @@ struct Api {
     UIControlHandle (*fnCreateMenuPanel)(UIInstance, float, float) = nullptr;
     UIControlHandle (*fnCreateMenuItem)(UIInstance, const char*, int, float, float) = nullptr;
     void (*fnMenuBarAddMenu)(UIInstance, UIControlHandle, const char*, UIControlHandle) = nullptr;
+    int (*fnMenuBarRemoveMenu)(UIInstance, UIControlHandle, const char*) = nullptr;   // P0-69
     void (*fnMenuPanelAddItem)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
     void (*fnMenuPanelAddSeparator)(UIInstance, UIControlHandle) = nullptr;
     void (*fnMenuItemSetSubMenu)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
@@ -147,6 +148,7 @@ struct Api {
     int (*fnContextMenuShow)(UIInstance, UIControlHandle, float, float) = nullptr;
     int (*fnContextMenuClose)(UIInstance, UIControlHandle) = nullptr;
     int (*fnTabAddPage)(UIInstance, UIControlHandle, const char*) = nullptr;
+    int (*fnTabRemovePage)(UIInstance, UIControlHandle, int) = nullptr;   // P0-69
     int (*fnTabSetPage)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnTabSetTitle)(UIInstance, UIControlHandle, int, const char*) = nullptr;
     int (*fnTabSetTabLeadingControl)(UIInstance, UIControlHandle, int, void*) = nullptr;
@@ -209,6 +211,7 @@ struct Api {
     void (*fnGetRect)(UIInstance, UIControlHandle, float*, float*, float*, float*) = nullptr;
     void (*fnAddChildControl)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
     UIControlHandle (*fnGetRoot)(UIInstance) = nullptr;   // P0-61
+    int (*fnDebug_ValidateHandle)(UIInstance, UIControlHandle) = nullptr;   // P0-84c
     int  (*fnRemoveChild)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;   // P0-50
     void (*fnDestroyControl)(UIInstance, UIControlHandle) = nullptr;
     const char* (*fnGetControlId)(UIInstance, UIControlHandle) = nullptr;

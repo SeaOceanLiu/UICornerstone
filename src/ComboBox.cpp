@@ -155,8 +155,9 @@ bool ComboBox::handleEvent(shared_ptr<Event> event)
 
     // 只读模式：拦截文本输入，防止落到 EditBox::handleEvent 写入文字
     // （EditBox 仅检查 m_focused，不检查可编辑性）
+    // P0-85：仅自身聚焦时消费——未聚焦放行链上其它控件（防同容器逆序链吞掉聚焦 EditBox 的输入）
     if (!m_editable && event->m_type == EventType::TextInput) {
-        return true;
+        return getFocused();
     }
 
     if (event->m_type == EventType::MouseDown &&

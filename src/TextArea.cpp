@@ -13,7 +13,7 @@ TextArea::TextArea(Control *parent, SRect rect, float xScale, float yScale)
     , m_lineHeight(20)
     , m_vScrollBar(nullptr)
     , m_hScrollBar(nullptr)
-    , m_autoScroll(true)
+    , m_autoScroll(false)   // P0-68：缺省编辑式（光标跟随）；日志式显式设 true
     , m_updatingScrollBar(false)
     , m_lineHeightCustom(false)
     , m_lastFontForLineHeight(nullptr)
@@ -637,7 +637,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (!m_enable || !m_visible) return false;
 
     if (event->m_type == EventType::TextInput) {
-        if (m_focused) {
+        if (m_focused && !isReadOnly()) {   // P0-83：只读禁输入（继承 EditBox 只读）
             std::string text(event->textInput.text);
             std::string filtered;
             for (char c : text) {
@@ -647,6 +647,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
             }
             if (!filtered.empty()) {
                 insertText(filtered);
+                ensureCursorVisible();   // P0-70①：显式纵向跟随（insertText 内已调；防御性对齐其它分支）
             }
             ensureCursorHorizontalVisible();
             return true;
@@ -660,6 +661,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
     if (event->m_type == EventType::KeyDown) {
         const auto& keyData = event->keyEvent;
         if (keyData.keycode == KeyCode::Return || keyData.keycode == KeyCode::KPEnter) {
+                if (isReadOnly()) return true;   // P0-83
                 int oldCursorPos = m_cursorPosition;
 
                 std::string newText = m_text;
@@ -837,6 +839,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     return true;
                 }
                 if (keyData.keycode == KeyCode::V) {
+                    if (isReadOnly()) return true;   // P0-83
                     paste();
                     rebuildLines();
                     updateVScrollBar();
@@ -845,6 +848,7 @@ bool TextArea::handleEvent(shared_ptr<Event> event) {
                     return true;
                 }
                 if (keyData.keycode == KeyCode::X) {
+                    if (isReadOnly()) return true;   // P0-83
                     cut();
                     rebuildLines();
                     updateVScrollBar();
@@ -1431,6 +1435,10 @@ void TextArea::setWordWrap(bool enable) {
     updateHScrollBar();
 }
 
+void TextArea::setAutoScroll(bool enable) {
+    m_autoScroll = enable;
+}
+
 void TextArea::setLineHeight(int height) {
     m_lineHeightCustom = true;
     m_lineHeight = height;
@@ -1472,6 +1480,7 @@ void TextArea::setOnTextChangedHandler(OnTextChangedHandler handler) {
 // ── Property system overrides ──
 int TextArea::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kWordWrap) == 0) { setWordWrap(value != 0); return 1; }
+    if (strcmp(prop, PropertyNames::kAutoScroll) == 0) { setAutoScroll(value != 0); return 1; }
     return EditBox::setBoolProperty(prop, value);
 }
 int TextArea::setIntProperty(const char* prop, int value) {
@@ -1486,6 +1495,7 @@ int TextArea::setFloatProperty(const char* prop, float value) {
 }
 int TextArea::getBoolProperty(const char* prop, int& out) {
     if (strcmp(prop, PropertyNames::kWordWrap) == 0) { out = m_wordWrap ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kAutoScroll) == 0) { out = m_autoScroll ? 1 : 0; return 1; }
     return EditBox::getBoolProperty(prop, out);
 }
 int TextArea::getIntProperty(const char* prop, int& out) {

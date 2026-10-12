@@ -22,6 +22,7 @@ protected:
     int m_selectionStart;
     int m_selectionEnd;
     bool m_passwordMode;
+    bool m_readOnly = false;   // P0-83：只读（禁编辑/插入；保留选择/复制/滚动/光标/焦点）
     char m_passwordChar;
     int32_t m_cursorBlinkTime;
     bool m_cursorVisible;
@@ -80,6 +81,9 @@ public:
 
     void setPasswordMode(bool enable);
     bool isPasswordMode() const { return m_passwordMode; }
+    // P0-83：只读（只读≠禁用——选择/复制/滚动/光标/焦点保留）
+    void setReadOnly(bool ro) { m_readOnly = ro; }
+    bool isReadOnly() const { return m_readOnly; }
     void setPasswordChar(char c);
 
     void selectAll();

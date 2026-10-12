@@ -63,6 +63,7 @@ struct UIContext {
     float canvasWidth = 0.0f;
     float canvasHeight = 0.0f;
     UIInstance activeViewport = nullptr;  // 仅 owner 使用，当前焦点视口；nullptr = 无子视口或焦点在 owner 树
+    bool mouseButtonDown = false;         // P0-67：左键按下状态（子视口鼠标捕获：按下后 Move/Up 锁定 activeViewport）
     FocusManager* focusManager = nullptr;  // 每实例独立焦点管理
 
     // ── 原单例（由 UIContext 持有） ──

@@ -1,0 +1,32 @@
+﻿{
+  "version": "1.0",
+  "controls": [
+    {
+      "type": "panel",
+      "id": "p66Root",
+      "rect": { "x": 0, "y": 0, "w": 520, "h": 300 },
+      "children": [
+        {
+          "type": "list-view",
+          "id": "p66Lv",
+          "rect": { "x": 10, "y": 10, "w": 500, "h": 220 },
+          "columns": [
+            { "title": "Name", "width": 180,
+              "header-font-size": 14, "header-font-name": "maplemono-nf-cn-regular" },
+            { "title": "Value", "width": 140, "header-text": "#ffcc00",
+              "header-background": "#203040", "header-shadow": "#802020",
+              "header-shadow-offset-x": 1, "header-shadow-offset-y": 1 }
+          ],
+          "rows": [
+            { "id": "r1", "cells": [
+              { "text": "alpha", "background-color": "#112233", "hover-background-color": "#445566",
+                "text-color": "#dd2222", "font-size": 13, "font-name": "asul-bold",
+                "text-shadow": "#000000", "text-shadow-offset-x": 2, "text-shadow-offset-y": 2 },
+              { "text": "1", "background-color": { "normal": "#202020", "hover": "#505050" } }
+            ] }
+          ]
+        }
+      ]
+    }
+  ]
+}

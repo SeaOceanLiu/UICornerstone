@@ -60,6 +60,8 @@ public:
     void scrollToBottom();
     void setWordWrap(bool enable);
     bool isWordWrap() const { return m_wordWrap; }
+    void setAutoScroll(bool enable);
+    bool isAutoScroll() const { return m_autoScroll; }
     void setLineHeight(int height);
     int getLineHeight() const { return m_lineHeight; }
     void setScrollBarThickness(float thickness);

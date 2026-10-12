@@ -33,6 +33,8 @@
 <tr><th>键</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>scale-mode</code></td><td>string</td><td><code>off</code>（缺省，画布跟随窗口）/ <code>fit</code>（等比居中）/ <code>stretch</code>（拉伸铺满）</td></tr>
 <tr><td><code>width</code> / <code>height</code></td><td>number</td><td>基准画布尺寸（px）。缺省 = 跟随窗口（viewport）；仅记录于 off 模式，作为 fit/stretch 的适配基准</td></tr>
+<tr><td><code>background</code></td><td>color</td><td>画布底色（P0-74①；<code>#RRGGBB[AA]</code> 或 <code>{r,g,b,a}</code>）。主实例缺省不透明深色 (23,23,24,255)；<b>alpha=0 表示不填充/不清屏</b>（UI 透出底层游戏画面）；子视口缺省透明</td></tr>
+<tr><td><code>id</code></td><td>string</td><td>画布代码引用（P0-74⑥）：宿主经 <code>FindControl(id)</code> / <code>GetRoot</code> 定位根画布</td></tr>
 </table>
 
 <h2>6.2 控件通用键</h2>
@@ -111,7 +113,7 @@
 <pre><code>{ "type":"edit-box", "id":"nameEdit",
   "rect":{"x":110,"y":20,"w":250,"h":30},
   "placeholder":"Please input your name", "text":"", "editable":true,
-  "password-mode":false, "password-char":"●",
+  "password-mode":false, "password-char":"●", "read-only":false,
   "font":{"size":16},
   "events":{"onTextChanged":"onNameChanged","onEnter":"onNameEnter"} }</code></pre>
 
@@ -147,11 +149,14 @@
 <p>顶层用法（缺省）：菜单栏全宽贴顶（挂到 Bench 时自动布置）。容器内用法（v1.1.1）：作为 panel / v-flow 子项时挂入即自动切换手动定位、参与引擎重排，无需 <code>manual-position</code>。</p>
 <pre><code>{ "type":"menu-bar", "id":"mainMenu",
   "font":{"size":16}, "bar-height":32,
-  "menus":[ { "caption":"文件(F)",
+  "menus":[ { "caption":"文件(F)", "shadow-radius":6,
       "items":[ { "caption":"新建","shortcut":"Ctrl+N","events":{"onClick":"onMenuNew"} },
-                { "caption":"另存为","checked":false },
+                { "caption":"另存为","checked":false,
+                  "text-color":{"normal":"#DDDDDDFF","hover":"#FFFFFFFF"},
+                  "background-color":{"normal":"#2A2A2AFF","hover":"#3A3A3AFF"} },
                 { "caption":"-", "type":"separator" },
                 { "caption":"子菜单", "items":[ { "caption":"子项","events":{"onClick":"onSub"} } ] } ] } ] }</code></pre>
+<p class="note">menus 行键：<code>font</code>/<code>size</code>/<code>item-height-ratio</code>/<code>shadow-radius</code>（面板级）；items 元素另支持 <code>text-color</code>（字符串=normal / 四态对象）、<code>background-color</code>（字符串或 {normal,hover}）、<code>hover-background-color</code> 别名（P0-72④）。</p>
 
 <h3>numeric-up-down</h3>
 <pre><code>{ "type":"numeric-up-down", "id":"nud",
@@ -224,7 +229,7 @@
 <pre><code>{ "type":"status-bar", "id":"sb", "rect":[0,876,1400,24], "font-size":13,
   "items":[ { "id":"branch","text":"main","icon":"provider:icons/git","menu":"#branchMenu" },
             { "id":"enc","text":"UTF-8","align":"right" } ] }</code></pre>
-<p>属性键：<code>font-size</code> / <code>item-height</code>；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code>。</p>
+<p>属性键：<code>font-size</code> / <code>item-height</code> / <code>hover</code>（控件级悬停反馈色，P0-74⑤）；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code> / <code>text-color</code> / <code>background-color</code> / <code>hover-background-color</code>（独立悬停背景，P0-75）。</p>
 <p><strong>通用字体键（v1.1.1）</strong>：任意控件可声明 <code>font</code>（对象 <code>{name,size,style}</code>）或 <code>font-size</code>；未声明时沿<b>父控件链</b>继承最近显式字体。全链路未声明时回落主题字体。继承细节：仅当祖先显式声明 <code>font.name</code> 时才覆盖子控件默认字体名；父只声明 <code>font-size</code> 时子保留自身默认字体名（如 ListView 默认 <code>HarmonyOS_Sans_SC_Regular</code>）。</p>
 
 <table>
@@ -245,7 +250,7 @@
 <h3>text-area</h3>
 <pre><code>{ "type":"text-area", "id":"notes",
   "rect":{"x":20,"y":432,"w":200,"h":80},
-  "placeholder":"Multi-line...", "text":"", "word-wrap":true,
+  "placeholder":"Multi-line...", "text":"", "word-wrap":true, "auto-scroll":false,
   "font":{"size":12},
   "events":{"onTextChanged":"onNotesChanged"} }</code></pre>
 
@@ -268,6 +273,7 @@
   "font":"maplemono-nf-cn-regular", "size":16
 } ]</code></pre>
 <ul>
+<li><code>hover-background-color</code>：节点独立悬停背景（P0-75；与专用 API 同语义，不影响常态背景）；控件级行悬停/选中底色另见 <code>hover</code> / <code>selected</code> 键（P0-74②）。</li>
 <li><code>leadingControl</code>：行前置控件容器（控件 JSON，复用 <code>type</code> + 控件属性，
 支持 check-box / image 等）。rect 由 TreeView 自适应（高 = 行内文字高度，宽按原始宽高比等比），
 文字缩进 = 无容器时文本缩进，文字被容器让位右移。</li>

@@ -85,8 +85,11 @@ uint32_t LuotiAni::bilinearInterpolation(Surface *surface, float x, float y) {
 
 SharedSurface LuotiAni::getImageFromResource(string resourceId){
     std::string rid = resourceId;
-    if (rid.rfind(PropertyNames::kProviderPrefix, 0) == 0)   // provider: 前缀：剥除后走同一回退链
+    bool explicitProvider = false;
+    if (rid.rfind(PropertyNames::kProviderPrefix, 0) == 0) { // provider: 前缀：剥除后走同一回退链
         rid = rid.substr(strlen(PropertyNames::kProviderPrefix));
+        explicitProvider = true;
+    }
 
     // 1) 资源包优先（既有语义不变；provider null 不再直接 throw，走文件回退——P0-23）
     ResourceProvider* provider = getResourceProvider();
@@ -98,6 +101,10 @@ SharedSurface LuotiAni::getImageFromResource(string resourceId){
         }
     }
 
+    // Q-5（2026-10-08 用户定）：显式 provider 引用未命中 → 日志后走文件回退
+    if (explicitProvider) {
+        Platform::Log("[LuotiAni] provider ref '%s' not found, falling back to file system", rid.c_str());
+    }
     // 2) 文件回退：<exeDir>/assets（jsonc src 实测根）→ <exeDir>（Actor 同款基准，兼容 src 自带 assets/ 前缀）
     const fs::path bases[2] = { ConstDef::pathPrefix, fs::path(Platform::GetBasePath()) };
     for (const auto& base : bases) {
@@ -166,11 +173,28 @@ void LuotiAni::loadFromResource(string resourceId) {
 }
 void LuotiAni::loadAniDesc(fs::path filePath){
     std::string p = filePath.string();
-    if (p.rfind(PropertyNames::kProviderPrefix, 0) == 0) {  // 兜底：任何 fopen 入口先分流
-        loadAniDesc(p.substr(strlen(PropertyNames::kProviderPrefix)));
-        return;
+    bool explicitProvider = false;
+    if (p.rfind(PropertyNames::kProviderPrefix, 0) == 0) {   // provider: 资源引用（P0-79）
+        p = p.substr(strlen(PropertyNames::kProviderPrefix));
+        explicitProvider = true;
     }
-    FILE* stream = fopen(filePath.string().c_str(), "rb");
+    // P0-79：provider 优先（描述与帧加载同口径；挂树后延迟补读走同一入口）
+    ResourceProvider* provider = getResourceProvider();
+    if (provider != nullptr) {
+        auto data = provider->readFile(p);
+        if (data != nullptr && !data->empty()) {
+            m_pJsonFileContent = shared_ptr<char[]>(new char[data->size() + 1]);
+            memcpy(m_pJsonFileContent.get(), data->data(), data->size());
+            m_pJsonFileContent[data->size()] = '\0';
+            parseJsonDesc();
+            return;
+        }
+    }
+    // Q-5（2026-10-08 用户定）：显式 provider 引用未命中 → 日志后走文件回退
+    if (explicitProvider) {
+        Platform::Log("[LuotiAni] provider ref '%s' not found, falling back to file system", p.c_str());
+    }
+    FILE* stream = fopen(p.c_str(), "rb");
     if (!stream) {
         printf("Open aniDesc json file error\n");
         throw "Open aniDesc json file error";

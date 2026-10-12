@@ -1025,7 +1025,12 @@ int ControlImpl::getPtrProperty(const char* prop, void*& out) {
 }
 
 int ControlImpl::setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) {
-    if (!event || !cb) return 0;
+    if (!event) return 0;
+    // P0-86：cb == nullptr = 解绑（erase；原 return 0 语义无调用方依赖）
+    if (!cb) {
+        m_cCallbacks.erase(event);
+        return 1;
+    }
     m_cCallbacks[event] = {cb, userData};
     return 1;
 }

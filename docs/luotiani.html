@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -30,7 +30,7 @@
   "layers": [
     {
       "name": "logo", "type": "image",
-      "src": "images/logo.png",                  // 相对资源根路径
+      "src": "images/logo.png",                  // 相对资源根路径；亦支持 "provider:资源ID"（内存加载）
       "keyFrames": [
         { "frame": 0, "operation": [
           { "type": "translate", "tx": 0, "ty": 0 },
@@ -51,9 +51,9 @@
 <tr><td>缓动</td><td><code>easing</code></td><td><code>linear</code>（默认）/ <code>ease-in</code> / <code>ease-out</code> / <code>ease-in-out</code> / <code>quad</code> / <code>sine</code> / <code>cubic</code> / <code>cubic-bezier(x1,y1,x2,y2)</code></td></tr>
 <tr><td>keyFrames</td><td><code>frame</code></td><td>帧号（第 0 帧关键帧必须存在）</td></tr>
 <tr><td></td><td><code>frameRate</code> / <code>totalFrames</code> / <code>loop</code></td><td>帧率（≠0）、总帧数、循环开关（必填）</td></tr>
-<tr><td></td><td><code>opacity</code> / <code>blendMode</code></td><td>图层级透明度；混合模式 <code>normal / additive / multiply / ...</code></td></tr>
+<tr><td></td><td><code>opacity</code> / <code>blendMode</code></td><td>图层级透明度；混合模式 <code>normal / additive / additive-premultiplied / modulate / blend / blend-premultiplied / multiply</code></td></tr>
 <tr><td>轨迹</td><td><code>path</code></td><td>仅 translate：<code>bezier</code>（c1/c2 控制点）/ <code>parabola</code>（vx,vy 初速）/ <code>catmull-rom</code>（points）</td></tr>
-<tr><td></td><td><code>src</code> / <code>width</code> / <code>height</code></td><td>图片资源路径；显式宽高可拉伸，缺省用贴图原始尺寸</td></tr>
+<tr><td></td><td><code>src</code> / <code>width</code> / <code>height</code></td><td>图片资源路径；显式宽高可拉伸，缺省用贴图原始尺寸。<b>支持 <code>provider:</code> 资源 ID</b>（如 <code>"src": "provider:marker"</code>，经内存 provider 加载；未命中回退文件系统并记录日志——P0-79）</td></tr>
 <tr><td>operation</td><td><code>translate</code> / <code>scale</code> / <code>rotate</code> / <code>opacity</code> / <code>visible</code></td><td><code>{tx,ty}</code> 增量累加 / <code>{sx,sy}</code> 累乘 / <code>{angle,cx,cy}</code> / <code>{opacity 0-100}</code> / <code>{visible}</code></td></tr>
 <tr><td>layer</td><td><code>type</code></td><td><code>image</code>（完整支持）；shape/text 解析支持但烘焙跳过</td></tr>
 <tr><td>overview</td><td><code>view</code></td><td>画布 <code>{width,height}</code>，w/h 传 0 创建时回退到画布尺寸</td></tr>

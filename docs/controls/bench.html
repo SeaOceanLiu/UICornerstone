@@ -36,7 +36,7 @@ BENCH->setOnInitial(callback);     // 资源加载完成回调</code></pre>
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 
-<p>其余继承 Panel/ControlImpl 通用属性（<code>background / border / visible / enabled / transparent</code> 等）。构造时透明，资源加载完成后关闭透明。</p>
+<p>其余继承 Panel/ControlImpl 通用属性（<code>background / border / visible / enabled / transparent</code> 等）。<b>Bench 保持透明</b>（P0-77）：主实例缺省由视口背景填充不透明深色 (23,23,24,255)，子视口缺省透明（画布透出 / 游戏叠加）；画布底色经布局 <code>viewport.background</code> 配置（alpha=0 = 不填充），画布代码引用经 <code>viewport.id</code>（<code>FindControl</code> 可定位，P0-74⑥）。</p>
 
 
 <h2>4.2.3 控件的回调</h2>

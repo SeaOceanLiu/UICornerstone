@@ -287,16 +287,18 @@ void StatusBar::draw(void) {
                 dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
             }
             if (hoverIdx == m_hoveredItem) {   // P0-64：悬停反馈（显式 → 原色；有段 bg → 叠加；无 bg → 实色）
+                // P0-74⑤：回退链——item 显式 hb → 条 colors.background.hover（显式设过）→ "hover" 键 → 缺省
+                SColor hoverSrc = m_bgHoverExplicit ? m_bgColor.getHover() : m_hoverColor;
                 const auto& r = item.hitRect;
                 if (item.hasHoverBackground) {
                     dev->setDrawColor(item.hoverBackground);
                     dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
                 } else if (item.hasBackground) {
-                    dev->setDrawColor(SColor(m_hoverColor.red(), m_hoverColor.green(), m_hoverColor.blue(),
+                    dev->setDrawColor(SColor(hoverSrc.red(), hoverSrc.green(), hoverSrc.blue(),
                                              ConstDef::LIST_HIGHLIGHT_OVERLAY_ALPHA));
                     dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
                 } else {
-                    dev->setDrawColor(m_hoverColor);
+                    dev->setDrawColor(hoverSrc);
                     dev->fillRect(SRect(ox + r.left * sx, oy + r.top * sy, r.width * sx, r.height * sy));
                 }
             }
@@ -426,8 +428,14 @@ void StatusBar::setTextShadowStateColor(StateColor stateColor) {   // P0-26：�
     m_textShadowColor = stateColor;
 }
 
+void StatusBar::setBackgroundStateColor(StateColor stateColor) {   // P0-74⑤：显式 hover 标记（合并写回时仅在变化时置位）
+    if (stateColor.getHover() != m_bgColor.getHover()) m_bgHoverExplicit = true;
+    ControlImpl::setBackgroundStateColor(stateColor);
+}
+
 int StatusBar::setColorProperty(const char* prop, SColor color) {   // P0-26：文本族单态键
     if (strcmp(prop, PropertyNames::kTreeHover) == 0)    { m_hoverColor = color;           return 1; }   // P0-64②：控件级悬停色（通用键 "hover"）
+    if (strcmp(prop, PropertyNames::kStateHover) == 0)   { m_bgColor.setHover(color); m_bgHoverExplicit = true; return 1; }   // P0-74⑤
     if (strcmp(prop, PropertyNames::kText) == 0)         { m_textColor.setNormal(color);   return 1; }
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { m_textColor.setHover(color);    return 1; }
     if (strcmp(prop, PropertyNames::kTextPressed) == 0)  { m_textColor.setPressed(color);  return 1; }

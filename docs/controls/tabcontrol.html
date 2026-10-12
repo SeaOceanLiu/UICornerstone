@@ -99,7 +99,8 @@ UICornerstone_SetEnum(g_inst, tc, "position", "top");</code></pre>
 <tr><td><code>addTab(title, page)</code> / <code>insertTab(index, …)</code> / <code>removeTab(index)</code></td><td>页写（removeTab 钳制 currentIndex）</td></tr>
 <tr><td><code>getTabCount()</code> / <code>getTabs()</code></td><td>页只读访问</td></tr>
 <tr><td><code>setCurrentIndex(i)</code> / <code>getCurrentIndex()</code></td><td>切换（触发 onTabChange + 页面显隐）</td></tr>
-<tr><td><code>setTabText(i, title)</code> / <code>setTabPage(i, page)</code> / <code>setTabLeadingControl(i, ctl)</code></td><td>页内容（触发 relayout）</td></tr>
+<tr><td><code>setTabText(i, title)</code> / <code>setTabPage(i, page)</code> / <code>setTabLeadingControl(i, ctl)</code></td><td>页内容（触发 relayout；setTabPage 替换旧页时全摘除 + 保活）</td></tr>
+<tr><td><code>removeTab(index)</code></td><td>移除页（全摘除：tab/bench 残留清理 + 隐藏；面板保活，句柄有效可再 setTabPage）</td></tr>
 <tr><td><code>setPosition(TabPosition)</code> / <code>getPosition()</code></td><td>四方向（触发 relayout）</td></tr>
 <tr><td><code>setFontSize(px)</code> / <code>getFontSize()</code></td><td>页签字号（重建字体 + relayout）</td></tr>
 <tr><td><code>setOnTabChange(cb)</code></td><td>切换回调 (shared_ptr&lt;TabControl&gt;, int)</td></tr>

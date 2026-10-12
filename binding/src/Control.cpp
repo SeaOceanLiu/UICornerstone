@@ -109,6 +109,12 @@ void Control::CallbackThunk(UIControlHandle ctl, const UIEventData* event, void*
 void Control::SetCallback(const char* event, EventCallback callback) {
     if (!IsValid()) return;
 
+    // P0-86：空 EventCallback = 解绑（传 nullptr 给引擎，语义=erase；不得先建槽防堆积）
+    if (!callback) {
+        UICornerstone::Dyn::API().fnSetCallback(m_state->instance, m_state->handle, event, nullptr, nullptr);
+        return;
+    }
+
     auto slot = std::make_shared<EventCallback>(std::move(callback));
 
     // 注册到 Impl 级注册表（跨 Control 拷贝共享，与 C 端 userData 生命周期一致）

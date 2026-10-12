@@ -296,6 +296,11 @@ Control UICornerstone::FromHandle(UIControlHandle handle) {
     return MakeControl(handle);
 }
 
+int UICornerstone::DebugValidateHandle(Control& ctl) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnDebug_ValidateHandle) return 0;
+    return Dyn::API().fnDebug_ValidateHandle(m_impl->instance, ctl.Handle());
+}
+
 Control UICornerstone::Root() {
     if (!m_impl->instance || !Dyn::API().fnGetRoot) return Control();
     return MakeControl(Dyn::API().fnGetRoot(m_impl->instance));
@@ -485,6 +490,11 @@ bool UICornerstone::ContextMenuClose(Control& menu) {
 }
 
 // ── TabControl 页操作 ──
+int UICornerstone::TabRemovePage(Control& tab, int index) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnTabRemovePage) return 0;
+    return Dyn::API().fnTabRemovePage(m_impl->instance, tab.Handle(), index);
+}
+
 int UICornerstone::TabAddPage(Control& tab, const std::string& title) {
     if (!m_impl->instance || !tab.Handle()) return -1;
     return Dyn::API().fnTabAddPage(m_impl->instance, tab.Handle(), title.c_str());
@@ -587,6 +597,11 @@ bool UICornerstone::SetHandleRectFilter(Control handle, UIHandleRectFilter filte
 bool UICornerstone::SetHandleMoveVisible(Control handle, bool show) {
     if (!m_impl->instance) return false;
     return Dyn::API().fnSetHandleMoveVisible(m_impl->instance, handle.Handle(), show ? 1 : 0) != 0;
+}
+
+int UICornerstone::MenuBarRemoveMenu(Control& bar, const std::string& caption) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnMenuBarRemoveMenu) return 0;
+    return Dyn::API().fnMenuBarRemoveMenu(m_impl->instance, bar.Handle(), caption.c_str());
 }
 
 void UICornerstone::MenuBarAddMenu(Control& bar, const std::string& caption, Control& panel) {

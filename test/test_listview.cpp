@@ -227,6 +227,23 @@ static void runAssertions() {
         g_probe->clearCellStyle(0, 0);
     }
 
+    // P0-66③：粒度方法（精确保留字段；不触发 hasBg 误置）
+    {
+        g_probe->clearCellStyle(0, 0);
+        g_probe->setCellTextColor(0, 0, SColor(200, 30, 30, 255));
+        g_probe->setCellShadow(0, 0, SColor(0, 0, 0, 255), 2.0f, 3.0f);   // 仅阴影（设计器 内容@s#000000 用例）
+        CellStyle csS = g_probe->getCellStyle(0, 0);
+        CHECK(!csS.hasBg, "P0-66③ shadow-only cell hasBg=false (常态不填黑回归修复)");
+        CHECK(csS.shadowEnabled && csS.shadowOffsetX == 2.0f && csS.shadowOffsetY == 3.0f
+              && csS.hasTextColor, "P0-66③ granular setCellShadow preserves fields");
+        g_probe->setCellBackgroundColor(0, 0, SColor(10, 20, 30, 255));
+        CellStyle csB = g_probe->getCellStyle(0, 0);
+        CHECK(csB.hasBg && csB.bgColor.blueByte() == 30 && csB.shadowEnabled, "P0-66③ setCellBackgroundColor (hasBg, 保留阴影)");
+        g_probe->setCellFontSize(0, 0, 15);
+        CHECK(g_probe->getCellStyle(0, 0).fontSize == 15, "P0-66③ setCellFontSize");
+        g_probe->clearCellStyle(0, 0);
+    }
+
     // P0-63②③：字体名 API + hasFontName 稀疏（既有 SetCellStyle 不隐式覆盖字体）
     {
         CellStyle bg2;

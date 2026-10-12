@@ -312,6 +312,10 @@ inline int bridge_setResourceProvider(UIInstance inst, UIResourceProviderHandle 
     auto* ctx = static_cast<UIContext*>(inst);
     if (!ctx) return 0;
     ctx->resourceProvider = static_cast<ResourceProvider*>(h);
+    // P0-80：替换为内存 provider 且其无回退时，继承实例级文件系统回退（引擎侧实现；幂等）
+    if (auto* mem = dynamic_cast<MemoryResourceProvider*>(ctx->resourceProvider); mem != nullptr) {
+        mem->inheritFilesystemFallback(ctx->resourceRoot);
+    }
     return 1;
 }
 

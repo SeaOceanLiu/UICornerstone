@@ -28,8 +28,9 @@ C++ Binding 是 C ABI 的类型安全封装，仅依赖 C ABI 头，跨后端 DL
     std::string windowTitle        = "UICornerstone";
     int windowWidth  = 1024;
     int windowHeight = 768;
+    uint32_t windowFlags = 0;                  // UIWindowFlags 位组合（如 WithWindowFlags(UIWindowFlags::Fullscreen)）
     // 链式：WithBackend / WithBackendSearchPath / WithCoreLibraryDir /
-    //        WithResourceRoot / WithWindow(title, w, h)
+    //        WithResourceRoot / WithWindow(title, w, h) / WithWindowFlags(flags)
 };
 
 static std::unique_ptr&lt;UICornerstone&gt; Create(const Config&amp; config);
@@ -58,6 +59,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>bool LoadLayoutFromFile(const std::string&amp; filePath)</code></td><td>从文件加载布局</td></tr>
 <tr><td><code>bool RegisterResource(const std::string&amp; name, const void* data, size_t len)</code></td><td>拷贝注册内存资源（引擎复制字节，data 用后可释放）；须在 <code>Create</code> 后调用，懒创建 provider 并自动挂载</td></tr>
 <tr><td><code>Control FindControl(const std::string&amp; id)</code></td><td>按 id 查找控件（未找到返回无效句柄）</td></tr>
+<tr><td><code>Control MakeControl(UIControlHandle h)</code></td><td>裸句柄 → Control 包装（回调 userData/GetPtr 场景；无效句柄返回无效 Control）</td></tr>
 <tr><td><code>bool SetControlId(Control ctl, const std::string&amp; id)</code></td><td>给编程式创建的控件设置 id（注册实例 id 表供 FindControl 查询；id 空串移除该控件名下全部 id）</td></tr>
 <tr><td><code>bool SetHandleTarget(Control handle, Control target)</code></td><td>切换手柄附加目标（target 无效 = detach）</td></tr>
 <tr><td><code>bool HandleHitTest(Control handle, float x, float y, int&amp; type)</code></td><td>手柄命中查询（命中返回 true 并写 type 枚举值）</td></tr>
@@ -106,6 +108,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>CreateTreeView(x, y, w, h, xScale, yScale)</code></td><td>TreeView</td></tr>
 <tr><td><code>CreateWinFrame(title, x, y, w, h, xScale, yScale)</code></td><td>WinFrame</td></tr>
 <tr><td><code>MenuBarAddMenu(bar, caption, panel)</code></td><td>组装菜单栏</td></tr>
+<tr><td><code>MenuBarRemoveMenu(bar, caption)</code></td><td>移除菜单（面板保活可再挂载）</td></tr>
 <tr><td><code>MenuItemSetSubMenu(item, panel)</code></td><td>挂子菜单</td></tr>
 <tr><td><code>MenuPanelAddItem(panel, item) / MenuPanelAddSeparator(panel)</code></td><td>组装菜单面板</td></tr>
 </table>
@@ -128,7 +131,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>Control AddChild(Control child)</code></td><td>挂子控件（P0-50：返回 child；自动摘旧父）</td></tr>
 <tr><td><code>bool RemoveChild(Control child)</code></td><td>摘除子控件（P0-50：不销毁，保活可再挂）</td></tr>
 <tr><td><code>void Destroy()</code></td><td>销毁控件</td></tr>
-<tr><td><code>void SetCallback(const char* event, EventCallback)</code></td><td>类型安全事件回调（lambda）</td></tr>
+<tr><td><code>void SetCallback(const char* event, EventCallback)</code></td><td>类型安全事件回调（lambda）；空 <code>EventCallback</code>=解绑（P0-86，传 nullptr 给引擎 erase）</td></tr>
 <tr><td><code>void SetRect(float x, float y, float w, float h)</code></td><td>调整布局矩形</td></tr>
 </table>
 
@@ -257,6 +260,7 @@ auto tc = ui->CreateTabControl(120, 80, 560, 240);
 auto page = ui->CreatePanel(0, 0, 200, 120);
 int i = ui->TabAddPage(tc, u8"主页");
 ui->TabSetPage(tc, i, page);
+ui->TabRemovePage(tc, i);   // 移除页（页保活，句柄可再 setTabPage）
 
 // Shape：多图元
 auto sh = ui->CreateShape(40, 40, 90, 90);
@@ -318,6 +322,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>DebugGetAliveCount()</code></td><td>存活实例数（静态）</td></tr>
 <tr><td><code>DebugGetAliveInstance(index) / DebugGetActiveViewport(instance)</code></td><td>实例巡检（静态）</td></tr>
 <tr><td><code>DebugIsControlFocused(instance, handle)</code></td><td>焦点查询（静态）</td></tr>
+<tr><td><code>DebugValidateHandle(ctl)</code></td><td>句柄归属校验（P0-84c，Release 可用）：1=属于本实例，0=不属于/非法——行/控件构建期自检，防跨实例句柄误用</td></tr>
 <tr><td><code>SetBackendConfig(key, value) / SetBackendConfigBool(key, bool) / GetBackendConfigBool(key, bool&amp;)</code></td><td>后端差异配置（见 12）</td></tr>
 <tr><td><code>uint32_t GetBackendCapabilities() const</code></td><td>能力位（对应 C ABI <code>UICornerstone_GetBackendCapabilities</code>，见 8.1）</td></tr>
 <tr><td><code>bool GetWindowSize(float&amp; w, float&amp; h) const</code></td><td>运行期窗口尺寸（v1.1.1 增）</td></tr>

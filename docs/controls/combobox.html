@@ -16,6 +16,7 @@
 <h1>4.6 ComboBox（下拉选择框）</h1>
 
 <p>ComboBox 是支持<strong>只读 / 可编辑</strong>双模式的下拉选择控件：闭合时显示当前选中项，展开时下拉列表（超出显示滚动条），支持循环切换（↑/↓/滚轮）。继承链：<code>ComboBox → EditBox → ControlImpl → Control</code>。</p>
+<p class="note">P0-85：只读模式对文本输入的拦截**仅在本控件聚焦时生效**（防只读显示文本被写）；未聚焦时放行事件链——同容器内其它聚焦输入框（如属性面板 EditBox）不受影响。</p>
 
 <div class="note">缩放联动：主框文本与下拉列表项共用同一字体（继承 EditBox），置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时字号随复合缩放系数重建。</div>
 

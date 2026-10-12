@@ -145,6 +145,16 @@ bool MemoryResourceProvider::adoptMemory(const std::string& name, void* data, si
     m_impl->lazy.erase(name);
     return true;
 }
+bool MemoryResourceProvider::hasFilesystemFallback() const {
+    return m_impl->delegate != nullptr;
+}
+void MemoryResourceProvider::setFilesystemFallback(const std::string& basePath) {
+    if (!m_impl->delegate) m_impl->delegate.reset(ResourceProvider::createFilesystem(basePath));
+}
+void MemoryResourceProvider::inheritFilesystemFallback(const std::string& resourceRoot) {
+    if (m_impl->delegate) return;   // 幂等（P0-80；空 resourceRoot → "assets"，与 pathPrefix 语义一致）
+    m_impl->delegate.reset(ResourceProvider::createFilesystem(resourceRoot.empty() ? "assets" : resourceRoot));
+}
 void MemoryResourceProvider::mountPath(const std::string& name, const std::string& path,
                                        const std::string& basePath) {
     if (name.empty() || path.empty()) return;
@@ -177,12 +187,16 @@ std::shared_ptr<std::vector<char>> MemoryResourceProvider::readFile(const std::s
         if (buf) m_impl->lazy[name] = buf;
         return buf;
     }
+    // P0-78：文件系统回退（未注册/未挂载键按 delegate basePath 读盘）
+    if (m_impl->delegate) return m_impl->delegate->readFile(name);
     return nullptr;
 }
 bool MemoryResourceProvider::exists(const std::string& path) {
     const std::string name = stripProviderPrefix(path);
     if (m_impl->entries.find(name) != m_impl->entries.end()) return true;
     if (m_impl->paths.find(name) != m_impl->paths.end()) return true;
+    // P0-78：文件系统回退
+    if (m_impl->delegate) return m_impl->delegate->exists(name);
     return false;
 }
 

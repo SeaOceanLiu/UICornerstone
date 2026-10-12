@@ -91,6 +91,31 @@ static UIGetRectFn          uiGetRect              = nullptr;
 static UIGetRootFn          uiGetRoot              = nullptr;
 static UISetCanvasSizeFn    uiSetCanvasSize        = nullptr;
 
+// P0-69：内容类移除 API
+typedef void* (*UICreateMenuBarFn)(UIInstance,float,float,float,float,float,float);
+typedef void* (*UICreateMenuPanelFn)(UIInstance,float,float);
+typedef void* (*UICreateMenuItemFn)(UIInstance,const char*,int,float,float);
+typedef void  (*UIMenuBarAddMenuFn)(UIInstance,void*,const char*,void*);
+typedef int   (*UIMenuBarRemoveMenuFn)(UIInstance,void*,const char*);
+typedef void* (*UICreateTabControlFn)(UIInstance,float,float,float,float,float,float);
+typedef void* (*UICreatePanelFn)(UIInstance,float,float,float,float,float,float);
+typedef void  (*UIMenuPanelAddItemFn)(UIInstance,void*,void*);
+typedef int   (*UITabAddPageFn)(UIInstance,void*,const char*);
+typedef int   (*UITabSetPageFn)(UIInstance,void*,int,void*);
+typedef int   (*UITabRemovePageFn)(UIInstance,void*,int);
+
+static UICreateMenuBarFn        uiCreateMenuBar        = nullptr;
+static UICreateMenuPanelFn      uiCreateMenuPanel      = nullptr;
+static UICreateMenuItemFn       uiCreateMenuItem       = nullptr;
+static UIMenuBarAddMenuFn       uiMenuBarAddMenu       = nullptr;
+static UIMenuBarRemoveMenuFn    uiMenuBarRemoveMenu    = nullptr;
+static UICreateTabControlFn     uiCreateTabControl     = nullptr;
+static UICreatePanelFn          uiCreatePanel          = nullptr;
+static UIMenuPanelAddItemFn     uiMenuPanelAddItem     = nullptr;
+static UITabAddPageFn           uiTabAddPage           = nullptr;
+static UITabSetPageFn           uiTabSetPage           = nullptr;
+static UITabRemovePageFn        uiTabRemovePage        = nullptr;
+
 static HMODULE g_uiDll = nullptr;
 static UIInstance g_inst = nullptr;
 static int g_autoSec = 0;   // auto=<秒>：到时注入 WINDOW_CLOSE 自行退出（无人值守）
@@ -165,6 +190,17 @@ static void loadAllProcs(HMODULE dll) {
     RESOLVE(GetRect);
     RESOLVE(GetRoot);
     RESOLVE(SetCanvasSize);
+    RESOLVE(CreateMenuBar);
+    RESOLVE(CreateMenuPanel);
+    RESOLVE(CreateMenuItem);
+    RESOLVE(MenuBarAddMenu);
+    RESOLVE(MenuBarRemoveMenu);
+    RESOLVE(CreateTabControl);
+    RESOLVE(CreatePanel);
+    RESOLVE(MenuPanelAddItem);
+    RESOLVE(TabAddPage);
+    RESOLVE(TabSetPage);
+    RESOLVE(TabRemovePage);
 #undef RESOLVE
 }
 
@@ -177,6 +213,8 @@ static int runPropertyTests(void) {
     void* scroll = uiFindControl(g_inst, "scrollProp");
     void* combo  = uiFindControl(g_inst, "comboProp");
     void* nud    = uiFindControl(g_inst, "nudProp");
+    void* ta1    = uiFindControl(g_inst, "taProp");
+    void* ta2    = uiFindControl(g_inst, "taProp2");
 
     CHECK(slider != NULL, "FindControl(sliderProp)");
     CHECK(check  != NULL, "FindControl(checkProp)");
@@ -184,6 +222,8 @@ static int runPropertyTests(void) {
     CHECK(scroll != NULL, "FindControl(scrollProp)");
     CHECK(combo  != NULL, "FindControl(comboProp)");
     CHECK(nud    != NULL, "FindControl(nudProp)");
+    CHECK(ta1    != NULL, "FindControl(taProp)");
+    CHECK(ta2    != NULL, "FindControl(taProp2)");
 
     if (!slider) return 1;
 
@@ -568,6 +608,53 @@ static int runPropertyTests(void) {
     CHECK_RET(uiSetInt(g_inst, combo, "selected-index", 2), 1, "ComboBox SetInt(selected-index,2)");
     CHECK(g_comboSelFired == 2 && g_comboSelIdx == 2, "selection-changed fired again on change");
 
+    // P0-68: TextArea auto-scroll
+    printf("\n--- TextArea auto-scroll tests ---\n");
+    {
+        int bv = -1;
+        CHECK_RET(uiGetBool(g_inst, ta1, "auto-scroll", &bv), 1, "TextArea: GetBool(auto-scroll)");
+        CHECK(bv == 0, "TextArea: default auto-scroll == false");
+        CHECK_RET(uiGetBool(g_inst, ta2, "auto-scroll", &bv), 1, "TextArea: GetBool(auto-scroll) json");
+        CHECK(bv == 1, "TextArea: json auto-scroll:true parsed");
+        CHECK_RET(uiSetBool(g_inst, ta1, "auto-scroll", 1), 1, "TextArea: SetBool(auto-scroll,1)");
+        bv = -1; uiGetBool(g_inst, ta1, "auto-scroll", &bv);
+        CHECK(bv == 1, "TextArea: read-back == true");
+        CHECK_RET(uiSetBool(g_inst, ta1, "auto-scroll", 0), 1, "TextArea: SetBool(auto-scroll,0)");
+        bv = -1; uiGetBool(g_inst, ta1, "auto-scroll", &bv);
+        CHECK(bv == 0, "TextArea: read-back == false");
+    }
+
+    // P0-69: 内容类移除 API（MenuBar / TabControl）
+    printf("\n--- Content removal API tests ---\n");
+    {
+        void* bar = uiCreateMenuBar ? uiCreateMenuBar(g_inst, 240, 300, 260, 24, 1.0f, 1.0f) : nullptr;
+        void* panelA = uiCreateMenuPanel ? uiCreateMenuPanel(g_inst, 1.0f, 1.0f) : nullptr;
+        void* itemA = uiCreateMenuItem ? uiCreateMenuItem(g_inst, "Open", 0, 1.0f, 1.0f) : nullptr;
+        CHECK(bar != NULL && panelA != NULL && itemA != NULL, "P0-69: MenuBar/Panel/Item created");
+        if (bar && panelA && itemA) {
+            uiMenuPanelAddItem(g_inst, panelA, itemA);
+            uiMenuBarAddMenu(g_inst, bar, "File", panelA);
+            CHECK_RET(uiMenuBarRemoveMenu(g_inst, bar, "File"), 1, "P0-69: MenuBarRemoveMenu(File) -> 1");
+            CHECK_RET(uiMenuBarRemoveMenu(g_inst, bar, "File"), 0, "P0-69: remove again -> 0");
+            CHECK_RET(uiSetBool(g_inst, panelA, "visible", 0), 1, "P0-69: removed panel handle still valid");
+            uiMenuBarAddMenu(g_inst, bar, "File2", panelA);
+            CHECK_RET(uiMenuBarRemoveMenu(g_inst, bar, "File2"), 1, "P0-69: re-attach via same handle works");
+        }
+
+        void* tab = uiCreateTabControl ? uiCreateTabControl(g_inst, 20, 380, 380, 120, 1.0f, 1.0f) : nullptr;
+        CHECK(tab != NULL, "P0-69: TabControl created");
+        if (tab) {
+            void* page0 = uiCreatePanel ? uiCreatePanel(g_inst, 0, 0, 100, 100, 1.0f, 1.0f) : nullptr;
+            CHECK_RET(uiTabAddPage(g_inst, tab, "P0"), 0, "P0-69: TabAddPage -> 0");
+            CHECK_RET(uiTabSetPage(g_inst, tab, 0, page0), 1, "P0-69: TabSetPage(0, panel)");
+            CHECK_RET(uiTabRemovePage(g_inst, tab, 0), 1, "P0-69: TabRemovePage(0) -> 1");
+            CHECK_RET(uiTabRemovePage(g_inst, tab, 0), 0, "P0-69: remove on empty -> 0");
+            CHECK_RET(uiSetBool(g_inst, page0, "visible", 0), 1, "P0-69: removed page handle still valid");
+            CHECK_RET(uiTabAddPage(g_inst, tab, "P1"), 0, "P0-69: add after removal -> 0 (count back)");
+            CHECK_RET(uiTabSetPage(g_inst, tab, 0, page0), 1, "P0-69: re-attach page via same handle");
+        }
+    }
+
     printf("\n========================================\n");
     printf("Property test results: %d passed, %d failed\n", g_passCount, g_failCount);
     printf("========================================\n");
@@ -663,6 +750,17 @@ static int runTest(const char* shortName, const char* displayName) {
                         "type": "win-frame",
                         "rect": { "x": 240, "y": 110, "w": 260, "h": 150 },
                         "title": "WF shadow test"
+                    },
+                    {
+                        "id": "taProp",
+                        "type": "text-area",
+                        "rect": { "x": 420, "y": 280, "w": 100, "h": 50 }
+                    },
+                    {
+                        "id": "taProp2",
+                        "type": "text-area",
+                        "rect": { "x": 420, "y": 350, "w": 100, "h": 50 },
+                        "auto-scroll": true
                     }
                 ]
             }

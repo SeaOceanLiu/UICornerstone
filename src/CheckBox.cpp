@@ -68,6 +68,48 @@ void CheckBox::captureCaptionState(void) {
     m_enableTextShadow = m_caption->isShadowEnabled();
     m_shadowOffset = m_caption->getShadowOffset();
 }
+// P0-76：文本族转发（与 Button 同口径；caption label 缺失时仅基类）
+void CheckBox::setTextStateColor(StateColor stateColor) {
+    ControlImpl::setTextStateColor(stateColor);
+    if (m_caption != nullptr) m_caption->setTextStateColor(stateColor);
+}
+void CheckBox::setTextShadowStateColor(StateColor stateColor) {
+    ControlImpl::setTextShadowStateColor(stateColor);
+    if (m_caption != nullptr) m_caption->setTextShadowStateColor(stateColor);
+}
+void CheckBox::setTextNormalStateColor(SColor color) {
+    ControlImpl::setTextNormalStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextNormalStateColor(color);
+}
+void CheckBox::setTextHoverStateColor(SColor color) {
+    ControlImpl::setTextHoverStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextHoverStateColor(color);
+}
+void CheckBox::setTextPressedStateColor(SColor color) {
+    ControlImpl::setTextPressedStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextPressedStateColor(color);
+}
+void CheckBox::setTextDisabledStateColor(SColor color) {
+    ControlImpl::setTextDisabledStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextDisabledStateColor(color);
+}
+void CheckBox::setTextShadowNormalStateColor(SColor color) {
+    ControlImpl::setTextShadowNormalStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowNormalStateColor(color);
+}
+void CheckBox::setTextShadowHoverStateColor(SColor color) {
+    ControlImpl::setTextShadowHoverStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowHoverStateColor(color);
+}
+void CheckBox::setTextShadowPressedStateColor(SColor color) {
+    ControlImpl::setTextShadowPressedStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowPressedStateColor(color);
+}
+void CheckBox::setTextShadowDisabledStateColor(SColor color) {
+    ControlImpl::setTextShadowDisabledStateColor(color);
+    if (m_caption != nullptr) m_caption->setTextShadowDisabledStateColor(color);
+}
+
 void CheckBox::createCaption(void){
     if (m_caption != nullptr) {
         return;

@@ -431,6 +431,24 @@ void ListView::setCellHoverBackgroundColor(int row, int col, SColor color) {   /
     cs.hoverBgColor = color;
     cs.hasHoverBg = true;
 }
+void ListView::setCellBackgroundColor(int row, int col, SColor color) {   // P0-66③
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    CellStyle& cs = m_rows[row].cellStyles[col];
+    cs.bgColor = color;
+    cs.hasBg = true;
+}
+void ListView::setCellFontSize(int row, int col, int size) {   // P0-66③
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    m_rows[row].cellStyles[col].fontSize = size;
+}
+void ListView::setCellShadow(int row, int col, SColor color, float offsetX, float offsetY) {   // P0-66③
+    if (row < 0 || row >= getRowCount() || col < 0) return;
+    CellStyle& cs = m_rows[row].cellStyles[col];
+    cs.textShadowColor = color;
+    cs.shadowEnabled = color.alpha() > 0;
+    cs.shadowOffsetX = offsetX;
+    cs.shadowOffsetY = offsetY;
+}
 void ListView::setCellFontName(int row, int col, FontName name) {   // P0-63②
     if (row < 0 || row >= getRowCount() || col < 0) return;
     CellStyle& cs = m_rows[row].cellStyles[col];

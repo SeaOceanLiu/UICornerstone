@@ -44,6 +44,7 @@ UIControlHandle edit = UICornerstone_CreateEditBox(g_inst, 20, 193, 240, 95, 1.0
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular</td><td>字体名（如 <code>harmonyos-sans-sc-regular</code>）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>16</td><td>字号</td></tr>
 <tr><td><code>password-mode</code></td><td><code>kPasswordMode</code></td><td>Bool</td><td>false</td><td>密码模式开关</td></tr>
+<tr><td><code>read-only</code></td><td><code>kReadOnly</code></td><td>Bool</td><td>false</td><td>只读（P0-83）：禁编辑/插入，保留选择/复制/滚动/光标/焦点（TextArea 继承生效）</td></tr>
 <tr><td><code>placeholder</code></td><td><code>kPlaceholder</code></td><td>String</td><td>空</td><td>占位符</td></tr>
 <tr><td><code>text</code></td><td><code>kTextContent</code></td><td>String</td><td>空</td><td>文本内容</td></tr>
 </table>
@@ -94,6 +95,7 @@ edit.SetCallback(PropertyNames::kEventEnter, [](const Event&) {
 UICornerstone_SetString(g_inst, box, "text", "hello");
 UICornerstone_SetString(g_inst, box, "placeholder", "请输入…");
 UICornerstone_SetBool(g_inst, box, "password-mode", 1);
+UICornerstone_SetBool(g_inst, box, "read-only", 1);   // P0-83：只读（禁编辑，可选复制）
 
 static void onTextChanged(UIControlHandle ctl, const UIEventData* ev, void* ud) {
     /* ev->data.strVal 为当前文本 */

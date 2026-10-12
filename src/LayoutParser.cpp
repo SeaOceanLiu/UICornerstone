@@ -68,6 +68,28 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
                 }
             }
         }
+        // P0-74①：画布底色（含 alpha=0 透明语义：alpha=0 时不填充/不清屏，UI 透出底层画面）
+        if (vp.contains(PropertyNames::kBackground)) {
+            m_viewportTarget->viewportBackground = parseColor(vp[PropertyNames::kBackground]);
+        }
+        // P0-74⑥：画布 id（代码引用；宿主 FindControl(id) 定位根画布）
+        if (vp.contains(PropertyNames::kId) && vp[PropertyNames::kId].is_string() &&
+            m_viewportTarget->bench != nullptr) {
+            const std::string vid = vp[PropertyNames::kId].get<std::string>();
+            if (!vid.empty()) {
+                m_viewportTarget->controlsById[vid] =
+                    reinterpret_cast<UIControlHandle>(static_cast<Control*>(m_viewportTarget->bench));
+            }
+        }
+        // P0-74⑥：画布 id（代码引用；宿主 FindControl(id) 定位根画布）
+        if (vp.contains(PropertyNames::kId) && vp[PropertyNames::kId].is_string() &&
+            m_viewportTarget->bench != nullptr) {
+            const std::string vid = vp[PropertyNames::kId].get<std::string>();
+            if (!vid.empty()) {
+                m_viewportTarget->controlsById[vid] =
+                    reinterpret_cast<UIControlHandle>(static_cast<Control*>(m_viewportTarget->bench));
+            }
+        }
         if (m_viewportTarget->bench &&
             vp.contains(PropertyNames::kJsonViewportScaleMode) &&
             vp[PropertyNames::kJsonViewportScaleMode].is_string()) {
@@ -341,6 +363,11 @@ shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, i
 
     popJsonPath();
 
+    // P0-81：解析期上下文绑定——构造后立即挂目标实例上下文（与 CABI CreateXxx 以 bench 为父等价；
+    // 会触发 recreate 链取目标实例 renderDevice/provider；两阶段守卫不变）。
+    // 顶层裸 MenuBar 分支已提前 return nullptr（入 m_menuBars，由挂 BENCH 路径承担），天然豁免。
+    adoptContext(result);
+
     // 右键上下文菜单（决策点 2-C）：控件级 "contextMenu" 键（内嵌 items，复用 populateMenuPanel）
     if (result && j.contains(PropertyNames::kJsonContextMenu) && j[PropertyNames::kJsonContextMenu].is_object()) {
         auto cm = make_shared<ContextMenu>(parent, 1.f, 1.f);
@@ -370,6 +397,7 @@ shared_ptr<Label> LayoutParser::parseLabel(const json& j, Control* parent) {
     }
 
     auto label = make_shared<Label>(parent, rect, xScale, yScale);
+    adoptContext(label);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(label, PropertyNames::kThemeCatLabel);
     m_theme.applyFont(label, PropertyNames::kThemeCatLabel);
@@ -474,6 +502,7 @@ shared_ptr<Control> LayoutParser::parseAnimation(const json& j, Control* parent)
     }
 
     auto ani = make_shared<LuotiAni>(parent, xScale, yScale);
+    adoptContext(ani);   // P0-81：构造即绑定目标实例上下文
     ani->setRect(rect);
     m_theme.applyCommonColors(ani, PropertyNames::kThemeCatPanel);
     parseCommonProperties(ani, j);
@@ -517,6 +546,7 @@ shared_ptr<Control> LayoutParser::parseShape(const json& j, Control* parent) {
     }
 
     auto shape = make_shared<Shape>(parent, rect, xScale, yScale);
+    adoptContext(shape);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(shape, PropertyNames::kThemeCatPanel);
     parseCommonProperties(shape, j);
 
@@ -616,6 +646,7 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
     }
 
     auto lv = make_shared<ListView>(parent, rect, xScale, yScale);
+    adoptContext(lv);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(lv, PropertyNames::kThemeCatPanel);
     parseCommonProperties(lv, j);
 
@@ -679,6 +710,14 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
                 const float soy = cj.value(PropertyNames::kHeaderShadowOffsetY, 1.0f);
                 lv->setColumnHeaderShadow(ci, parseColor(cj[PropertyNames::kHeaderShadow]), sox, soy);
             }
+            // P0-66①：列头字号 / 字体名
+            if (cj.contains(PropertyNames::kHeaderFontSize) && cj[PropertyNames::kHeaderFontSize].is_number()) {
+                HeaderStyle st = lv->getColumnHeaderStyle(ci);
+                st.fontSize = cj[PropertyNames::kHeaderFontSize].get<int>();
+                lv->setColumnHeaderStyle(ci, st);
+            }
+            if (cj.contains(PropertyNames::kHeaderFontName) && cj[PropertyNames::kHeaderFontName].is_string())
+                lv->setColumnHeaderFontName(ci, FontNameFromString(cj[PropertyNames::kHeaderFontName].get<string>().c_str()));
         }
     }
     // sortColumn/sortAscending（初始排序状态；列存在后触发重排）
@@ -688,16 +727,56 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
             lv->setSortAscending(j[PropertyNames::kSortAscending].get<bool>());
     }
 
-    // rows [{id,cells[],(icon 暂缓),cellControls}]
+    // rows [{id,cells[](字符串或对象样式),cellControls}]
     if (j.contains(PropertyNames::kJsonRows) && j[PropertyNames::kJsonRows].is_array()) {
         for (const auto& rj : j[PropertyNames::kJsonRows]) {
             const string id = rj.value(PropertyNames::kId, string());
             vector<string> cells;
-            if (rj.contains(PropertyNames::kJsonCells) && rj[PropertyNames::kJsonCells].is_array())
-                for (const auto& c : rj[PropertyNames::kJsonCells])
-                    cells.push_back(c.is_string() ? c.get<string>() : string());
+            const json* cellsJson = nullptr;
+            if (rj.contains(PropertyNames::kJsonCells) && rj[PropertyNames::kJsonCells].is_array()) {
+                cellsJson = &rj[PropertyNames::kJsonCells];
+                for (const auto& c : *cellsJson) {
+                    if (c.is_string()) cells.push_back(c.get<string>());
+                    else if (c.is_object()) cells.push_back(c.value(PropertyNames::kText, string()));   // P0-66②：对象 cell 取 text
+                    else cells.push_back(string());
+                }
+            }
             if (cells.empty() && !id.empty()) cells.push_back(id);   // 单列兜底
             lv->addRow(id, cells);
+
+            // P0-66②：对象 cell 样式解析（粒度组合式写入；行已存在后应用）
+            if (cellsJson) {
+                const int rowIdx = lv->getRowCount() - 1;
+                const int colCount = (int)cellsJson->size();
+                for (int cIdx = 0; cIdx < colCount; ++cIdx) {
+                    const auto& c = (*cellsJson)[cIdx];
+                    if (!c.is_object()) continue;
+                    if (c.contains(PropertyNames::kItemBackgroundColor)) {
+                        const auto& bc = c[PropertyNames::kItemBackgroundColor];
+                        if (bc.is_string()) {
+                            lv->setCellBackgroundColor(rowIdx, cIdx, parseColor(bc));
+                        } else if (bc.is_object()) {   // 对象四态（cells 支持 normal/hover；pressed/disabled 忽略）
+                            if (bc.contains(PropertyNames::kStateKeyNormal) && bc[PropertyNames::kStateKeyNormal].is_string())
+                                lv->setCellBackgroundColor(rowIdx, cIdx, parseColor(bc[PropertyNames::kStateKeyNormal]));
+                            if (bc.contains(PropertyNames::kStateKeyHover) && bc[PropertyNames::kStateKeyHover].is_string())
+                                lv->setCellHoverBackgroundColor(rowIdx, cIdx, parseColor(bc[PropertyNames::kStateKeyHover]));
+                        }
+                    }
+                    if (c.contains(PropertyNames::kHoverBackgroundColor) && c[PropertyNames::kHoverBackgroundColor].is_string())
+                        lv->setCellHoverBackgroundColor(rowIdx, cIdx, parseColor(c[PropertyNames::kHoverBackgroundColor]));
+                    if (c.contains(PropertyNames::kItemTextColor) && c[PropertyNames::kItemTextColor].is_string())
+                        lv->setCellTextColor(rowIdx, cIdx, parseColor(c[PropertyNames::kItemTextColor]));
+                    if (c.contains(PropertyNames::kFontSize) && c[PropertyNames::kFontSize].is_number())
+                        lv->setCellFontSize(rowIdx, cIdx, c[PropertyNames::kFontSize].get<int>());
+                    if (c.contains(PropertyNames::kItemFontName) && c[PropertyNames::kItemFontName].is_string())
+                        lv->setCellFontName(rowIdx, cIdx, FontNameFromString(c[PropertyNames::kItemFontName].get<string>().c_str()));
+                    if (c.contains(PropertyNames::kTextShadow) && c[PropertyNames::kTextShadow].is_string()) {
+                        const float sox = c.value(PropertyNames::kItemTextShadowOffsetX, 1.0f);
+                        const float soy = c.value(PropertyNames::kItemTextShadowOffsetY, 1.0f);
+                        lv->setCellShadow(rowIdx, cIdx, parseColor(c[PropertyNames::kTextShadow]), sox, soy);
+                    }
+                }
+            }
             const int rowIdx = lv->getRowCount() - 1;
             if (rj.contains(PropertyNames::kJsonIcon))
                 logWarn("list-view: row icon deferred (StatusBar icon mechanism pending), skipped");
@@ -743,6 +822,7 @@ shared_ptr<Control> LayoutParser::parseTabControl(const json& j, Control* parent
     }
 
     auto tc = make_shared<TabControl>(parent, rect, xScale, yScale);
+    adoptContext(tc);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(tc, PropertyNames::kThemeCatPanel);
     parseCommonProperties(tc, j);
 
@@ -778,10 +858,12 @@ shared_ptr<Control> LayoutParser::parseTabControl(const json& j, Control* parent
                 shared_ptr<Actor> actor = nullptr;
                 if (iconPath.rfind(PropertyNames::kProviderPrefix, 0) == 0) {
                     actor = make_shared<Actor>(nullptr, iconPath.substr(strlen(PropertyNames::kProviderPrefix)), false, xScale, yScale);
+                    adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
                 } else {
                     fs::path p(iconPath);
                     if (p.is_relative()) p = fs::path(Platform::GetBasePath()) / p;
                     actor = make_shared<Actor>(nullptr, p, false, xScale, yScale);
+                    adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
                 }
                 if (actor) { actor->create(); tc->setTabLeadingControl(idx, actor); }
             }
@@ -831,8 +913,10 @@ shared_ptr<Control> LayoutParser::parseImage(const json& j, Control* parent) {
     shared_ptr<Actor> actor = nullptr;
     if (!filePath.empty()) {
         actor = make_shared<Actor>(parent, fs::path(filePath), matchRect, xScale, yScale);
+        adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
     } else {
         actor = make_shared<Actor>(parent, resourceId, matchRect, xScale, yScale);
+        adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
     }
     actor->setRect(rect);
     if (j.contains(PropertyNames::kScaleType) && j[PropertyNames::kScaleType].is_string()) {
@@ -868,6 +952,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
     }
 
     auto btn = make_shared<Button>(parent, rect, xScale, yScale);
+    adoptContext(btn);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(btn, PropertyNames::kThemeCatButton);
     parseCommonProperties(btn, j);
@@ -916,18 +1001,14 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             }
         }
 
-        if (cl.contains(PropertyNames::kJsonColors) && cl[PropertyNames::kJsonColors].is_object()) {
-            const json& colors = cl[PropertyNames::kJsonColors];
-            if (colors.contains(PropertyNames::kText) && colors[PropertyNames::kText].is_object()) {
-                builder.setTextStateColor(parseStateColor(colors[PropertyNames::kText], StateColor::Type::Text));
-            }
-            if (colors.contains(PropertyNames::kTextShadow) && colors[PropertyNames::kTextShadow].is_object()) {
-                builder.setTextShadowStateColor(parseStateColor(colors[PropertyNames::kTextShadow], StateColor::Type::TextShadow));
-            }
-        }
-
         auto label = builder.build();
         btn->setCaptionLabel(label);
+        // P0-76：逐键写（Button 单态转发 → 基类 + label 双同步；字符串=normal；未给键不写）
+        if (cl.contains(PropertyNames::kJsonColors) && cl[PropertyNames::kJsonColors].is_object()) {
+            const json& colors = cl[PropertyNames::kJsonColors];
+            if (colors.contains(PropertyNames::kText))       applyColorGroupPerKey(btn.get(), colors[PropertyNames::kText], PropertyNames::kText);
+            if (colors.contains(PropertyNames::kTextShadow)) applyColorGroupPerKey(btn.get(), colors[PropertyNames::kTextShadow], PropertyNames::kTextShadow);
+        }
 
         popJsonPath();
     } else {
@@ -1117,6 +1198,7 @@ shared_ptr<EditBox> LayoutParser::parseEditBox(const json& j, Control* parent) {
     }
 
     auto editBox = make_shared<EditBox>(parent, rect, xScale, yScale);
+    adoptContext(editBox);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(editBox, PropertyNames::kThemeCatEditBox);
     editBox->setFont(m_theme.getFontName(PropertyNames::kThemeCatEditBox));
@@ -1133,6 +1215,10 @@ shared_ptr<EditBox> LayoutParser::parseEditBox(const json& j, Control* parent) {
 
     if (j.contains(PropertyNames::kPasswordMode) && j[PropertyNames::kPasswordMode].is_boolean()) {
         editBox->setPasswordMode(j[PropertyNames::kPasswordMode].get<bool>());
+    }
+
+    if (j.contains(PropertyNames::kReadOnly) && j[PropertyNames::kReadOnly].is_boolean()) {
+        editBox->setReadOnly(j[PropertyNames::kReadOnly].get<bool>());   // P0-83
     }
 
     if (j.contains(PropertyNames::kPasswordChar) && j[PropertyNames::kPasswordChar].is_string()) {
@@ -1187,6 +1273,7 @@ shared_ptr<ComboBox> LayoutParser::parseComboBox(const json& j, Control* parent)
     }
 
     auto combo = make_shared<ComboBox>(parent, rect, xScale, yScale);
+    adoptContext(combo);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(combo, PropertyNames::kThemeCatEditBox);
     combo->setFont(m_theme.getFontName(PropertyNames::kThemeCatEditBox));
@@ -1281,6 +1368,7 @@ shared_ptr<Panel> LayoutParser::parsePanel(const json& j, Control* parent) {
     }
 
     auto panel = make_shared<Panel>(parent, rect, xScale, yScale);
+    adoptContext(panel);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(panel, PropertyNames::kThemeCatPanel);
     parseCommonProperties(panel, j);
@@ -1411,8 +1499,13 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
     }
 
     auto bar = make_shared<StatusBar>(parent, rect, xScale, yScale);
+    adoptContext(bar);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(bar, PropertyNames::kThemeCatPanel);
     parseCommonProperties(bar, j);
+
+    // P0-74⑤：控件级悬停反馈色（通用键 "hover"；段回退链：item hb → background.hover → hover → 缺省）
+    if (j.contains(PropertyNames::kTreeHover))
+        bar->setColorProperty(PropertyNames::kTreeHover, parseSingleColor(j[PropertyNames::kTreeHover]));
 
     if (j.contains(PropertyNames::kFontSize) && j[PropertyNames::kFontSize].is_number())
         bar->setFontSize(j[PropertyNames::kFontSize].get<float>());
@@ -1435,10 +1528,12 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
                 if (iconPath.rfind(PropertyNames::kProviderPrefix, 0) == 0) {
                     string rid = iconPath.substr(strlen(PropertyNames::kProviderPrefix));
                     actor = make_shared<Actor>(nullptr, rid, false, xScale, yScale);
+                    adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
                 } else {
                     fs::path p(iconPath);
                     if (p.is_relative()) p = fs::path(Platform::GetBasePath()) / p;
                     actor = make_shared<Actor>(nullptr, p, false, xScale, yScale);
+                    adoptContext(actor);   // P0-81：构造即绑定目标实例上下文
                 }
                 if (actor) {
                     actor->create();
@@ -1485,6 +1580,16 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
                 }
             }
 
+            // P0-75：独立悬停背景键（与 list-view cell / 菜单项同族；独立键优先于对象 hover）
+            if (ij.contains(PropertyNames::kHoverBackgroundColor)) {
+                bar->setStatusItemHoverBackgroundColor(id, parseSingleColor(ij[PropertyNames::kHoverBackgroundColor]));
+            }
+
+            // P0-75：独立悬停背景键（与 list-view cell / 菜单项同族；独立键优先于对象 hover）
+            if (ij.contains(PropertyNames::kHoverBackgroundColor)) {
+                bar->setStatusItemHoverBackgroundColor(id, parseSingleColor(ij[PropertyNames::kHoverBackgroundColor]));
+            }
+
             // P0-63⑤：段级字体名
             if (ij.contains(PropertyNames::kItemFontName) && ij[PropertyNames::kItemFontName].is_string())
                 bar->setStatusItemFontName(id, FontNameFromString(ij[PropertyNames::kItemFontName].get<string>().c_str()));
@@ -1525,6 +1630,7 @@ shared_ptr<ColorPicker> LayoutParser::parseColorPicker(const json& j, Control* p
     popJsonPath();
 
     auto cp = make_shared<ColorPicker>(parent, rect);
+    adoptContext(cp);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(cp, PropertyNames::kThemeCatColorPicker);
     parseCommonProperties(cp, j);
@@ -1582,6 +1688,7 @@ shared_ptr<WinFrame> LayoutParser::parseWinFrame(const json& j, Control* parent)
     }
 
     auto winFrame = make_shared<WinFrame>(parent, rect, xScale, yScale);
+    adoptContext(winFrame);   // P0-81：构造即绑定目标实例上下文
 
     if (j.contains(PropertyNames::kTitle) && j[PropertyNames::kTitle].is_string()) {
         winFrame->setTitle(j[PropertyNames::kTitle].get<string>());
@@ -1598,22 +1705,21 @@ shared_ptr<WinFrame> LayoutParser::parseWinFrame(const json& j, Control* parent)
     // Color parsing
     if (j.contains(PropertyNames::kJsonColors) && j[PropertyNames::kJsonColors].is_object()) {
         const json& colors = j[PropertyNames::kJsonColors];
-        if (colors.contains(PropertyNames::kBackground) && colors[PropertyNames::kBackground].is_object()) {
-            winFrame->setBackgroundStateColor(parseStateColor(colors[PropertyNames::kBackground], StateColor::Type::Background));
+        // P0-76：特化路径逐键（子控件/子类 override 可达；字符串=normal）
+        if (colors.contains(PropertyNames::kBackground)) {
+            applyColorGroupPerKey(winFrame.get(), colors[PropertyNames::kBackground], PropertyNames::kBackground);
         }
-        if (colors.contains(PropertyNames::kBorder) && colors[PropertyNames::kBorder].is_object()) {
-            winFrame->setBorderStateColor(parseStateColor(colors[PropertyNames::kBorder], StateColor::Type::Border));
+        if (colors.contains(PropertyNames::kBorder)) {
+            applyColorGroupPerKey(winFrame.get(), colors[PropertyNames::kBorder], PropertyNames::kBorder);
         }
         if (colors.contains(PropertyNames::kTitleBar) && colors[PropertyNames::kTitleBar].is_object()) {
             const json& tb = colors[PropertyNames::kTitleBar];
-            if (tb.contains(PropertyNames::kJsonBg) && tb[PropertyNames::kJsonBg].is_object()) {
-                winFrame->getTitleBar()->setBackgroundStateColor(
-                    parseStateColor(tb[PropertyNames::kJsonBg], StateColor::Type::Background));
+            if (tb.contains(PropertyNames::kJsonBg)) {
+                applyColorGroupPerKey(winFrame->getTitleBar().get(), tb[PropertyNames::kJsonBg], PropertyNames::kBackground);
             }
         }
-        if (colors.contains(PropertyNames::kTitleText) && colors[PropertyNames::kTitleText].is_object()) {
-            winFrame->getTitleLabel()->setTextStateColor(
-                parseStateColor(colors[PropertyNames::kTitleText], StateColor::Type::Text));
+        if (colors.contains(PropertyNames::kTitleText)) {
+            applyColorGroupPerKey(winFrame->getTitleLabel().get(), colors[PropertyNames::kTitleText], PropertyNames::kText);
         }
     }
 
@@ -1646,6 +1752,7 @@ shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
 
     // 使用 nullptr parent：MenuBar 独立于控件树，调用方负责添加到 BENCH 顶层
     auto menuBar = make_shared<MenuBar>(nullptr, xScale, yScale);
+    adoptContext(menuBar);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(menuBar, PropertyNames::kThemeCatMenuBar);
     parseCommonProperties(menuBar, j);
@@ -1703,6 +1810,9 @@ shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
 
             if (menuJson.contains(PropertyNames::kItems) && menuJson[PropertyNames::kItems].is_array()) {
                 auto panel = make_shared<MenuPanel>(nullptr, xScale, yScale);
+                populateMenuPanel(panel, menuJson[PropertyNames::kItems], xScale, yScale);
+                menuBar->addMenu(caption, panel);   // P0-72③：addMenu 首次回放 bar 状态
+                // per-menu 属性在回放之后应用（避免被 bar 值覆盖；P0-72①③）
                 if (menuJson.contains(PropertyNames::kFont) && menuJson[PropertyNames::kFont].is_object()) {
                     if (menuJson[PropertyNames::kFont].contains(PropertyNames::kJsonSize) &&
                         menuJson[PropertyNames::kFont][PropertyNames::kJsonSize].is_number()) {
@@ -1716,8 +1826,9 @@ shared_ptr<MenuBar> LayoutParser::parseMenuBar(const json& j, Control* parent) {
                 if (menuJson.contains(PropertyNames::kItemHeightRatio) && menuJson[PropertyNames::kItemHeightRatio].is_number()) {
                     panel->setItemHeightRatio(menuJson[PropertyNames::kItemHeightRatio].get<float>());
                 }
-                populateMenuPanel(panel, menuJson[PropertyNames::kItems], xScale, yScale);
-                menuBar->addMenu(caption, panel);
+                if (menuJson.contains(PropertyNames::kShadowRadius) && menuJson[PropertyNames::kShadowRadius].is_number()) {
+                    panel->setFloatProperty(PropertyNames::kShadowRadius, menuJson[PropertyNames::kShadowRadius].get<float>());
+                }
             } else {
                 pushJsonPath("menus[" + to_string(i) + "]");
                 logWarn("menu entry \"" + caption + "\" has no 'items' array, skipping");
@@ -1758,7 +1869,13 @@ void LayoutParser::populateMenuPanel(shared_ptr<MenuPanel> panel, const json& it
 
         // Item id（CABI item-id 属性定位的目标）
         if (itemJson.contains(PropertyNames::kId) && itemJson[PropertyNames::kId].is_string()) {
-            item->setItemId(itemJson[PropertyNames::kId].get<string>());
+            const string itemId = itemJson[PropertyNames::kId].get<string>();
+            item->setItemId(itemId);
+            // P0-87：注册进实例 id 表（FindControl 可达；与控件 id 同表，重名后注册覆盖；
+            // 仅非空 id；子菜单项经同一递归天然覆盖）
+            if (!itemId.empty()) {
+                m_controlsById[itemId] = item;
+            }
         }
 
         // Shortcut
@@ -1774,6 +1891,31 @@ void LayoutParser::populateMenuPanel(shared_ptr<MenuPanel> panel, const json& it
         // Enabled
         if (itemJson.contains(PropertyNames::kEnabled) && itemJson[PropertyNames::kEnabled].is_boolean()) {
             item->setEnable(itemJson[PropertyNames::kEnabled].get<bool>());
+        }
+
+        // P0-72④：item 级颜色（text-color 字符串=normal/对象四态；background-color 字符串或 {normal,hover}；hover-background-color 别名）
+        if (itemJson.contains(PropertyNames::kItemTextColor)) {
+            const auto& tc = itemJson[PropertyNames::kItemTextColor];
+            StateColor sc(StateColor::Type::Text);
+            if (tc.is_string()) {
+                sc.setNormal(parseColor(tc));
+            } else if (tc.is_object()) {
+                if (tc.contains(PropertyNames::kStateKeyNormal))   sc.setNormal(parseColor(tc[PropertyNames::kStateKeyNormal]));
+                if (tc.contains(PropertyNames::kStateKeyHover))    sc.setHover(parseColor(tc[PropertyNames::kStateKeyHover]));
+                if (tc.contains(PropertyNames::kStateKeyPressed))  sc.setPressed(parseColor(tc[PropertyNames::kStateKeyPressed]));
+                if (tc.contains(PropertyNames::kStateKeyDisabled)) sc.setDisabled(parseColor(tc[PropertyNames::kStateKeyDisabled]));
+            }
+            item->setTextStateColor(sc);
+        }
+        if (itemJson.contains(PropertyNames::kItemBackgroundColor)) {
+            const auto& bg = itemJson[PropertyNames::kItemBackgroundColor];
+            item->setBackgroundColor(parseSingleColor(bg));
+            if (bg.is_object() && bg.contains(PropertyNames::kStateKeyHover)) {
+                item->setHoverBackgroundColor(parseColor(bg[PropertyNames::kStateKeyHover]));
+            }
+        }
+        if (itemJson.contains(PropertyNames::kHoverBackgroundColor)) {
+            item->setHoverBackgroundColor(parseSingleColor(itemJson[PropertyNames::kHoverBackgroundColor]));
         }
 
         // SubMenu (recursive)
@@ -1829,6 +1971,7 @@ shared_ptr<TextArea> LayoutParser::parseTextArea(const json& j, Control* parent)
     }
 
     auto textArea = make_shared<TextArea>(parent, rect, xScale, yScale);
+    adoptContext(textArea);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(textArea, PropertyNames::kThemeCatTextArea);
     textArea->setFont(m_theme.getFontName(PropertyNames::kThemeCatTextArea));
@@ -1845,6 +1988,14 @@ shared_ptr<TextArea> LayoutParser::parseTextArea(const json& j, Control* parent)
 
     if (j.contains(PropertyNames::kWordWrap) && j[PropertyNames::kWordWrap].is_boolean()) {
         textArea->setWordWrap(j[PropertyNames::kWordWrap].get<bool>());
+    }
+
+    if (j.contains(PropertyNames::kReadOnly) && j[PropertyNames::kReadOnly].is_boolean()) {
+        textArea->setReadOnly(j[PropertyNames::kReadOnly].get<bool>());   // P0-83
+    }
+
+    if (j.contains(PropertyNames::kAutoScroll) && j[PropertyNames::kAutoScroll].is_boolean()) {
+        textArea->setAutoScroll(j[PropertyNames::kAutoScroll].get<bool>());
     }
 
     if (j.contains(PropertyNames::kLineHeight) && j[PropertyNames::kLineHeight].is_number()) {
@@ -1923,6 +2074,7 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
     }
 
     auto checkBox = make_shared<CheckBox>(parent, rect, xScale, yScale);
+    adoptContext(checkBox);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(checkBox, PropertyNames::kThemeCatCheckBox);
     parseCommonProperties(checkBox, j);
@@ -2029,6 +2181,7 @@ shared_ptr<ProgressBar> LayoutParser::parseProgressBar(const json& j, Control* p
     }
 
     auto progressBar = make_shared<ProgressBar>(parent, rect, xScale, yScale);
+    adoptContext(progressBar);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(progressBar, PropertyNames::kThemeCatProgressBar);
     progressBar->setFont(m_theme.getFontName(PropertyNames::kThemeCatProgressBar));
@@ -2125,6 +2278,7 @@ shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
     popJsonPath();
 
     auto slider = make_shared<Slider>(parent, rect);
+    adoptContext(slider);   // P0-81：构造即绑定目标实例上下文
 
     if (j.contains(PropertyNames::kJsonRange) && j[PropertyNames::kJsonRange].is_object()) {
         float minVal = j[PropertyNames::kJsonRange].value(PropertyNames::kJsonMin, 0.0f);
@@ -2149,9 +2303,9 @@ shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
         if (track.contains(PropertyNames::kThickness) && track[PropertyNames::kThickness].is_number())
             slider->setTrackThickness(track[PropertyNames::kThickness].get<float>());
         if (track.contains(PropertyNames::kColor) && track[PropertyNames::kColor].is_object())
-            slider->setTrackColor(parseStateColor(track[PropertyNames::kColor], StateColor::Type::Background).getNormal());
+            slider->setTrackColor(parseSingleColor(track[PropertyNames::kColor]));
         if (track.contains(PropertyNames::kJsonFillColor) && track[PropertyNames::kJsonFillColor].is_object())
-            slider->setTrackFillColor(parseStateColor(track[PropertyNames::kJsonFillColor], StateColor::Type::Background).getNormal());
+            slider->setTrackFillColor(parseSingleColor(track[PropertyNames::kJsonFillColor]));
     }
 
     if (j.contains(PropertyNames::kThumb) && j[PropertyNames::kThumb].is_object()) {
@@ -2159,11 +2313,11 @@ shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
         if (thumb.contains(PropertyNames::kJsonSize) && thumb[PropertyNames::kJsonSize].is_number())
             slider->setThumbSize(thumb[PropertyNames::kJsonSize].get<float>());
         if (thumb.contains(PropertyNames::kColor) && thumb[PropertyNames::kColor].is_object())
-            slider->setThumbColor(parseStateColor(thumb[PropertyNames::kColor], StateColor::Type::Background).getNormal());
+            slider->setThumbColor(parseSingleColor(thumb[PropertyNames::kColor]));
         if (thumb.contains(PropertyNames::kJsonBorderColor) && thumb[PropertyNames::kJsonBorderColor].is_object())
-            slider->setThumbBorderColor(parseStateColor(thumb[PropertyNames::kJsonBorderColor], StateColor::Type::Background).getNormal());
+            slider->setThumbBorderColor(parseSingleColor(thumb[PropertyNames::kJsonBorderColor]));
         if (thumb.contains(PropertyNames::kJsonHoverColor) && thumb[PropertyNames::kJsonHoverColor].is_object())
-            slider->setThumbHoverColor(parseStateColor(thumb[PropertyNames::kJsonHoverColor], StateColor::Type::Background).getNormal());
+            slider->setThumbHoverColor(parseSingleColor(thumb[PropertyNames::kJsonHoverColor]));
     }
 
     if (j.contains(PropertyNames::kShowValueLabel) && j[PropertyNames::kShowValueLabel].is_boolean())
@@ -2182,7 +2336,7 @@ shared_ptr<Slider> LayoutParser::parseSlider(const json& j, Control* parent) {
         if (tick.contains(PropertyNames::kJsonLength) && tick[PropertyNames::kJsonLength].is_number())
             slider->setTickLength(tick[PropertyNames::kJsonLength].get<float>());
         if (tick.contains(PropertyNames::kColor) && tick[PropertyNames::kColor].is_object())
-            slider->setTickColor(parseStateColor(tick[PropertyNames::kColor], StateColor::Type::Background).getNormal());
+            slider->setTickColor(parseSingleColor(tick[PropertyNames::kColor]));
     }
 
     parseCommonProperties(std::static_pointer_cast<ControlImpl>(slider), j);
@@ -2209,6 +2363,7 @@ shared_ptr<NumericUpDown> LayoutParser::parseNumericUpDown(const json& j, Contro
     }
 
     auto nud = make_shared<NumericUpDown>(parent, rect, xScale, yScale);
+    adoptContext(nud);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(nud, PropertyNames::kThemeCatNumericUpDown);
     parseCommonProperties(nud, j);
@@ -2262,6 +2417,7 @@ shared_ptr<Splitter> LayoutParser::parseSplitter(const json& j, Control* parent)
     }
 
     auto sp = make_shared<Splitter>(parent, rect, xScale, yScale);
+    adoptContext(sp);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(sp, PropertyNames::kThemeCatSplitter);
     parseCommonProperties(sp, j);
 
@@ -2319,8 +2475,15 @@ shared_ptr<TreeView> LayoutParser::parseTreeView(const json& j, Control* parent)
     }
 
     auto tv = make_shared<TreeView>(parent, rect, xScale, yScale);
+    adoptContext(tv);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(tv, PropertyNames::kThemeCatTreeView);
     parseCommonProperties(tv, j);
+
+    // P0-74②：控件级行悬停/选中色（运行时键 "hover"/"selected"；color 单色）
+    if (j.contains(PropertyNames::kTreeHover))
+        tv->setColorProperty(PropertyNames::kTreeHover, parseSingleColor(j[PropertyNames::kTreeHover]));
+    if (j.contains(PropertyNames::kTreeSelected))
+        tv->setColorProperty(PropertyNames::kTreeSelected, parseSingleColor(j[PropertyNames::kTreeSelected]));
 
     if (j.contains(PropertyNames::kIndentWidth))
         tv->setIndentWidth(j[PropertyNames::kIndentWidth].get<float>());
@@ -2405,6 +2568,16 @@ shared_ptr<TreeView> LayoutParser::parseTreeView(const json& j, Control* parent)
                         node->hasStyle = true;
                     }
                 }
+                // P0-75：独立悬停背景键（专用 API 同语义：hasHoverBg 解耦，不置 bgMask/hasBgStyle；独立键优先）
+                if (item.contains(PropertyNames::kHoverBackgroundColor)) {
+                    node->bgColor.setHover(parseColor(item[PropertyNames::kHoverBackgroundColor]));
+                    node->hasHoverBg = true;
+                }
+                // P0-75：独立悬停背景键（专用 API 同语义：hasHoverBg 解耦，不置 bgMask/hasBgStyle；独立键优先）
+                if (item.contains(PropertyNames::kHoverBackgroundColor)) {
+                    node->bgColor.setHover(parseColor(item[PropertyNames::kHoverBackgroundColor]));
+                    node->hasHoverBg = true;
+                }
                 if (item.contains(PropertyNames::kTextShadow) && item[PropertyNames::kTextShadow].is_string()) {
                     const float sox = item.value(PropertyNames::kItemTextShadowOffsetX, 1.0f);
                     const float soy = item.value(PropertyNames::kItemTextShadowOffsetY, 1.0f);
@@ -2480,6 +2653,7 @@ shared_ptr<ScrollBar> LayoutParser::parseScrollBar(const json& j, Control* paren
     }
 
     auto scrollBar = make_shared<ScrollBar>(parent, rect, orientation, xScale, yScale);
+    adoptContext(scrollBar);   // P0-81：构造即绑定目标实例上下文
 
     m_theme.applyCommonColors(scrollBar, PropertyNames::kThemeCatScrollBar);
     parseCommonProperties(scrollBar, j);
@@ -2536,6 +2710,7 @@ shared_ptr<Popup> LayoutParser::parsePopup(const json& j, Control* parent) {
     }
 
     auto popup = make_shared<Popup>(parent, rect, xScale, yScale);
+    adoptContext(popup);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(popup, PropertyNames::kThemeCatPopup);
     parseCommonProperties(popup, j);
 
@@ -2601,6 +2776,7 @@ shared_ptr<ConfirmPopup> LayoutParser::parseConfirmPopup(const json& j, Control*
     }
 
     auto cp = make_shared<ConfirmPopup>(parent, rect, xScale, yScale);
+    adoptContext(cp);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(cp, PropertyNames::kThemeCatConfirmPopup);
     parseCommonProperties(cp, j);
 
@@ -2654,6 +2830,7 @@ shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
     }
 
     auto dlg = make_shared<Dialog>(parent, rect, xScale, yScale);
+    adoptContext(dlg);   // P0-81：构造即绑定目标实例上下文
     m_theme.applyCommonColors(dlg, PropertyNames::kThemeCatDialog);
     parseCommonProperties(dlg, j);
 
@@ -2740,21 +2917,18 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
     if (j.contains(PropertyNames::kJsonColors) && j[PropertyNames::kJsonColors].is_object()) {
         pushJsonPath(PropertyNames::kJsonColors);
         const json& colors = j[PropertyNames::kJsonColors];
+        // P0-76：逐键写（未给键不写=天然合并；MenuBar pressed 等子类 override 可达）
         if (colors.contains(PropertyNames::kBackground)) {
-            ctrl->setBackgroundStateColor(
-                parseStateColor(colors[PropertyNames::kBackground], StateColor::Type::Background));
+            applyColorGroupPerKey(ctrl.get(), colors[PropertyNames::kBackground], PropertyNames::kBackground);
         }
         if (colors.contains(PropertyNames::kBorder)) {
-            ctrl->setBorderStateColor(
-                parseStateColor(colors[PropertyNames::kBorder], StateColor::Type::Border));
+            applyColorGroupPerKey(ctrl.get(), colors[PropertyNames::kBorder], PropertyNames::kBorder);
         }
         if (colors.contains(PropertyNames::kText)) {
-            ctrl->setTextStateColor(
-                parseStateColor(colors[PropertyNames::kText], StateColor::Type::Text));
+            applyColorGroupPerKey(ctrl.get(), colors[PropertyNames::kText], PropertyNames::kText);
         }
         if (colors.contains(PropertyNames::kTextShadow)) {
-            ctrl->setTextShadowStateColor(
-                parseStateColor(colors[PropertyNames::kTextShadow], StateColor::Type::TextShadow));
+            applyColorGroupPerKey(ctrl.get(), colors[PropertyNames::kTextShadow], PropertyNames::kTextShadow);
         }
         popJsonPath();
     }
@@ -2763,6 +2937,15 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
     applyFontDecl(ctrl, j);
 
     applyShadowDecl(ctrl, j);
+}
+
+// P0-81：解析期上下文绑定（目标实例上下文；已带上下文者不覆盖——如内嵌子控件继承父链）
+void LayoutParser::adoptContext(const std::shared_ptr<Control>& ctrl) {
+    if (m_viewportTarget == nullptr || ctrl == nullptr) return;
+    auto* ci = dynamic_cast<ControlImpl*>(ctrl.get());
+    if (ci != nullptr && ci->getContext() == nullptr) {
+        ci->setContext(m_viewportTarget);
+    }
 }
 
 // #12：通用 shadow 对象解析（{enabled, offset:{x,y}}；经属性系统转发内部 Label）
@@ -3358,6 +3541,11 @@ StateColor LayoutParser::parseStateColor(const json& j, StateColor::Type type) {
 
     if (j.is_null()) return stateColor;
 
+    if (j.is_string()) {   // P0-74④：字符串 = normal
+        stateColor.setNormal(parseColor(j));
+        return stateColor;
+    }
+
     if (j.contains(PropertyNames::kStateKeyNormal)) {
         pushJsonPath(PropertyNames::kStateKeyNormal);
         stateColor.setNormal(parseColor(j[PropertyNames::kStateKeyNormal]));
@@ -3380,6 +3568,42 @@ StateColor LayoutParser::parseStateColor(const json& j, StateColor::Type type) {
     }
 
     return stateColor;
+}
+
+// P0-74④：单色取值——字符串 / {r,g,b,a} / {normal: 色}（兼容状态色对象取 normal）
+SColor LayoutParser::parseSingleColor(const json& j) {
+    if (j.is_object() && j.contains(PropertyNames::kStateKeyNormal)) {
+        return parseColor(j[PropertyNames::kStateKeyNormal]);
+    }
+    return parseColor(j);
+}
+
+// P0-76：按组逐键写回（子类 setColorProperty override 可达；未给键不写=合并；字符串=normal）
+void LayoutParser::applyColorGroupPerKey(ControlImpl* ctrl, const json& v, const char* groupKey) {
+    if (!ctrl || !groupKey) return;
+    const char* kN = PropertyNames::kBackground;
+    const char* kH = PropertyNames::kStateHover;
+    const char* kP = PropertyNames::kStatePressed;
+    const char* kD = PropertyNames::kStateDisabled;
+    if (strcmp(groupKey, PropertyNames::kBorder) == 0) {
+        kN = PropertyNames::kBorder;        kH = PropertyNames::kBorderHover;
+        kP = PropertyNames::kBorderPressed; kD = PropertyNames::kBorderDisabled;
+    } else if (strcmp(groupKey, PropertyNames::kText) == 0) {
+        kN = PropertyNames::kText;        kH = PropertyNames::kTextHover;
+        kP = PropertyNames::kTextPressed; kD = PropertyNames::kTextDisabled;
+    } else if (strcmp(groupKey, PropertyNames::kTextShadow) == 0) {
+        kN = PropertyNames::kTextShadow;        kH = PropertyNames::kTextShadowHover;
+        kP = PropertyNames::kTextShadowPressed; kD = PropertyNames::kTextShadowDisabled;
+    }
+    if (v.is_string()) {   // 字符串 = normal（修复字符串色静默缺省）
+        ctrl->setColorProperty(kN, parseColor(v));
+        return;
+    }
+    if (!v.is_object()) return;
+    if (v.contains(PropertyNames::kStateKeyNormal))   ctrl->setColorProperty(kN, parseColor(v[PropertyNames::kStateKeyNormal]));
+    if (v.contains(PropertyNames::kStateKeyHover))    ctrl->setColorProperty(kH, parseColor(v[PropertyNames::kStateKeyHover]));
+    if (v.contains(PropertyNames::kStateKeyPressed))  ctrl->setColorProperty(kP, parseColor(v[PropertyNames::kStateKeyPressed]));
+    if (v.contains(PropertyNames::kStateKeyDisabled)) ctrl->setColorProperty(kD, parseColor(v[PropertyNames::kStateKeyDisabled]));
 }
 
 FontName LayoutParser::parseFontName(const string& name) {

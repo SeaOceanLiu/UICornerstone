@@ -144,6 +144,10 @@ public:
     void setCellStyle(int row, int col, const CellStyle& style);
     void setCellTextColor(int row, int col, SColor color);   // P0-62①（置 hasTextColor）
     void setCellHoverBackgroundColor(int row, int col, SColor color);   // P0-64③（置 hasHoverBg）
+    // P0-66③：粒度方法（精确保留其余字段；不触发 hasBg 误置）
+    void setCellBackgroundColor(int row, int col, SColor color);        // bgColor + hasBg
+    void setCellFontSize(int row, int col, int size);                   // fontSize
+    void setCellShadow(int row, int col, SColor color, float offsetX, float offsetY);   // 阴影（alpha>0 启用）
     void setCellFontName(int row, int col, FontName name);   // P0-63②（置 hasFontName）
     void setColumnHeaderFontName(int col, FontName name);    // P0-63③（置 hasFontName）
     CellStyle getCellStyle(int row, int col) const;              // 未设置 → 默认
