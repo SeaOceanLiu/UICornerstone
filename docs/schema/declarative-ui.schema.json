@@ -474,6 +474,26 @@
         "visible": {
           "type": "boolean",
           "x-default": "true"
+        },
+        "draggable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-94：可拖拽源（true 时引擎自动填充载荷；tree/list/tab 自动元素载荷）"
+        },
+        "droppable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-94：可放置目标（drag-over/drop 事件）"
+        },
+        "drag-threshold": {
+          "type": "number",
+          "x-default": "4",
+          "description": "P0-94：拖动阈值（px）"
+        },
+        "drag-visual": {
+          "type": "boolean",
+          "x-default": "true",
+          "description": "P0-94：默认视觉开关（ghost/落点指示）"
         }
       }
     },
@@ -852,6 +872,11 @@
         "hover": {
           "type": "boolean",
           "x-default": "true"
+        },
+        "reorderable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-94 Phase 2：行内置换序（引擎内置拖动 + reordered 事件）"
         },
         "horizontal-gridlines": {
           "type": "boolean",
@@ -1947,6 +1972,47 @@
         },
         "selected-text": {
           "$ref": "#/$defs/color"
+        },
+        "reorderable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-94 Phase 2：页签内置换序（引擎内置拖动 + tab-reordered 事件）"
+        },
+        "tab-background": {
+          "$ref": "#/$defs/color",
+          "x-default": "#25252AFF",
+          "description": "常态页签底色（P0-92，单色；默认 37,37,42）"
+        },
+        "tab-hover-background": {
+          "$ref": "#/$defs/color",
+          "x-default": "#3C3C46FF",
+          "description": "悬停页签底色（P0-92；默认 60,60,70）"
+        },
+        "tab-selected-background": {
+          "$ref": "#/$defs/color",
+          "x-default": "#2D2D34FF",
+          "description": "选中页签底色（P0-92；默认 45,45,52）"
+        },
+        "tab-indicator-color": {
+          "$ref": "#/$defs/color",
+          "x-default": "#007ACCFF",
+          "description": "选中指示条色（P0-92；默认 0,122,204）"
+        },
+        "tab-content-background": {
+          "$ref": "#/$defs/color",
+          "x-default": "#323238FF",
+          "description": "内容区底色（P0-92；默认 50,50,56）"
+        },
+        "page-background": {
+          "description": "页背景（P0-92）：#RRGGBB[AA] 字符串（=normal）或 {normal,hover,pressed,disabled} 对象（合并语义；转发所有页）",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/color"
+            },
+            {
+              "$ref": "#/$defs/state-color-4"
+            }
+          ]
         }
       },
       "required": [
@@ -2041,6 +2107,11 @@
         "hover": {
           "$ref": "#/$defs/color",
           "description": "行悬停底色（P0-74②，单色）"
+        },
+        "reorderable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-94 Phase 2：节点内置换序/换父（引擎内置拖动 + reordered 事件）"
         },
         "indent-width": {
           "type": "number",

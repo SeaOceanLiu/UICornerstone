@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 #include <filesystem>
 #include "SColor.h"
@@ -95,6 +96,9 @@ private:
 
     void logError(const string& message) const;
     void logWarn(const string& message) const;
+    // P0-89：事件处理器未注册诊断（同次 LoadLayout 内按名去重）
+    void logMissingHandler(const std::string& name, const std::string& ctrlId);
+    std::unordered_set<std::string> m_missingHandlerLogged;
     void pushJsonPath(const string& segment);
     void popJsonPath();
     int byteOffsetToLineNo(const string& content, size_t byteOffset) const;

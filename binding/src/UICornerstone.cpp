@@ -490,6 +490,17 @@ bool UICornerstone::ContextMenuClose(Control& menu) {
 }
 
 // ── TabControl 页操作 ──
+int UICornerstone::TabMovePage(Control& tab, int from, int to) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnTabMovePage) return 0;
+    return Dyn::API().fnTabMovePage(m_impl->instance, tab.Handle(), from, to);
+}
+
+bool UICornerstone::TabGetItemRect(Control& tab, int index, UIRect& out) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnTabGetItemRect) return false;
+    return Dyn::API().fnTabGetItemRect(m_impl->instance, tab.Handle(), index,
+                                       &out.x, &out.y, &out.w, &out.h) != 0;
+}
+
 int UICornerstone::TabRemovePage(Control& tab, int index) {
     if (!m_impl || !m_impl->instance || !Dyn::API().fnTabRemovePage) return 0;
     return Dyn::API().fnTabRemovePage(m_impl->instance, tab.Handle(), index);
@@ -617,6 +628,16 @@ bool UICornerstone::TreeViewAddNode(Control& tree, const std::string& parentId,
             parentId.c_str(), id.c_str(), label.c_str(), expanded ? 1 : 0) != 0;
     return false;
 }
+bool UICornerstone::TreeViewMoveNode(Control& tree, const std::string& id, const std::string& newParentId, int index) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnTreeViewMoveNode) return false;
+    return Dyn::API().fnTreeViewMoveNode(m_impl->instance, tree.Handle(), id.c_str(), newParentId.c_str(), index) != 0;
+}
+
+bool UICornerstone::ListViewMoveRow(Control& lv, int from, int to) {
+    if (!m_impl || !m_impl->instance || !Dyn::API().fnListViewMoveRow) return false;
+    return Dyn::API().fnListViewMoveRow(m_impl->instance, lv.Handle(), from, to) != 0;
+}
+
 bool UICornerstone::TreeViewRemoveNode(Control& tree, const std::string& id) {
     if (m_impl->instance && tree.Handle())
         return Dyn::API().fnTreeViewRemoveNode(m_impl->instance, tree.Handle(), id.c_str()) != 0;

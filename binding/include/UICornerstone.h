@@ -201,6 +201,8 @@ public:
     // ── TabControl 页操作 ──
     int  TabAddPage(Control& tab, const std::string& title);
     int  TabRemovePage(Control& tab, int index);   // P0-69：1=移除 0=越界
+    int  TabMovePage(Control& tab, int from, int to);            // P0-91：1=移动 0=越界/同位
+    bool TabGetItemRect(Control& tab, int index, UIRect& out);   // P0-91：页签项矩形（局部逻辑坐标）
     bool TabSetPage(Control& tab, int index, Control& page);
     bool TabSetTitle(Control& tab, int index, const std::string& title);
     bool TabSetTabLeadingControl(Control& tab, int index, Control& ctl);
@@ -220,6 +222,7 @@ public:
     bool TreeViewAddNode(Control& tree, const std::string& parentId, const std::string& id,
                          const std::string& label, bool expanded = false);
     bool TreeViewRemoveNode(Control& tree, const std::string& id);
+    bool TreeViewMoveNode(Control& tree, const std::string& id, const std::string& newParentId, int index);   // P0-94
     bool TreeViewSetNodeLabel(Control& tree, const std::string& id, const std::string& label);
     bool TreeViewSetNodeUserData(Control& tree, const std::string& id, void* userData);
     bool TreeViewSelectNode(Control& tree, const std::string& id);
@@ -255,6 +258,7 @@ public:
     Control CreateListView(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     bool ListViewAddRow(Control& lv, const std::string& id, const std::vector<std::string>& cells = {});
     bool ListViewRemoveRow(Control& lv, int index);
+    bool ListViewMoveRow(Control& lv, int from, int to);   // P0-94
     bool ListViewSetCellText(Control& lv, int row, int col, const std::string& text);
     std::string ListViewGetCellText(Control& lv, int row, int col);
     int  ListViewAddColumn(Control& lv, const std::string& title, float width, bool sortable = false);

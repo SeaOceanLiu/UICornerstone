@@ -39,6 +39,13 @@ UICornerstone_TabAddPage(g_inst, tc, u8"主页");
 <tr><td><code>position</code></td><td><code>kTabPosition</code></td><td>Enum</td><td>top</td><td>top / bottom / left / right</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>13</td><td>页签文字字号</td></tr>
 <tr><td><code>currentIndex</code></td><td><code>kTabCurrentIndex</code></td><td>Int</td><td>0</td><td>当前页（首页自动选中）</td></tr>
+<tr><td><code>hovered-tab</code></td><td><code>kHoveredTab</code></td><td>Int</td><td>—</td><td><b>只读</b>（P0-91）：鼠标悬停页签索引；点击帧读 ≥0=点中该项 / -1=空白页签</td></tr>
+<tr><td colspan="5">JSON 可声明（P0-92）：<code>tab-background</code> / <code>tab-hover-background</code> / <code>tab-selected-background</code> / <code>tab-indicator-color</code> / <code>tab-content-background</code>（单色）、<code>selected-text</code>（字符串）、<code>page-background</code>（字符串或四态对象，转发所有页）</td></tr>
+<tr><td><code>tab-background</code></td><td><code>kTabBackground</code></td><td>Color</td><td>(37,37,42)</td><td>常态页签底色（P0-90，单色）</td></tr>
+<tr><td><code>tab-hover-background</code></td><td><code>kTabHoverBackground</code></td><td>Color</td><td>(60,60,70)</td><td>悬停页签底色（P0-90）</td></tr>
+<tr><td><code>tab-selected-background</code></td><td><code>kTabSelectedBackground</code></td><td>Color</td><td>(45,45,52)</td><td>选中页签底色（P0-90）</td></tr>
+<tr><td><code>tab-indicator-color</code></td><td><code>kTabIndicatorColor</code></td><td>Color</td><td>(0,122,204)</td><td>选中指示条色（P0-90）</td></tr>
+<tr><td><code>tab-content-background</code></td><td><code>kTabContentBackground</code></td><td>Color</td><td>(50,50,56)</td><td>内容区底色（P0-90）</td></tr>
 </table>
 
 <h2>4.23.3 控件的回调 / 事件</h2>
@@ -97,6 +104,8 @@ UICornerstone_SetEnum(g_inst, tc, "position", "top");</code></pre>
 <table>
 <tr><th>方法</th><th>参数</th></tr>
 <tr><td><code>addTab(title, page)</code> / <code>insertTab(index, …)</code> / <code>removeTab(index)</code></td><td>页写（removeTab 钳制 currentIndex）</td></tr>
+<tr><td><code>moveTab(from, to)</code>（C ABI/Binding <code>TabMovePage(tab, from, to)</code>）</td><td>页序调整（P0-91）：完整迁移 title/page/leadingControl；currentIndex 重映射（被移动页跟随新位；区间 ±1）；越界/同位返回 0</td></tr>
+<tr><td><code>TabGetItemRect(tab, index, out)</code>（C ABI/Binding）</td><td>页签项矩形读回（P0-91）：<b>TabControl 局部逻辑坐标</b>（拖排落点/精确点击判定；越界返回 0）</td></tr>
 <tr><td><code>getTabCount()</code> / <code>getTabs()</code></td><td>页只读访问</td></tr>
 <tr><td><code>setCurrentIndex(i)</code> / <code>getCurrentIndex()</code></td><td>切换（触发 onTabChange + 页面显隐）</td></tr>
 <tr><td><code>setTabText(i, title)</code> / <code>setTabPage(i, page)</code> / <code>setTabLeadingControl(i, ctl)</code></td><td>页内容（触发 relayout；setTabPage 替换旧页时全摘除 + 保活）</td></tr>

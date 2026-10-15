@@ -1,4 +1,5 @@
 ﻿#include "ControlBase.h"
+#include "DragDrop.h"
 #include "ContextMenu.h"
 #include "UICornerstoneAPI.h"
 #include "PlatformUtils.h"
@@ -929,6 +930,10 @@ void ControlImpl::inheritRenderer(void) {
 
 // ── Property system ──
 int ControlImpl::setColorProperty(const char* prop, SColor color) {
+    // P0-94：拖拽视觉主题色
+    if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { m_dragGhostBg = color;   return 1; }
+    if (strcmp(prop, PropertyNames::kDragGhostText) == 0)       { m_dragGhostText = color; return 1; }
+    if (strcmp(prop, PropertyNames::kDragIndicatorColor) == 0)  { m_dragIndicator = color; return 1; }
     if (strcmp(prop, PropertyNames::kBackground) == 0)           { setNormalStateBGColor(color);   return 1; }
     if (strcmp(prop, PropertyNames::kStateHover) == 0)          { setHoverStateBGColor(color);    return 1; }
     if (strcmp(prop, PropertyNames::kStatePressed) == 0)        { setPressedStateBGColor(color);  return 1; }
@@ -963,6 +968,7 @@ int ControlImpl::setIntProperty(const char* prop, int value) {
 }
 
 int ControlImpl::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { m_dragThreshold = (value > 0.0f) ? value : 4.0f; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { Margin m = getMargin(); m.left = value; setMargin(m); return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { Margin m = getMargin(); m.top = value; setMargin(m); return 1; }
     if (strcmp(prop, PropertyNames::kMarginRight) == 0)  { Margin m = getMargin(); m.right = value; setMargin(m); return 1; }
@@ -979,6 +985,12 @@ int ControlImpl::setStringProperty(const char* prop, const char* value) {
 
 int ControlImpl::setBoolProperty(const char* prop, int value) {
     bool b = value != 0;
+    // P0-94：拖拽标志
+    if (strcmp(prop, PropertyNames::kDraggable) == 0)       { m_draggable = b;    return 1; }
+    if (strcmp(prop, PropertyNames::kDroppable) == 0)       { m_droppable = b;    return 1; }
+    if (strcmp(prop, PropertyNames::kReorderable) == 0)     { m_reorderable = b;  return 1; }
+    if (strcmp(prop, PropertyNames::kDragVisual) == 0)      { m_dragVisual = b;   return 1; }
+    if (strcmp(prop, PropertyNames::kDragAccept) == 0)      { DragSetAccept(this, b); return 1; }
     if (strcmp(prop, PropertyNames::kVisible) == 0)         { setVisible(b); return 1; }
     if (strcmp(prop, PropertyNames::kEnabled) == 0)         { setEnable(b);  return 1; }
     if (strcmp(prop, PropertyNames::kTransparent) == 0)     { setTransparent(b); return 1; }
@@ -1050,12 +1062,30 @@ void ControlImpl::fireCCallback(const char* eventName, CCallbackData data, const
     case CCallbackData::TreeNode:  if (ptr) { auto* t = static_cast<const TreeNodePayload*>(ptr); evt.data.treeNode = {t->id, t->userData}; } break;
     case CCallbackData::Color:     if (ptr) { auto* c = static_cast<const ColorPayload*>(ptr); evt.data.color = {c->r, c->g, c->b, c->a}; } break;
     case CCallbackData::Grid:      if (ptr) { auto* g = static_cast<const GridPayload*>(ptr); evt.data.grid = {g->row, g->col, g->asc}; } break;
+    case CCallbackData::Drag:      if (ptr) {   // P0-94
+        auto* b = static_cast<const DragEventBundle*>(ptr);
+        evt.data.drag.payload.kind = b->kind;
+        evt.data.drag.payload.id = b->id;
+        evt.data.drag.payload.index = b->index;
+        evt.data.drag.payload.text = b->text;
+        evt.data.drag.payload.userData = b->userData;
+        evt.data.drag.payload.source = reinterpret_cast<UIControlHandle>(b->source);
+        evt.data.drag.hint.kind = b->hintKind;
+        evt.data.drag.hint.index = b->hintIndex;
+        evt.data.drag.hint.targetId = b->hintTargetId;
+        evt.data.drag.dropped = b->dropped;
+    } break;
     default: break;
     }
-    it->second.cb(reinterpret_cast<UIControlHandle>(this), &evt, it->second.userData);
+    // P0-94 修复：ControlImpl 虚拟继承 Control（子对象地址不同）——句柄统一为 Control* 子对象
+    it->second.cb(reinterpret_cast<UIControlHandle>(static_cast<Control*>(this)), &evt, it->second.userData);
 }
 
 int ControlImpl::getColorProperty(const char* prop, SColor& out) {
+    // P0-94：拖拽视觉主题色
+    if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { out = m_dragGhostBg;   return 1; }
+    if (strcmp(prop, PropertyNames::kDragGhostText) == 0)       { out = m_dragGhostText; return 1; }
+    if (strcmp(prop, PropertyNames::kDragIndicatorColor) == 0)  { out = m_dragIndicator; return 1; }
     StateColor bg = getBackgroundStateColor();
     StateColor bd = getBorderStateColor();
     StateColor txt = getTextStateColor();
@@ -1090,6 +1120,11 @@ int ControlImpl::getStateColorProperty(const char* prop, StateColor& out) {
 }
 
 int ControlImpl::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kDraggable) == 0)   { out = m_draggable ? 1 : 0;   return 1; }   // P0-94
+    if (strcmp(prop, PropertyNames::kDroppable) == 0)   { out = m_droppable ? 1 : 0;   return 1; }
+    if (strcmp(prop, PropertyNames::kReorderable) == 0) { out = m_reorderable ? 1 : 0; return 1; }
+    if (strcmp(prop, PropertyNames::kDragVisual) == 0)  { out = m_dragVisual ? 1 : 0;  return 1; }
+    if (strcmp(prop, PropertyNames::kDragActive) == 0)  { out = DragQueryActive(this) ? 1 : 0; return 1; }   // 只读
     if (strcmp(prop, PropertyNames::kVisible) == 0)         { out = getVisible() ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kEnabled) == 0)         { out = getEnable()  ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kTransparent) == 0)     { out = getTransparent() ? 1 : 0; return 1; }
@@ -1108,6 +1143,7 @@ int ControlImpl::getIntProperty(const char* prop, int& out) {
 }
 
 int ControlImpl::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { out = m_dragThreshold; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { out = getMargin().left; return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { out = getMargin().top; return 1; }
     if (strcmp(prop, PropertyNames::kMarginRight) == 0)  { out = getMargin().right; return 1; }
@@ -1185,7 +1221,10 @@ void TopControl::eventLoopEntry(void){
     shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
     while(eventInQueue != nullptr){
         evCount++;
-        bool consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
+        bool consumed = DragPreHandleEvent(m_context, *eventInQueue);   // P0-94：拖拽前置（拖动期消费 Move/Up/Esc）
+        if (!consumed) {
+            consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);
+        }
         if (!consumed) {
             consumed = handleEvent(eventInQueue);
         }

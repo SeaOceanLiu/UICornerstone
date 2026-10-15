@@ -240,6 +240,27 @@ PROP_CONSTEXPR const char* kTreeCollapse        = "collapse";
 PROP_CONSTEXPR const char* kSelectedId          = "selected-id";
 PROP_CONSTEXPR const char* kSelectedText        = "selected-text";       // TabControl 选中页签文字色（P0-26）
 PROP_CONSTEXPR const char* kPageBackground      = "page-background";    // TabControl 页背景四态（P032：转发所有页）
+// P0-90：TabControl 页签条配色（单色；默认=原硬编码常量）
+PROP_CONSTEXPR const char* kTabBackground        = "tab-background";
+PROP_CONSTEXPR const char* kTabHoverBackground   = "tab-hover-background";
+PROP_CONSTEXPR const char* kTabSelectedBackground= "tab-selected-background";
+PROP_CONSTEXPR const char* kTabIndicatorColor    = "tab-indicator-color";
+PROP_CONSTEXPR const char* kTabContentBackground = "tab-content-background";
+// P0-91：页签悬停索引（只读读回；点击帧 ≥0=点中该项 / -1=空白）
+PROP_CONSTEXPR const char* kHoveredTab           = "hovered-tab";
+// P0-94：通用拖拽（Phase 1 核心）
+PROP_CONSTEXPR const char* kDraggable            = "draggable";            // bool：可拖源
+PROP_CONSTEXPR const char* kDroppable            = "droppable";            // bool：可放置目标
+PROP_CONSTEXPR const char* kDragThreshold        = "drag-threshold";       // float：拖动阈值（默认 4px）
+PROP_CONSTEXPR const char* kDragData             = "drag-data";            // string：宿主自定义载荷（HostData.text）
+PROP_CONSTEXPR const char* kDragUserData         = "drag-userdata";        // ptr：宿主自定义载荷（HostData.userData）
+PROP_CONSTEXPR const char* kDragAccept           = "drag-accept";          // bool：drag-over 内设置接受/拒绝（默认 1）
+PROP_CONSTEXPR const char* kDragActive           = "drag-active";          // bool 只读：本控件是否为当前拖拽源
+PROP_CONSTEXPR const char* kDragVisual           = "drag-visual";          // bool：默认视觉开关（ghost/指示）
+PROP_CONSTEXPR const char* kReorderable          = "reorderable";          // bool（Phase 2：tree/list/tab 内置换序）
+PROP_CONSTEXPR const char* kDragGhostBackground  = "drag-ghost-background";// 主题：预览底色
+PROP_CONSTEXPR const char* kDragGhostText        = "drag-ghost-text";      // 主题：预览文字色
+PROP_CONSTEXPR const char* kDragIndicatorColor   = "drag-indicator-color"; // 主题：落点指示色
 PROP_CONSTEXPR const char* kSelectedUserData    = "selected-user-data";
 // TreeView item 级属性：先以字符串属性 "item-id" 定位目标节点，再用下列属性作用于该节点
 PROP_CONSTEXPR const char* kTreeItemId             = "item-id";
@@ -410,6 +431,13 @@ PROP_CONSTEXPR const char* kEventCollapse         = "collapse";
 PROP_CONSTEXPR const char* kEventInitial          = "initial";
 PROP_CONSTEXPR const char* kEventPropertyChanged  = "property-changed";
 PROP_CONSTEXPR const char* kEventNodeRemoved       = "node-removed";
+// P0-94：拖拽事件名
+PROP_CONSTEXPR const char* kEventDragStart          = "drag-start";
+PROP_CONSTEXPR const char* kEventDragOver           = "drag-over";
+PROP_CONSTEXPR const char* kEventDrop               = "drop";
+PROP_CONSTEXPR const char* kEventDragEnd            = "drag-end";
+PROP_CONSTEXPR const char* kEventReordered          = "reordered";         // Phase 2：tree/list 内置换序完成
+PROP_CONSTEXPR const char* kEventTabReordered       = "tab-reordered";     // Phase 2：tab 内置换序完成
 
 // ============================================================
 // -- JSON 数据契约键（LuotiAni 动画描述 / LayoutParser 布局 / Theme）--

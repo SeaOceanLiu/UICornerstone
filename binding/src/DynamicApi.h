@@ -114,6 +114,7 @@ struct Api {
     int (*fnStatusBarRemoveItem)(UIInstance, UIControlHandle, const char*) = nullptr;
     int (*fnListViewAddRow)(UIInstance, UIControlHandle, const char*, int, const char* const*) = nullptr;
     int (*fnListViewRemoveRow)(UIInstance, UIControlHandle, int) = nullptr;
+    int (*fnListViewMoveRow)(UIInstance, UIControlHandle, int, int) = nullptr;   // P0-94
     int (*fnListViewSetCellText)(UIInstance, UIControlHandle, int, int, const char*) = nullptr;
     int (*fnListViewGetCellText)(UIInstance, UIControlHandle, int, int, char*, int) = nullptr;
     int (*fnListViewAddColumn)(UIInstance, UIControlHandle, const char*, float, int) = nullptr;
@@ -149,6 +150,8 @@ struct Api {
     int (*fnContextMenuClose)(UIInstance, UIControlHandle) = nullptr;
     int (*fnTabAddPage)(UIInstance, UIControlHandle, const char*) = nullptr;
     int (*fnTabRemovePage)(UIInstance, UIControlHandle, int) = nullptr;   // P0-69
+    int (*fnTabMovePage)(UIInstance, UIControlHandle, int, int) = nullptr;   // P0-91
+    int (*fnTabGetItemRect)(UIInstance, UIControlHandle, int, float*, float*, float*, float*) = nullptr;   // P0-91
     int (*fnTabSetPage)(UIInstance, UIControlHandle, int, void*) = nullptr;
     int (*fnTabSetTitle)(UIInstance, UIControlHandle, int, const char*) = nullptr;
     int (*fnTabSetTabLeadingControl)(UIInstance, UIControlHandle, int, void*) = nullptr;
@@ -164,6 +167,7 @@ struct Api {
     int (*fnGetInstanceScale)(UIInstance, float*, float*) = nullptr;
     int  (*fnTreeViewAddNode)(UIInstance, UIControlHandle, const char*, const char*, const char*, int) = nullptr;
     int  (*fnTreeViewRemoveNode)(UIInstance, UIControlHandle, const char*) = nullptr;
+    int  (*fnTreeViewMoveNode)(UIInstance, UIControlHandle, const char*, const char*, int) = nullptr;   // P0-94
     int  (*fnTreeViewSetNodeLabel)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
     int  (*fnTreeViewSetNodeUserData)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int  (*fnTreeViewSelectNode)(UIInstance, UIControlHandle, const char*) = nullptr;

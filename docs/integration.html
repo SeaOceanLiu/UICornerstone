@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>5.8 嵌入到你的逻辑回路中 - UICornerstone v1.1.0 用户手册</title>
+<title>5.9 嵌入到你的逻辑回路中 - UICornerstone v1.1.0 用户手册</title>
 <link rel="stylesheet" href="css/style.css">
 <script id="nav-data" src="assets/nav.js" data-prefix="" data-current="integration.html"></script>
 </head>
@@ -13,7 +13,7 @@
 <div id="sidebar"></div>
 <div id="content">
 
-<h1>5.8 嵌入到你的逻辑回路中</h1>
+<h1>5.9 嵌入到你的逻辑回路中</h1>
 
 <p>UICornerstone 提供四种集成模式（<code>samples/</code> 各有完整示例），按「谁托管主循环」区分：</p>
 
@@ -25,7 +25,7 @@
 <tr><td>显式加载（sample_loadlibrary）</td><td><code>samples/sample_loadlibrary/</code></td><td>LoadLibrary 手动加载核心 DLL，动态解析导出</td></tr>
 </table>
 
-<h2>5.8.1 嵌入既有主循环（Embedded 模式）</h2>
+<h2>5.9.1 嵌入既有主循环（Embedded 模式）</h2>
 
 <p>你的游戏/工具已有 while 循环时，把 UI 步骤插进去：</p>
 
@@ -51,7 +51,7 @@
 
 <div class="tip">UI 渲染可以与你的场景渲染交错：先 <code>Render()</code> 画 UI，再画 3D 场景（UI 在底层）；或先场景后 UI（UI 覆盖顶层）。</div>
 
-<h2>5.8.2 AppCallbacks（回调式，核心库直连）</h2>
+<h2>5.9.2 AppCallbacks（回调式，核心库直连）</h2>
 
 <p>核心库的传统集成方式是 <code>AppCallbacks</code> 接口（<code>include/AppCallbacks.h</code>）+ <code>MainWindow::run()</code>：</p>
 
@@ -74,7 +74,7 @@ int main() { MyApp app; MAINWIN->run(&app); return 0; }</code></pre>
 
 <p><code>MainWindow</code> 还提供分步驱动：<code>init(app)</code> / <code>processEvents(app)</code> / <code>update(app)</code> / <code>render(app)</code> / <code>shutdown(app)</code>。</p>
 
-<h2>5.8.3 事件泵手工驱动（核心库测试模式）</h2>
+<h2>5.9.3 事件泵手工驱动（核心库测试模式）</h2>
 
 <pre><code>while (BENCH->isExiting() == 0) {
     MAINWIN->processEvents(nullptr);   // 后端事件 → EventQueue
@@ -83,7 +83,7 @@ int main() { MyApp app; MAINWIN->run(&app); return 0; }</code></pre>
     BENCH->draw();                     // 绘制控件树
 }</code></pre>
 
-<h2>5.8.4 显式 LoadLibrary（插件式加载）</h2>
+<h2>5.9.4 显式 LoadLibrary（插件式加载）</h2>
 
 <pre><code>#include &lt;windows.h&gt;
 typedef UIInstance (*CreateFn)(const UIBackendCallbacks*, const UIInstanceConfig*);
@@ -94,7 +94,7 @@ UIInstance inst = create(NULL, NULL);
 
 <p>这就是 C++ Binding 内部采用的动态加载方案（只链 kernel32，不链 DLL import lib），保证 DLL 版本自由替换。</p>
 
-<h2>5.8.5 与你的对象模型对接</h2>
+<h2>5.9.5 与你的对象模型对接</h2>
 
 <ul>
   <li><strong>数据 → UI</strong>：控件属性 set（SetString/SetFloat/...）或 JSON 热加载；</li>

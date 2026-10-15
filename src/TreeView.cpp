@@ -543,6 +543,82 @@ bool TreeView::hitTestArrow(int row, float mx) {
     return mx >= arrowX && mx <= arrowX + m_arrowGap * scale;
 }
 
+std::shared_ptr<TreeNode> TreeView::getNodeAtRow(int row) const {
+    if (row < 0 || row >= (int)m_flatRows.size()) return nullptr;
+    return m_flatRows[row].node;
+}
+
+std::string TreeView::getParentId(const std::string& id) {
+    std::function<std::string(const std::vector<std::shared_ptr<TreeNode>>&, const std::string&)> scan =
+        [&](const std::vector<std::shared_ptr<TreeNode>>& list, const std::string& parentId) -> std::string {
+        for (auto& n : list) {
+            if (n->id == id) return parentId;
+            std::string r = scan(n->children, n->id);
+            if (!r.empty()) return r;
+        }
+        return std::string();
+    };
+    return scan(m_rootItems, std::string());
+}
+
+int TreeView::getChildIndex(const std::string& id) {
+    std::function<int(const std::vector<std::shared_ptr<TreeNode>>&)> scan =
+        [&](const std::vector<std::shared_ptr<TreeNode>>& list) -> int {
+        for (int i = 0; i < (int)list.size(); ++i) {
+            if (list[i]->id == id) return i;
+            int r = scan(list[i]->children);
+            if (r >= 0) return r;
+        }
+        return -1;
+    };
+    return scan(m_rootItems);
+}
+
+bool TreeView::moveNode(const std::string& id, const std::string& newParentId, int index) {
+    if (id.empty()) return false;
+    auto node = findNodeById(id);
+    if (!node) return false;
+    if (!newParentId.empty() && newParentId == id) return false;
+    // 目标父不能是自身后代
+    if (!newParentId.empty()) {
+        std::function<bool(const std::shared_ptr<TreeNode>&)> contains =
+            [&](const std::shared_ptr<TreeNode>& n) -> bool {
+            if (n->id == newParentId) return true;
+            for (auto& c : n->children) if (contains(c)) return true;
+            return false;
+        };
+        if (contains(node)) return false;
+    }
+    // 定位目标容器（先校验后摘除，失败无副作用）
+    std::vector<std::shared_ptr<TreeNode>>* dst = nullptr;
+    if (newParentId.empty()) {
+        dst = &m_rootItems;
+    } else {
+        auto parent = findNodeById(newParentId);
+        if (!parent) return false;
+        dst = &parent->children;
+    }
+    std::function<bool(std::vector<std::shared_ptr<TreeNode>>&)> detach =
+        [&](std::vector<std::shared_ptr<TreeNode>>& list) -> bool {
+        for (auto it = list.begin(); it != list.end(); ++it) {
+            if ((*it)->id == id) { list.erase(it); return true; }
+            if (detach((*it)->children)) return true;
+        }
+        return false;
+    };
+    if (!detach(m_rootItems)) return false;
+    if (index < 0 || index > (int)dst->size()) index = (int)dst->size();
+    dst->insert(dst->begin() + index, node);
+    rebuildFlatRows();
+    // 选中/悬停行按 id 重定位（flat 顺序已变）
+    m_selectedRow = -1;
+    m_hoveredRow = -1;
+    for (int i = 0; i < (int)m_flatRows.size(); ++i) {
+        if (m_flatRows[i].node->id == m_selectedId) { m_selectedRow = i; break; }
+    }
+    return true;
+}
+
 void TreeView::rebuildFlatRows() {
     m_flatRows.clear();
     m_nodeMap.clear();

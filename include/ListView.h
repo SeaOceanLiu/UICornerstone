@@ -105,6 +105,9 @@ public:
     void removeRow(int index);
     void removeRowById(const string& id);
     int  getRowCount() const { return static_cast<int>(m_rows.size()); }
+    // P0-94（Phase 2）：行换序（from→to 最终索引；行控件/样式随行迁移）
+    bool moveRow(int from, int to);
+    int  hitTestRow(float y) const;               // 内容区行命中（含滚动）；-1 未命中（P0-94 公共）
     ListRow& getRow(int index);
     ListRow* getRowById(const string& id);
     vector<string> getRowCells(int index) const;
@@ -221,7 +224,6 @@ private:
     void rebuildLayout();                         // 列 x 偏移缓存 + 滚动范围 + 子控件定位
     void updateScrollBars();                      // 垂直/水平滚动条范围与可见性
     void syncChildControls();                     // leadingControl/cellControls 定位与挂摘
-    int  hitTestRow(float y) const;               // 内容区行命中（含滚动）；-1 未命中
     int  hitTestColumn(float x) const;            // 列命中（含水平滚动）；-1 未命中
     float columnX(int index) const;               // 列左缘 x（含水平滚动偏移）
     float totalContentWidth() const;              // Σ列宽（single 模式 = 控件宽）

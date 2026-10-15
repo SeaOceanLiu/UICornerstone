@@ -523,6 +523,11 @@
     },
     {
       "type": "tab-control",
+      "tab-background": "#25252AFF",
+      "tab-selected-background": "#2D2D34FF",
+      "tab-indicator-color": "#007ACCFF",
+      "selected-text": "#EBEBEBFF",
+      "page-background": { "normal": "#323238FF" },
       "id": "tabs",
       "rect": {
         "x": 20,

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
+<link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5.7 拖拽框架（Drag &amp; Drop） - UICornerstone v1.1.0 用户手册</title>
+<link rel="stylesheet" href="../css/style.css">
+<script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="advanced/drag-drop.html"></script>
+</head>
+<body>
+<div id="sidebar"></div>
+<div id="content">
+
+<h1>5.7 拖拽框架（Drag &amp; Drop）</h1>
+
+<p>拖拽框架把「按下 / 阈值 / 移动 / 命中目标 / 释放 / 预览与落点提示」统一到引擎：引擎本就持有事件队列与全部几何，
+宿主只需处理<strong>语义与数据</strong>（收 <code>drag-over</code>/<code>drop</code> 事件、读载荷、同步自己的模型）。
+覆盖范围：<strong>单实例内</strong>（含子视口）；跨实例拖放（如工具箱→画布）由宿主自管，可经 <code>drag-active</code> 查询拖拽状态。</p>
+
+<h2>5.7.1 快速开始</h2>
+
+<p>JSON 声明（通用键，任意控件可加）：</p>
+<pre><code>{ "type": "tree-view", "id": "src", "draggable": true, "reorderable": true,
+  "rect": { "x": 20, "y": 20, "w": 240, "h": 320 }, "items": [ ... ] }
+
+{ "type": "panel", "id": "dst", "droppable": true,
+  "rect": { "x": 300, "y": 20, "w": 300, "h": 320 } }</code></pre>
+
+<p>C ABI / C++ Binding 注册与处理：</p>
+<pre><code>UICornerstone_SetBool(inst, tree, "draggable", 1);
+UICornerstone_SetBool(inst, panel, "droppable", 1);
+UICornerstone_SetCallback(inst, panel, "drag-over", onDragOver, NULL);
+UICornerstone_SetCallback(inst, panel, "drop",      onDrop,     NULL);
+UICornerstone_SetCallback(inst, tree,  "drag-start", onDragStart, NULL);
+UICornerstone_SetCallback(inst, tree,  "drag-end",   onDragEnd,   NULL);
+
+static void onDrop(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    const UIDragPayload& p = ev->data.drag.payload;   // 载荷（kind/id/index/text/userData/source）
+    const UIDropHint&    h = ev->data.drag.hint;      // 语义落点（kind/index/targetId）
+    // 例：把树节点接到目标 —— 宿主按自己的模型处理
+}
+static void onDragOver(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    // 返回前可拒绝：UICornerstone_SetBool(inst, ctl, "drag-accept", 0);
+}</code></pre>
+
+<h2>5.7.2 属性</h2>
+
+<table>
+<tr><th>属性 / JSON 键</th><th>类型</th><th>默认</th><th>说明</th></tr>
+<tr><td><code>draggable</code></td><td>Bool</td><td>false</td><td>可拖拽源；引擎自动填充载荷（tree 节点 / list 行 / tab 页；其它控件为控件自身）</td></tr>
+<tr><td><code>droppable</code></td><td>Bool</td><td>false</td><td>可放置目标（收 <code>drag-over</code>/<code>drop</code>）</td></tr>
+<tr><td><code>reorderable</code></td><td>Bool</td><td>false</td><td>同控件内置换序（tree 换序·换父 / list 行换序 / tab 页换序），见 5.7.5</td></tr>
+<tr><td><code>drag-threshold</code></td><td>Float</td><td>4</td><td>拖动阈值（px）；未超阈值按下+释放保持普通点击语义</td></tr>
+<tr><td><code>drag-visual</code></td><td>Bool</td><td>true</td><td>默认视觉开关（跟随光标的 ghost + 落点指示线）</td></tr>
+<tr><td><code>drag-data</code> / <code>drag-userdata</code></td><td>String / Ptr</td><td>—</td><td>宿主自定义载荷（设置后 kind=HOST；<code>userData</code> 透传不校验生命周期）</td></tr>
+<tr><td><code>drag-accept</code></td><td>Bool</td><td>true</td><td>仅 <code>drag-over</code> 回调内设置：0=拒绝（不触发 <code>drop</code>，<code>drag-end.dropped=0</code>）</td></tr>
+<tr><td><code>drag-active</code></td><td>Bool（只读）</td><td>—</td><td>本控件是否当前拖拽源（跨实例/自绘轮询）</td></tr>
+<tr><td><code>drag-ghost-background</code> / <code>drag-ghost-text</code> / <code>drag-indicator-color</code></td><td>Color</td><td>—</td><td>默认视觉主题色（取自源控件）</td></tr>
+</table>
+
+<h2>5.7.3 事件</h2>
+
+<table>
+<tr><th>事件名</th><th>侧</th><th>载荷</th><th>说明</th></tr>
+<tr><td><code>drag-start</code></td><td>源</td><td>payload</td><td>超过阈值开始拖动（载荷在按下时已捕获，拖动期间不变）</td></tr>
+<tr><td><code>drag-over</code></td><td>目标</td><td>payload + hint</td><td>目标或落点变化时触发（实时高亮/接受判定）；目标/落点变化自动重置接受态</td></tr>
+<tr><td><code>drop</code></td><td>目标</td><td>payload + hint</td><td>释放且被接受（<code>drag-accept != 0</code>）</td></tr>
+<tr><td><code>drag-end</code></td><td>源</td><td>payload + hint + dropped</td><td>结束（含 Esc/失焦中止与拒绝）；<code>dropped=1</code> 表示已投放</td></tr>
+<tr><td><code>reordered</code></td><td>tree / list</td><td>payload + hint</td><td>内置换序完成（5.7.5）</td></tr>
+<tr><td><code>tab-reordered</code></td><td>tab-control</td><td>payload + hint</td><td>Tab 页换序完成：<code>payload.index</code>=from，<code>hint.index</code>=to</td></tr>
+</table>
+
+<h2>5.7.4 载荷与落点（语义化）</h2>
+
+<p>载荷 <code>UIDragPayload</code>（<code>ev->data.drag.payload</code>）：<code>kind</code>（<code>UI_DRAG_KIND_*</code>）/
+<code>id</code> / <code>index</code> / <code>text</code> / <code>userData</code> / <code>source</code>。自动填充：</p>
+
+<table>
+<tr><th>kind</th><th>来源</th><th>自动填充</th></tr>
+<tr><td><code>UI_DRAG_KIND_TREE_NODE</code></td><td>TreeView</td><td>节点 id / 行索引 / label / 节点 userData</td></tr>
+<tr><td><code>UI_DRAG_KIND_LIST_ROW</code></td><td>ListView</td><td>行 id / 行索引 / 首列文本 / 行 userData</td></tr>
+<tr><td><code>UI_DRAG_KIND_TAB_PAGE</code></td><td>TabControl</td><td>页标题 / 页索引</td></tr>
+<tr><td><code>UI_DRAG_KIND_CONTROL</code></td><td>其它控件</td><td>源控件句柄（<code>source</code>）</td></tr>
+<tr><td><code>UI_DRAG_KIND_HOST</code></td><td>任意（drag-data/userdata）</td><td>宿主字符串/指针</td></tr>
+</table>
+
+<p>落点 <code>UIDropHint</code>（<code>ev->data.drag.hint</code>）——宿主收到的是<strong>语义</strong>而非像素：</p>
+
+<table>
+<tr><th>hint.kind</th><th>目标控件</th><th>index / targetId</th></tr>
+<tr><td><code>UI_DROP_HINT_BEFORE</code> / <code>AFTER</code> / <code>INTO</code></td><td>TreeView</td><td>行索引；目标节点 id（before/after=同级插入，into=置入）</td></tr>
+<tr><td><code>UI_DROP_HINT_ROW</code></td><td>ListView</td><td>行索引 + 行 id</td></tr>
+<tr><td><code>UI_DROP_HINT_INDEX</code></td><td>TabControl</td><td>插入位索引</td></tr>
+<tr><td><code>UI_DROP_HINT_INSIDE</code></td><td>通用控件</td><td>—</td></tr>
+</table>
+
+<h2>5.7.5 内置换序（reorderable，opt-in）</h2>
+
+<p>同控件拖拽换序零配置：源/目标均为该控件且 <code>reorderable=true</code> 时，引擎在 <code>drop</code> 后直接执行数据迁移并发语义事件
+（<code>reordered</code> / <code>tab-reordered</code>），宿主据此同步模型：</p>
+
+<pre><code>{ "type": "tab-control", "draggable": true, "droppable": true, "reorderable": true, ... }
+UICornerstone_SetCallback(inst, tab, "tab-reordered", onTabReordered, NULL);
+// onTabReordered：from = ev->data.drag.payload.index; to = ev->data.drag.hint.index;</code></pre>
+
+<p>换序也可<strong>程序化</strong>调用（公开 API，不依赖拖拽）：</p>
+<pre><code>UICornerstone_TreeViewMoveNode(inst, tree, "nodeId", "newParentId", -1);  // 换序/换父（-1=追加）
+UICornerstone_ListViewMoveRow(inst, lv, from, to);                        // 行换序（to=最终索引）
+UICornerstone_TabMovePage(inst, tab, from, to);                           // 页换序（currentIndex 重映射）</code></pre>
+
+<h2>5.7.6 行为细节与边界</h2>
+
+<ul>
+<li><strong>点击语义保留</strong>：未超阈值即释放 = 普通点击（不触发 <code>drag-start</code>）；</li>
+<li><strong>中止</strong>：拖动中按 Esc 或窗口失焦 → <code>drag-end</code>（<code>dropped=0</code>）；</li>
+<li><strong>子视口</strong>：拖动期事件由 owner 统一接管，目标解析跨子视口（坐标自动换算）；</li>
+<li><strong>跨实例</strong>：不支持（工具箱→画布等由宿主自管；<code>drag-active</code> 只读查询可辅助状态管理）；</li>
+<li><strong>默认视觉</strong>：ghost（载荷文本）+ 落点指示线；置 <code>drag-visual=false</code> 关闭后由宿主自绘；</li>
+<li><strong>接受/拒绝</strong>：默认接受；<code>drag-over</code> 回调内 <code>SetBool("drag-accept", 0)</code> 拒绝（目标/落点变化自动重置为接受）。</li>
+</ul>
+
+<h2>5.7.7 完整示例：树 → 面板拖放</h2>
+
+<p>示例覆盖<strong>发起侧（源）与接收侧（目标）两侧</strong>：源树声明 <code>draggable</code> 并处理 <code>drag-start</code>/<code>drag-end</code>；
+目标面板声明 <code>droppable</code> 并处理 <code>drag-over</code>（可拒绝）/<code>drop</code>。C ABI 写法如下（Binding 同名方法一一对应）：</p>
+
+<pre><code>// inst 为全局实例句柄（UIInstance，见 5.4 C ABI 程序化构建）
+// ── 一、准备：找到源与目标（此处假设由布局 JSON 创建，见 5.7.1 的 JSON 声明）──
+UIControlHandle tree  = UICornerstone_FindControl(inst, "src");
+UIControlHandle panel = UICornerstone_FindControl(inst, "dst");
+
+// ── 二、发起侧（源）：注册可拖拽 + 源侧事件 ──
+UICornerstone_SetBool(inst, tree, "draggable", 1);
+UICornerstone_SetCallback(inst, tree, "drag-start", onDragStart, NULL);
+UICornerstone_SetCallback(inst, tree, "drag-end",   onDragEnd,   NULL);
+
+static void onDragStart(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    const UIDragPayload& p = ev->data.drag.payload;    // 按下时已捕获，拖动期间不变
+    // 例：把载荷摘要暂存到宿主状态（p.kind==UI_DRAG_KIND_TREE_NODE）
+    printf("drag-start: kind=%d id='%s' index=%d text='%s'\n",
+           p.kind, p.id, p.index, p.text);
+}
+static void onDragEnd(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    const UIDragPayload& p = ev->data.drag.payload;
+    int dropped = ev->data.drag.dropped;               // 1=已投放；0=Esc/失焦中止或被拒绝
+    printf("drag-end: id='%s' dropped=%d\n", p.id, dropped);
+}
+
+// ── 三、接收侧（目标）：注册可放置 + 目标侧事件 ──
+UICornerstone_SetBool(inst, panel, "droppable", 1);
+UICornerstone_SetCallback(inst, panel, "drag-over", onDragOver, NULL);
+UICornerstone_SetCallback(inst, panel, "drop",      onDrop,     NULL);
+
+static void onDragOver(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    const UIDragPayload& p = ev->data.drag.payload;
+    const UIDropHint&    h = ev->data.drag.hint;
+    // 过滤：只接受树节点载荷；其余拒绝（不触发 drop，drag-end.dropped=0）
+    if (p.kind != UI_DRAG_KIND_TREE_NODE) {
+        UICornerstone_SetBool(inst, ctl, "drag-accept", 0);
+        return;
+    }
+    printf("drag-over: node='%s' hint.kind=%d\n", p.id, h.kind);   // 可据此实时高亮
+}
+static void onDrop(UIControlHandle ctl, const UIEventData* ev, void* user) {
+    const UIDragPayload& p = ev->data.drag.payload;
+    const UIDropHint&    h = ev->data.drag.hint;
+    printf("drop: node '%s' (%s) -> hint.kind=%d index=%d targetId='%s'\n",
+           p.id, p.text, h.kind, h.index, h.targetId);
+    // TODO：把 p.id / p.userData 接到自己的数据模型（树控件数据由你维护）
+}
+
+// ── 四、拖动时序（无需宿主干预）──
+// 树节点按下 →（超过阈值）drag-start → 光标跨控件/子视口 → drag-over（目标变化即触发，
+// 可在其中接受/拒绝）→ 释放：被接受则 drop + drag-end(dropped=1)；Esc/失焦 → drag-end(dropped=0)；
+// 未超阈值即释放 = 普通点击（不触发任何拖拽事件）。</code></pre>
+
+<p class="tip">若源与目标是<strong>同一个</strong> tree/list/tab 控件，直接把两侧 <code>reorderable</code> 置 1，
+引擎会执行数据迁移并发 <code>reordered</code>/<code>tab-reordered</code>（见 5.7.5），无需 <code>drop</code> 里手写换序逻辑。</p>
+
+<p class="note">完整 API 面：C ABI 见 <a href="../appendix/capi.html">9.x C ABI 速查</a>（拖拽框架行）；属性键见
+<a href="../appendix/properties.html">7 属性速查</a>；JSON 通用键见 <a href="../appendix/declarative-syntax.html">6.2 控件通用键</a>。</p>
+
+<div class="nav-links">
+  <a href="canvas-scale.html">← 上一节：5.6 视口画布缩放</a>
+  <a href="../backends.html">下一节：5.8 使用其它后端 →</a>
+</div>
+
+</div>
+</body>
+</html>

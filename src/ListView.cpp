@@ -272,6 +272,17 @@ void ListView::removeRowById(const string& id) {
     for (int i = 0; i < getRowCount(); ++i)
         if (m_rows[i].id == id) { removeRow(i); return; }
 }
+
+bool ListView::moveRow(int from, int to) {
+    const int n = getRowCount();
+    if (from < 0 || from >= n || to < 0 || to >= n || from == to) return false;
+    ListRow row = m_rows[from];
+    m_rows.erase(m_rows.begin() + from);
+    m_rows.insert(m_rows.begin() + to, row);
+    clampSelectionToCount();
+    rebuildLayout();
+    return true;
+}
 ListRow& ListView::getRow(int index) { return m_rows[index]; }
 ListRow* ListView::getRowById(const string& id) {
     for (auto& r : m_rows) if (r.id == id) return &r;

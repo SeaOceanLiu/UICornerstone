@@ -1,4 +1,5 @@
 ﻿#include "UICornerstoneAPI.h"
+#include "DragDrop.h"
 #include "UIContext.h"
 #include "SColor.h"
 #include "CallbackAdapters.h"
@@ -40,6 +41,7 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
+#include <cmath>
 #include <queue>
 #include <vector>
 #include <algorithm>
@@ -511,6 +513,7 @@ UIInstance UICornerstone_CreateViewport(UIInstance parent, UIRect rect) {
 void UICornerstone_DestroyInstance(UIInstance instance) {
     if (!instance || instance->destroying) return;
     instance->destroying = true;  // 置位：回调重入的 C ABI 入口直接短路
+    DragRelease(instance);        // P0-94：拖拽状态清理（owner 销毁/子视口源悬垂防护）
     unregisterInstance(instance);
 
     // 快照遍历：子视口销毁时会从 owner->children 摘除自身
@@ -936,7 +939,408 @@ void UICornerstone_Render(UIInstance instance) {
     instance->renderDevice->popClipRect();
 }
 
+
+// ============================================================
+// P0-94：通用拖拽框架（Phase 1 核心 + Phase 2 内置行为）
+//   状态机：Idle → Pending（阈值）→ Dragging → Drop/Abort；owner 实例持有；
+//   拖动期 Move/Up/Esc 由本前置钩子消费；跨子视口经 resolveMouseTarget 解析目标。
+// ============================================================
+namespace {
+struct DragState {
+    bool pending = false;
+    bool dragging = false;
+    Control* source = nullptr;
+    float startX = 0.0f, startY = 0.0f;
+    float lastX = 0.0f, lastY = 0.0f;
+    float threshold = 4.0f;
+    // 载荷（MouseDown 捕获，拖动期不变）
+    int kind = UI_DRAG_KIND_NONE;
+    std::string id, text;
+    int index = -1;
+    void* userData = nullptr;
+    // 目标/落点
+    Control* target = nullptr;
+    int hintKind = UI_DROP_HINT_NONE;
+    int hintIndex = -1;
+    std::string hintTargetId;
+    bool accept = true;
+    bool visual = true;
+    SharedFont ghostFont;
+};
+} // namespace
+
+static UIInstance dragOwnerOf(UIInstance instance) {
+    return (instance && instance->owner) ? instance->owner : instance;
+}
+static DragState* dragStateOf(UIInstance instance, bool create) {
+    UIInstance owner = dragOwnerOf(instance);
+    if (!owner) return nullptr;
+    if (!owner->dragState && create) owner->dragState = new DragState();
+    return static_cast<DragState*>(owner->dragState);
+}
+static void dragReset(DragState& s) {
+    s.pending = false;
+    s.dragging = false;
+    s.source = nullptr;
+    s.target = nullptr;
+    s.hintKind = UI_DROP_HINT_NONE;
+    s.hintIndex = -1;
+    s.hintTargetId.clear();
+    s.kind = UI_DRAG_KIND_NONE;
+    s.id.clear();
+    s.text.clear();
+    s.index = -1;
+    s.userData = nullptr;
+    s.accept = true;
+}
+static Control* deepHitControl(Control* root, float x, float y) {
+    auto* impl = dynamic_cast<ControlImpl*>(root);
+    if (!impl) return nullptr;
+    auto& kids = impl->getChildren();
+    for (auto it = kids.rbegin(); it != kids.rend(); ++it) {
+        Control* c = it->get();
+        if (!c->getVisible() || !c->isContainsPoint(x, y)) continue;
+        Control* deeper = deepHitControl(c, x, y);
+        return deeper ? deeper : c;
+    }
+    return nullptr;
+}
+static void captureDragPayload(DragState& s, Control* ctl, float x, float y) {
+    s.kind = UI_DRAG_KIND_CONTROL;
+    s.id.clear(); s.text.clear(); s.index = -1; s.userData = nullptr;
+    if (auto* tv = dynamic_cast<TreeView*>(ctl)) {
+        int row = tv->hitTestRow(x, y);
+        auto node = (row >= 0) ? tv->getNodeAtRow(row) : nullptr;
+        if (node) { s.kind = UI_DRAG_KIND_TREE_NODE; s.id = node->id; s.index = row; s.text = node->label; s.userData = node->userData; }
+    } else if (auto* lv = dynamic_cast<ListView*>(ctl)) {
+        SRect ldr = lv->getDrawRect();   // hitTestRow 期望内容局部 y
+        float lsy = lv->getScaleYY() != 0.0f ? lv->getScaleYY() : 1.0f;
+        int row = lv->hitTestRow((y - ldr.top) / lsy);
+        if (row >= 0 && row < lv->getRowCount()) {
+            auto& r = lv->getRow(row);
+            s.kind = UI_DRAG_KIND_LIST_ROW; s.id = r.id; s.index = row;
+            if (!r.cells.empty()) s.text = r.cells[0];
+            s.userData = r.userData;
+        }
+    } else if (auto* tc = dynamic_cast<TabControl*>(ctl)) {
+        SRect dr = tc->getDrawRect();
+        float sx = tc->getScaleXX() != 0.0f ? tc->getScaleXX() : 1.0f;
+        float sy = tc->getScaleYY() != 0.0f ? tc->getScaleYY() : 1.0f;
+        float lx = (x - dr.left) / sx, ly = (y - dr.top) / sy;
+        const auto& tabs = tc->getTabs();
+        for (int i = 0; i < (int)tabs.size(); ++i) {
+            const SRect& r = tabs[i].tabRect;
+            if (lx >= r.left && lx < r.left + r.width && ly >= r.top && ly < r.top + r.height) {
+                s.kind = UI_DRAG_KIND_TAB_PAGE; s.id = tabs[i].title; s.index = i; s.text = tabs[i].title;
+                break;
+            }
+        }
+    }
+    // HostData 覆盖（drag-data/drag-userdata）
+    const char* ds = nullptr;
+    if (ctl->getStringProperty(PropertyNames::kDragData, ds) && ds && ds[0]) { s.kind = UI_DRAG_KIND_HOST; s.text = ds; }
+    void* ud = nullptr;
+    if (ctl->getPtrProperty(PropertyNames::kDragUserData, ud) && ud) { s.kind = UI_DRAG_KIND_HOST; s.userData = ud; }
+}
+static void computeDropHint(DragState& s, Control* target, float x, float y) {
+    s.hintKind = UI_DROP_HINT_INSIDE;
+    s.hintIndex = -1;
+    s.hintTargetId.clear();
+    if (auto* tv = dynamic_cast<TreeView*>(target)) {
+        int row = tv->hitTestRow(x, y);
+        auto node = (row >= 0) ? tv->getNodeAtRow(row) : nullptr;
+        if (node) {
+            s.hintTargetId = node->id;
+            s.hintIndex = row;
+            SRect dr = tv->getDrawRect();
+            float sy = tv->getScaleYY() != 0.0f ? tv->getScaleYY() : 1.0f;
+            float rh = tv->getRowHeight() * sy;
+            float frac = (rh > 0.0f) ? std::fmod(std::max(0.0f, y - dr.top), rh) / rh : 0.5f;
+            if (frac < 0.25f) s.hintKind = UI_DROP_HINT_BEFORE;
+            else if (frac > 0.75f) s.hintKind = UI_DROP_HINT_AFTER;
+            else s.hintKind = UI_DROP_HINT_INTO;
+        }
+    } else if (auto* lv = dynamic_cast<ListView*>(target)) {
+        SRect ldr = lv->getDrawRect();
+        float lsy = lv->getScaleYY() != 0.0f ? lv->getScaleYY() : 1.0f;
+        int row = lv->hitTestRow((y - ldr.top) / lsy);
+        s.hintKind = UI_DROP_HINT_ROW;
+        s.hintIndex = row;
+        if (row >= 0 && row < lv->getRowCount()) s.hintTargetId = lv->getRow(row).id;
+    } else if (auto* tc = dynamic_cast<TabControl*>(target)) {
+        SRect dr = tc->getDrawRect();
+        float sx = tc->getScaleXX() != 0.0f ? tc->getScaleXX() : 1.0f;
+        float sy = tc->getScaleYY() != 0.0f ? tc->getScaleYY() : 1.0f;
+        float lx = (x - dr.left) / sx, ly = (y - dr.top) / sy;
+        const auto& tabs = tc->getTabs();
+        int ins = (int)tabs.size();
+        for (int i = 0; i < (int)tabs.size(); ++i) {
+            const SRect& r = tabs[i].tabRect;
+            if (lx >= r.left && lx < r.left + r.width && ly >= r.top && ly < r.top + r.height) {
+                ins = (lx > r.left + r.width * 0.5f) ? i + 1 : i;
+                break;
+            }
+        }
+        s.hintKind = UI_DROP_HINT_INDEX;
+        s.hintIndex = ins;
+    }
+}
+static Control* findDropTarget(UIInstance owner, float x, float y) {
+    UIInstance inst = resolveMouseTarget(owner, x, y);
+    if (!inst) inst = owner;
+    Control* hit = (inst->bench) ? deepHitControl(dynamic_cast<Control*>(inst->bench), x, y) : nullptr;
+    for (Control* c = hit; c != nullptr; c = c->getParent()) {
+        auto* impl = dynamic_cast<ControlImpl*>(c);
+        if (impl && impl->isDroppable()) return c;
+    }
+    return nullptr;
+}
+static void fireDragEvent(Control* ctl, const char* name, const DragState& s, int dropped) {
+    auto* impl = dynamic_cast<ControlImpl*>(ctl);
+    if (!impl) return;
+    ControlImpl::DragEventBundle b;
+    b.kind = s.kind;
+    b.id = s.id.c_str();
+    b.index = s.index;
+    b.text = s.text.c_str();
+    b.userData = s.userData;
+    b.source = s.source;
+    b.hintKind = s.hintKind;
+    b.hintIndex = s.hintIndex;
+    b.hintTargetId = s.hintTargetId.c_str();
+    b.dropped = dropped;
+    impl->fireCCallback(name, ControlImpl::CCallbackData::Drag, &b);
+}
+static void applyBuiltInReorder(DragState& s) {
+    if (!s.source || s.source != s.target) return;
+    auto* srcImpl = dynamic_cast<ControlImpl*>(s.source);
+    if (!srcImpl || !srcImpl->isReorderable()) return;
+    if (auto* tc = dynamic_cast<TabControl*>(s.source); tc && s.kind == UI_DRAG_KIND_TAB_PAGE) {
+        const int n = tc->getTabCount();
+        int from = s.index;
+        int to = s.hintIndex;
+        if (to < 0) to = n - 1;
+        if (to >= n) to = n - 1;
+        if (from >= 0 && from != to && tc->moveTab(from, to)) {
+            DragState tmp = s;
+            tmp.index = from;
+            tmp.hintIndex = to;
+            fireDragEvent(tc, PropertyNames::kEventTabReordered, tmp, 1);
+        }
+        return;
+    }
+    if (auto* tv = dynamic_cast<TreeView*>(s.source); tv && s.kind == UI_DRAG_KIND_TREE_NODE) {
+        std::string parentId;
+        int idx = -1;
+        if (s.hintKind == UI_DROP_HINT_INTO) {
+            parentId = s.hintTargetId;
+        } else if (s.hintKind == UI_DROP_HINT_BEFORE || s.hintKind == UI_DROP_HINT_AFTER) {
+            if (!s.hintTargetId.empty()) {
+                parentId = tv->getParentId(s.hintTargetId);
+                idx = tv->getChildIndex(s.hintTargetId) + (s.hintKind == UI_DROP_HINT_AFTER ? 1 : 0);
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+        if (tv->moveNode(s.id, parentId, idx)) {
+            fireDragEvent(tv, PropertyNames::kEventReordered, s, 1);
+        }
+        return;
+    }
+    if (auto* lv = dynamic_cast<ListView*>(s.source); lv && s.kind == UI_DRAG_KIND_LIST_ROW) {
+        int from = s.index, to = s.hintIndex;
+        if (from >= 0 && to >= 0 && from != to && lv->moveRow(from, to)) {
+            fireDragEvent(lv, PropertyNames::kEventReordered, s, 1);
+        }
+        return;
+    }
+}
+
+bool DragPreHandleEvent(UIContext* instance, const Event& evt) {
+    if (!instance) return false;
+    UIInstance owner = dragOwnerOf(instance);
+    DragState* s = dragStateOf(owner, false);
+
+    if (evt.m_type == EventType::MouseDown && evt.mouseButton.button == MouseButton::Left) {
+        Control* hit = instance->bench ? deepHitControl(dynamic_cast<Control*>(instance->bench),
+                                                        evt.mouseButton.x, evt.mouseButton.y) : nullptr;
+        Control* src = nullptr;
+        for (Control* c = hit; c != nullptr; c = c->getParent()) {
+            auto* impl = dynamic_cast<ControlImpl*>(c);
+            if (impl && impl->isDraggable()) { src = c; break; }
+        }
+        if (!src) return false;
+        s = dragStateOf(owner, true);
+        if (!s) return false;
+        dragReset(*s);
+        s->pending = true;
+        s->source = src;
+        s->startX = s->lastX = evt.mouseButton.x;
+        s->startY = s->lastY = evt.mouseButton.y;
+        auto* srcImpl = dynamic_cast<ControlImpl*>(src);
+        s->threshold = srcImpl ? srcImpl->dragThresholdValue() : 4.0f;
+        s->visual = srcImpl ? srcImpl->dragVisualEnabled() : true;
+        captureDragPayload(*s, src, evt.mouseButton.x, evt.mouseButton.y);
+        return false;   // 不消费：点击语义保留
+    }
+
+    if (!s || (!s->pending && !s->dragging)) return false;
+
+    if (evt.m_type == EventType::MouseMove) {
+        float x = evt.mousePos.x, y = evt.mousePos.y;
+        s->lastX = x;
+        s->lastY = y;
+        if (s->pending && !s->dragging) {
+            float dx = x - s->startX, dy = y - s->startY;
+            if (dx * dx + dy * dy < s->threshold * s->threshold) return false;
+            s->dragging = true;
+            fireDragEvent(s->source, PropertyNames::kEventDragStart, *s, 0);
+        }
+        if (!s->dragging) return false;
+        Control* tgt = findDropTarget(owner, x, y);
+        int oldHintKind = s->hintKind, oldHintIndex = s->hintIndex;
+        std::string oldTargetId = s->hintTargetId;
+        Control* oldTarget = s->target;
+        s->target = tgt;
+        if (tgt) {
+            computeDropHint(*s, tgt, x, y);
+        } else {
+            s->hintKind = UI_DROP_HINT_NONE;
+            s->hintIndex = -1;
+            s->hintTargetId.clear();
+        }
+        if (tgt != oldTarget || s->hintKind != oldHintKind || s->hintIndex != oldHintIndex
+            || s->hintTargetId != oldTargetId) {
+            s->accept = true;   // P0-94 补充 1：目标/落点变化重置接受态
+            if (tgt) {
+                fireDragEvent(tgt, PropertyNames::kEventDragOver, *s, 0);
+            }
+        }
+        return true;   // 拖动期消费 Move
+    }
+    if (evt.m_type == EventType::MouseUp && evt.mouseButton.button == MouseButton::Left) {
+        if (!s->dragging) { s->pending = false; return false; }   // 未达阈值 → 普通点击
+        int dropped = 0;
+        if (s->target && s->accept) {
+            fireDragEvent(s->target, PropertyNames::kEventDrop, *s, 0);
+            applyBuiltInReorder(*s);
+            dropped = 1;
+        }
+        fireDragEvent(s->source, PropertyNames::kEventDragEnd, *s, dropped);
+        dragReset(*s);
+        return true;
+    }
+    if (evt.m_type == EventType::KeyDown && evt.keyEvent.keycode == KeyCode::Escape) {
+        if (s->dragging) {
+            fireDragEvent(s->source, PropertyNames::kEventDragEnd, *s, 0);
+            dragReset(*s);
+            return true;
+        }
+        s->pending = false;
+        return false;
+    }
+    if (evt.m_type == EventType::FocusLost) {
+        if (s->dragging) fireDragEvent(s->source, PropertyNames::kEventDragEnd, *s, 0);
+        dragReset(*s);
+        return false;
+    }
+    return false;
+}
+
+void DragRenderOverlay(UIInstance instance) {
+    UIInstance owner = dragOwnerOf(instance);
+    DragState* s = dragStateOf(owner, false);
+    if (!s || !s->dragging || !s->visual) return;
+    RenderDevice* dev = instance->renderDevice;
+    if (!dev) return;
+    SColor ghostBg{40, 40, 46, 220}, ghostTx{235, 235, 235}, ind{0, 122, 204};
+    auto* srcImpl = dynamic_cast<ControlImpl*>(s->source);
+    if (srcImpl) {
+        srcImpl->getColorProperty(PropertyNames::kDragGhostBackground, ghostBg);
+        srcImpl->getColorProperty(PropertyNames::kDragGhostText, ghostTx);
+        srcImpl->getColorProperty(PropertyNames::kDragIndicatorColor, ind);
+    }
+    const std::string label = !s->text.empty() ? s->text : std::string();
+    float gw = 24.0f + (float)label.size() * 8.0f;
+    float gh = 22.0f;
+    SRect g(s->lastX + 12.0f, s->lastY + 12.0f, gw, gh);
+    dev->setDrawColor(ghostBg);
+    dev->fillRect(g);
+    dev->setDrawColor(ind);
+    dev->fillRect(SRect(g.left, g.top, g.width, 1.0f));
+    dev->fillRect(SRect(g.left, g.bottom() - 1.0f, g.width, 1.0f));
+    dev->fillRect(SRect(g.left, g.top, 1.0f, g.height));
+    dev->fillRect(SRect(g.right() - 1.0f, g.top, 1.0f, g.height));
+    if (!label.empty() && s->source) {
+        TextRenderer* tr = s->source->getTextRenderer();
+        if (tr) {
+            if (!s->ghostFont) {
+                auto it = ConstDef::fontFiles.find(FontName::HarmonyOS_Sans_SC_Regular);
+                if (it != ConstDef::fontFiles.end()) {
+                    try { s->ghostFont = tr->loadFont(it->second, 14); } catch (...) {}
+                }
+            }
+            if (s->ghostFont) tr->drawText(s->ghostFont.get(), label, g.left + 6.0f, g.top + gh - 5.0f, ghostTx);
+        }
+    }
+    if (s->target && s->hintKind != UI_DROP_HINT_NONE) {
+        dev->setDrawColor(ind);
+        SRect tr2 = s->target->getDrawRect();
+        switch (s->hintKind) {
+            case UI_DROP_HINT_INSIDE:
+            case UI_DROP_HINT_INTO:
+                dev->fillRect(SRect(tr2.left, tr2.top, tr2.width, 2.0f));
+                dev->fillRect(SRect(tr2.left, tr2.bottom() - 2.0f, tr2.width, 2.0f));
+                dev->fillRect(SRect(tr2.left, tr2.top, 2.0f, tr2.height));
+                dev->fillRect(SRect(tr2.right() - 2.0f, tr2.top, 2.0f, tr2.height));
+                break;
+            case UI_DROP_HINT_BEFORE:
+            case UI_DROP_HINT_AFTER:
+            case UI_DROP_HINT_ROW:
+                dev->fillRect(SRect(tr2.left, s->lastY - 1.0f, tr2.width, 2.0f));
+                break;
+            case UI_DROP_HINT_INDEX:
+                dev->fillRect(SRect(s->lastX - 1.0f, tr2.top, 2.0f, tr2.height));
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+void DragRelease(UIInstance instance) {
+    if (!instance) return;
+    if (instance->dragState) {
+        delete static_cast<DragState*>(instance->dragState);
+        instance->dragState = nullptr;
+        return;
+    }
+    // 子视口销毁：若拖拽源属于该视口，清理 owner 状态（防悬垂）
+    UIInstance owner = dragOwnerOf(instance);
+    DragState* s = dragStateOf(owner, false);
+    if (s && s->source && s->source->getContext() == instance) {
+        dragReset(*s);
+    }
+}
+
+bool DragQueryActive(const Control* ctl) {
+    if (!ctl) return false;
+    UIInstance owner = dragOwnerOf(ctl->getContext());
+    DragState* s = dragStateOf(owner, false);
+    return s && (s->dragging || s->pending) && s->source == ctl;
+}
+
+void DragSetAccept(const Control* ctl, bool accept) {
+    if (!ctl) return;
+    UIInstance owner = dragOwnerOf(ctl->getContext());
+    DragState* s = dragStateOf(owner, false);
+    if (s && s->dragging && s->target == ctl) s->accept = accept;
+}
+
 void UICornerstone_RenderOverlays(UIInstance instance) {
+    DragRenderOverlay(instance);   // P0-94：拖拽 ghost/落点指示（内部自判）
     if (!instance || !instance->initialized || instance->destroying) return;
     if (!instance->renderDevice || !instance->bench) return;
     // P0-52①：仅重绘 bench 顶层可见浮层（含子树），按 bench 子序（z-order），裁剪同 Render
@@ -1774,25 +2178,27 @@ int UICornerstone_TabSetPage(UIInstance instance, UIControlHandle tab,
     if (!v || index < 0) return 0;
     Control* pg = page ? validateControl(instance, page) : nullptr;
     if (page && !pg) return 0;
+    // P0-91④：上界检查前置——越界时不得消费保活池（原实现先 take 后 no-op → 页悬垂）
+    if (index >= v->getTabCount()) return 0;
 
     // P0-69②/Q-2：替换旧页全摘除 + 保活（防 bench 残留鬼影与句柄销毁）
-    shared_ptr<Control> oldPage = (index < v->getTabCount()) ? v->getTabs()[index].page : nullptr;
+    shared_ptr<Control> oldPage = v->getTabs()[index].page;
     shared_ptr<Control> newPage;
     if (pg) {
-        detachPoolTake(instance, page);   // 池内页移出（P0-50 同款）
+        // P0-91④：先取强引用，再移出保活池（原序 take 丢弃返回值 → 页析构 → shared_from_this UAF）
         try {
             auto* impl = dynamic_cast<ControlImpl*>(pg);
-            if (impl) {
-                newPage = impl->shared_from_this();
-                // 挂载前摘除旧父残留（CreatePanel 先挂 bench → 双挂载根因）
-                Control* oldParent = pg->getParent();
-                if (oldParent != nullptr && oldParent != static_cast<Control*>(v)) {
-                    oldParent->removeControl(newPage);
-                } else if (oldParent == nullptr) {
-                    instance->bench->removeControl(newPage);
-                }
-            }
+            if (impl) newPage = impl->shared_from_this();
         } catch (...) { /* 非托管对象，忽略 */ }
+        if (!newPage) return 0;
+        detachPoolTake(instance, page);   // 池内页移出（P0-50 同款）
+        // 挂载前摘除旧父残留（CreatePanel 先挂 bench → 双挂载根因）
+        Control* oldParent = pg->getParent();
+        if (oldParent != nullptr && oldParent != static_cast<Control*>(v)) {
+            oldParent->removeControl(newPage);
+        } else if (oldParent == nullptr) {
+            instance->bench->removeControl(newPage);
+        }
     }
     v->setTabPage(index, newPage);
     if (oldPage && oldPage != newPage) {
@@ -1802,6 +2208,27 @@ int UICornerstone_TabSetPage(UIInstance instance, UIControlHandle tab,
         oldPage->setVisible(false);
         detachPoolKeep(instance, oldPage);
     }
+    return 1;
+}
+
+// P0-91：页序调整（完整 TabPage 迁移；currentIndex 重映射）；返回 1=移动 0=越界/同位
+int UICornerstone_TabMovePage(UIInstance instance, UIControlHandle tab, int from, int to) {
+    auto* v = tabControlOf(instance, tab);
+    if (!v) return 0;
+    return v->moveTab(from, to) ? 1 : 0;
+}
+
+// P0-91：页签项矩形（局部逻辑坐标；越界返回 0）——拖动排序落点/精确点击判定
+int UICornerstone_TabGetItemRect(UIInstance instance, UIControlHandle tab, int index,
+    float* x, float* y, float* w, float* h)
+{
+    auto* v = tabControlOf(instance, tab);
+    if (!v || index < 0 || index >= v->getTabCount()) return 0;
+    const SRect& r = v->getTabs()[index].tabRect;
+    if (x) *x = r.left;
+    if (y) *y = r.top;
+    if (w) *w = r.width;
+    if (h) *h = r.height;
     return 1;
 }
 
@@ -1867,6 +2294,16 @@ int UICornerstone_ListViewRemoveRow(UIInstance instance, UIControlHandle lv, int
     if (!v) return 0;
     v->removeRow(index);
     return 1;
+}
+
+// P0-94（Phase 2，公开）：行换序（from→to 最终索引；行控件/样式随行迁移）
+int UICornerstone_ListViewMoveRow(UIInstance instance, UIControlHandle lv, int from, int to)
+{
+    if (!instance || !lv) return 0;
+    Control* c = validateControl(instance, lv);
+    auto* listView = c ? dynamic_cast<ListView*>(c) : nullptr;
+    if (!listView) return 0;
+    return listView->moveRow(from, to) ? 1 : 0;
 }
 
 int UICornerstone_ListViewSetCellText(UIInstance instance, UIControlHandle lv,
@@ -2596,6 +3033,17 @@ int UICornerstone_TreeViewAddNode(UIInstance instance, UIControlHandle tree,
     if (parentId && parentId[0] != '\0')
         return tv->addChild(parentId, node) ? 1 : 0;
     return tv->addRootItem(node) ? 1 : 0;
+}
+
+// P0-94（Phase 2，公开）：节点迁移（换序/换父；完整子树；index<0=追加到目标末尾）
+int UICornerstone_TreeViewMoveNode(UIInstance instance, UIControlHandle tree,
+    const char* id, const char* newParentId, int index)
+{
+    if (!instance || !tree || !id) return 0;
+    Control* c = validateControl(instance, tree);
+    auto* tv = c ? dynamic_cast<TreeView*>(c) : nullptr;
+    if (!tv) return 0;
+    return tv->moveNode(id, newParentId ? newParentId : "", index) ? 1 : 0;
 }
 
 int UICornerstone_TreeViewRemoveNode(UIInstance instance, UIControlHandle tree, const char* id) {

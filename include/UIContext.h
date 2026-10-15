@@ -96,6 +96,7 @@ struct UIContext {
     // ── 容器子控件摘除保活池（P0-50 RemoveChild）：摘除不销毁，可反复 attach/detach；
     //     AddChildControl/DestroyControl 联动 Take；随实例销毁级联释放 ──
     std::vector<std::shared_ptr<Control>> detachedControls;
+    void* dragState = nullptr;   // P0-94：通用拖拽状态（owner 持有；惰性创建/销毁）
 
     // ── 实例内字符串缓冲（GetControlId 输出） ──
     std::string strBuf;

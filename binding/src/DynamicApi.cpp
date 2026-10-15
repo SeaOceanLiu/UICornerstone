@@ -108,6 +108,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(CreateListView);
     RESOLVE(ListViewAddRow);
     RESOLVE(ListViewRemoveRow);
+    RESOLVE(ListViewMoveRow);
     RESOLVE(ListViewSetCellText);
     RESOLVE(ListViewGetCellText);
     RESOLVE(ListViewAddColumn);
@@ -155,6 +156,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ContextMenuClose);
     RESOLVE(TabAddPage);
     RESOLVE(TabRemovePage);
+    RESOLVE(TabMovePage);
+    RESOLVE(TabGetItemRect);
     RESOLVE(TabSetPage);
     RESOLVE(TabSetTitle);
     RESOLVE(TabSetTabLeadingControl);
@@ -170,6 +173,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(GetInstanceScale);
     RESOLVE(TreeViewAddNode);
     RESOLVE(TreeViewRemoveNode);
+    RESOLVE(TreeViewMoveNode);
     RESOLVE(TreeViewSetNodeLabel);
     RESOLVE(TreeViewSetNodeUserData);
     RESOLVE(TreeViewSelectNode);

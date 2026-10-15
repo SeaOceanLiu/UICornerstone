@@ -14,6 +14,7 @@
 - **LuotiAni 动画引擎**：基于 JSON 关键帧描述（translate/scale/rotate/opacity/visible + 缓动与轨迹），支持多实例共享烘焙帧数据。
 - **Actor 图片系统**：控件可绑定多状态图片（normal/hover/pressed/disabled），支持缩放模式/锚点/透明度/匹配父矩形；LuotiAni 每帧动画即为一个帧 Actor。
 - **三种集成方式**：C ABI 动态库（纯 C 调用）、C++ Binding（现代 C++ 封装）、核心 + 后端源码混合编译。
+- **通用拖拽框架（P0-94）**：控件级 `draggable`/`droppable` 注册、语义化载荷与落点（tree 节点/list 行/tab 页自动填充）、`drag-start`/`drag-over`/`drop`/`drag-end` 事件与默认视觉；`reorderable` 一行开启 tree 换序·换父 / list 行 / tab 页内置换序（`reordered`/`tab-reordered`）。详见 [5.7 拖拽框架](docs/advanced/drag-drop.html)。
 - **多实例 / 多视口**：一个进程多个独立 UI 实例、多窗口与子视口渲染（按后端能力位条件化）。
 - **焦点系统**：Tab 环、焦点边界（WinFrame 内循环）、Ctrl+Tab 焦点作用域切换、焦点环绘制。
 - **高 DPI**：内置 `dpiScale` 机制，布局与渲染自动适配。

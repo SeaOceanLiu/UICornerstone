@@ -343,6 +343,15 @@ protected:
     vector<shared_ptr<Control>> m_children; //子控件
 
     bool m_isTransparent;
+    // P0-94：拖拽标志（通用布尔属性，经 setBoolProperty 直达）
+    bool m_draggable = false;
+    bool m_droppable = false;
+    bool m_reorderable = false;
+    bool m_dragVisual = true;
+    float m_dragThreshold = 4.0f;
+    SColor m_dragGhostBg{40, 40, 46, 220};      // P0-94：默认视觉主题色（可经属性覆写）
+    SColor m_dragGhostText{235, 235, 235};
+    SColor m_dragIndicator{0, 122, 204};
     bool m_isBorderVisible;
     bool m_alwaysOnTop = false;
     ControlState m_state;
@@ -480,6 +489,12 @@ public:
     RenderDevice* getRenderDevice(void) override;
     void setRenderDevice(RenderDevice* device) override;
     TextRenderer* getTextRenderer(void) override;
+    // P0-94：拖拽标志只读访问（管理器/渲染使用）
+    bool isDraggable() const { return m_draggable; }
+    bool isDroppable() const { return m_droppable; }
+    bool isReorderable() const { return m_reorderable; }
+    bool dragVisualEnabled() const { return m_dragVisual; }
+    float dragThresholdValue() const { return m_dragThreshold; }
     void setTextRenderer(TextRenderer* renderer) override;
     InputBackend* getInputBackend(void) override;
     void setInputBackend(InputBackend* backend) override;
@@ -544,7 +559,20 @@ public:
     struct TreeNodePayload { const char* id; void* userData; };
     struct ColorPayload { uint8_t r,g,b,a; };
     struct GridPayload { int row; int col; int asc; };
-    enum class CCallbackData { None, Int, Float, String, Selection, Ptr, TreeNode, Color, Grid };
+    enum class CCallbackData { None, Int, Float, String, Selection, Ptr, TreeNode, Color, Grid, Drag };
+    // P0-94：拖拽事件载荷束（fireCCallback(CallbackData::Drag, &bundle)）
+    struct DragEventBundle {
+        int kind = 0;
+        const char* id = "";
+        int index = -1;
+        const char* text = "";
+        void* userData = nullptr;
+        void* source = nullptr;
+        int hintKind = 0;
+        int hintIndex = -1;
+        const char* hintTargetId = "";
+        int dropped = 0;
+    };
 
     // 从子控件事件处理器中触发 C ABI 回调
     // eventName: PropertyNames 中的事件常量

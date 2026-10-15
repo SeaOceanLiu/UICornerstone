@@ -476,6 +476,23 @@
 
 ---
 
+## 近期批次补充（2026-10-15，P0-80~P0-94）
+
+| 批次 | 内容 | JSON | 属性键 | CABI / Binding | 缺口 |
+|---|---|---|---|---|---|
+| P0-80/81 | provider 回退继承 / 解析期上下文绑定 | — | — | 引擎内部（`inheritFilesystemFallback`/`adoptContext`） | ✅ |
+| P0-82/88 | 菜单悬停/激活状态复位 | — | `hovered-index`（bar 只读）/`active-index`（只读） | 通用 Get | ✅ |
+| P0-83 | EditBox/TextArea 只读 | `read-only` | `kReadOnly` | 通用 SetBool/GetBool | ✅ |
+| P0-86 | 回调空=解绑 | — | — | SetCallback(cb=nullptr) | ✅ |
+| P0-87 | 菜单项 id 入 id 表 | menus items `id` | — | FindControl 可达 | ✅ |
+| P0-89 | handler 未注册诊断日志 | — | — | 引擎日志（warn+去重） | ✅ |
+| P0-90 | Tab 页签配色 | — | `tab-background`/`tab-hover-background`/`tab-selected-background`/`tab-indicator-color`/`tab-content-background` | 通用 SetColor/GetColor | ✅ |
+| P0-91 | 页签几何/换序 + SetPage UAF 修复 | — | `hovered-tab`（只读） | `TabGetItemRect`/`TabMovePage` | ✅ |
+| P0-92 | tab 配色 JSON 解析 | 同 P0-90 5 键 + `selected-text`/`page-background` | — | — | ✅ |
+| P0-93/94 | 通用拖拽框架 + 内置换序 | `draggable`/`droppable`/`reorderable`/`drag-threshold`/`drag-visual` | 同左 + `drag-accept`/`drag-active`/主题三色 | 事件 `drag-start`/`drag-over`/`drop`/`drag-end`/`reordered`/`tab-reordered`；`TreeViewMoveNode`/`ListViewMoveRow` | ✅（Phase 3 设计器侧） |
+
+---
+
 ## 待决策:getId / getControlType 转属性
 
 - **getControlType**:已补 `control-type` 只读字符串属性(getter),与 `GetControlType` CABI 并存(映射表已标 ✅)。删除 CABI 会破坏现有 DLL 用户,建议保留。

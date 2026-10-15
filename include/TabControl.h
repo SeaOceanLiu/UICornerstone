@@ -32,6 +32,8 @@ public:
     int  addTab(const std::string& title, std::shared_ptr<Control> page);
     void insertTab(int index, const std::string& title, std::shared_ptr<Control> page);
     void removeTab(int index);
+    // P0-91：页序调整（完整 TabPage 迁移；currentIndex 重映射）；越界/同位返回 false
+    bool moveTab(int from, int to);
     int  getTabCount() const { return static_cast<int>(m_tabs.size()); }
     const std::vector<TabPage>& getTabs() const { return m_tabs; }
 
@@ -91,6 +93,12 @@ private:
     SPoint m_shadowOffset{1, 1};
     float m_padding = 8.0f;
     int m_hoveredTab = -1;
+    // P0-90：页签条配色（ctor 初始化为原硬编码常量）
+    SColor m_normTabColor;
+    SColor m_hoverTabColor;
+    SColor m_selTabColor;
+    SColor m_indicatorColor;
+    SColor m_contentBgColor;
     SRect m_contentRect;              // 内容区（相对控件原点）
     OnTabChange m_onTabChange;
     SharedFont m_font;

@@ -34,6 +34,7 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
     m_rawJsonContent = jsonContent;
     m_currentLineNo = 1;
     m_currentJsonPath = "root";
+    m_missingHandlerLogged.clear();   // P0-89：诊断去重按次重置
 
     json j;
     try {
@@ -835,6 +836,39 @@ shared_ptr<Control> LayoutParser::parseTabControl(const json& j, Control* parent
     }
     if (j.contains(PropertyNames::kFontSize) && j[PropertyNames::kFontSize].is_number())
         tc->setFontSize(j[PropertyNames::kFontSize].get<float>());
+
+    // P0-92：页签条配色 JSON 解析（与 ListView 表头同款：字符串 #RRGGBB[AA]）
+    {
+        static const char* kTabColorKeys[] = {
+            PropertyNames::kTabBackground, PropertyNames::kTabHoverBackground,
+            PropertyNames::kTabSelectedBackground, PropertyNames::kTabIndicatorColor,
+            PropertyNames::kTabContentBackground };
+        for (const char* key : kTabColorKeys) {
+            if (j.contains(key) && j[key].is_string()) {
+                tc->setColorProperty(key, parseColor(j[key]));
+            }
+        }
+        // selected-text（字符串）
+        if (j.contains(PropertyNames::kSelectedText) && j[PropertyNames::kSelectedText].is_string()) {
+            tc->setColorProperty(PropertyNames::kSelectedText, parseColor(j[PropertyNames::kSelectedText]));
+        }
+        // page-background：字符串=normal / 四态对象（P0-74④ 合并语义；未给态保持现值）
+        if (j.contains(PropertyNames::kPageBackground)) {
+            const json& pb = j[PropertyNames::kPageBackground];
+            StateColor sc(StateColor::Type::Background);
+            StateColor cur;
+            if (tc->getStateColorProperty(PropertyNames::kPageBackground, cur)) sc = cur;
+            if (pb.is_string()) {
+                sc.setNormal(parseColor(pb));
+            } else if (pb.is_object()) {
+                if (pb.contains(PropertyNames::kStateKeyNormal))   sc.setNormal(parseColor(pb[PropertyNames::kStateKeyNormal]));
+                if (pb.contains(PropertyNames::kStateKeyHover))    sc.setHover(parseColor(pb[PropertyNames::kStateKeyHover]));
+                if (pb.contains(PropertyNames::kStateKeyPressed))  sc.setPressed(parseColor(pb[PropertyNames::kStateKeyPressed]));
+                if (pb.contains(PropertyNames::kStateKeyDisabled)) sc.setDisabled(parseColor(pb[PropertyNames::kStateKeyDisabled]));
+            }
+            tc->setStateColorProperty(PropertyNames::kPageBackground, sc);
+        }
+    }
 
     if (j.contains(PropertyNames::kJsonTabs) && j[PropertyNames::kJsonTabs].is_array()) {
         pushJsonPath(PropertyNames::kJsonTabs);
@@ -2933,6 +2967,18 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
         popJsonPath();
     }
 
+    // P0-94：通用拖拽键（所有控件）
+    if (j.contains(PropertyNames::kDraggable) && j[PropertyNames::kDraggable].is_boolean())
+        ctrl->setBoolProperty(PropertyNames::kDraggable, j[PropertyNames::kDraggable].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kDroppable) && j[PropertyNames::kDroppable].is_boolean())
+        ctrl->setBoolProperty(PropertyNames::kDroppable, j[PropertyNames::kDroppable].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kReorderable) && j[PropertyNames::kReorderable].is_boolean())
+        ctrl->setBoolProperty(PropertyNames::kReorderable, j[PropertyNames::kReorderable].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kDragVisual) && j[PropertyNames::kDragVisual].is_boolean())
+        ctrl->setBoolProperty(PropertyNames::kDragVisual, j[PropertyNames::kDragVisual].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kDragThreshold) && j[PropertyNames::kDragThreshold].is_number())
+        ctrl->setFloatProperty(PropertyNames::kDragThreshold, j[PropertyNames::kDragThreshold].get<float>());
+
     // 字体键（font{name,size} / font-size / fontSize）统一解析（显式声明）
     applyFontDecl(ctrl, j);
 
@@ -3045,17 +3091,26 @@ void LayoutParser::resolveFontInheritance(Control* root) {
     }
 }
 
+void LayoutParser::logMissingHandler(const std::string& name, const std::string& ctrlId) {
+    if (name.empty()) return;
+    if (!m_missingHandlerLogged.insert(name).second) return;   // 同次 LoadLayout 去重
+    logWarn("handler not registered: " + name +
+            (ctrlId.empty() ? std::string() : " (control: " + ctrlId + ")"));
+}
+
 void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
     if (!j.contains(PropertyNames::kJsonEvents) || j[PropertyNames::kJsonEvents].is_null() || !j[PropertyNames::kJsonEvents].is_object()) return;
 
     pushJsonPath(PropertyNames::kJsonEvents);
     const json& events = j[PropertyNames::kJsonEvents];
+    const string ctrlId = j.value(PropertyNames::kId, string());   // P0-89：诊断携带控件 id
 
     // Button: onClick
     if (auto btn = dynamic_pointer_cast<Button>(ctrl)) {
         if (events.contains(PropertyNames::kEventKeyClick) && events[PropertyNames::kEventKeyClick].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyClick].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 btn->setOnClick([handler](shared_ptr<Button> sender) {
@@ -3070,6 +3125,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyClick) && events[PropertyNames::kEventKeyClick].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyClick].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 label->setOnClick([handler](shared_ptr<Label> sender) {
@@ -3080,6 +3136,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyPropertyChanged) && events[PropertyNames::kEventKeyPropertyChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyPropertyChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 label->setOnPropertyChanged([handler](shared_ptr<Label> sender) {
@@ -3094,6 +3151,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyTextChanged) && events[PropertyNames::kEventKeyTextChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyTextChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 editBox->setOnTextChanged([handler](shared_ptr<Control> sender, string) {
@@ -3105,6 +3163,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyEnter) && events[PropertyNames::kEventKeyEnter].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyEnter].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 editBox->setOnEnter([handler](shared_ptr<Control> sender) {
@@ -3119,6 +3178,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeySelectionChanged) && events[PropertyNames::kEventKeySelectionChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeySelectionChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 combo->setOnSelectionChanged([handler](shared_ptr<ComboBox> sender, int, const string&) {
@@ -3133,6 +3193,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyCheckChanged) && events[PropertyNames::kEventKeyCheckChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyCheckChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 cb->setOnCheckChanged([handler](shared_ptr<CheckBox> sender, CheckState, CheckState) {
@@ -3147,6 +3208,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeySelect) && events[PropertyNames::kEventKeySelect].is_string()) {
             string handlerName = events[PropertyNames::kEventKeySelect].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 tv->setOnSelect([handler, tv](shared_ptr<TreeView>, const string&) {
@@ -3161,6 +3223,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyValueChanged) && events[PropertyNames::kEventKeyValueChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyValueChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 pb->setOnValueChanged([handler](shared_ptr<ProgressBar> sender, float, float) {
@@ -3175,6 +3238,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyPositionChanged) && events[PropertyNames::kEventKeyPositionChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyPositionChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 sb->setOnPositionChanged([handler](shared_ptr<ScrollBar> sender, float, float, float, float) {
@@ -3189,6 +3253,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyValueChanged) && events[PropertyNames::kEventKeyValueChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyValueChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 sl->setOnValueChanged([handler](shared_ptr<Slider> sender, float) {
@@ -3203,6 +3268,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyColorChanged) && events[PropertyNames::kEventKeyColorChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyColorChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 cp->setOnColorChanged([handler](shared_ptr<ColorPicker>, const SColor&) {
@@ -3217,6 +3283,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyConfirm) && events[PropertyNames::kEventKeyConfirm].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyConfirm].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 dlg->setOnConfirm([handler](shared_ptr<ConfirmPopup> sender) {
@@ -3227,6 +3294,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyCancel) && events[PropertyNames::kEventKeyCancel].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyCancel].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 dlg->setOnCancel([handler](shared_ptr<Dialog> sender) {
@@ -3237,6 +3305,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyClose) && events[PropertyNames::kEventKeyClose].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyClose].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 dlg->setOnClose([handler](shared_ptr<Popup> sender, DialogResult) {
@@ -3248,6 +3317,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyConfirm) && events[PropertyNames::kEventKeyConfirm].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyConfirm].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 cp->setOnConfirm([handler](shared_ptr<ConfirmPopup> sender) {
@@ -3259,6 +3329,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyClose) && events[PropertyNames::kEventKeyClose].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyClose].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 pop->setOnClose([handler](shared_ptr<Popup> sender, DialogResult) {
@@ -3273,6 +3344,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyClick) && events[PropertyNames::kEventKeyClick].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyClick].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 mi->setOnClick([handler](shared_ptr<MenuItem> sender) {
@@ -3287,6 +3359,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeyValueChanged) && events[PropertyNames::kEventKeyValueChanged].is_string()) {
             string handlerName = events[PropertyNames::kEventKeyValueChanged].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 nud->setOnValueChanged([handler](shared_ptr<NumericUpDown>, double) {
@@ -3301,6 +3374,7 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         if (events.contains(PropertyNames::kEventKeySplitterMoved) && events[PropertyNames::kEventKeySplitterMoved].is_string()) {
             string handlerName = events[PropertyNames::kEventKeySplitterMoved].get<string>();
             auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);   // P0-89
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 sp->setOnSplitterMoved([handler](shared_ptr<Splitter>, float) {

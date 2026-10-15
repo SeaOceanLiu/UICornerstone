@@ -535,7 +535,47 @@
 
 > **状态（2026-10-10）**：引擎已完成问题分析（`UIControls/design/P086_087_Design.md`）；设计器复核**通过**（`Temp/P086_087_复核意见.md`）。**引擎已实施并同步**（DLL md5 `abab828b…` 与 release 一致；binding 空回调分支先于 slot ✓）：**P0-86/P0-87 闭环**——设计器随批：`removeEventBinding` 改回空回调解绑；auto=1 探针 `miUndo valid=1 disabled=1 miRedo disabled=1 → MENU-STATE-OK`；auto=2 82/0、五探针、strict、Release 零警告。
 
-> **状态（2026-10-10）**：引擎已完成问题分析（`UIControls/design/P088_MenuCloseOwner_Design.md`）；设计器复核**通过**（`Temp/P088_复核意见.md`：3 点非阻塞补充——2.2 兜底双段可简化 / 测试补右键上下文菜单+≥2 级嵌套子菜单 / active-index 只读钩子与 isInMenuMode 断言）。待引擎实施并同步。
+> **状态（2026-10-12）**：引擎已实施并同步（DLL md5 `5bb0408c…`=release；`kActiveIndex` 入 PropertyNames + menu.html 文档；方案 A owner 背指针落地）。设计器随批：auto=1 新增 `MENU-IDLE-OK` 探针（`menuBar active-index=-1` 只读钩子活性）。**P0-88 闭环**——验证 auto=2 82/0、auto=3 五探针、strict PASS、Release 零警告。待用户手动复测：点击菜单项后面板收起且主菜单立即恢复非激活态（无需补点）。
+
+> **状态（2026-10-12）**：引擎已实施并同步（DLL md5 `64c225bd…`；`kHoveredTab`/`TabMovePage`/`TabGetItemRect`/五个 tab-* 颜色键齐备）。设计器随批完成：**P0-89/90/91 闭环**——①精确点击语义（hovered-tab 替代启发式：点项=该项页/内容=当前页/空白=整个 Tab）；②拖动页签排序（TabGetItemRect 判落点 + TabMovePage 迁移，状态栏提示，模型/引擎/树标签/当前页全同步）；③页签配色 5 行（tab-background/hover/selected/indicator/content，引擎读回刷新 + extended 持久化 + 加载回放）；④池往返回归 ✓（引擎修复验证：Remove→Add→SetPage 不再崩溃）。auto=2 **113/0**、auto=1/3、strict、Release 零警告。
+>
+> **遗留（新提 P0-92）**：`LayoutParser` **未解析** tab-* 颜色键（各控件颜色键均按类型显式解析，无通用扫描）→ **导出应用**的 layout.json 中 tab 配色不会被引擎应用（设计器自身读写 ✓、导出工程丢失 ✗）。需求：tab-control 解析段补 5 键 `setColorProperty`（与 kHeaderBackground 同款，LayoutParser.cpp:673 区）+ schema `$defs/tab-control` 增键（`additionalProperties:false`，且为**设计器序列化白名单**——schema 含键后 .csd 保存/导出自动透传）。
+>
+> **状态（2026-10-12）**：引擎已实施并同步（DLL `19aaa549…`；schema 增 5 键 + page-background；解析补齐）。设计器随批完成：**P0-92 闭环**——save/open 往返（模型+引擎）+ 导出携带键断言（auto=2 115/0、strict 含键 PASS）；**随批附带发现并修复加载缺陷**：walk 在页子树后 `applyModelToEngine(m_items.back())` 取到页后代 → Tab 属性/配色/引擎页挂载在打开路径丢失（已改 selfIdx）。
+
+## 追加（2026-10-12 通用拖拽框架（Drag & Drop）——引擎清单 P0-94）
+
+> 用户提出：把"拖动"做成**所有控件通用**的能力——TreeView/ListView 等可拖动换序、并接收拽入的信息（含跨控件/跨类型的数据传递）。P0-93（Tab 运行时拖动排序）可并入本框架 Phase 1 作为首个内置消费者。
+>
+> **状态（2026-10-12）**：引擎已完成分析设计（`UIControls/design/P093_094_DragDrop_Design.md`：DragManager 状态机/注册与载荷 ABI/语义化落点 UIDropHint/四事件/drag-accept 接受机制/默认视觉主题键/单实例边界 + Phase 2 内置行为 + 测试计划）；设计器复核**通过**（`Temp/P093_094_复核意见.md`，4 点补充：载荷启动时捕获+accept 重置语义 / MoveNode·MoveRow 建议公开 / userData 责任边界注明 / 可选 drag-hint 只读）。**范围意见**：Phase 3 为设计器侧（引擎无从代做）；**建议 Phase 1+2 合并一批**（Phase 2 是同状态机的三个内置消费者，P0-93 随之立即闭环；引擎若顾虑 ABI 稳定亦可 Phase 1 独立先行——两案均可接受；不建议把 Phase 2 再拆三次）。待引擎按定形范围实施并同步。
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-94 | 中 | **通用拖拽框架（DragSource/DropTarget + 引擎内置拖拽管理 + 语义化落点 + 事件）** | **动机**：本项目已多次因"宿主侧重实现拖动/事件逻辑"返工（手柄让区截获、坐标域错位、事件时序、页签拖动需宿主自管 ghost/落点）——通用框架把"鼠标按下/阈值/移动/释放/命中/光标/预览"统一到引擎（引擎本就拥有事件队列与几何），宿主只处理语义与数据。**建议 API 面**（Binding/C ABI/JSON 三通道一致）：①**注册**：`SetDraggable(ctl, true, DragKind)` / `SetDropTarget(ctl, true)`（JSON `"draggable"/"droppable"`）；②**载荷**（tagged union）：`DragPayload{ kind: Control|TreeNode|ListRow|TabPage|Text|File|HostData; id; index; text; userData }`——TreeNode/ListRow/TabPage 由引擎从被拖元素自动填充（含 `userData` 指针透传）；③**语义化落点**：引擎按目标类型计算并给出提示——TreeView：`before/after/into`（+ 目标节点 id）；ListView：行索引；TabControl：页索引；通用控件：`inside`——宿主收到的是**语义**而非像素；④**事件**：源侧 `onDragStart(payload)`/`onDragEnd(dropped)`；目标侧 `onDragOver(payload, posHint)→接受/拒绝`（可实时高亮）/`onDrop(payload, posHint)`；⑤**视觉**：引擎内置默认预览（载荷图标/文本，属性可主题化）+ 落点指示（插入线/高亮）；宿主可经事件自绘覆盖（设计器 ghost 即此类）；⑥**内置行为**（opt-in，零配置可用）：TreeView 节点换序/换父、ListView 行换序、TabControl 页换序（=P0-93）——引擎执行数据迁移并发 `onReordered(from,to)` 之类语义事件；⑦**跨实例**：框架先覆盖**单实例内**（含子视口）；设计器"工具箱→画布"的跨实例拖放属宿主自管（框架提供状态查询即可）。**Phase**：1=核心（注册/载荷/事件/内置预览与落点指示/单实例）；2=内置行为（tree/list/tab 换序）+ 跨控件载荷交接示例；3=设计器接入（控件树拖动换父/换序、画布内控件拖动迁移到统一通道、ListView/TreeView 结构行拖动编辑）。**宿主侧随批**：设计器现有宿主拖动（工具箱 ghost、页签排序）在 Phase 1 交付后评估迁移（保留编辑语义：模型/撤销/树同步仍属宿主）。同类注意：与系统级文件拖入（OS DnD）的边界另议（Phase 2+ 可桥接 SDL_DROPFILE 等） |
+
+## 追加（2026-10-12 TabControl 运行时拖动排序——引擎清单 P0-93）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-93 | 中 | **TabControl 运行时拖动排序（opt-in）——引擎内置拖拽 + 重排事件** | 背景：设计器的页签拖动排序为**宿主侧实现**（`TabGetItemRect` 判项/落点 + 拖拽状态 + 光标 ghost + 释放 `TabMovePage` + 模型/撤销/树同步）——**编辑交互层天然属于宿主** ✓；但**导出应用（运行时）目前无任何拖拽换序能力** ✗。需求（opt-in，零现状影响）：①`reorderable` 布尔属性（默认 false——多数运行时应用不需要可拖页签）；②为 true 时引擎内置拖拽：页签项按下 → 拖动阈值 → 拖动中目标位高亮（可选内置 preview）→ 释放执行 moveTab；③拖动完成发事件 `onTabReordered`（载荷 from/to）——宿主据此同步数据模型。设计器随批：`reorderable` 行 + 导出携带 +（可选）设计器拖动切换为"引擎内置 + 事件同步模型"（本项目已多次因**宿主侧重实现事件逻辑**返工：手柄让区截获/坐标域/事件时序——运行时能力交引擎更稳）。同类可扩展：ListView 列宽/列序拖动（同一模式，另议） |
+
+## 追加（2026-10-12 Tab 页签几何读回与页序调整——引擎清单 P0-91）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-91 | **高** | **Tab 页签项矩形只读读回 + 页序调整 API** | 用户需求：拖动 Tab 页签改变页顺序；且点击语义需精确（用户实测："要离页签很远才判断为空白页签"——判定不准，主动询问是否需引擎接口，确认需要）。设计器实测结论：①**页签项几何不可得**——页签宽 = `measureText(title)+2*padding`（TabControl.cpp:206 区），**项 rect 含 padding，比可见文字宽**——设计器无法测量文字，只能以 currentIndex 变化启发式判定"点中项/空白"，固有误差：项 padding 区内点击误判、同项重按误判为空白；引擎内部 `m_hoveredTab`（MouseMove→`hitTestTab` 结果，TabControl.cpp:318）与 `tp.tabRect` 均已算好但**无任何导出**（getIntProperty 仅 currentIndex/fontSize）。需求（二选一或全给）：**①`UICornerstone_TabGetItemRect(instance, tab, index, float* x,y,w,h) -> int`**（直接导出 relayout 的 `tp.tabRect`；Binding `TabGetItemRect(Control&, int, SRect&)`）——同时服务拖动排序落点判定；**②`hovered-tab` 只读读回**（导出 `m_hoveredTab`，与 MenuBar `hovered-index` P0-82 同款）——点击帧读该值：≥0=点中该项（选其页）、-1=空白页签（选整个 Tab），实现最轻。②**页序调整**——C ABI 仅 TabAddPage 追加；设计器以"TabRemovePage 池保活 + TabAddPage/TabSetPage 重挂"模拟任意位插入，**实测污染引擎簿记**：排序后 `NewProject→clearCanvas` 销毁路径**段错误**（池往返后控件在后续 Destroy 崩溃）→ 模拟不可用（设计器已停用 `moveTabPage`，明确提示）。需求：`UICornerstone_TabMovePage(instance, tab, from, to) -> int`（引擎内部 removeTab+insertTab，页 shared_ptr 原样迁移；Binding `TabMovePage(Control&, int, int)`）。设计器随批：拖动排序交互（按 item rect 判目标位）+ 页签项/空白区精确点击语义替换启发式。附注：池往返崩溃建议引擎侧顺带排查（P0-69② 保活路径与 Destroy 的簿记一致性——即使不新增 API，该路径亦应安全） |
+
+## 追加（2026-10-12 Tab 页签背景色可配置——引擎清单 P0-90）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-90 | 中 | **TabControl 页签（tab strip）配色可配置** | 用户实测：无法修改 Tab 页签背景色。核实（TabControl.cpp:16-22）：页签三态背景 `kSelTabColor/kHoverTabColor/kNormTabColor`、选中指示条 `kIndicatorColor`、内容区底色 `kContentBgColor` **均为硬编码常量**，无属性通道。需求（建议命名对齐 P0-72④ item 颜色家族，字符串单色 + getter 读回）：`tab-background`（常态页签背景）/ `tab-hover-background` / `tab-selected-background`（选中页签背景）；可选：`tab-indicator-color`（选中指示条）、`tab-content-background`（内容区底色）。经 `setColorProperty/getColorProperty` 直达（单色即可，四态暂不需要）；设计器同步后随批：tab-control 定制颜色行（行池 key `color:tab-*`，extended 持久化、颜色行读写回、导入/导出/预览全链随带）。备注：`selected-text`（选中页签文字）与 `page-background`（页背景四态，转发所有页）**引擎已存在**——设计器本批先以定制行暴露 `page-background`？暂缓：本批以"页 Panel 自身背景色"（选中页节点→常规颜色行）覆盖单页需求；`selected-text` 与 `tab-*` 一并随 P0-90 批次补行 |
+
+## 追加（2026-10-12 事件处理器未注册的诊断建议——引擎清单 P0-89）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-89 | 低 | **`parseEvents` 处理器名未命中时输出诊断日志** | 场景（设计器导出工程联测）：宿主在 `LoadLayout` **之后**才 `RegisterAction` → 解析器按名查 `m_handlers`（LayoutParser.cpp:3058）未命中 → **静默不绑定** onClick，点击无任何反馈，用户难定位（实测导出工程 events.c 加 printf 不输出，根因即注册顺序；设计器模板已修为"先注册后载布局"）。建议：`parseEvents` 对未命中的 handler 名输出 `UI_LOGW`（如 "handler not registered: onXxx_Click (control id)"）——低成本、显著改善宿主集成排障。设计器侧无需随批 |
 
 ## 追加（2026-10-10 菜单点击后主菜单残留激活态——引擎清单 P0-88）
 

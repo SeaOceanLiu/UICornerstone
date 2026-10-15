@@ -28,6 +28,11 @@ static constexpr float kIconTextGap      = 4.0f;   // 图标→文字间距
 
 TabControl::TabControl(Control* parent, const SRect& rect, float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
+    , m_normTabColor(kNormTabColor)          // P0-90：默认=原硬编码常量
+    , m_hoverTabColor(kHoverTabColor)
+    , m_selTabColor(kSelTabColor)
+    , m_indicatorColor(kIndicatorColor)
+    , m_contentBgColor(kContentBgColor)
 {
     m_ctlType = ControlType::TabControl;
     m_rect = rect;
@@ -84,6 +89,24 @@ void TabControl::insertTab(int index, const string& title, shared_ptr<Control> p
     if (m_currentIndex >= index) ++m_currentIndex;
     relayout();
     if (m_currentIndex < 0) setCurrentIndex(0);
+}
+
+// P0-91：页序调整——完整 TabPage 迁移（title/page/leadingControl 随迁，不走池）；
+// currentIndex 重映射（复核补充1）：当前==from → to（跟随）；(from,to] → -1；[to,from) → +1
+bool TabControl::moveTab(int from, int to) {
+    const int n = static_cast<int>(m_tabs.size());
+    if (from < 0 || from >= n || to < 0 || to >= n || from == to) return false;
+    TabPage tp = m_tabs[from];
+    m_tabs.erase(m_tabs.begin() + from);
+    m_tabs.insert(m_tabs.begin() + to, tp);
+    int cur = m_currentIndex;
+    if (cur == from) cur = to;
+    else if (from < to && cur > from && cur <= to) --cur;
+    else if (from > to && cur >= to && cur < from) ++cur;
+    m_currentIndex = cur;
+    relayout();
+    applyCurrentPage();
+    return true;
 }
 
 void TabControl::removeTab(int index) {
@@ -250,15 +273,15 @@ void TabControl::drawTabBar() {
         const float rw = tr.width * sx, rh = tr.height * sy;
 
         // 页签底色
-        if (sel) dev->setDrawColor(kSelTabColor);
-        else if (hov) dev->setDrawColor(kHoverTabColor);
-        else dev->setDrawColor(kNormTabColor);
+        if (sel) dev->setDrawColor(m_selTabColor);        // P0-90：可配
+        else if (hov) dev->setDrawColor(m_hoverTabColor);
+        else dev->setDrawColor(m_normTabColor);
         dev->fillRect(SRect(rx, ry, rw, rh));
 
         // 选中指示条（贴页签条内侧；厚度随 scale）
         if (sel) {
             const float ind = kIndicatorH * sx;
-            dev->setDrawColor(kIndicatorColor);
+            dev->setDrawColor(m_indicatorColor);          // P0-90：可配
             if (m_position == TabPosition::Top)
                 dev->fillRect(SRect(rx, ry + rh - ind, rw, ind));
             else if (m_position == TabPosition::Bottom)
@@ -300,7 +323,7 @@ void TabControl::draw(void) {
     if (dev) {
         // 内容区底色（浅色）：本地内容区 × scale
         const SRect dr = getDrawRect();
-        dev->setDrawColor(kContentBgColor);
+        dev->setDrawColor(m_contentBgColor);              // P0-90：可配
         dev->fillRect(SRect(dr.left + m_contentRect.left * getScaleXX(),
                             dr.top + m_contentRect.top * getScaleYY(),
                             m_contentRect.width * getScaleXX(),
@@ -402,6 +425,12 @@ int TabControl::setColorProperty(const char* prop, SColor color) {
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { m_textColor.setDisabled(color); return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { m_textShadowColor.setNormal(color); return 1; }
     if (strcmp(prop, PropertyNames::kSelectedText) == 0) { m_selectedTextColor = color;    return 1; }
+    // P0-90：页签条配色（单色）
+    if (strcmp(prop, PropertyNames::kTabBackground) == 0)          { m_normTabColor = color;    return 1; }
+    if (strcmp(prop, PropertyNames::kTabHoverBackground) == 0)     { m_hoverTabColor = color;   return 1; }
+    if (strcmp(prop, PropertyNames::kTabSelectedBackground) == 0)  { m_selTabColor = color;     return 1; }
+    if (strcmp(prop, PropertyNames::kTabIndicatorColor) == 0)      { m_indicatorColor = color;  return 1; }
+    if (strcmp(prop, PropertyNames::kTabContentBackground) == 0)   { m_contentBgColor = color;  return 1; }
     return ControlImpl::setColorProperty(prop, color);
 }
 
@@ -413,6 +442,11 @@ int TabControl::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_textColor.getDisabled(); return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
     if (strcmp(prop, PropertyNames::kSelectedText) == 0) { out = m_selectedTextColor;       return 1; }
+    if (strcmp(prop, PropertyNames::kTabBackground) == 0)          { out = m_normTabColor;    return 1; }   // P0-90
+    if (strcmp(prop, PropertyNames::kTabHoverBackground) == 0)     { out = m_hoverTabColor;   return 1; }
+    if (strcmp(prop, PropertyNames::kTabSelectedBackground) == 0)  { out = m_selTabColor;     return 1; }
+    if (strcmp(prop, PropertyNames::kTabIndicatorColor) == 0)      { out = m_indicatorColor;  return 1; }
+    if (strcmp(prop, PropertyNames::kTabContentBackground) == 0)   { out = m_contentBgColor;  return 1; }
     return ControlImpl::getColorProperty(prop, out);
 }
 
@@ -462,6 +496,7 @@ int TabControl::setIntProperty(const char* prop, int value) {
     return ControlImpl::setIntProperty(prop, value);
 }
 int TabControl::getIntProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kHoveredTab) == 0) { out = m_hoveredTab; return 1; }   // P0-91 只读
     if (strcmp(prop, PropertyNames::kTabCurrentIndex) == 0) { out = m_currentIndex; return 1; }
     if (strcmp(prop, PropertyNames::kFontSize) == 0)        { out = (int)m_fontSize; return 1; }
     return ControlImpl::getIntProperty(prop, out);

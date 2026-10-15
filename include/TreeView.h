@@ -144,7 +144,6 @@ private:
     void syncRowControls();                                         // rebuildFlatRows 内调用：行控件挂/摘 + 登记
     bool toggleExpand(const string& id);
     void rebuildFlatRows();
-    int hitTestRow(float mx, float my);
     bool hitTestArrow(int row, float mx);
     void updateScrollBar();
     void ensureSelectedVisible();
@@ -155,6 +154,13 @@ private:
     void syncStateColor();
 
 public:
+    // P0-94（Phase 2）：换序支持——行命中（公共）/行→节点/父/序号查询 + 节点迁移（完整子树）
+    int hitTestRow(float mx, float my);
+    std::shared_ptr<TreeNode> getNodeAtRow(int row) const;
+    std::string getParentId(const std::string& id);   // 根级返回 ""（调用方以 findNodeById 先行判定存在）
+    int getChildIndex(const std::string& id);
+    bool moveNode(const std::string& id, const std::string& newParentId, int index);   // index<0=追加
+
     TreeView(Control* parent, const SRect& rect,
              float xScale = 1.0f, float yScale = 1.0f);
     ~TreeView() override;

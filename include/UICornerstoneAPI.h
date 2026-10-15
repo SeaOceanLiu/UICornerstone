@@ -417,6 +417,9 @@ UICORNERSTONE_API int UICornerstone_TreeViewAddNode(UIInstance instance,
     UIControlHandle tree, const char* parentId, const char* id, const char* label, int expanded);
 UICORNERSTONE_API int UICornerstone_TreeViewRemoveNode(UIInstance instance,
     UIControlHandle tree, const char* id);
+// P0-94（Phase 2）：节点迁移（换序/换父；完整子树；index<0=追加；1=成功 0=失败/非法）
+UICORNERSTONE_API int UICornerstone_TreeViewMoveNode(UIInstance instance, UIControlHandle tree,
+    const char* id, const char* newParentId, int index);
 /* P0-62②：节点级着色专用（稀疏；未设继承控件级）。
    - SetNodeTextColor：state 可 NULL=normal；未设态回退该节点 normal；
    - SetNodeBackgroundColor：单色四态同色；
@@ -572,6 +575,8 @@ UICORNERSTONE_API int UICornerstone_ListViewAddRow(UIInstance instance, UIContro
 UICORNERSTONE_API int UICornerstone_ListViewInsertRow(UIInstance instance, UIControlHandle lv,
     int index, const char* id, int count, const char* const* cells);
 UICORNERSTONE_API int UICornerstone_ListViewRemoveRow(UIInstance instance, UIControlHandle lv, int index);
+// P0-94（Phase 2）：行换序（from→to 最终索引；1=成功 0=失败/越界）
+UICORNERSTONE_API int UICornerstone_ListViewMoveRow(UIInstance instance, UIControlHandle lv, int from, int to);
 UICORNERSTONE_API int UICornerstone_ListViewSetCellText(UIInstance instance, UIControlHandle lv,
     int row, int col, const char* text);
 UICORNERSTONE_API int UICornerstone_ListViewGetCellText(UIInstance instance, UIControlHandle lv,
@@ -674,6 +679,11 @@ UICORNERSTONE_API UIControlHandle UICornerstone_CreateTabControl(UIInstance inst
 UICORNERSTONE_API int UICornerstone_TabAddPage(UIInstance instance, UIControlHandle tab, const char* title);
 // P0-69：移除页（全摘除 + 保活；句柄有效、可经 TabSetPage 再挂载）；返回 1=移除 0=越界/非法
 UICORNERSTONE_API int UICornerstone_TabRemovePage(UIInstance instance, UIControlHandle tab, int index);
+// P0-91：页序调整（完整迁移 title/page/leadingControl；currentIndex 重映射）；1=移动 0=越界/同位
+UICORNERSTONE_API int UICornerstone_TabMovePage(UIInstance instance, UIControlHandle tab, int from, int to);
+// P0-91：页签项矩形（TabControl 局部逻辑坐标）；1=成功 0=越界
+UICORNERSTONE_API int UICornerstone_TabGetItemRect(UIInstance instance, UIControlHandle tab, int index,
+    float* x, float* y, float* w, float* h);
 UICORNERSTONE_API int UICornerstone_TabSetTitle(UIInstance instance, UIControlHandle tab,
     int index, const char* title);
 UICORNERSTONE_API int UICornerstone_TabSetPage(UIInstance instance, UIControlHandle tab,
@@ -806,6 +816,40 @@ UICORNERSTONE_API int UICornerstone_GetPtr(     UIInstance instance, UIControlHa
 UICORNERSTONE_API int UICornerstone_GetControlType(UIInstance instance, UIControlHandle ctl, char* out, int maxLen);
 
 /* ── Callback ── */
+/* P0-94：通用拖拽载荷（回调期有效；id/text 引擎缓冲，userData 为宿主指针透传不校验生命周期） */
+enum {
+    UI_DRAG_KIND_NONE = 0,
+    UI_DRAG_KIND_CONTROL,
+    UI_DRAG_KIND_TREE_NODE,
+    UI_DRAG_KIND_LIST_ROW,
+    UI_DRAG_KIND_TAB_PAGE,
+    UI_DRAG_KIND_TEXT,
+    UI_DRAG_KIND_FILE,
+    UI_DRAG_KIND_HOST
+};
+enum {
+    UI_DROP_HINT_NONE = 0,
+    UI_DROP_HINT_INSIDE,   // 通用控件：内部
+    UI_DROP_HINT_BEFORE,   // tree：目标节点之前
+    UI_DROP_HINT_AFTER,    // tree：目标节点之后
+    UI_DROP_HINT_INTO,     // tree：置入目标节点
+    UI_DROP_HINT_ROW,      // list：行（index）
+    UI_DROP_HINT_INDEX     // tab：插入位（index）
+};
+typedef struct {
+    int  kind;              /* UI_DRAG_KIND_* */
+    const char* id;         /* 元素 id（引擎缓冲，回调期有效；可为空串） */
+    int  index;             /* 元素索引（行/页；-1 无） */
+    const char* text;       /* 文本（引擎缓冲，回调期有效；可为空串） */
+    void* userData;         /* 元素 userData / 宿主指针（透传，不校验生命周期） */
+    UIControlHandle source; /* 源控件句柄 */
+} UIDragPayload;
+typedef struct {
+    int kind;               /* UI_DROP_HINT_* */
+    int index;              /* 落点索引（-1 无） */
+    const char* targetId;   /* 目标元素 id（引擎缓冲，回调期有效；可为空串） */
+} UIDropHint;
+
 typedef struct {
     const char* eventName;
     union {
@@ -818,6 +862,7 @@ typedef struct {
         struct { const char* id; void* userData; } treeNode;
         struct { uint8_t r,g,b,a; } color;
         struct { int row; int col; int asc; } grid;
+        struct { UIDragPayload payload; UIDropHint hint; int dropped; } drag;   /* P0-94 */
     } data;
 } UIEventData;
 

@@ -39,6 +39,8 @@
 
 <h2>6.2 控件通用键</h2>
 
+<p class="note">拖拽框架通用键（P0-94）：<code>draggable</code>（可拖源；tree/list/tab 自动元素载荷）/ <code>droppable</code>（可放置目标）/ <code>reorderable</code>（同控件内置换序：tree 换序·换父 / list 行 / tab 页）/ <code>drag-threshold</code>（默认 4）/ <code>drag-visual</code>（默认视觉）。详见 <a href="../advanced/drag-drop.html">5.7 拖拽框架</a>。事件（C ABI/Binding SetCallback）：<code>drag-start</code> / <code>drag-over</code> / <code>drop</code> / <code>drag-end</code> / <code>reordered</code> / <code>tab-reordered</code>；<code>drag-over</code> 内 <code>SetBool("drag-accept", 0)</code> 可拒绝。</p>
+
 <table>
 <tr><th>键</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>children</code></td><td>array</td><td>子控件（容器类型）</td></tr>
@@ -245,6 +247,7 @@
   "font-size":13, "currentIndex":0,
   "tabs":[ { "title":"主页", "icon":"provider:icons/home", "page":{ "type":"panel" } } ],
   "events": { "onTabChange":"onTab" } }</code></pre>
+<p class="note">页签配色 JSON 键（P0-92）：<code>tab-background</code> / <code>tab-hover-background</code> / <code>tab-selected-background</code> / <code>tab-indicator-color</code> / <code>tab-content-background</code>（单色 <code>#RRGGBB[AA]</code>）；<code>selected-text</code>（选中页签文字色）；<code>page-background</code>（字符串或四态对象，转发所有页）。</p>
 <p>属性键：<code>position</code>（top/bottom/left/right）/ <code>font-size</code> / <code>currentIndex</code>；<code>tabs[]</code>：<code>title</code> / <code>icon</code> / <code>page</code>（任意控件 JSON，递归解析，缺 rect 铺满内容区）。</p>
 
 <h3>text-area</h3>

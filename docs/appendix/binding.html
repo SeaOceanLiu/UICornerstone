@@ -261,6 +261,8 @@ auto page = ui->CreatePanel(0, 0, 200, 120);
 int i = ui->TabAddPage(tc, u8"主页");
 ui->TabSetPage(tc, i, page);
 ui->TabRemovePage(tc, i);   // 移除页（页保活，句柄可再 setTabPage）
+ui->TabMovePage(tc, 0, 2);  // P0-91：页序调整（currentIndex 重映射）
+UIRect r{}; ui->TabGetItemRect(tc, 0, r);   // P0-91：页签项矩形（局部逻辑坐标）
 
 // Shape：多图元
 auto sh = ui->CreateShape(40, 40, 90, 90);
@@ -322,6 +324,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>DebugGetAliveCount()</code></td><td>存活实例数（静态）</td></tr>
 <tr><td><code>DebugGetAliveInstance(index) / DebugGetActiveViewport(instance)</code></td><td>实例巡检（静态）</td></tr>
 <tr><td><code>DebugIsControlFocused(instance, handle)</code></td><td>焦点查询（静态）</td></tr>
+<tr><td><code>TreeViewMoveNode(tree, id, newParentId, index)</code> / <code>ListViewMoveRow(lv, from, to)</code></td><td>换序（P0-94；tree 换序/换父、list 行换序）</td></tr>
 <tr><td><code>DebugValidateHandle(ctl)</code></td><td>句柄归属校验（P0-84c，Release 可用）：1=属于本实例，0=不属于/非法——行/控件构建期自检，防跨实例句柄误用</td></tr>
 <tr><td><code>SetBackendConfig(key, value) / SetBackendConfigBool(key, bool) / GetBackendConfigBool(key, bool&amp;)</code></td><td>后端差异配置（见 12）</td></tr>
 <tr><td><code>uint32_t GetBackendCapabilities() const</code></td><td>能力位（对应 C ABI <code>UICornerstone_GetBackendCapabilities</code>，见 8.1）</td></tr>

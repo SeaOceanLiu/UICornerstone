@@ -126,6 +126,11 @@
 <tr><td><code>StatusBarSetItemFontSize(inst, bar, id, size)</code> / <code>StatusBarSetItemTextShadow(inst, bar, id, color, ox, oy)</code> / <code>StatusBarSetItemFontName(inst, bar, id, name)</code> / <code>StatusBarSetItemHoverBackgroundColor(inst, bar, id, r,g,b,a)</code></td><td>StatusBar 段级字号（0=继承控件级）/ 文字阴影 / 字体名 / 显式悬停背景（P0-58/P0-63⑤/P0-64④；未设继承控件级/叠加）</td></tr>
 <tr><td><code>TabAddPage / TabSetTitle / TabSetPage / TabSetTabLeadingControl</code></td><td>TabControl 页操作</td></tr>
 <tr><td><code>TabRemovePage(inst, tab, index)</code></td><td>页移除（1=移除 0=越界；页保活可再挂载）</td></tr>
+<tr><td><code>TabMovePage(inst, tab, from, to)</code></td><td>页序调整（P0-91；完整迁移 title/page/leadingControl，currentIndex 重映射；1=移动 0=越界/同位）</td></tr>
+<tr><td><code>TabGetItemRect(inst, tab, index, &amp;x,&amp;y,&amp;w,&amp;h)</code></td><td>页签项矩形（P0-91；<b>TabControl 局部逻辑坐标</b>；1=成功 0=越界）</td></tr>
+<tr><td><code>TreeViewMoveNode(inst, tree, id, newParentId, index)</code></td><td>节点迁移（P0-94；换序/换父，完整子树，index&lt;0=追加）</td></tr>
+<tr><td><code>ListViewMoveRow(inst, lv, from, to)</code></td><td>行换序（P0-94；from→to 最终索引）</td></tr>
+<tr><td>拖拽框架（P0-94；教程见 <a href="../advanced/drag-drop.html">5.7</a>）</td><td>属性 <code>draggable</code>/<code>droppable</code>/<code>reorderable</code>/<code>drag-threshold</code>/<code>drag-visual</code>（通用 SetBool/SetFloat）；事件 <code>drag-start</code>/<code>drag-over</code>/<code>drop</code>/<code>drag-end</code>/<code>reordered</code>/<code>tab-reordered</code>（SetCallback）；载荷 <code>UIEventData.data.drag.{payload,hint,dropped}</code>（<code>UIDragPayload</code>/<code>UIDropHint</code>，kind 见 <code>UI_DRAG_KIND_*</code>/<code>UI_DROP_HINT_*</code>）；<code>drag-over</code> 内 <code>SetBool("drag-accept",0)</code> 拒绝；<code>drag-active</code> 只读</td></tr>
 <tr><td><code>ShapeSetPoints / ShapeMapToDrawPoint / ShapeAddPrimitive / ShapeSetPrimitiveColor / ShapeSetPrimitiveFloat / ShapeSetPrimitivePoints / ShapeClearPrimitives</code></td><td>Shape 顶点/映射/多图元</td></tr>
 </table>
 
