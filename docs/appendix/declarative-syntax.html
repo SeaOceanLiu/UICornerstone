@@ -39,7 +39,7 @@
 
 <h2>6.2 控件通用键</h2>
 
-<p class="note">拖拽框架通用键（P0-94）：<code>draggable</code>（可拖源；tree/list/tab 自动元素载荷）/ <code>droppable</code>（可放置目标）/ <code>reorderable</code>（同控件内置换序：tree 换序·换父 / list 行 / tab 页）/ <code>drag-threshold</code>（默认 4）/ <code>drag-visual</code>（默认视觉）。详见 <a href="../advanced/drag-drop.html">5.7 拖拽框架</a>。事件（C ABI/Binding SetCallback）：<code>drag-start</code> / <code>drag-over</code> / <code>drop</code> / <code>drag-end</code> / <code>reordered</code> / <code>tab-reordered</code>；<code>drag-over</code> 内 <code>SetBool("drag-accept", 0)</code> 可拒绝。</p>
+<p class="note">拖拽框架通用键（P0-94）：<code>draggable</code>（可拖源；tree/list/tab 自动元素载荷）/ <code>droppable</code>（可放置目标）/ <code>reorderable</code>（同控件内置换序，<strong>自含</strong>：无需 draggable/droppable；tree 换序·换父 / list 行 / tab 页）/ <code>drag-threshold</code>（默认 4）/ <code>drag-visual</code>（默认视觉）。详见 <a href="../advanced/drag-drop.html">5.7 拖拽框架</a>。事件（C ABI/Binding SetCallback）：<code>drag-start</code> / <code>drag-over</code> / <code>drop</code> / <code>drag-end</code> / <code>reordered</code> / <code>tab-reordered</code>；<code>drag-over</code> 内 <code>SetBool("drag-accept", 0)</code> 可拒绝。</p>
 
 <table>
 <tr><th>键</th><th>类型</th><th>说明</th></tr>

@@ -543,6 +543,18 @@
 >
 > **状态（2026-10-12）**：引擎已实施并同步（DLL `19aaa549…`；schema 增 5 键 + page-background；解析补齐）。设计器随批完成：**P0-92 闭环**——save/open 往返（模型+引擎）+ 导出携带键断言（auto=2 115/0、strict 含键 PASS）；**随批附带发现并修复加载缺陷**：walk 在页子树后 `applyModelToEngine(m_items.back())` 取到页后代 → Tab 属性/配色/引擎页挂载在打开路径丢失（已改 selfIdx）。
 
+## 追加（2026-10-12 内置重排的自目标解析——引擎清单 P0-96）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-96 | 中 | **内置重排应自含（reorderable 无需 draggable/droppable）——起拖门控 + 自目标解析双缺口** | 用户实测：勾选"可重排"后**预览窗口拖页签不换序** ✗（且拖页签时设计器画布出现假框选——见设计器侧修复：SDL 鼠标焦点守卫）。核实（引擎源码，双缺口）：①**起拖**——`DragPreHandleEvent`（UICornerstoneAPI.cpp:1163-1172）MouseDown 仅当命中链存在 `isDraggable()` 才进 Pending → 光 reorderable **永不起拖** ✗；②**自目标**——`applyBuiltInReorder`（:1113）要求 `s.source == s.target`，而 `findDropTarget`（:1088-1097）**只认 `isDroppable()`**（无"reorderable 源自目标"特例）✗。故内置重排实际需 **reorderable + draggable + droppable 三旗标** ✗（与设计 §3"reorderable → 引擎内置拖动"的自含意图不符；引擎探针疑因同设未暴露）。需求（建议 a）：**a) reorderable 自含**——起拖门控接受 `isDraggable() \|\| isReorderable()`；拖动中源为 reorderable 且无外部 droppable 目标时以源自身为自目标（或 findDropTarget 对 reorderable 源命中自身返回自身）；**b) 文档明确**三旗标要求。设计器已加**过渡耦合**（勾选行写回 reorderable 时同步 draggable+droppable；`modelPropsJson` 对 reorderable=true 自动补两键）——引擎修复后可删。同类：tree/list 内置换序同一门控/目标路径 ✓ 一并覆盖 |
+
+## 追加（2026-10-17 拖拽 ghost 字体相对路径——引擎清单 P0-97）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-97 | 低 | **拖拽 ghost 文本字体按相对路径直开（CWD 解析）→ 报错噪音 + ghost 字体回落** | 用户实测（拖页签期间，预览态拖拽成功但仍报错）：`SDL3TextRenderer::loadFont: Couldn't open fonts/HarmonyOS_Sans_SC_Regular.ttf` ✗。定位：`TextRenderer.cpp:161-163` 回退分支 `TTF_OpenFont(path.c_str())` **直接使用相对路径**（按进程 CWD 解析）——设计器/导出宿主 CWD=exe 目录，`fonts/…` 不存在 ✗（正常字体走资源 provider 内存流 `loadFontFromMemory` ✓，仅该回退路径受 CWD 影响）。ghost **非致命**（回落默认字体，拖动功能正常 ✓），但控制台噪音 + ghost 文本字体与控件实际字体不一致 ✗。建议：ghost/文本渲染统一走资源系统（内存流路径 ✓），或相对路径按 resourceRoot 拼接后再开。触发面：内置拖拽 ghost、其余走该回退的文本渲染调用点 ✓ 一并核查 |
+
 ## 追加（2026-10-12 通用拖拽框架（Drag & Drop）——引擎清单 P0-94）
 
 > 用户提出：把"拖动"做成**所有控件通用**的能力——TreeView/ListView 等可拖动换序、并接收拽入的信息（含跨控件/跨类型的数据传递）。P0-93（Tab 运行时拖动排序）可并入本框架 Phase 1 作为首个内置消费者。

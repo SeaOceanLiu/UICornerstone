@@ -324,6 +324,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>DebugGetAliveCount()</code></td><td>存活实例数（静态）</td></tr>
 <tr><td><code>DebugGetAliveInstance(index) / DebugGetActiveViewport(instance)</code></td><td>实例巡检（静态）</td></tr>
 <tr><td><code>DebugIsControlFocused(instance, handle)</code></td><td>焦点查询（静态）</td></tr>
+<tr><td><code>SetBool(ctl, "draggable"/"droppable"/"reorderable"/"drag-visual")</code> + <code>SetCallback(ctl, "drag-start"/"drag-over"/"drop"/"drag-end"/"reordered"/"tab-reordered")</code></td><td>拖拽框架（P0-94/96：通用属性/事件；<code>reorderable</code> 自含换序；教程见 <a href="../advanced/drag-drop.html">5.7</a>）</td></tr>
 <tr><td><code>TreeViewMoveNode(tree, id, newParentId, index)</code> / <code>ListViewMoveRow(lv, from, to)</code></td><td>换序（P0-94；tree 换序/换父、list 行换序）</td></tr>
 <tr><td><code>DebugValidateHandle(ctl)</code></td><td>句柄归属校验（P0-84c，Release 可用）：1=属于本实例，0=不属于/非法——行/控件构建期自检，防跨实例句柄误用</td></tr>
 <tr><td><code>SetBackendConfig(key, value) / SetBackendConfigBool(key, bool) / GetBackendConfigBool(key, bool&amp;)</code></td><td>后端差异配置（见 12）</td></tr>

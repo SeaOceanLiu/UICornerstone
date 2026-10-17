@@ -490,6 +490,7 @@
 | P0-91 | 页签几何/换序 + SetPage UAF 修复 | — | `hovered-tab`（只读） | `TabGetItemRect`/`TabMovePage` | ✅ |
 | P0-92 | tab 配色 JSON 解析 | 同 P0-90 5 键 + `selected-text`/`page-background` | — | — | ✅ |
 | P0-93/94 | 通用拖拽框架 + 内置换序 | `draggable`/`droppable`/`reorderable`/`drag-threshold`/`drag-visual` | 同左 + `drag-accept`/`drag-active`/主题三色 | 事件 `drag-start`/`drag-over`/`drop`/`drag-end`/`reordered`/`tab-reordered`；`TreeViewMoveNode`/`ListViewMoveRow` | ✅（Phase 3 设计器侧） |
+| P0-96/97 | reorderable 自含（门控/自目标/索引补偿）+ ghost 字体 provider 口径 | — | — | 无新 ABI（行为修复；自目标同时发 `drop`+`reordered`） | ✅ |
 
 ---
 

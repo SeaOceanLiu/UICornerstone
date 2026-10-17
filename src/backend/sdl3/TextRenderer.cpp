@@ -160,7 +160,7 @@ private:
         }
         TTF_Font* font = TTF_OpenFont(path.c_str(), size);
         if (!font) {
-            SDL_Log("SDL3TextRenderer::loadFont: %s", SDL_GetError());
+            SDL_Log("SDL3TextRenderer::loadFont: '%s': %s", path.c_str(), SDL_GetError());
             return nullptr;
         }
         SharedFont sf = std::make_shared<SDL3Font>(font, size);

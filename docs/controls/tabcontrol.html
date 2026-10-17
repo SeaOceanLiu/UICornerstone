@@ -106,6 +106,7 @@ UICornerstone_SetEnum(g_inst, tc, "position", "top");</code></pre>
 <tr><td><code>addTab(title, page)</code> / <code>insertTab(index, …)</code> / <code>removeTab(index)</code></td><td>页写（removeTab 钳制 currentIndex）</td></tr>
 <tr><td><code>moveTab(from, to)</code>（C ABI/Binding <code>TabMovePage(tab, from, to)</code>）</td><td>页序调整（P0-91）：完整迁移 title/page/leadingControl；currentIndex 重映射（被移动页跟随新位；区间 ±1）；越界/同位返回 0</td></tr>
 <tr><td><code>TabGetItemRect(tab, index, out)</code>（C ABI/Binding）</td><td>页签项矩形读回（P0-91）：<b>TabControl 局部逻辑坐标</b>（拖排落点/精确点击判定；越界返回 0）</td></tr>
+<tr><td><code>reorderable</code>（属性，通用 SetBool；教程见 <a href="../advanced/drag-drop.html">5.7</a>）</td><td>引擎内置页签拖动排序（P0-96 自含：起拖/自目标/落点/迁移全内置）；宿主自实现等价 = <code>TabGetItemRect</code> 判落点 + <code>TabMovePage</code> 迁移</td></tr>
 <tr><td><code>getTabCount()</code> / <code>getTabs()</code></td><td>页只读访问</td></tr>
 <tr><td><code>setCurrentIndex(i)</code> / <code>getCurrentIndex()</code></td><td>切换（触发 onTabChange + 页面显隐）</td></tr>
 <tr><td><code>setTabText(i, title)</code> / <code>setTabPage(i, page)</code> / <code>setTabLeadingControl(i, ctl)</code></td><td>页内容（触发 relayout；setTabPage 替换旧页时全摘除 + 保活）</td></tr>

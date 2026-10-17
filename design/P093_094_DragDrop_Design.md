@@ -154,10 +154,10 @@ Esc（KeyDown）/ FocusLost：Dragging → fire drag-end(dropped=0) → 复位�
 ### 7.4 hint → 内置操作映射
 | 目标 | hint | 操作 |
 |---|---|---|
-| TreeView | BEFORE/AFTER | `parent = getParentId(targetId)`；`index = getChildIndex(targetId) + (AFTER?1:0)` → `moveNode(id, parent, index)` |
+| TreeView | BEFORE/AFTER | `parent = getParentId(targetId)`；`idx = childIndex(target) + (AFTER?1:0)`；**同父且源在目标之前 → 再 -1**（摘除源位移补偿，P0-96 修正）→ `moveNode(id, parent, idx)`；自落点（target==源）无操作 |
 | TreeView | INTO | `moveNode(id, targetId, -1)`（追加） |
 | ListView | ROW | `moveRow(from, hint.index)`（to=最终索引） |
-| TabControl | INDEX | `to = clamp(hint.index, 0..count-1)`；`moveTab(from, to)`；`from==to` 不动作 |
+| TabControl | INDEX | `hint.index`=摘除前插入槽；`to = (from < ins) ? ins-1 : ins`（摘除后最终索引，P0-96 修正），clamp `[0, n-1]`；`moveTab(from, to)`；`from==to` 不动作 |
 | 通用 | INSIDE | 仅发 drop（宿主自理） |
 
 ### 7.5 常量速查（`include/PropertyNames.h`）
@@ -169,6 +169,8 @@ Esc（KeyDown）/ FocusLost：Dragging → fire drag-end(dropped=0) → 复位�
 1. **`fireCCallback` 首参句柄**：`ControlImpl` **virtual 继承** `Control`（子对象地址不同，实测偏移 0x488）——原 `reinterpret_cast<UIControlHandle>(this)` 传出的句柄**不能**用于 CABI（宿主回调内 `SetBool` 即段错误）；已修为 `static_cast<Control*>(this)`。**影响全部既有回调**，勿回退。
 2. **ListView::hitTestRow 坐标域**：收内容局部 y（含滚动、不含屏幕偏移）——管理器调用前必须 `(y - drawRect.top)/scaleY`。
 3. 拖拽事件 JSON 键（`events.onDrag*`）**未实现**（CABI/Binding `SetCallback` 为主；JSON 仅注册属性键）——如宿主需 JSON 事件绑定，扩展点：`parseEvents` 增映射（可参考 `onSelect` 模式）。
+4. **自目标语义（P0-96）**：`reorderable` 自含（无需 `draggable`/`droppable`）；自目标松手会同时发 `drop`（target=源自身）与 `reordered`/`tab-reordered`——宿主按 `hint` 区分，勿重复迁移数据；纯 reorderable 未命中可重排项（tab 页体/树·列表空白）不起拖。
+5. **hint→索引换算（P0-96 修正）**：`moveNode`/`moveTab` 均为"摘除后插入"语义——同父源在目标前时需补偿摘除位移；自落点（BEFORE/AFTER/INTO 自身）不动作、不发事件。
 
 ### 7.7 扩展指南
 - **新增内置消费者**（如"列宽/列序拖动"）：在 `applyBuiltInReorder` 增分支（门槛 `reorderable` + source==target + kind 匹配）+ 对应引擎迁移方法（参考 `moveRow` 的"先校验后变更 + 重建布局"模板）；事件复用 `reordered` 或新增专用名。

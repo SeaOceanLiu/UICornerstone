@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -51,7 +51,7 @@ static void onDragOver(UIControlHandle ctl, const UIEventData* ev, void* user) {
 <tr><th>属性 / JSON 键</th><th>类型</th><th>默认</th><th>说明</th></tr>
 <tr><td><code>draggable</code></td><td>Bool</td><td>false</td><td>可拖拽源；引擎自动填充载荷（tree 节点 / list 行 / tab 页；其它控件为控件自身）</td></tr>
 <tr><td><code>droppable</code></td><td>Bool</td><td>false</td><td>可放置目标（收 <code>drag-over</code>/<code>drop</code>）</td></tr>
-<tr><td><code>reorderable</code></td><td>Bool</td><td>false</td><td>同控件内置换序（tree 换序·换父 / list 行换序 / tab 页换序），见 5.7.5</td></tr>
+<tr><td><code>reorderable</code></td><td>Bool</td><td>false</td><td>同控件内置换序（<strong>自含</strong>：无需 draggable/droppable；tree 换序·换父 / list 行换序 / tab 页换序），见 5.7.5</td></tr>
 <tr><td><code>drag-threshold</code></td><td>Float</td><td>4</td><td>拖动阈值（px）；未超阈值按下+释放保持普通点击语义</td></tr>
 <tr><td><code>drag-visual</code></td><td>Bool</td><td>true</td><td>默认视觉开关（跟随光标的 ghost + 落点指示线）</td></tr>
 <tr><td><code>drag-data</code> / <code>drag-userdata</code></td><td>String / Ptr</td><td>—</td><td>宿主自定义载荷（设置后 kind=HOST；<code>userData</code> 透传不校验生命周期）</td></tr>
@@ -98,12 +98,17 @@ static void onDragOver(UIControlHandle ctl, const UIEventData* ev, void* user) {
 
 <h2>5.7.5 内置换序（reorderable，opt-in）</h2>
 
-<p>同控件拖拽换序零配置：源/目标均为该控件且 <code>reorderable=true</code> 时，引擎在 <code>drop</code> 后直接执行数据迁移并发语义事件
+<p>同控件拖拽换序零配置：仅 <code>reorderable=true</code> 即可（<strong>自含</strong>——起拖门控与自目标解析均由引擎内置，
+无需 <code>draggable</code>/<code>droppable</code>）；引擎在 <code>drop</code> 后直接执行数据迁移并发语义事件
 （<code>reordered</code> / <code>tab-reordered</code>），宿主据此同步模型：</p>
 
-<pre><code>{ "type": "tab-control", "draggable": true, "droppable": true, "reorderable": true, ... }
+<pre><code>{ "type": "tab-control", "reorderable": true, ... }
 UICornerstone_SetCallback(inst, tab, "tab-reordered", onTabReordered, NULL);
 // onTabReordered：from = ev->data.drag.payload.index; to = ev->data.drag.hint.index;</code></pre>
+
+<p class="note">自目标松手会<strong>同时</strong>收到 <code>drop</code>（target=源控件自身）与 <code>reordered</code>/<code>tab-reordered</code>——
+宿主处理 <code>drop</code> 时按 <code>hint</code> 区分自目标（内置换序已完成）与外部投放，勿重复迁移数据。
+纯 reorderable 时，从 tab 页体/树·列表空白起拖不会触发拖拽（未命中可重排项自动取消）。</p>
 
 <p>换序也可<strong>程序化</strong>调用（公开 API，不依赖拖拽）：</p>
 <pre><code>UICornerstone_TreeViewMoveNode(inst, tree, "nodeId", "newParentId", -1);  // 换序/换父（-1=追加）
@@ -114,6 +119,8 @@ UICornerstone_TabMovePage(inst, tab, from, to);                           // 页
 
 <ul>
 <li><strong>点击语义保留</strong>：未超阈值即释放 = 普通点击（不触发 <code>drag-start</code>）；</li>
+<li><strong>内置换序自含（P0-96）</strong>：仅 <code>reorderable=true</code> 即可起拖与自目标（无需 draggable/droppable）；未命中可重排项（tab 页体/树·列表空白）不起拖；存在外部 <code>droppable</code> 目标时外部优先；</li>
+<li><strong>换序索引</strong>：<code>reordered</code>/<code>tab-reordered</code> 的 from/to 为<strong>摘除后最终索引</strong>；落点即源自身位置时不动作、不发事件；</li>
 <li><strong>中止</strong>：拖动中按 Esc 或窗口失焦 → <code>drag-end</code>（<code>dropped=0</code>）；</li>
 <li><strong>子视口</strong>：拖动期事件由 owner 统一接管，目标解析跨子视口（坐标自动换算）；</li>
 <li><strong>跨实例</strong>：不支持（工具箱→画布等由宿主自管；<code>drag-active</code> 只读查询可辅助状态管理）；</li>

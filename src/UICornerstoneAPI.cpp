@@ -1070,28 +1070,34 @@ static void computeDropHint(DragState& s, Control* target, float x, float y) {
     } else if (auto* tc = dynamic_cast<TabControl*>(target)) {
         SRect dr = tc->getDrawRect();
         float sx = tc->getScaleXX() != 0.0f ? tc->getScaleXX() : 1.0f;
-        float sy = tc->getScaleYY() != 0.0f ? tc->getScaleYY() : 1.0f;
-        float lx = (x - dr.left) / sx, ly = (y - dr.top) / sy;
+        float lx = (x - dr.left) / sx;
+        // P0-96：单轴（lx）计算插入位，clamp 到 [0, n]——自目标拖到页体/空白亦取最近插入位（不再一律落尾）
         const auto& tabs = tc->getTabs();
         int ins = (int)tabs.size();
         for (int i = 0; i < (int)tabs.size(); ++i) {
             const SRect& r = tabs[i].tabRect;
-            if (lx >= r.left && lx < r.left + r.width && ly >= r.top && ly < r.top + r.height) {
-                ins = (lx > r.left + r.width * 0.5f) ? i + 1 : i;
-                break;
-            }
+            if (lx < r.left + r.width * 0.5f) { ins = i; break; }
         }
         s.hintKind = UI_DROP_HINT_INDEX;
         s.hintIndex = ins;
     }
 }
-static Control* findDropTarget(UIInstance owner, float x, float y) {
+static Control* findDropTarget(UIInstance owner, float x, float y, Control* src) {
     UIInstance inst = resolveMouseTarget(owner, x, y);
     if (!inst) inst = owner;
     Control* hit = (inst->bench) ? deepHitControl(dynamic_cast<Control*>(inst->bench), x, y) : nullptr;
     for (Control* c = hit; c != nullptr; c = c->getParent()) {
         auto* impl = dynamic_cast<ControlImpl*>(c);
         if (impl && impl->isDroppable()) return c;
+    }
+    // P0-96：纯 reorderable 源自目标（外部 droppable 优先；光标在源子树内 → 返回源自身）
+    if (src) {
+        auto* si = dynamic_cast<ControlImpl*>(src);
+        if (si && si->isReorderable()) {
+            for (Control* c = hit; c != nullptr; c = c->getParent()) {
+                if (c == src) return src;
+            }
+        }
     }
     return nullptr;
 }
@@ -1118,8 +1124,11 @@ static void applyBuiltInReorder(DragState& s) {
     if (auto* tc = dynamic_cast<TabControl*>(s.source); tc && s.kind == UI_DRAG_KIND_TAB_PAGE) {
         const int n = tc->getTabCount();
         int from = s.index;
-        int to = s.hintIndex;
-        if (to < 0) to = n - 1;
+        int ins = s.hintIndex;
+        if (ins < 0) ins = n;
+        // hintIndex 为摘除前的插入槽位；moveTab 的 to=摘除后最终索引（源在槽前则 -1）
+        int to = (from < ins) ? ins - 1 : ins;
+        if (to < 0) to = 0;
         if (to >= n) to = n - 1;
         if (from >= 0 && from != to && tc->moveTab(from, to)) {
             DragState tmp = s;
@@ -1133,11 +1142,25 @@ static void applyBuiltInReorder(DragState& s) {
         std::string parentId;
         int idx = -1;
         if (s.hintKind == UI_DROP_HINT_INTO) {
+            if (s.hintTargetId == s.id) return;   // 自 INTO 无效
             parentId = s.hintTargetId;
         } else if (s.hintKind == UI_DROP_HINT_BEFORE || s.hintKind == UI_DROP_HINT_AFTER) {
             if (!s.hintTargetId.empty()) {
+                if (s.hintTargetId == s.id) return;   // 自前后落点 → 无操作
+                const bool after = (s.hintKind == UI_DROP_HINT_AFTER);
                 parentId = tv->getParentId(s.hintTargetId);
-                idx = tv->getChildIndex(s.hintTargetId) + (s.hintKind == UI_DROP_HINT_AFTER ? 1 : 0);
+                int tIdx = tv->getChildIndex(s.hintTargetId);
+                if (tv->getParentId(s.id) == parentId) {
+                    int srcIdx = tv->getChildIndex(s.id);
+                    if (srcIdx >= 0) {
+                        // 已紧邻目标（无变化）→ 不动作
+                        if ((!after && srcIdx == tIdx - 1) || (after && srcIdx == tIdx + 1)) return;
+                        // 同父且源在目标之前：摘除源使目标前移 1 → 补偿
+                        if (srcIdx < tIdx) idx = tIdx + (after ? 0 : -1);
+                        else idx = tIdx + (after ? 1 : 0);
+                    }
+                }
+                if (idx < 0) idx = tIdx + (after ? 1 : 0);
             } else {
                 return;
             }
@@ -1169,7 +1192,7 @@ bool DragPreHandleEvent(UIContext* instance, const Event& evt) {
         Control* src = nullptr;
         for (Control* c = hit; c != nullptr; c = c->getParent()) {
             auto* impl = dynamic_cast<ControlImpl*>(c);
-            if (impl && impl->isDraggable()) { src = c; break; }
+            if (impl && (impl->isDraggable() || impl->isReorderable())) { src = c; break; }
         }
         if (!src) return false;
         s = dragStateOf(owner, true);
@@ -1183,6 +1206,10 @@ bool DragPreHandleEvent(UIContext* instance, const Event& evt) {
         s->threshold = srcImpl ? srcImpl->dragThresholdValue() : 4.0f;
         s->visual = srcImpl ? srcImpl->dragVisualEnabled() : true;
         captureDragPayload(*s, src, evt.mouseButton.x, evt.mouseButton.y);
+        if (srcImpl && !srcImpl->isDraggable() && s->kind == UI_DRAG_KIND_CONTROL) {
+            dragReset(*s);   // P0-96：纯 reorderable 未命中可重排项（且无 drag-data/userdata 覆盖）→ 不起拖
+            return false;
+        }
         return false;   // 不消费：点击语义保留
     }
 
@@ -1199,7 +1226,7 @@ bool DragPreHandleEvent(UIContext* instance, const Event& evt) {
             fireDragEvent(s->source, PropertyNames::kEventDragStart, *s, 0);
         }
         if (!s->dragging) return false;
-        Control* tgt = findDropTarget(owner, x, y);
+        Control* tgt = findDropTarget(owner, x, y, s->source);
         int oldHintKind = s->hintKind, oldHintIndex = s->hintIndex;
         std::string oldTargetId = s->hintTargetId;
         Control* oldTarget = s->target;
@@ -1263,7 +1290,11 @@ void DragRenderOverlay(UIInstance instance) {
         srcImpl->getColorProperty(PropertyNames::kDragIndicatorColor, ind);
     }
     const std::string label = !s->text.empty() ? s->text : std::string();
-    float gw = 24.0f + (float)label.size() * 8.0f;
+    size_t labelChars = 0;   // P0-97：按码点计宽（UTF-8 多字节不再偏宽）
+    for (size_t i = 0; i < label.size(); ++i) {
+        if ((static_cast<unsigned char>(label[i]) & 0xC0) != 0x80) ++labelChars;
+    }
+    float gw = 24.0f + (float)labelChars * 8.0f;
     float gh = 22.0f;
     SRect g(s->lastX + 12.0f, s->lastY + 12.0f, gw, gh);
     dev->setDrawColor(ghostBg);
@@ -1279,7 +1310,16 @@ void DragRenderOverlay(UIInstance instance) {
             if (!s->ghostFont) {
                 auto it = ConstDef::fontFiles.find(FontName::HarmonyOS_Sans_SC_Regular);
                 if (it != ConstDef::fontFiles.end()) {
-                    try { s->ghostFont = tr->loadFont(it->second, 14); } catch (...) {}
+                    try {
+                        // P0-97：与常规控件同口径——provider 内存流优先（消除 CWD 相对路径直开报错）
+                        ResourceProvider* provider = s->source->getResourceProvider();
+                        auto data = provider ? provider->readFile(it->second) : nullptr;
+                        if (data && !data->empty()) {
+                            s->ghostFont = tr->loadFontFromMemoryWithText(data->data(), data->size(), 14, label);
+                        } else {
+                            s->ghostFont = tr->loadFont(it->second, 14);   // 兜底：宿主直通路径语义
+                        }
+                    } catch (...) {}
                 }
             }
             if (s->ghostFont) tr->drawText(s->ghostFont.get(), label, g.left + 6.0f, g.top + gh - 5.0f, ghostTx);
