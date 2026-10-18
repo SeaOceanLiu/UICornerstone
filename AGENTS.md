@@ -3,10 +3,11 @@
 ## 交互语言
 始终使用中文进行交互。
 
-## 设计器项目只读铁律
+## 文件夹访问范围铁律（2026-10-18 用户要求）
 
-- `D:\GitSpace\CornerstoneDesigner` 一律**只读**：禁止写入、修改、删除、重命名其中任何文件（含 Temp/、源代码、工程文件；读取不受限）。
-- **唯一例外**：发布交付同步 `release/ → D:\GitSpace\CornerstoneDesigner\subModules\UICornerstone`（robocopy /MIR 交付通道）。
+- **访问范围仅限两个项目目录**：`D:\GitSpace\UIControls` 与 `D:\GitSpace\CornerstoneDesigner`——不触碰其它任何路径（含系统目录、用户目录；临时文件用仓库内 `Temp/`）。
+- `D:\GitSpace\CornerstoneDesigner` 中**除 `subModules/` 外，其它目录（含 Temp/、源代码、工程文件）严格只读**：禁止写入、修改、删除、重命名其中任何文件（读取不受限）。
+- **唯一写入例外**：发布交付同步 `release/ → D:\GitSpace\CornerstoneDesigner\subModules\UICornerstone`（robocopy /MIR 交付通道）。
 - 设计器发现的问题与需求一律走**配合修改清单**（`D:\GitSpace\CornerstoneDesigner\Temp\UICornerstone_配合修改清单_第三批.md`）→ 引擎分析 → 设计文档（待评审）→ 设计器复核 → 实施，**禁止直接改动设计器项目**。
 
 ## Compulsory Reading Before Each Session

@@ -17,5 +17,7 @@ void DragRelease(UIContext* instance);
 bool DragQueryActive(const Control* ctl);
 // drag-over 回调内设置接受/拒绝
 void DragSetAccept(const Control* ctl, bool accept);
+// P0-100：内部事件队列拖放（OS 文件/文本）→ 实例级回调分发（owner 归并）
+void DispatchDropFileEvent(UIContext* instance, const Event& evt);
 
 #endif // DRAGDROP_H

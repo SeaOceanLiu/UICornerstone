@@ -1,5 +1,28 @@
 ﻿## Session History
 
+### 2026-10-03 ~ 10-18: 设计器协作批链 P0-62~P0-101（属性/拖拽/页签/菜单/OS 拖放；配合清单第三批全程闭环）（Complete）
+
+**范围**：覆盖 P0-62~P0-101（2026-10-03 起的设计器协作批链；此前 09 月批次记录暂缺）。流程：设计器清单 → 引擎分析 → 设计文档（待评审）→ 设计器复核（归档 `requirements/*_复核意见.md`）→ 实施 → 探针/全量回归 → make_release → subModules 同步 → 清单镜像。
+
+**批 P0-62~P0-65（commit `bd9d517`）**：item 着色与字体名（ListView cell 字体名/大小、item 字体覆盖）、统一行式跟随（hover 高亮跨行同步）、hover 彩色与叠加语义、hover-only 修复（`CellStyle.hasBg` 显式位 + 门控 `hasBg && alpha>0`；`TreeNode.hasHoverBg` 与 bgMask 解耦、显式 hover 独立绘制）。
+
+**批 P0-66~P0-88（commit `4a97783`，99 文件）**：ListView JSON 缺口（columns header-font-*、rows 对象 cell 解析）；auto-scroll（TextArea，缺省 false）；MenuBarRemoveMenu / TabRemovePage（保活池 + TabSetPage 双挂载修复）；子视口弹层与资源管线（弹层 bench 局部定位、resourceProviders 目录挂载、shadow-radius、colors-menu 四态、动画 provider 描述、Bench 透明+viewportBackground、MemoryResourceProvider filesystem 回退、provider 回退继承、LayoutParser::adoptContext）；菜单交互闭环（悬停残留修复、菜单项 id 注册、active-index/hovered-index 只读）；输入通路与校验硬化（跨子视口鼠标捕获、keyboardTarget 焦点路由、`validateControl` 全构建归属校验 + `Debug_ValidateHandle`、EditBox/TextArea read-only、ComboBox 吞输入修复）；只读/解绑（空回调=解绑防 bad_function_call）；logMissingHandler 诊断。
+
+**批 P0-89~P0-94（commit `fa68932`）**：Tab 五色键 + `TabGetItemRect`/`TabMovePage`/`hovered-tab` + **TabSetPage UAF 修复**（先强引用再 detachPoolTake）；tab JSON 颜色解析 + schema 6 键（selected-text/page-background）；**通用拖拽框架 Phase 1+2**（`DragManager`/`DragDrop.h` 钩子/9 键/6 事件/语义载荷与落点/内置换序/公开 `TreeViewMoveNode`/`ListViewMoveRow`）；**`fireCCallback` virtual 继承句柄修复**（`static_cast<Control*>`，影响全部既有回调）；用户手册新增 5.7 拖拽框架页 + 导航重排。
+
+**批 P0-96~P0-97（commit `1812159`）**：reorderable 自含（门控 `isDraggable||isReorderable`、载荷 CONTROL 判据、`findDropTarget` 自目标回退、tab 单轴落点）；ghost 字体 provider 口径（`loadFontFromMemoryWithText` + 码点计宽 + 失败日志带路径）。
+
+**批 P0-98~P0-101（工作区，未提交）**：菜单动态化（Normal 无条件关链+click、ActionThunk 动作回调实例上下文、`MenuPanelRemoveItem`、setCaption 重算）；菜单屏幕钳制（子菜单翻转/收边 + 顶部兜底、顶层收边）；OS 文件拖放（`EventType::DropFile` + `SetDropFileCallback` + `UI_EVENT_DROP_FILE` 合成）；**UIEvent 桥缺口修复（P0-101）**——`bridge_pollEvent` 原 `default: return 0` 静默丢弃 DropFile（合成通路不过桥、极具迷惑性）→ 指针式桥接（超长路径不截断）+ `CallbackInputBackend`/`uiEventToEvent` 转换 + `PushUIEvent` 深拷贝 + MainWindow Mode 1 分发。
+
+**本批链重点问题记录（已修复，详见各设计文档）**：① `fireCCallback` 首参句柄（ControlImpl virtual 继承偏移 0x488）→ 宿主回调内调 CABI 段错误；② ComboBox 非编辑态无条件吞 TextInput（P0-84 内联输入失效链根因）；③ TabSetPage UAF；④ 设计器手柄跨实例越界（`validateControl` 全构建校验立功）；⑤ P0-96 实施中发现 hint→索引摘除位移未补偿（tree 同父 BEFORE/AFTER 偏移、tab 槽位换算）；⑥ P0-101 UIEvent 桥无 DropFile 转换（真实 OS 拖放丢失；DLL md5 核验无法发现）；⑦ 菜单点击门控（动态项回调死+菜单不关）；⑧ 菜单悬停残留（P0-82）。
+
+**流程与铁律**：AGENTS.md 增测试运行约定（auto=5/10 + shell timeout + build/test/Debug + `testing_scripts/run_regression.sh`）与**文件夹访问范围铁律**（仅两项目目录；设计器除 subModules 外严格只读，唯一写入=发布同步）；用户手册多轮刷新（5.7 拖拽框架、tab-*、read-only、viewport、provider、菜单钳制/动态化、debugging 调试 API 等）；设计文档 P089~P101 全量状态/问题/实施记录 + P093_094 §7 开发参考；API_Mapping_Table 增近期批次补充表。
+
+**验证基线**：全量回归 51 OK + 仅 4 项预存失败（test_menu_cabi / test_multiviewport / test_multiviewport_cabi / test_treeview_cabi）；各批探针全过（P0-93/94 8/8、P0-96/97 8/8、P0-98/99/100 9/9、P0-101 5/5）；Debug/Release 零警告；发布同步 171 文件（2026-10-18）。
+
+**相关文件**：src/（UICornerstoneAPI/Menu/TabControl/TreeView/ListView/ControlBase/CallbackAdapters/MainWindow/LayoutParser/backend/BackendBridge.h/backend/sdl3/InputBackend.cpp）、include/（UICornerstoneAPI/PropertyNames/DragDrop/EventTypes/StateMachine/UIContext/Menu/TabControl/TreeView/ListView）、binding/（UICornerstone/Control/DynamicApi/Impl）、design/P089~P101 设计文档、requirements/（清单镜像 + P0xx_复核意见 归档）、docs/（advanced/drag-drop 5.7、appendix/*、controls/menu/tabcontrol、schema）、AGENTS.md、testing_scripts/run_regression.sh。
+
+
 ### 2026-08-30（晚）: 属性常量独立列 + 多属性拆行 + 枚举值速查（方案 C）
 
 **用户反馈修正**：不以括号内联常量；属性表新增「属性常量」列；多属性同行改为每属性一行。

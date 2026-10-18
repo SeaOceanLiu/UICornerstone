@@ -234,6 +234,26 @@ void UICornerstone::SetWindowResizeCallback(WindowResizeCallback callback) {
     }
 }
 
+// P0-100：OS 文件/文本拖放回调
+static void DropFileThunk(UIControlHandle, const UIEventData* ev, void* userData) {
+    auto* cb = static_cast<UICornerstone::DropFileCallback*>(userData);
+    if (!cb || !ev || !ev->data.dropFile.path) return;
+    (*cb)(ev->data.dropFile.path, ev->data.dropFile.x, ev->data.dropFile.y,
+          ev->data.dropFile.isText);
+}
+
+void UICornerstone::SetDropFileCallback(DropFileCallback callback) {
+    if (!m_impl->instance || !Dyn::API().fnSetDropFileCallback) return;
+    if (callback) {
+        m_impl->dropFileCb = std::make_shared<DropFileCallback>(std::move(callback));
+        Dyn::API().fnSetDropFileCallback(
+            m_impl->instance, &DropFileThunk, m_impl->dropFileCb.get());
+    } else {
+        m_impl->dropFileCb = nullptr;
+        Dyn::API().fnSetDropFileCallback(m_impl->instance, nullptr, nullptr);
+    }
+}
+
 void UICornerstone::Shutdown() {
     if (m_impl->instance) {
         if (m_impl->ownsInstance) Dyn::API().fnDestroyInstance(m_impl->instance);
@@ -996,6 +1016,11 @@ void UICornerstone::MenuPanelAddSeparator(Control& panel) {
     if (m_impl->instance && panel.Handle())
         Dyn::API().fnMenuPanelAddSeparator(m_impl->instance, panel.Handle());
 }
+int UICornerstone::MenuPanelRemoveItem(Control& panel, Control& item) {
+    if (!m_impl->instance || !panel.Handle() || !item.Handle() || !Dyn::API().fnMenuPanelRemoveItem)
+        return 0;
+    return Dyn::API().fnMenuPanelRemoveItem(m_impl->instance, panel.Handle(), item.Handle());
+}
 void UICornerstone::MenuItemSetSubMenu(Control& item, Control& panel) {
     if (m_impl->instance && item.Handle() && panel.Handle())
         Dyn::API().fnMenuItemSetSubMenu(m_impl->instance, item.Handle(), panel.Handle());
@@ -1085,18 +1110,21 @@ void UICornerstone::PushTextInput(const std::string& text) {
 // ============================================================
 void UICornerstone::RegisterAction(const std::string& name, ActionCallback callback) {
     if (!m_impl->instance) return;
-    auto cb = std::make_shared<ActionCallback>(std::move(callback));
-    m_impl->actions[name] = cb;
+    // P0-98①：thunk 携带注册时实例 → 动作处理器内 ctl.GetId()/GetString() 等实例级调用可用
+    auto thunk = std::make_shared<ActionThunk>();
+    thunk->cb = std::move(callback);
+    thunk->inst = m_impl->instance;
+    m_impl->actions[name] = thunk;
     Dyn::API().fnRegisterAction(m_impl->instance, name.c_str(),
         [](UIControlHandle ctl, void* userData) {
-            auto& fn = *static_cast<ActionCallback*>(userData);
-            if (!ctl) return;
+            auto* t = static_cast<ActionThunk*>(userData);
+            if (!ctl || !t) return;
             auto state = std::make_shared<ControlState>();
-            state->instance = nullptr;  // 动作回调不绑定实例上下文（ctl 裸句柄）
+            state->instance = t->inst;
             state->handle = ctl;
-            fn(Control(std::move(state)));
+            t->cb(Control(std::move(state)));
         },
-        cb.get());
+        thunk.get());
 }
 
 // ============================================================

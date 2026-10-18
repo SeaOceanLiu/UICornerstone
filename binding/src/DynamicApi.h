@@ -45,6 +45,7 @@ struct Api {
     int (*fnSetWindowSize)(UIInstance, float, float) = nullptr;
     void* (*fnGetNativeWindowHandle)(UIInstance) = nullptr;
     void (*fnSetWindowResizeCallback)(UIInstance, UIWindowResizeCallback, void*) = nullptr;
+    void (*fnSetDropFileCallback)(UIInstance, UIEventCallback, void*) = nullptr;   // P0-100
 
     // 帧循环
     int (*fnProcessEvents)(UIInstance) = nullptr;   // 返回是否处理了事件（多实例调度）
@@ -87,6 +88,7 @@ struct Api {
     int (*fnMenuBarRemoveMenu)(UIInstance, UIControlHandle, const char*) = nullptr;   // P0-69
     void (*fnMenuPanelAddItem)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
     void (*fnMenuPanelAddSeparator)(UIInstance, UIControlHandle) = nullptr;
+    int  (*fnMenuPanelRemoveItem)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;   // P0-98
     void (*fnMenuItemSetSubMenu)(UIInstance, UIControlHandle, UIControlHandle) = nullptr;
     UIControlHandle (*fnCreateColorPicker)(UIInstance, float, float, float, float, const char*, float, float) = nullptr;
     UIControlHandle (*fnCreateNumericUpDown)(UIInstance, float, float, float, float, float, float) = nullptr;

@@ -110,7 +110,7 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>MenuBarAddMenu(bar, caption, panel)</code></td><td>组装菜单栏</td></tr>
 <tr><td><code>MenuBarRemoveMenu(bar, caption)</code></td><td>移除菜单（面板保活可再挂载）</td></tr>
 <tr><td><code>MenuItemSetSubMenu(item, panel)</code></td><td>挂子菜单</td></tr>
-<tr><td><code>MenuPanelAddItem(panel, item) / MenuPanelAddSeparator(panel)</code></td><td>组装菜单面板</td></tr>
+<tr><td><code>MenuPanelAddItem(panel, item) / MenuPanelAddSeparator(panel) / MenuPanelRemoveItem(panel, item)</code></td><td>组装/移除菜单面板项（P0-98②：RemoveItem 完整移除，1=成功 0=非法；移除后句柄失效）</td></tr>
 </table>
 
 <p>缩放说明见<a href="../advanced/scale.html">5.5 控件缩放</a>：系数作用于绘制内容，rect 不变，
@@ -333,6 +333,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>bool SetWindowSize(float w, float h)</code></td><td>请求窗口 resize（v1.1.1 增）</td></tr>
 <tr><td><code>void* GetNativeWindowHandle() const</code></td><td>原生窗口句柄（v1.1.1 增）</td></tr>
 <tr><td><code>void SetWindowResizeCallback(std::function&lt;void(int,int)&gt;)</code></td><td>窗口尺寸变化回调（传空函数取消；v1.1.1 增）</td></tr>
+<tr><td><code>void SetDropFileCallback(std::function&lt;void(const std::string&amp;, float, float, int)&gt;)</code></td><td>OS 文件/文本拖放回调（P0-100：path,x,y,isText；泵内触发——仅轻量记录、重活延帧；空函数解绑）</td></tr>
 </table>
 
 <div class="chapter-nav">

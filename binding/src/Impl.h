@@ -16,6 +16,12 @@ struct ControlState;
 
 namespace UICornerstone {
 
+// P0-98①：动作回调载体（捕获注册时实例——动作处理器内 Control.GetId/GetString 可用）
+struct ActionThunk {
+    UICornerstone::ActionCallback cb;
+    UIInstance inst = nullptr;
+};
+
 // 内部实现（pimpl）。类声明见 UICornerstone.h，此定义仅 .cpp 可见。
 struct Impl {
     UICornerstone::Config config;
@@ -35,11 +41,14 @@ struct Impl {
     // 核心 DLL 由 DynamicApi 进程级持有（不随实例卸载）
     void* dllHandle = nullptr;
 
-    // Action 注册表（实例私有，无全局 static）
-    std::unordered_map<std::string, std::shared_ptr<UICornerstone::ActionCallback>> actions;
+    // Action 注册表（实例私有，无全局 static；P0-98①：ActionThunk 携带注册时实例）
+    std::unordered_map<std::string, std::shared_ptr<ActionThunk>> actions;
 
     // 窗口 resize 回调（std::function + C thunk 的 userData/存活域）
     std::shared_ptr<UICornerstone::WindowResizeCallback> windowResize;  // nullptr = 未设置
+
+    // P0-100：OS 文件拖放回调（std::function + C thunk 的 userData/存活域）
+    std::shared_ptr<UICornerstone::DropFileCallback> dropFileCb;        // nullptr = 未设置
 
     // Control 生命周期追踪（weak 不保活）
     std::unordered_map<UIControlHandle, std::weak_ptr<ControlState>> liveControls;

@@ -30,6 +30,7 @@
 <tr><td><code>UICornerstone_SetWindowSize(inst, w, h)</code></td><td>请求窗口 resize（真实调整经后端，尺寸变化经 WindowResize 事件回流；headless 返回 0；v1.1.1 增）</td></tr>
 <tr><td><code>UICornerstone_GetNativeWindowHandle(inst)</code></td><td>原生窗口句柄（嵌入/hosted 场景；无窗口返回 NULL；v1.1.1 增）</td></tr>
 <tr><td><code>UICornerstone_SetWindowResizeCallback(inst, cb, ud)</code></td><td>窗口尺寸变化回调 (w,h,ud)，替代帧内轮询（v1.1.1 增）</td></tr>
+<tr><td><code>UICornerstone_SetDropFileCallback(inst, cb, ud)</code></td><td>OS 文件/文本拖放回调（P0-100）：ctl=NULL、<code>data.dropFile.{path,x,y,isText}</code>；泵内触发——仅轻量记录、重活延帧；NULL 解绑</td></tr>
 <tr><td><code>UICornerstone_GetViewport(inst, &amp;x, &amp;y, &amp;w, &amp;h)</code></td><td>查询当前视口</td></tr>
 <tr><td><code>UICornerstone_GetViewportScale(inst, &amp;sx, &amp;sy)</code></td><td>当前复合缩放系数</td></tr>
 <tr><td><code>UICornerstone_SetInstanceScale(inst, x, y)</code></td><td>实例缩放（画布语义）：逻辑 rect 不变、视觉/字号×比例；x/y≤0 拒绝；off 分支 recompute 尊重手动值，fit/stretch 切换引擎接管（v1.1.1）</td></tr>
@@ -38,7 +39,7 @@
 <tr><td><code>UICornerstone_IsQuitRequested(inst)</code></td><td>窗口关闭请求查询</td></tr>
 <tr><td><code>UICornerstone_ProcessEvents / Update / Clear / Render / Present</code></td><td>主循环五步</td></tr>
 <tr><td><code>UICornerstone_RenderOverlays(inst)</code></td><td>浮层渲染通道（P0-52①）：仅重绘 BENCH 顶层可见浮层（Popup/ConfirmPopup/Dialog/MenuPanel，含子树），按实例 viewport 裁剪。多视口帧序：<code>Clear → owner.Render → 各子视口 Render → RenderOverlays → Present</code>（Present 前调用；无浮层零开销，未调用行为同既有版本）</td></tr>
-<tr><td><code>UICornerstone_PushUIEvent(inst, ev)</code></td><td>投递事件到实例队列（跨线程安全，自动化测试 auto 退出即经此）</td></tr>
+<tr><td><code>UICornerstone_PushUIEvent(inst, ev)</code></td><td>投递事件到实例队列（跨线程安全，自动化测试 auto 退出即经此）；P0-101：<code>UI_EVENT_DROP_FILE</code> 指针式载荷在 push 时深拷贝（源串可立即释放）</td></tr>
 <tr><td><code>UICornerstone_SetCanvasSize(inst, w, h)</code></td><td>显式基准画布尺寸（fit/stretch 适配基准；off 下仅记录）</td></tr>
 <tr><td><code>UICornerstone_SetViewport(inst, x, y, w, h)</code></td><td>设置视口</td></tr>
 <tr><td><code>UICornerstone_SetViewportAnchor(inst, ax, ay)</code></td><td>手动锚点偏移（增量叠加，off 模式手动平移）</td></tr>
@@ -109,7 +110,7 @@
 <tr><td><code>UICornerstone_CreateTextArea(inst, x, y, w, h, xScale, yScale)</code></td><td>TextArea</td></tr>
 <tr><td><code>UICornerstone_CreateTreeView(inst, x, y, w, h, xScale, yScale)</code></td><td>TreeView（节点经 <code>SetString("items", json)</code> 填充，见 7 TreeView）</td></tr>
 <tr><td><code>UICornerstone_CreateWinFrame(inst, title, x, y, w, h, xScale, yScale)</code></td><td>WinFrame</td></tr>
-<tr><td><code>UICornerstone_MenuBarAddMenu / MenuPanelAddItem / MenuPanelAddSeparator / MenuItemSetSubMenu</code></td><td>菜单组装</td></tr>
+<tr><td><code>UICornerstone_MenuBarAddMenu / MenuPanelAddItem / MenuPanelAddSeparator / MenuPanelRemoveItem / MenuItemSetSubMenu</code></td><td>菜单组装；<code>MenuPanelRemoveItem</code>（P0-98②）完整移除（子菜单链关闭 + id 注销 + 重算），移除后句柄失效</td></tr>
 <tr><td><code>UICornerstone_MenuBarRemoveMenu(inst, bar, caption)</code></td><td>菜单移除（1=移除 0=未找到；面板保活可再挂载）</td></tr>
 </table>
 

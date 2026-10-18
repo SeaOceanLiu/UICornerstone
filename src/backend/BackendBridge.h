@@ -219,6 +219,20 @@ inline int bridge_pollEvent(UIInputBackendHandle h, UIEvent* ue) {
     case EventType::FocusLost:
         ue->type = UI_EVENT_FOCUS_LOST;
         break;
+    case EventType::DropFile: {
+        // P0-101：指针式桥接（长路径不截断）——thread_local 缓冲；
+        // 引擎侧 CallbackInputBackend 同步消费并立即拷贝，下一次 poll 方可覆盖
+        static thread_local std::string dropBuf;
+        dropBuf = event.dropPath;
+        UIEventDropFile df;
+        df.path = dropBuf.c_str();
+        df.x = event.dropX;
+        df.y = event.dropY;
+        df.isText = event.customInt;
+        ue->type = UI_EVENT_DROP_FILE;
+        memcpy(ue->data, &df, sizeof(df));
+        break;
+    }
     default:
         return 0;
     }

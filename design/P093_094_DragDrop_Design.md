@@ -171,12 +171,13 @@ Esc（KeyDown）/ FocusLost：Dragging → fire drag-end(dropped=0) → 复位�
 3. 拖拽事件 JSON 键（`events.onDrag*`）**未实现**（CABI/Binding `SetCallback` 为主；JSON 仅注册属性键）——如宿主需 JSON 事件绑定，扩展点：`parseEvents` 增映射（可参考 `onSelect` 模式）。
 4. **自目标语义（P0-96）**：`reorderable` 自含（无需 `draggable`/`droppable`）；自目标松手会同时发 `drop`（target=源自身）与 `reordered`/`tab-reordered`——宿主按 `hint` 区分，勿重复迁移数据；纯 reorderable 未命中可重排项（tab 页体/树·列表空白）不起拖。
 5. **hint→索引换算（P0-96 修正）**：`moveNode`/`moveTab` 均为"摘除后插入"语义——同父源在目标前时需补偿摘除位移；自落点（BEFORE/AFTER/INTO 自身）不动作、不发事件。
+6. **OS 拖放曾因 UIEvent 桥缺口丢失（P0-101）**：后端 DLL → 引擎经 `bridge_pollEvent`（`src/backend/BackendBridge.h`，UIEvent C ABI）转换——原 switch **无 `DropFile` 分支 → `default: return 0` 静默丢弃**（合成通路经 PushUIEvent 不过桥故正常，极具迷惑性；DLL md5/时间戳核验无法发现）；已修复（指针式桥接、超长路径不截断）。详见 `P101_DropBridge_Design.md`。**新增内部事件类型时须同步检查该桥转换（含 `CallbackInputBackend::pollEvent` 反向转换）。**
 
 ### 7.7 扩展指南
 - **新增内置消费者**（如"列宽/列序拖动"）：在 `applyBuiltInReorder` 增分支（门槛 `reorderable` + source==target + kind 匹配）+ 对应引擎迁移方法（参考 `moveRow` 的"先校验后变更 + 重建布局"模板）；事件复用 `reordered` 或新增专用名。
 - **宿主自绘预览**：`drag-visual=false` 关闭默认视觉；宿主经 `drag-active` 轮询 + 自身状态绘制（Phase 3 设计器画布拖动迁移方案）。
 - **跨实例**（工具箱→画布）：框架不支持；宿主自管（可在 `drag-start` 记录载荷，自行完成目标侧交付）；`drag-active` 仅只读查询。
-- **Backlog**：`drag-hint` 只读快照（复核补充 4，未做）；ghost 图标/自定义渲染回调；tree 三分带精确行 rect；OS 文件拖入（SDL_DROPFILE 桥接，Phase 2+ 另议）。
+- **Backlog**：`drag-hint` 只读快照（复核补充 4，未做）；ghost 图标/自定义渲染回调；tree 三分带精确行 rect；`bridge_pollEvent` 亦缺 `WindowMoved`（引擎内仅 `m_pos` 缓存、无用户可见依赖——P0-101 复核记为不扩面）。**OS 文件拖入已实现**（P0-100/P0-101：`SetDropFileCallback` + UIEvent 桥修复，见 `P101_DropBridge_Design.md`）。
 
 ### 7.8 测试矩阵（Temp/temp_p093_094_probe，8/8）
 | # | 用例 | 断言 |

@@ -99,7 +99,12 @@ void MenuItem::setMenuFont(SharedFont font, float fontSize) {
 }
 
 void MenuItem::setCaption(const string& caption) {
+    if (m_caption == caption) return;
     m_caption = caption;
+    // P0-98③：运行时改标题 → 所属面板重算尺寸（面板宽=最长标题实测）
+    if (auto* panel = dynamic_cast<MenuPanel*>(getParent())) {
+        panel->recalculateSize();
+    }
 }
 
 void MenuItem::setShortcut(const string& shortcut) {
@@ -234,9 +239,11 @@ bool MenuItem::handleEvent(shared_ptr<Event> event) {
                 return ControlImpl::handleEvent(event);
             }
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
-                if (m_type == MenuItemType::Normal && m_onClick) {
+                // P0-98①b：Normal 项无条件关链 + 发 click（m_onClick 与 SetCallback 并存均触发；
+                // 动态创建项无 m_onClick 也走统一属性系统回调，与 API 头文档语义一致）
+                if (m_type == MenuItemType::Normal) {
                     closeMenuChain();
-                    m_onClick(dynamic_pointer_cast<MenuItem>(getThis()));
+                    if (m_onClick) m_onClick(dynamic_pointer_cast<MenuItem>(getThis()));
                     fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr);
                 }
                 return true;
@@ -445,6 +452,9 @@ void MenuPanel::addSeparator() {
 void MenuPanel::removeItem(shared_ptr<MenuItem> item) {
     auto it = std::find(m_items.begin(), m_items.end(), item);
     if (it != m_items.end()) {
+        // P0-98②：完整移除——关闭其子菜单链、断开父指针（不再触发面板重算）、再摘除+重算
+        if (item->getSubMenu()) item->getSubMenu()->hide();
+        item->setParent(nullptr);
         m_items.erase(it);
         recalculateSize();
     }
@@ -612,7 +622,31 @@ void MenuPanel::setHoveredIndex(int index) {
             // 子菜单的 parent 是 MenuItem，setPosition 使用相对 MenuItem 的坐标：
             // x = item 完整宽度（紧贴右缘），y = 0（与 item 顶部对齐）。
             // 传入绝对坐标（itemRect.right/top）会被父链偏移二次叠加导致错位
-            subMenu->setPosition(item->getRect().width, 0);
+            float sx = subMenu->getScaleXX(), sy = subMenu->getScaleYY();
+            if (sx == 0.0f) sx = 1.0f;
+            if (sy == 0.0f) sy = 1.0f;
+            float subW = subMenu->getRect().width;    // 逻辑尺寸
+            float subH = subMenu->getRect().height;
+            float x = item->getRect().width;          // 默认右贴（相对 item 逻辑偏移）
+            float y = 0.0f;
+            // P0-99：屏幕钳制——右缘越视口 → 翻转到父项左侧；仍越界 → 收边钳制
+            UIContext* ctx = getContext();
+            SRect vp = ctx ? ctx->viewport : SRect(0, 0, 1024, 768);
+            SRect itemDraw = item->getDrawRect();     // 全局像素
+            float dispW = subW * sx, dispH = subH * sy;
+            if (itemDraw.left + itemDraw.width + dispW > vp.right()) {
+                x = -subW;   // 翻转：出现在父项左侧
+                if (itemDraw.left - dispW < vp.left) {
+                    x = (vp.left - itemDraw.left) / sx;   // 收边（逻辑偏移）
+                }
+            }
+            if (itemDraw.top + dispH > vp.bottom()) {
+                y = (vp.bottom() - itemDraw.top - dispH) / sy;   // 上移钳制
+                if (itemDraw.top + y * sy < vp.top) {
+                    y = (vp.top - itemDraw.top) / sy;          // 顶部兜底
+                }
+            }
+            subMenu->setPosition(x, y);
             setOpenSubMenu(subMenu);
         } else {
             setOpenSubMenu(nullptr);
@@ -1287,11 +1321,15 @@ void MenuBar::attachMenuPanel(int index) {
         // benchScale=1 时与旧式逐位等价；hitRect 为菜单栏局部逻辑坐标，×复合后同样除以根复合
         float bsx = bench->getScaleXX(), bsy = bench->getScaleYY();
         SPoint anchor = bench->mapViewportToCanvas(SPoint(barDraw.left, barDraw.top));
-        entry.panel->setRect(SRect(
-            anchor.x + ((bsx != 0.0f) ? entry.hitRect.left * sx / bsx : 0.0f),
-            anchor.y + ((bsy != 0.0f) ? (entry.hitRect.top + entry.hitRect.height) * sy / bsy : 0.0f),
-            logicSize.width,
-            logicSize.height));
+        float px = anchor.x + ((bsx != 0.0f) ? entry.hitRect.left * sx / bsx : 0.0f);
+        float py = anchor.y + ((bsy != 0.0f) ? (entry.hitRect.top + entry.hitRect.height) * sy / bsy : 0.0f);
+        // P0-99：顶层收边钳制（bench 逻辑域；主实例与像素钳制等价）——长标题面板不出屏
+        SRect benchRect = bench->getRect();
+        if (px + logicSize.width > benchRect.width) px = benchRect.width - logicSize.width;
+        if (px < 0.0f) px = 0.0f;
+        if (py + logicSize.height > benchRect.height) py = benchRect.height - logicSize.height;
+        if (py < 0.0f) py = 0.0f;
+        entry.panel->setRect(SRect(px, py, logicSize.width, logicSize.height));
         entry.panel->show();
         registerMenuWatcher();
     } else {

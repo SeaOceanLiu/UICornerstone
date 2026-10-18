@@ -126,6 +126,7 @@ UICornerstone_TabMovePage(inst, tab, from, to);                           // 页
 <li><strong>跨实例</strong>：不支持（工具箱→画布等由宿主自管；<code>drag-active</code> 只读查询可辅助状态管理）；</li>
 <li><strong>默认视觉</strong>：ghost（载荷文本）+ 落点指示线；置 <code>drag-visual=false</code> 关闭后由宿主自绘；</li>
 <li><strong>接受/拒绝</strong>：默认接受；<code>drag-over</code> 回调内 <code>SetBool("drag-accept", 0)</code> 拒绝（目标/落点变化自动重置为接受）。</li>
+<li><strong>OS 文件拖入（P0-100）</strong>：资源管理器拖入走<strong>实例级回调</strong>（<code>SetDropFileCallback</code>，非本框架事件）——<code>path</code>/坐标/<code>isText</code> 载荷；回调在事件泵内触发，仅做轻量记录、重活（LoadLayout 等）延到下一帧。</li>
 </ul>
 
 <h2>5.7.7 完整示例：树 → 面板拖放</h2>

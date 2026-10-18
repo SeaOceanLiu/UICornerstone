@@ -1221,6 +1221,12 @@ void TopControl::eventLoopEntry(void){
     shared_ptr<Event> eventInQueue = m_eventQueueInstance->popEventFromQueue();
     while(eventInQueue != nullptr){
         evCount++;
+        if (eventInQueue->m_type == EventType::DropFile) {
+            // P0-100：内部队列拖放（OS 文件/文本）→ 实例级回调（不经控件树分发）
+            DispatchDropFileEvent(m_context, *eventInQueue);
+            eventInQueue = m_eventQueueInstance->popEventFromQueue();
+            continue;
+        }
         bool consumed = DragPreHandleEvent(m_context, *eventInQueue);   // P0-94：拖拽前置（拖动期消费 Move/Up/Esc）
         if (!consumed) {
             consumed = m_eventQueueInstance->notifyBeforeEventHandlingWatchers(eventInQueue);

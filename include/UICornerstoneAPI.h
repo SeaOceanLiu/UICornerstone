@@ -84,10 +84,22 @@ typedef enum {
     UI_EVENT_WINDOW_CLOSE,
     UI_EVENT_FOCUS_GAINED,
     UI_EVENT_FOCUS_LOST,
+    UI_EVENT_DROP_FILE,   // P0-100：OS 文件/文本拖放（data=UIEventDropFile 布局）
 } UIEventType;
 
 #define UI_EVENT_BUF_SIZE 128
 #define UI_TEXT_MAX 32
+
+/* P0-100/P0-101：UI_EVENT_DROP_FILE 的 data 布局（指针式载荷——超长路径不截断）。
+   path 指向 NUL 结尾字符串：PushUIEvent 时引擎立即深拷贝（push 后源串即可释放）；
+   后端桥（bridge_pollEvent）由生产者保证消费前有效、引擎同步拷贝。
+   x/y 为落点窗口像素；isText=1 表示 DROP_TEXT。 */
+typedef struct {
+    const char* path;
+    float x;
+    float y;
+    int   isText;
+} UIEventDropFile;
 
 typedef struct {
     UIEventType type;
@@ -106,6 +118,7 @@ typedef struct {
 #define UI_EVENT_TEXT(ev)        ((const char*)(ev)->data)
 #define UI_EVENT_RESIZE_W(ev)    (*(int*)(ev)->data)
 #define UI_EVENT_RESIZE_H(ev)    (*(int*)((ev)->data + 4))
+#define UI_EVENT_DROP_FILE_DATA(ev) ((const UIEventDropFile*)(ev)->data)
 
 /* ============ 后端回调表 ============ */
 /* 后端能力位（UIBackendCallbacks::capabilities，0 = 无声明能力）：
@@ -394,6 +407,10 @@ UICORNERSTONE_API int UICornerstone_MenuBarRemoveMenu(UIInstance instance,
 UICORNERSTONE_API void UICornerstone_MenuPanelAddItem(UIInstance instance,
     UIControlHandle panel, UIControlHandle item);
 UICORNERSTONE_API void UICornerstone_MenuPanelAddSeparator(UIInstance instance, UIControlHandle panel);
+// P0-98②：从面板移除菜单项（完整移除：子菜单链关闭、id 注销、面板重算）。
+// 移除后该 item 句柄失效；返回 1=成功 0=非法/不属于该面板
+UICORNERSTONE_API int UICornerstone_MenuPanelRemoveItem(UIInstance instance,
+    UIControlHandle panel, UIControlHandle item);
 UICORNERSTONE_API void UICornerstone_MenuItemSetSubMenu(UIInstance instance,
     UIControlHandle item, UIControlHandle panel);
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateColorPicker(UIInstance instance,
@@ -863,10 +880,18 @@ typedef struct {
         struct { uint8_t r,g,b,a; } color;
         struct { int row; int col; int asc; } grid;
         struct { UIDragPayload payload; UIDropHint hint; int dropped; } drag;   /* P0-94 */
+        struct { const char* path; float x; float y; int isText; } dropFile;    /* P0-100 */
     } data;
 } UIEventData;
 
 typedef void (*UIEventCallback)(UIControlHandle ctl, const UIEventData* event, void* userData);
+
+/* P0-100：OS 文件/文本拖放回调（ctl=NULL；event->eventName="drop-file"；
+   event->data.dropFile.{path,x,y,isText}，path 为引擎缓冲、回调期有效）。
+   接入约定：回调在 ProcessEvents 泵内触发——宿主仅做轻量记录，重活（如 LoadLayout）延到下一帧。
+   cb=NULL 解绑。 */
+UICORNERSTONE_API void UICornerstone_SetDropFileCallback(UIInstance instance,
+    UIEventCallback cb, void* userData);
 
 // 绑定事件回调。event 为事件名，如 "click"、"value-changed"
 UICORNERSTONE_API int UICornerstone_SetCallback(UIInstance instance, UIControlHandle ctl, const char* event, UIEventCallback cb, void* userData);

@@ -2,6 +2,7 @@
 #include "Bench.h"
 #include "AppCallbacks.h"
 #include "BackendPlugin.h"
+#include "DragDrop.h"
 #include "PlatformUtils.h"
 
 // ============================================================
@@ -98,6 +99,9 @@ bool MainWindow::processEvents(AppCallbacks* app) {
             case EventType::WindowMoved:
                 onWindowMoved(event.windowMoved.x, event.windowMoved.y);
                 break;
+            case EventType::DropFile:   // P0-101：真实 OS 拖放（Mode 1 owned-loop）→ 实例级回调
+                DispatchDropFileEvent(m_context, event);
+                break;
             default:
                 {
                     // Dispatch all events (new-style and old-style) to controls
@@ -120,14 +124,25 @@ bool MainWindow::processEvents(AppCallbacks* app) {
     // (the MessageBox/auto-quit use-case only needs WindowClose respected).
     if (m_context) {
         while (true) {
-            UIEvent ue;
+            UIContext::QueuedUIEvent q;
             {
                 std::lock_guard<std::mutex> lock(m_context->queuedEventsMutex);
                 if (m_context->queuedEvents.empty()) break;
-                ue = m_context->queuedEvents.front();
+                q = std::move(m_context->queuedEvents.front());
                 m_context->queuedEvents.pop();
             }
-            if (ue.type == UI_EVENT_WINDOW_CLOSE) running = false;
+            if (q.ev.type == UI_EVENT_WINDOW_CLOSE) {
+                running = false;
+            } else if (q.ev.type == UI_EVENT_DROP_FILE) {
+                // P0-101：注入合成拖放（深拷贝路径）→ 实例级回调
+                const UIEventDropFile* df = UI_EVENT_DROP_FILE_DATA(&q.ev);
+                Event ev(EventType::DropFile);
+                ev.dropPath = q.dropPath;
+                ev.dropX = df->x;
+                ev.dropY = df->y;
+                ev.customInt = df->isText;
+                DispatchDropFileEvent(m_context, ev);
+            }
         }
     }
     return running;

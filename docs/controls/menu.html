@@ -177,7 +177,10 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", file);
 // MenuItem 的 caption / checked / shortcut / click 走统一属性系统
 UICornerstone_SetString(g_inst, open, "shortcut", "Ctrl+O");
 static void onOpen(UIControlHandle ctl, const UIEventData* ev, void* ud) { }
-UICornerstone_SetCallback(g_inst, open, "click", onOpen, NULL);</code></pre>
+UICornerstone_SetCallback(g_inst, open, "click", onOpen, NULL);
+
+// 动态增删（P0-98）：SetCallback 即时生效（无需布局绑定）；移除项用 RemoveItem（完整移除，句柄失效）
+UICornerstone_MenuPanelRemoveItem(g_inst, file, open);</code></pre>
 <h2>4.14.7 布局模式与弹出置顶（v1.1.1 增强）</h2>
 
 <p><strong>布局模式</strong>：MenuBar 挂到画布顶层（Bench）时 = <em>顶层模式</em>，全宽贴顶（宽=父宽、顶部=0、高=bar-height）。挂入 panel / v-flow 等布局引擎容器时，<code>setParent</code> 自动切换为手动定位——放弃全宽重置，rect 完全由布局引擎驱动，可作为 v-flow 内的一行（多菜单栏 / 工具栏式布局），<strong>无需显式 <code>manual-position</code></strong>。</p>
@@ -186,7 +189,8 @@ UICornerstone_SetCallback(g_inst, open, "click", onOpen, NULL);</code></pre>
 <ul>
 <li>绘制 / 事件层次高于所有容器控件，不被 v-flow 等布局容器的兄弟控件遮挡或裁剪；</li>
 <li>弹出位置 = 菜单栏绘制矩形 + 条目命中区×复合缩放（保持"条正下方"局部定位语义），尺寸为无缩放逻辑尺寸×面板自身复合（与 Popup 顶层弹出缩放语义一致）；</li>
-<li>关闭（点击其它地方 / ESC / 关闭菜单链）时摘回 MenuBar 父链。</li>
+<li>关闭（点击其它地方 / ESC / 关闭菜单链）时摘回 MenuBar 父链；</li>
+<li><strong>屏幕钳制（P0-99）</strong>：子菜单右缘越视口时<strong>翻转到父项左侧</strong>（仍越界则收边）；下缘越视口上移（含顶部兜底）；顶层长面板右缘/下缘越界收边——长标题菜单不出屏。</li>
 </ul></p>
 
 <p><strong>全局关闭</strong>：菜单打开期间注册全局事件前置监视（before watcher，同 Popup）：

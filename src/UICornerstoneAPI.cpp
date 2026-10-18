@@ -265,6 +265,15 @@ static bool uiEventToEvent(const UIEvent& ue, Event& event) {
         event.m_type = EventType::FocusLost;
         event.focusEvent = EventFocus{false};
         return true;
+    case UI_EVENT_DROP_FILE: {   // P0-100/P0-101：合成 OS 拖放（指针式载荷；消费前有效，立即拷贝）
+        const UIEventDropFile* df = UI_EVENT_DROP_FILE_DATA(&ue);
+        event.m_type = EventType::DropFile;
+        event.dropPath = (df->path) ? df->path : "";
+        event.dropX = df->x;
+        event.dropY = df->y;
+        event.customInt = df->isText;
+        return true;
+    }
     default:
         return false;
     }
@@ -796,14 +805,46 @@ static void DispatchWindowResize(UIInstance instance, const EventResize& ev) {
     }
 }
 
+// P0-100：OS 拖放分发（两通路共用；ctl=nullptr，eventName="drop-file"）
+static void DispatchDropFile(UIInstance instance, const Event& ev) {
+    if (!instance || !instance->dropFileCb) return;
+    UIEventData d;
+    d.eventName = "drop-file";
+    d.data.dropFile.path = ev.dropPath.c_str();   // 引擎缓冲：事件存活期内有效
+    d.data.dropFile.x = ev.dropX;
+    d.data.dropFile.y = ev.dropY;
+    d.data.dropFile.isText = ev.customInt;
+    instance->dropFileCb(nullptr, &d, instance->dropFileCbUserData);
+}
+
+void UICornerstone_SetDropFileCallback(UIInstance instance, UIEventCallback cb, void* userData) {
+    if (!instance) return;
+    instance->dropFileCb = cb;
+    instance->dropFileCbUserData = userData;
+}
+
+// P0-100：内部事件队列拖放（EventQueue 注入，如 C++ 层测试/自定义源）→ 实例回调
+void DispatchDropFileEvent(UIContext* instance, const Event& evt) {
+    if (!instance) return;
+    UIInstance owner = instance->owner ? instance->owner : instance;
+    DispatchDropFile(owner, evt);
+}
+
 // ============================================================
 // 帧循环
 // ============================================================
 void UICornerstone_PushUIEvent(UIInstance instance, const UIEvent* ue) {
     if (!instance || !instance->initialized || instance->destroying) return;
     if (ue) {
+        UIContext::QueuedUIEvent q;
+        q.ev = *ue;
+        if (ue->type == UI_EVENT_DROP_FILE) {
+            // P0-101：指针式载荷在此深拷贝——push 返回后源字符串即可释放/覆盖
+            const UIEventDropFile* df = UI_EVENT_DROP_FILE_DATA(ue);
+            q.dropPath = (df->path) ? df->path : "";
+        }
         std::lock_guard<std::mutex> lock(instance->queuedEventsMutex);
-        instance->queuedEvents.push(*ue);
+        instance->queuedEvents.push(std::move(q));
     }
 }
 
@@ -847,6 +888,9 @@ static bool pumpInstanceEvents(UIInstance instance) {
             // 文本输入事件：焦点归属优先（P0-84b；owner 聚焦 → owner，否则活动子视口）
             dispatchToBench(keyboardTarget(instance), evt);
             break;
+        case EventType::DropFile:   // P0-100：OS 拖放 → 实例级回调
+            DispatchDropFile(instance, evt);
+            break;
         default:
             // 窗口事件 → owner 自身处理
             if (evt.m_type == EventType::WindowClose) {
@@ -877,12 +921,20 @@ int UICornerstone_ProcessEvents(UIInstance instance) {
 
     // 注入队列通路（UIEvent → Event）：所有实例（owner 和 viewport）都处理自己的 queuedEvents
     while (true) {
-        UIEvent ue;
+        UIContext::QueuedUIEvent q;
         {
             std::lock_guard<std::mutex> lock(instance->queuedEventsMutex);
             if (instance->queuedEvents.empty()) break;
-            ue = instance->queuedEvents.front();
+            q = std::move(instance->queuedEvents.front());
             instance->queuedEvents.pop();
+        }
+
+        UIEvent ue = q.ev;
+        if (ue.type == UI_EVENT_DROP_FILE) {
+            // P0-101：指针重指队列内深拷贝（消费期有效）
+            UIEventDropFile df = *UI_EVENT_DROP_FILE_DATA(&ue);
+            df.path = q.dropPath.c_str();
+            memcpy(ue.data, &df, sizeof(df));
         }
 
         Event event;
@@ -909,6 +961,8 @@ int UICornerstone_ProcessEvents(UIInstance instance) {
             dispatchMouseByRouting(instance, event);
         } else if (event.m_type == EventType::TextInput) {
             dispatchToBench(keyboardTarget(instance), event);   // P0-84b
+        } else if (event.m_type == EventType::DropFile) {
+            DispatchDropFile(instance, event);   // P0-100：注入通路（合成拖放）
         } else {
             dispatchToBench(instance, event);
         }
@@ -1805,6 +1859,27 @@ void UICornerstone_MenuPanelAddItem(UIInstance instance, UIControlHandle panel, 
     if (!sp) return;
     auto* pnl = dynamic_cast<MenuPanel*>(panelV);
     if (pnl) pnl->addItem(std::dynamic_pointer_cast<MenuItem>(sp));
+}
+
+int UICornerstone_MenuPanelRemoveItem(UIInstance instance, UIControlHandle panel, UIControlHandle item) {
+    if (!instance || !panel || !item) return 0;
+    Control* panelV = validateControl(instance, panel);
+    Control* itemV = validateControl(instance, item);
+    if (!panelV || !itemV) return 0;
+    auto* pnl = dynamic_cast<MenuPanel*>(panelV);
+    auto* mi = dynamic_cast<MenuItem*>(itemV);
+    if (!pnl || !mi) return 0;
+    std::shared_ptr<MenuItem> target;
+    for (auto& it : pnl->getItems()) {
+        if (it.get() == mi) { target = it; break; }
+    }
+    if (!target) return 0;
+    // P0-98②：注销该 item 名下 id（若有注册）
+    for (auto iter = instance->controlsById.begin(); iter != instance->controlsById.end();) {
+        iter = (iter->second == item) ? instance->controlsById.erase(iter) : std::next(iter);
+    }
+    pnl->removeItem(target);   // 子菜单链 hide + 断父 + 摘除 + 重算；此后句柄失效
+    return 1;
 }
 
 void UICornerstone_MenuPanelAddSeparator(UIInstance instance, UIControlHandle panel) {

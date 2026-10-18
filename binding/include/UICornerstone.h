@@ -97,6 +97,12 @@ public:
     // 窗口尺寸变化回调（ProcessEvents 处理 WindowResize 时分发，替代帧内轮询）。
     void SetWindowResizeCallback(WindowResizeCallback callback);
 
+    // P0-100：OS 文件/文本拖放回调（资源管理器拖入）。
+    // 接入约定：回调在 ProcessEvents 泵内触发——仅做轻量记录，重活（LoadLayout 等）延到下一帧。
+    // isText=1 表示 DROP_TEXT（文本/路径文本），0 表示 DROP_FILE。空 function 解绑。
+    using DropFileCallback = std::function<void(const std::string& path, float x, float y, int isText)>;
+    void SetDropFileCallback(DropFileCallback callback);
+
     // ── 子视口 ──
     std::unique_ptr<UICornerstone> CreateViewport(float x, float y, float w, float h);
 
@@ -168,6 +174,7 @@ public:
     int  MenuBarRemoveMenu(Control& bar, const std::string& caption);   // P0-69：1=移除 0=未找到
     void MenuPanelAddItem(Control& panel, Control& item);
     void MenuPanelAddSeparator(Control& panel);
+    int  MenuPanelRemoveItem(Control& panel, Control& item);   // P0-98：1=成功 0=非法/不属于该面板
     void MenuItemSetSubMenu(Control& item, Control& panel);
     Control CreateScrollBar(float x, float y, float w, float h, int orientation, float xScale = 1.0f, float yScale = 1.0f);
     Control CreateTreeView(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);

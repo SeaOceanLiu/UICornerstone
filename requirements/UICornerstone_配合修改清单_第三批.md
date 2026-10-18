@@ -545,11 +545,39 @@
 
 ## 追加（2026-10-12 内置重排的自目标解析——引擎清单 P0-96）
 
+> **P0-96 状态（2026-10-17）**：**已实施并同步**（DLL 10-17 11:37；复核意见 `Temp/P096_097_复核意见.md`）——①门控 `isDraggable() || isReorderable()`；②**载荷空取消采纳复核修正：判据 `UI_DRAG_KIND_CONTROL`**（原稿 NONE 不成立——captureDragPayload 默认置 CONTROL）；③自目标回退（findDropTarget +src，外部 droppable 优先）；④附带：tab 插入槽位换算（ins→to）+ 落点按 lx 单轴（采纳复核建议）。设计器侧**过渡耦合已回收**（勾选行 + modelPropsJson 补键 + 自测 interim 检查），预览探针 `re=1 dr=0 dp=0 -> OK` ✓，auto=2 **132/0**。待用户人工复测：仅勾"可重排"→ 预览拖页签换序 ✓。
+
+
 | # | 优先级 | 需求 | 说明 |
 |---|---|---|---|
 | P0-96 | 中 | **内置重排应自含（reorderable 无需 draggable/droppable）——起拖门控 + 自目标解析双缺口** | 用户实测：勾选"可重排"后**预览窗口拖页签不换序** ✗（且拖页签时设计器画布出现假框选——见设计器侧修复：SDL 鼠标焦点守卫）。核实（引擎源码，双缺口）：①**起拖**——`DragPreHandleEvent`（UICornerstoneAPI.cpp:1163-1172）MouseDown 仅当命中链存在 `isDraggable()` 才进 Pending → 光 reorderable **永不起拖** ✗；②**自目标**——`applyBuiltInReorder`（:1113）要求 `s.source == s.target`，而 `findDropTarget`（:1088-1097）**只认 `isDroppable()`**（无"reorderable 源自目标"特例）✗。故内置重排实际需 **reorderable + draggable + droppable 三旗标** ✗（与设计 §3"reorderable → 引擎内置拖动"的自含意图不符；引擎探针疑因同设未暴露）。需求（建议 a）：**a) reorderable 自含**——起拖门控接受 `isDraggable() \|\| isReorderable()`；拖动中源为 reorderable 且无外部 droppable 目标时以源自身为自目标（或 findDropTarget 对 reorderable 源命中自身返回自身）；**b) 文档明确**三旗标要求。设计器已加**过渡耦合**（勾选行写回 reorderable 时同步 draggable+droppable；`modelPropsJson` 对 reorderable=true 自动补两键）——引擎修复后可删。同类：tree/list 内置换序同一门控/目标路径 ✓ 一并覆盖 |
 
+## 追加（2026-10-17 真实 SDL 拖放未达实例回调——引擎清单 P0-101）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-101 | **高** | **真实 OS 拖放事件未达实例回调（合成通路正常）——P0-100 实机缺口** | **复现三步定位（证据齐备）**：①**最小 SDL3 复现**（python ctypes 直调 SDL3.dll 3.2.24，不经引擎）：资源管理器拖文件 → `SDL_EVENT_DROP_FILE(0x1000)` **正常触发**，`data`=完整超长路径 ✓（`Temp/sdl_drop_test.py` 可复跑）；②**设计器合成推送**（`UI_EVENT_DROP_FILE` → `PushUIEvent`）→ 回调注册/绑定 thunk/泵后消费/打开**全链 OK** ✓（探针 `[Drop] recv` → `[Drop] open OK`）；③**真实拖放**（资源管理器 → 引擎窗口）→ **实例回调从未触发** ✗（设计器 `[Drop] recv` 零输出；`SetDropFileCallback` 已注册 ✓；subModules DLL 与构建目录 md5 一致 ✓；`InputBackend.cpp`/`UICornerstoneAPI.cpp` 源码时间戳早于 DLL 构建（20:53/21:36 < 22:32）✓）。**定位方向**：`src/backend/sdl3/InputBackend.cpp::pollEvent`——`peekBuf` 窗口过滤（:230-252，DROP 分支已列）/ 队头确认（:258-291）/ 映射 switch（:390+）源码核看似正确，需实机验证事件是否到达该函数；或 `pumpInstanceEvents`（UICornerstoneAPI.cpp:884）分发。**建议**：先在 `pollEvent` 入口加"收到 DROP 类型"临时日志定位断点；请用测试应用复现（创建实例 + `SetDropFileCallback` + 真实拖放）。设计器侧无绕过（真实路径为最终入口 ✗）。 |
+| P0-101 附 | — | 最小复现脚本 | `CornerstoneDesigner/Temp/sdl_drop_test.py`（python ctypes：SDL_Init/SDL_CreateWindow/SDL_PollEvent 60s；打印事件类型与 DROP data 指针）——用户实测输出：`0x1004 ×4 → 0x1000 data=<完整超长路径> → 0x1003`，SDL 层无问题 ✓。 |
+
+## 追加（2026-10-17 Explorer 文件拖放支持——引擎清单 P0-100）
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-100 | 中 | **OS 文件拖放（SDL_EVENT_DROP_FILE）未暴露——宿主无法接收从资源管理器拖入的文件** | 背景：用户需打开超长路径（>MAX_PATH）项目文件，而 Windows 文件对话框在未启用 LongPathsEnabled 注册表时无法导航/选择超长路径 ✗（设计器已提供命令行参数入口过渡 ✓）。**资源管理器拖放是无需注册表的自然入口**（拖 .csd 到设计器窗口 → 打开）。现状：引擎 SDL3 后端事件泵不处理 `SDL_EVENT_DROP_FILE`/`DROP_BEGIN`/`DROP_COMPLETE` ✗（其余 SDL 事件由引擎消费，宿主无从拦截 ✗）。建议：引擎将拖放事件映射为 UI 事件（如 `drop-file`，Event 携带路径字符串 + 坐标），至少暴露给宿主（绑定 Control/实例级回调或事件名），设计器即可实现"拖入 .csd 打开"。附：可顺带支持 DROP_TEXT（拖入路径文本）。 |
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-99 | 中 | **菜单/子菜单无屏幕钳制——超宽面板向右出屏不可读** | 用户提出：最近文件路径很长时菜单会超出屏幕。源码核实：子菜单定位 `MenuPanel`（`Menu.cpp:612-616`）固定 `subMenu->setPosition(item->getRect().width, 0)`（紧贴父项右缘、无任何边界检查 ✗）；顶层菜单面板由 MenuBar 展开同样无钳制 ✗；面板宽度 = 最长标题实测（`recalculateSize` ✓）→ 长标题必然出屏 ✗。建议（标准菜单行为）：①**水平**——右缘超屏时**翻转到父项左侧**（仍超则钳到屏内并允许内部裁剪/省略）；②**垂直**——下缘超屏时上移钳制；③可选：超宽标题绘制省略号（与 ④caption 自适应配合）。设计器侧已做**标题压缩**过渡（"…\尾段\文件名"，宽度预算 ≈96 半角 ✓，点击仍打开完整路径 ✓）——引擎钳制落地后可放宽预算。 |
+
+| # | 优先级 | 需求 | 说明 |
+|---|---|---|---|
+| P0-98 | **高（①b）** | **菜单点击回调门控 + 动态化配套（动作回调实例上下文 / RemoveItem / caption 重算）** | 设计器实施 F5.4 最近文件（动态子菜单）暴露的引擎侧问题：**①b（关键）菜单项 SetCallback("click") 永不触发**——`MenuItem::handleEvent`（`Menu.cpp:236-243`）把 `fireCCallback(kEventClick, ...)` 写在 `if (m_type == Normal && m_onClick)` 分支**内**，动态创建项（无 parser 绑定的 m_onClick）点击后回调不触发、菜单链也不关闭 ✗——**与 API 头 §375-383 文档"MenuItem 的 click 走统一属性系统（SetString/SetBool/SetCallback，事件名 click）"直接不符** ✗。**建议补丁**：<br>`if (m_type == MenuItemType::Normal) { closeMenuChain(); if (m_onClick) m_onClick(dynamic_pointer_cast<MenuItem>(getThis())); fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr); }`<br>（closeMenuChain 亦应无条件执行——现状动态项点击后菜单不关 ✗）。修复后设计器改回全动态重建（现为启动期生成布局项过渡 ✓）。①**动作回调 Control 不可用**——绑定 `RegisterAction` thunk 置 `ControlState::instance = nullptr`（`binding/src/UICornerstone.cpp:1095`），而 `UICornerstone_GetControlId(instance, ctl)` 首行 `if (!instance \|\| !ctl) return "";` → 动作处理器内 `ctl.GetId()/GetString()` 恒失效 ✗。建议 thunk 捕获注册时实例（绑定层一行）或 C ABI 回调增实例参数。②**无 MenuPanelRemoveItem C ABI**（引擎内部 `MenuPanel::removeItem` 已存在 ✓）→ 动态增删需整面板重建（旧面板孤儿泄漏 ✗）。③**MenuItem::setCaption 不触发面板 recalculateSize**（`Menu.cpp:101` 仅赋值）→ 运行时改标题宽度溢出 ✗（设计器按"建项前定标题"规避 ✓）。 |
+| P0-98 附注 | — | 设计器现状（绕过已落地 ✓） | F5.4 动态菜单：布局仅 `recentMenu`（`items: []`）→ `GetModuleHandle("UICornerstone.dll")` + GetProcAddress 直调 `CreateMenuPanel/CreateMenuItem/MenuPanelAddItem/MenuItemSetSubMenu/SetCallback`（前缀/裸名双兜底）；标题=完整路径（同名不同目录可区分；新面板按最终标题测量 ✓ 宽度正确）；空列表整项置灰；点击经 C ABI 回调 thunk（guard + openRecentFile）；启动清理失效路径。auto=1 探针 RECENT-OK/RECENT-EMPTY-OK ✓。 |
+
 ## 追加（2026-10-17 拖拽 ghost 字体相对路径——引擎清单 P0-97）
+
+> **P0-97 状态（2026-10-17）**：**已实施并同步**（DLL 10-17 11:37）——provider→readFile→`loadFontFromMemoryWithText(data,size,14,label)` + `loadFont(path)` 兜底 + try/catch；采纳复核可选建议（WithText 文本感知加载 ✓）。设计器侧：无需改动（引擎内部）；复测日志应无 `Couldn't open fonts/…`。
+
 
 | # | 优先级 | 需求 | 说明 |
 |---|---|---|---|

@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <cstdio>
+#include <string>
 #include "EventTypes.h"
 
 using namespace std;
@@ -32,6 +33,11 @@ public:
     int   customInt;
     void* customPtr;
 
+    // P0-100：OS 拖放载荷（非 union 成员——长路径不设上限；dropX/Y 为落点窗口像素，-1=无）
+    std::string dropPath;
+    float dropX = -1.0f;
+    float dropY = -1.0f;
+
     Event():
         m_type(EventType::None),
         customInt(0),
@@ -49,14 +55,20 @@ public:
     Event(const Event& event):
         m_type(event.m_type),
         customInt(event.customInt),
-        customPtr(event.customPtr)
+        customPtr(event.customPtr),
+        dropPath(event.dropPath),
+        dropX(event.dropX),
+        dropY(event.dropY)
     {
         copyUnion(event);
     }
     Event(Event&& event):
         m_type(event.m_type),
         customInt(event.customInt),
-        customPtr(event.customPtr)
+        customPtr(event.customPtr),
+        dropPath(std::move(event.dropPath)),
+        dropX(event.dropX),
+        dropY(event.dropY)
     {
         copyUnion(event);
     }
@@ -64,6 +76,9 @@ public:
         m_type = event.m_type;
         customInt = event.customInt;
         customPtr = event.customPtr;
+        dropPath = event.dropPath;
+        dropX = event.dropX;
+        dropY = event.dropY;
         copyUnion(event);
         return *this;
     }
@@ -71,6 +86,9 @@ public:
         m_type = event.m_type;
         customInt = event.customInt;
         customPtr = event.customPtr;
+        dropPath = std::move(event.dropPath);
+        dropX = event.dropX;
+        dropY = event.dropY;
         copyUnion(event);
         return *this;
     }

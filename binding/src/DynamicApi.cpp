@@ -59,6 +59,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(SetWindowSize);
     RESOLVE(GetNativeWindowHandle);
     RESOLVE(SetWindowResizeCallback);
+    RESOLVE(SetDropFileCallback);
 
     RESOLVE(ProcessEvents);
     RESOLVE(Update);
@@ -97,6 +98,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(MenuBarRemoveMenu);
     RESOLVE(MenuPanelAddItem);
     RESOLVE(MenuPanelAddSeparator);
+    RESOLVE(MenuPanelRemoveItem);
     RESOLVE(MenuItemSetSubMenu);
     RESOLVE(CreateColorPicker);
     RESOLVE(CreateNumericUpDown);

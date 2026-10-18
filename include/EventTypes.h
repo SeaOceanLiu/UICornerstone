@@ -11,6 +11,7 @@ enum class EventType : uint8_t {
     WindowResize, WindowMoved, WindowClose,
     FocusGained, FocusLost,
     FingerDown, FingerUp, FingerMotion,
+    DropFile,   // P0-100：OS 文件/文本拖放（dropPath/dropX/dropY；customInt=1 表示 DROP_TEXT）
     Custom,
 };
 

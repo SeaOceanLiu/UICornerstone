@@ -308,6 +308,16 @@ bool CallbackInputBackend::pollEvent(Event& event) {
         event.m_type = EventType::FocusLost;
         event.focusEvent = EventFocus{false};
         break;
+    case UI_EVENT_DROP_FILE: {
+        // P0-101：桥接 DropFile（指针式载荷；桥缓冲在同步消费期有效 → 立即拷贝）
+        const UIEventDropFile* df = UI_EVENT_DROP_FILE_DATA(&ue);
+        event.m_type = EventType::DropFile;
+        event.dropPath = (df->path) ? df->path : "";
+        event.dropX = df->x;
+        event.dropY = df->y;
+        event.customInt = df->isText;
+        break;
+    }
     default:
         return false;
     }

@@ -247,6 +247,9 @@ public:
                 case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 case SDL_EVENT_MOUSE_BUTTON_UP:
                     winId = peekBuf[i].button.windowID; break;
+                case SDL_EVENT_DROP_FILE:
+                case SDL_EVENT_DROP_TEXT:
+                    winId = peekBuf[i].drop.windowID; break;   // P0-100：按窗口路由
                 default:
                     hasWinId = false; break;   // 全局事件（如 QUIT）不按窗口隔离
             }
@@ -280,6 +283,9 @@ public:
                 case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 case SDL_EVENT_MOUSE_BUTTON_UP:
                     hw = headOne.button.windowID; break;
+                case SDL_EVENT_DROP_FILE:
+                case SDL_EVENT_DROP_TEXT:
+                    hw = headOne.drop.windowID; break;
                 default:
                     hHas = false; break;
             }
@@ -378,6 +384,16 @@ public:
                 event.mouseButton.x = sdlEvent.button.x;
                 event.mouseButton.y = sdlEvent.button.y;
                 event.mouseButton.button = mapSdlButton(sdlEvent.button.button);
+                break;
+
+            // P0-100：OS 文件/文本拖放 → DropFile（data=路径/文本，UTF-8 原样透传）
+            case SDL_EVENT_DROP_FILE:
+            case SDL_EVENT_DROP_TEXT:
+                event.m_type = EventType::DropFile;
+                event.dropPath = sdlEvent.drop.data ? sdlEvent.drop.data : "";
+                event.dropX = sdlEvent.drop.x;
+                event.dropY = sdlEvent.drop.y;
+                event.customInt = (sdlEvent.type == SDL_EVENT_DROP_TEXT) ? 1 : 0;
                 break;
         }
 

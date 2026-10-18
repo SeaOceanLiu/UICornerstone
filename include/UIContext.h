@@ -82,12 +82,20 @@ struct UIContext {
     // ── 窗口 resize 用户回调（运行期窗口 API，§21）──
     UIWindowResizeCallback windowResizeCb = nullptr;
     void* windowResizeCbUserData = nullptr;
+    // P0-100：OS 文件/文本拖放回调（ProcessEvents 泵内分发；ctl=nullptr）
+    UIEventCallback dropFileCb = nullptr;
+    void* dropFileCbUserData = nullptr;
 
     // ── 注入事件队列 ──
     // 跨线程（scheduleAutoQuit 的定时线程 → UICornerstone_PushUIEvent）与
     // 主线程（帧循环消费）访问，必须互斥保护。
+    // P0-101：条目携带 DROP_FILE 路径深拷贝（指针式载荷 push 后源串即可释放）。
+    struct QueuedUIEvent {
+        UIEvent ev;
+        std::string dropPath;
+    };
     mutable std::mutex queuedEventsMutex;
-    std::queue<UIEvent> queuedEvents;
+    std::queue<QueuedUIEvent> queuedEvents;
 
     // ── 弹窗 / 菜单生命周期池 ──
     std::vector<std::shared_ptr<Popup>> popupPool;
