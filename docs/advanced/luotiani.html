@@ -34,7 +34,7 @@
         {
             "name": "rotate button",
             "type": "image",                        // image / shape / text
-            "src": "animations/rotateBtn/rotateBtn.svg",   // 资源包内路径
+            "src": "animations/rotateBtn/rotateBtn.svg",   // 资源包内路径（也支持同 jsonc 目录的相对短名，见下）
             "width": 256, "height": 256,            // 缺省则保持图片原始尺寸
             "opacity": 100,                         // 图层级默认不透明度（0~100）
             "blendMode": "blend",                   // normal/additive/modulate/blend/multiply
@@ -75,7 +75,7 @@
                   "frameRate": 30, "totalFrames": 60, "loop": true },
     "layers": [
         { "name": "layer1", "type": "image",
-          "src": "animations/rotateBtn/rotateBtn.svg",
+          "src": "animations/rotateBtn/rotateBtn.svg",   // 或同 jsonc 目录短名（如 rotateBtn.svg）
           "opacity": 100, "blendMode": "normal",
           "keyFrames": [
             { "frame": 0, "operation": [

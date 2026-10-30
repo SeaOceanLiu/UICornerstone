@@ -33,8 +33,6 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
     m_rect = rect;
     m_margin = ConstDef::LABEL_CAPTION_MARGIN;
     // P0-30：历史缺省态显式化（Label hover/pressed 文本视觉保持）
-    m_textColor.setHover(ConstDef::DEFAULT_TEXT_HOVER_COLOR);
-    m_textColor.setPressed(ConstDef::DEFAULT_TEXT_DOWN_COLOR);
     setVisible(false);
     setTransparent(true);
     setBorderVisible(false);
@@ -406,6 +404,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
                 return true;
             }
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
+                m_mousePressed = true;   // ControlImpl 随后会把 state 置 Pressed/Hover，点击判定用本地标志
                 setState(ControlState::Pressed);
                 if(m_hoverCursor != nullptr){
                     Cursor::setCurrent(m_hoverCursor);
@@ -413,9 +412,10 @@ bool Label::handleEvent(shared_ptr<Event> event){
                 return true;
             }
             if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
-                if (m_onClick != nullptr && m_state == ControlState::Pressed){
+                if (m_onClick != nullptr && m_mousePressed){
                     m_onClick(dynamic_pointer_cast<Label>(this->getThis()));
                 }
+                m_mousePressed = false;
                 fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr);
                 setState(ControlState::Hover);
                 if(m_hoverCursor != nullptr){
@@ -432,6 +432,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
             }
             return true;
         } else {
+            if (event->m_type == EventType::MouseUp) m_mousePressed = false;   // 松手在热区外：取消本次点击
             setState(ControlState::Normal);
             if(m_defaultCursor){
                 Cursor::setCurrent(m_defaultCursor);

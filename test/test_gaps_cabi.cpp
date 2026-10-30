@@ -34,7 +34,7 @@ typedef int   (*UILoadLayoutFn)(UIInstance,const char*);
 typedef void* (*UIFindControlFn)(UIInstance,const char*);
 typedef void  (*UIRegisterActionFn)(UIInstance, const char*, void(*)(void*,void*), void*);
 typedef int   (*UISetStringFn)(UIInstance, void*, const char*, const char*);
-typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int   (*UIGetPtrFn)(UIInstance, void*, const char*, void**);
 typedef int   (*UISetFloatFn)(UIInstance, void*, const char*, float);
 typedef int   (*UIGetFloatFn)(UIInstance, void*, const char*, float*);
@@ -93,6 +93,7 @@ static UIAnimationSetFrameFilterFn uiAnimationSetFrameFilter = nullptr;
 
 static UISetStringFn              uiSetString              = nullptr;
 static UIGetStringFn              uiGetString              = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetPtrFn                 uiGetPtr                 = nullptr;
 static UISetFloatFn               uiSetFloat               = nullptr;
 static UIGetFloatFn               uiGetFloat               = nullptr;
@@ -213,7 +214,7 @@ int main(int argc, char* argv[]) {
     float mf = 0;
     if (!uiGetFloat(g_inst, btn, "margin-left", &mf) || mf != 5.0f || !uiGetFloat(g_inst, btn, "margin-top", &mf) || mf != 6.0f) { printf("FAIL: margin get\n"); return 1; }
     char ctype[64] = "";
-    if (uiGetString(g_inst, btn, "control-type", ctype, 64) == 0 || strcmp(ctype, "button") != 0) { printf("FAIL: control-type getter\n"); return 1; }
+    if (uiGetString(g_inst, btn, "control-type", ctype, 64, &g_gsLen) == 0 || strcmp(ctype, "button") != 0) { printf("FAIL: control-type getter\n"); return 1; }
     printf("Base property gaps OK\n");
 
     // ============ 2. EditBox: password-char / 选区 / 剪贴板 ============
@@ -255,7 +256,7 @@ int main(int argc, char* argv[]) {
     if (uiComboBoxRemoveItem(g_inst, combo, 99) != 0 || uiComboBoxRemoveItem(g_inst, combo, 1) != 1 || uiComboBoxGetItemCount(g_inst, combo) != 1) { printf("FAIL: combo removeItem\n"); return 1; }
     if (!uiSetInt(g_inst, combo, "selected-index", 0)) { printf("FAIL: combo selected-index\n"); return 1; }
     char sel[64] = "";
-    if (!uiGetString(g_inst, combo, "selected-label", sel, 64) || strcmp(sel, "ItemA") != 0) { printf("FAIL: selected-label\n"); return 1; }
+    if (!uiGetString(g_inst, combo, "selected-label", sel, 64, &g_gsLen) || strcmp(sel, "ItemA") != 0) { printf("FAIL: selected-label\n"); return 1; }
     if (uiComboBoxClearItems(g_inst, combo) != 1 || uiComboBoxGetItemCount(g_inst, combo) != 0) { printf("FAIL: combo clearItems\n"); return 1; }
     printf("ComboBox gaps OK\n");
 

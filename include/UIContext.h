@@ -9,6 +9,7 @@
 #include <vector>
 #include <utility>
 #include <mutex>
+#include <functional>
 #include "UICornerstoneAPI.h"
 #include "SColor.h"
 #include "Utility.h"
@@ -96,6 +97,10 @@ struct UIContext {
     };
     mutable std::mutex queuedEventsMutex;
     std::queue<QueuedUIEvent> queuedEvents;
+
+    // P0-103：菜单点击回调延迟一帧队列——MenuItem 点击时入队（闭包持 sender 保活），
+    // 下一次 ProcessEvents 起始统一 flush（上一帧已 Render/Present → 模态对话框不遮挡菜单关闭呈现）
+    std::vector<std::function<void()>> deferredClicks;
 
     // ── 弹窗 / 菜单生命周期池 ──
     std::vector<std::shared_ptr<Popup>> popupPool;

@@ -41,7 +41,7 @@ typedef void       (*UIRegisterActionFn)(UIInstance, const char*, void(*)(void*,
 typedef void*      (*UICreateDialogFn)(UIInstance, const char*, const char*, float, float, float, float, float, float);
 typedef void*      (*UICreateLabelFn)(UIInstance, const char*, float, float, float, float, float, float, float);
 typedef void       (*UIAddChildControlFn)(UIInstance, void*, void*);
-typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef void       (*UIGetRectFn)(UIInstance, void*, float*, float*, float*, float*);
 typedef int        (*UIGetBoolFn)(UIInstance, void*, const char*, int*);
 typedef UIInstance (*UIDebugGetActiveViewportFn)(UIInstance);
@@ -67,6 +67,7 @@ static UICreateDialogFn            uiCreateDialog              = nullptr;
 static UICreateLabelFn             uiCreateLabel               = nullptr;
 static UIAddChildControlFn         uiAddChildControl           = nullptr;
 static UIGetStringFn               uiGetString                 = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetRectFn                 uiGetRect                   = nullptr;
 static UIGetBoolFn                 uiGetBool                   = nullptr;
 static UIDebugGetActiveViewportFn  uiDebug_GetActiveViewport   = nullptr;
@@ -122,7 +123,7 @@ static void onShow(UIControlHandle ctl, void* userData) {
     (void)ctl;
     ClickCtx* ctx = (ClickCtx*)userData;
     char buf[128] = {0};
-    if (!uiGetString(ctx->vp, ctx->edit, "text", buf, sizeof(buf))) {
+    if (!uiGetString(ctx->vp, ctx->edit, "text", buf, sizeof(buf), &g_gsLen)) {
         printf("[show] FAIL: cannot read edit text\n");
         return;
     }
@@ -276,7 +277,7 @@ int main(int argc, char** argv) {
         assert(bw == 280.0f && bh == 120.0f);
         assert(bx == 116.0f && by == 132.0f);
         char content[128] = {0};
-        assert(uiGetString(vpB, ctxB.lastContentLabel, "caption", content, sizeof(content)) == 1);
+        assert(uiGetString(vpB, ctxB.lastContentLabel, "caption", content, sizeof(content), &g_gsLen) == 1, &g_gsLen);
         assert(strcmp(content, "Hello from Bench B") == 0);  // 弹窗显示本视口 EditBox 内容
         printf("PASS: button click -> dialog shows viewport edit content (\"%s\", rect=%g,%g,%g,%g)\n",
             content, bx, by, bw, bh);

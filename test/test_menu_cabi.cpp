@@ -31,7 +31,7 @@ typedef void  (*UIPushUIEventFn)(UIInstance,const UIEvent*);
 typedef int   (*UILoadLayoutFn)(UIInstance,const char*);
 typedef void* (*UIFindControlFn)(UIInstance,const char*);
 typedef int   (*UISetStringFn)(UIInstance, void*, const char*, const char*);
-typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int   (*UIGetPtrFn)(UIInstance, void*, const char*, void**);
 typedef int   (*UISetFloatFn)(UIInstance, void*, const char*, float);
 typedef int   (*UIGetFloatFn)(UIInstance, void*, const char*, float*);
@@ -66,6 +66,7 @@ static UILoadLayoutFn          uiLoadLayout           = nullptr;
 static UIFindControlFn         uiFindControl          = nullptr;
 static UISetStringFn           uiSetString            = nullptr;
 static UIGetStringFn           uiGetString            = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetPtrFn              uiGetPtr               = nullptr;
 static UISetFloatFn            uiSetFloat             = nullptr;
 static UIGetFloatFn            uiGetFloat             = nullptr;
@@ -229,7 +230,7 @@ int main(int argc, char* argv[]) {
     // item-id set on the item itself (CABI): required for panel item-* positioning
     if (uiSetString(g_inst, itemOpen, "item-id", "mOpen") != 1) { printf("FAIL: SetString(item item-id)\n"); return 1; }
     char idBuf[64] = {0};
-    if (!uiGetString(g_inst, itemOpen, "item-id", idBuf, (int)sizeof(idBuf)) || strcmp(idBuf, "mOpen") != 0) {
+    if (!uiGetString(g_inst, itemOpen, "item-id", idBuf, (int)sizeof(idBuf), &g_gsLen) || strcmp(idBuf, "mOpen") != 0) {
         printf("FAIL: GetString(item item-id) got \"%s\"\n", idBuf); return 1;
     }
     uiMenuPanelAddItem(g_inst, panel, itemOpen);
@@ -246,7 +247,7 @@ int main(int argc, char* argv[]) {
     // caption / checked / shortcut on programmatic item
     if (uiSetString(g_inst, itemOpen, "caption", "Open File") != 1) { printf("FAIL: SetString(caption)\n"); return 1; }
     char cbuf[64] = {0};
-    if (!uiGetString(g_inst, itemOpen, "caption", cbuf, (int)sizeof(cbuf)) || strcmp(cbuf, "Open File") != 0) {
+    if (!uiGetString(g_inst, itemOpen, "caption", cbuf, (int)sizeof(cbuf), &g_gsLen) || strcmp(cbuf, "Open File") != 0) {
         printf("FAIL: GetString(caption) got \"%s\"\n", cbuf); return 1;
     }
     if (uiSetString(g_inst, itemOpen, "shortcut", "Ctrl+O") != 1) { printf("FAIL: SetString(shortcut)\n"); return 1; }

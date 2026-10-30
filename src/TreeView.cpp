@@ -455,7 +455,8 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
             }
         }
 
-        int row = hitTestRow(event->mouseButton.x, event->mouseButton.y);
+        // P0-107：内容区命中（与 C ABI TreeViewGetNodeAt 共用同一 helper）
+        int row = hitTestRowInContent(event->mouseButton.x, event->mouseButton.y);
         if (row >= 0) {
             m_pressedRow = row;   // P032：item pressed 态
             if (hitTestArrow(row, event->mouseButton.x)) {
@@ -531,6 +532,20 @@ int TreeView::hitTestRow(float mx, float my) {
     int row = (int)(relY / getStride());
     if (row >= 0 && row < (int)m_flatRows.size()) return row;
     return -1;
+}
+
+// P0-107：内容区（扣除滚动条，与绘制裁剪区 cr 同口径）内的行命中（窗口坐标）。
+// 供 MouseDown 与 C ABI TreeViewGetNodeAt 共用，避免坐标/边界口径漂移。
+int TreeView::hitTestRowInContent(float mx, float my) {
+    SRect dr = getDrawRect();
+    float sx = getScaleXX();
+    if (sx == 0.0f) sx = 1.0f;
+    float hSb = (m_hScrollBar && m_hScrollBar->getVisible()) ? ConstDef::SCROLLBAR_WIDTH * sx : 0.0f;
+    float vSb = (m_scrollBar && m_scrollBar->getVisible()) ? ConstDef::SCROLLBAR_WIDTH * sx : 0.0f;
+    SRect cr(dr.left, dr.top, dr.width - vSb, dr.height - hSb);
+    if (mx < cr.left || mx >= cr.left + cr.width || my < cr.top || my >= cr.top + cr.height)
+        return -1;
+    return hitTestRow(mx, my);
 }
 
 bool TreeView::hitTestArrow(int row, float mx) {

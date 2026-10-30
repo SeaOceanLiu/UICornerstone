@@ -20,6 +20,7 @@ class ColorPicker : public Panel {
     friend class ColorPickerBuilder;
 public:
     using OnColorChangedHandler = std::function<void(shared_ptr<ColorPicker>, const SColor& color)>;
+    using OnExpressionChangedHandler = std::function<void(shared_ptr<ColorPicker>, const std::string& expr)>;   // P0-110
 
 private:
     class PresetCell : public ControlImpl {
@@ -60,7 +61,13 @@ private:
     float m_popupHeight;
 
     OnColorChangedHandler m_onColorChanged;
+    OnExpressionChangedHandler m_onExpressionChanged;   // P0-110
     bool m_isSyncing = false;
+
+    // P0-110：表达式模式（allow-expression / color-expression）
+    bool m_allowExpression = false;
+    string m_colorExpression;          // 当前表达式（空=无）
+    string m_committedExpression;      // 已提交表达式
 
     float m_swatchSize = ConstDef::COLORPICKER_SWATCH_SIZE;
     int   m_closedFontSize = ConstDef::COLORPICKER_HEX_FONT_SIZE;
@@ -86,13 +93,16 @@ private:
     void recreatePopupContent();
 
     void onPresetClicked(const SColor& color);
-    void onHexInputChanged(const string& text);
+    void commitHexInput(const string& text);   // P0-110 R2：仅提交点（确定/回车）调用；输入过程不写状态
     void onSliderRChanged(shared_ptr<Slider> s, float val);
     void onSliderGChanged(shared_ptr<Slider> s, float val);
     void onSliderBChanged(shared_ptr<Slider> s, float val);
     void onSliderAChanged(shared_ptr<Slider> s, float val);
     void onOK();
     void onCancel();
+    void clearExpression(bool fireEvent);          // P0-110：用户取色/程序化关闭时清空
+    void fireExpressionChanged(const string& expr); // P0-110：expression-changed（strVal）
+    void syncExpressionDisplay();                  // P0-110：hex 文本域/关闭态标签显示维护
 
 public:
     ColorPicker(Control* parent, SRect rect,
@@ -115,6 +125,7 @@ public:
     bool isPopupVisible() const;
 
     void setOnColorChanged(OnColorChangedHandler handler) { m_onColorChanged = handler; }
+    void setOnExpressionChanged(OnExpressionChangedHandler handler) { m_onExpressionChanged = handler; }   // P0-110
 
     void setClosedSwatchSize(float size) { m_swatchSize = size; recreateClosedState(); }
     void setClosedFontSize(int size) { m_closedFontSize = size; recreateClosedState(); }

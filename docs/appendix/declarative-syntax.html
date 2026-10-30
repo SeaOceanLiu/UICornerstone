@@ -20,11 +20,9 @@
 <pre><code>{
   "version": "1.0",
   "viewport": { "width": 1920, "height": 1080, "scale-mode": "fit" },
-  "theme": { "fonts": {...}, "colors": {...} },
-  "controls": [ ... ],       // 控件树根数组（必填）
-  "dialogs":  [ ... ],       // 弹窗数组（可选）
-  "components": { ... },     // 可复用组件模板（可选）
-  "layouts": [ ... ]         // 组件实例化（可选）
+  "theme": { "fonts": {}, "colors": {} },
+  "controls": [ { "type": "panel", "id": "root", "rect": { "x": 0, "y": 0, "w": 1920, "h": 1080 } } ],
+  "dialogs": [], "components": {}, "layouts": []
 }</code></pre>
 
 <p><code>viewport</code> 键（可选）：声明显式基准画布与初始缩放模式，加载布局时生效
@@ -94,7 +92,8 @@
   "presetLayout":{"cols":5,"rows":1}, "closed-swatch-size":16.0,
   "closed-font-size":12, "closed-text-color":"#DBDBDB",
   "popup-bg":"#3C3C41",
-  "events":{"onColorChanged":"onColor"} }</code></pre>
+  "allow-expression":true, "color-expression":"{{bgColor}}",
+  "events":{"onColorChanged":"onColor","onExpressionChanged":"onExpr"} }</code></pre>
 
 <h3>combo-box</h3>
 <pre><code>{ "type":"combo-box", "id":"comboMain",
@@ -105,7 +104,7 @@
             { "label":"Wuhan","value":"wuhan","disabled":true } ] }</code></pre>
 
 <h3>context-menu（右键菜单，控件级 context-menu 键）</h3>
-<pre><code>{ "type":"label", "id":"lbl", "rect":[10,10,120,24], "caption":"t",
+<pre><code>{ "type":"label", "id":"lbl", "rect": { "x": 10, "y": 10, "w": 120, "h": 24 }, "caption":"t",
   "context-menu": { "items": [
     { "caption":"Open", "shortcut":"Ctrl+O" }, { "type":"separator" },
     { "caption":"Delete" } ] } }</code></pre>
@@ -114,7 +113,7 @@
 <h3>edit-box</h3>
 <pre><code>{ "type":"edit-box", "id":"nameEdit",
   "rect":{"x":110,"y":20,"w":250,"h":30},
-  "placeholder":"Please input your name", "text":"", "editable":true,
+  "placeholder":"Please input your name", "text":"",
   "password-mode":false, "password-char":"●", "read-only":false,
   "font":{"size":16},
   "events":{"onTextChanged":"onNameChanged","onEnter":"onNameEnter"} }</code></pre>
@@ -137,7 +136,7 @@
   "line-height":28, "line-spacing-ratio":1.2 }</code></pre>
 
 <h3>list-view（含单列 ListBox 模式）</h3>
-<pre><code>{ "type":"list-view", "id":"lv", "rect":[30,60,420,240], "mode":"multi",
+<pre><code>{ "type":"list-view", "id":"lv", "rect": { "x": 30, "y": 60, "w": 420, "h": 240 }, "mode":"multi",
   "multi-select":true, "selected-index":0, "row-height":28, "header-height":28,
   "gridlines":true, "hover":true, "min-column-width":20, "cycle-navigation":true,
   "sort-column":0, "sort-ascending":true,
@@ -200,7 +199,7 @@
   "page-size":20, "step-size":5, "thickness":16 }</code></pre>
 
 <h3>shape（七种图元 + 多图元组合）</h3>
-<pre><code>{ "type":"shape", "id":"house", "rect":[40,300,150,130],
+<pre><code>{ "type":"shape", "id":"house", "rect": { "x": 40, "y": 300, "w": 150, "h": 130 },
   "colors":{ "background":"#324057FF" },
   "primitives": [
     { "shape":"round-rect", "rect":[10,50,130,75], "radius":6, "fill":"#34D399" },
@@ -212,9 +211,10 @@
 <pre><code>{ "type":"slider", "id":"rSlider",
   "rect":{"x":29,"y":224,"w":257,"h":20},
   "range":{"min":0,"max":255}, "value":255, "step":1,
-  "style":"Horizontal",                                    // Horizontal/Vertical
+  "style":"horizontal",                                    // horizontal/vertical
   "reverse":false, "show-value-label":true,
-  "colors":{"track":{"normal":"#3C3C3CFF"},"thumb":{"normal":"#888888FF"}} }</code></pre>
+  "track":{"thickness":4,"color":{"normal":"#3C3C3CFF"}},
+  "thumb":{"size":12,"color":{"normal":"#888888FF"}} }</code></pre>
 
 <h3>splitter</h3>
 <pre><code>{ "type":"splitter", "id":"spl",
@@ -228,7 +228,7 @@
 无面板即"手柄模式"（拖自身+上报 ratio）。详见 <a href="../controls/splitter.html#4-21-7">4.21.7</a>。</p>
 
 <h3>status-bar（VSCode 风格状态栏）</h3>
-<pre><code>{ "type":"status-bar", "id":"sb", "rect":[0,876,1400,24], "font-size":13,
+<pre><code>{ "type":"status-bar", "id":"sb", "rect": { "x": 0, "y": 876, "w": 1400, "h": 24 }, "font-size":13,
   "items":[ { "id":"branch","text":"main","icon":"provider:icons/git","menu":"#branchMenu" },
             { "id":"enc","text":"UTF-8","align":"right" } ] }</code></pre>
 <p>属性键：<code>font-size</code> / <code>item-height</code> / <code>hover</code>（控件级悬停反馈色，P0-74⑤）；<code>items[]</code>：<code>id</code> / <code>text</code> / <code>align</code>（left/right）/ <code>icon</code> / <code>menu</code> / <code>onClick</code> / <code>text-color</code> / <code>background-color</code> / <code>hover-background-color</code>（独立悬停背景，P0-75）。</p>
@@ -243,7 +243,7 @@
 </table>
 
 <h3>tab-control（四方向选项卡）</h3>
-<pre><code>{ "type":"tab-control", "id":"tabs", "rect":[120,80,560,240], "position":"top",
+<pre><code>{ "type":"tab-control", "id":"tabs", "rect": { "x": 120, "y": 80, "w": 560, "h": 240 }, "position":"top",
   "font-size":13, "currentIndex":0,
   "tabs":[ { "title":"主页", "icon":"provider:icons/home", "page":{ "type":"panel" } } ],
   "events": { "onTabChange":"onTab" } }</code></pre>
@@ -263,7 +263,8 @@
   "indent-width":16, "row-height":22, "cycle-navigation":false, "default-expand":true,
   "items":[ { "id":"root","label":"Root","expanded":true,"userData":"extra",
               "children":[ { "id":"child1","label":"Child 1" } ] } ],
-  "events":{"onSelect":"onTreeSelect","onExpand":"onTreeExpand","onCollapse":"onTreeCollapse"} }</code></pre>
+  "events":{"onSelect":"onTreeSelect"} }</code></pre>
+<p class="note">TreeView 的 JSON 事件键当前仅 <code>onSelect</code>；<code>expand</code>/<code>collapse</code> 请经 C ABI/Binding <code>SetCallback</code> 注册。</p>
 
 <h4>tree-view item 增强（二期）</h4>
 <pre><code>"items":[ {
@@ -387,9 +388,12 @@ parser.registerHandler("handleSubmit", [](shared_ptr&lt;Control&gt; ctl){ /* ...
 <tr><td><code>onCheckChanged</code></td><td>CheckBox</td></tr>
 <tr><td><code>onClick</code></td><td>Button / Label（clickable）/ MenuItem</td></tr>
 <tr><td><code>onClose</code> / <code>onConfirm</code> / <code>onCancel</code></td><td>WinFrame / Dialog</td></tr>
-<tr><td><code>onColorChanged</code></td><td>ColorPicker</td></tr>
+<tr><td><code>onColorChanged</code> / <code>onExpressionChanged</code></td><td>ColorPicker</td></tr>
 <tr><td><code>onPositionChanged</code></td><td>ScrollBar</td></tr>
-<tr><td><code>onSelectionChanged</code></td><td>ComboBox</td></tr>
+<tr><td><code>onSelectionChanged</code></td><td>ComboBox / ListView</td></tr>
+<tr><td><code>onColumnSort</code></td><td>ListView</td></tr>
+<tr><td><code>onTabChange</code></td><td>TabControl</td></tr>
+<tr><td><code>onSelect</code></td><td>TreeView</td></tr>
 <tr><td><code>onSplitterMoved</code></td><td>Splitter</td></tr>
 <tr><td><code>onTextChanged</code> / <code>onEnter</code></td><td>EditBox / TextArea</td></tr>
 <tr><td><code>onValueChanged</code></td><td>ProgressBar / Slider / NumericUpDown</td></tr>
@@ -413,25 +417,32 @@ parser.registerHandler("handleSubmit", [](shared_ptr&lt;Control&gt; ctl){ /* ...
 
 <h2>6.9 组件与实例化</h2>
 
-<pre><code>"components": {
+<pre><code>{
+  "components": {
   "SearchBar": {
-    "props": { "placeholder": "Search...", "btnText": "Go" },
+    "props": {
+      "placeholder": { "type": "string", "default": "Search..." },
+      "btnText":     { "type": "string", "default": "Go" }
+    },
     "template": {
       "type": "panel", "layout": { "type": "h-flow", "gap": 4 },
       "children": [
-        { "type": "edit-box", "id": "$search", "rect": { "w": 200, "h": 30 },
-          "placeholder": "$props.placeholder" },
-        { "type": "button", "id": "$go", "rect": { "w": 60, "h": 30 },
-          "caption": "$props.btnText", "events": { "onClick": "onSearch" } }
+        { "type": "edit-box", "id": "search", "rect": { "x": 0, "y": 0, "w": 200, "h": 30 },
+          "placeholder": "{{placeholder}}" },
+        { "type": "button", "id": "go", "rect": { "x": 0, "y": 0, "w": 60, "h": 30 },
+          "caption": "{{btnText}}", "events": { "onClick": "onSearch" } }
       ]
     }
   }
 },
 "layouts": [
-  { "use": "SearchBar", "id": "topSearch",
-    "props": { "placeholder": "输入关键词", "btnText": "搜索" },
+  { "type": "SearchBar", "id": "topSearch",
+    "placeholder": "输入关键词", "btnText": "搜索",
     "rect": { "x": 20, "y": 20, "w": 300, "h": 40 } }
-]</code></pre>
+  ]
+}</code></pre>
+
+<p class="note">实例化：<code>type</code> 写组件名；模板 id 自动前缀 <code>实例id__</code>；占位符 <code>{{propName}}</code>（整串类型化见 P0-109）；组件实例上的 <code>bind</code> 不参与模板展开，绑定请写在具体控件条目上。</p>
 
 <h2>6.10 热加载</h2>
 
@@ -441,7 +452,7 @@ reloader.setPollInterval(15);    // 调整间隔
 reloader.reload();               // 手动触发</code></pre>
 
 <div class="chapter-nav">
-  <a href="../integration.html">← 5.8 嵌入到你的逻辑回路中</a>
+  <a href="../integration.html">← 5.9 嵌入到你的逻辑回路中</a>
   <a href="properties.html">下一节：7 属性速查表 →</a>
 </div>
 

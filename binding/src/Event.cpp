@@ -27,6 +27,8 @@ int Event::GetCheckState() const { return m_raw->data.intVal; }
 
 // ColorPicker 经 fireCCallback(kEventColorChanged, Color) 触发，Binding 可直接取色
 bool Event::IsColorChanged() const { return GetName() == PropertyNames::kEventColorChanged; }
+bool Event::IsExpressionChanged() const { return GetName() == PropertyNames::kEventExpressionChanged; }
+std::string Event::GetExpression() const { return m_raw->data.strVal ? m_raw->data.strVal : ""; }
 UIColor Event::GetChangedColor() const {
     UIColor c{m_raw->data.color.r, m_raw->data.color.g, m_raw->data.color.b, m_raw->data.color.a};
     return c;
@@ -48,8 +50,36 @@ bool Event::IsEnter() const { return GetName() == PropertyNames::kEventEnter; }
 bool Event::IsSelect()   const { return GetName() == PropertyNames::kEventSelect; }
 bool Event::IsExpand()   const { return GetName() == PropertyNames::kEventExpand; }
 bool Event::IsCollapse() const { return GetName() == PropertyNames::kEventCollapse; }
-std::string Event::GetNodeId() const { return m_raw->data.treeNode.id ? m_raw->data.treeNode.id : ""; }
+std::string Event::GetNodeId() const {
+    // P0-105：仅 tree 事件（select/expand/collapse）有效；其他事件（尤其 drag）联合体内容为未定义值
+    if (!m_raw || !(IsSelect() || IsExpand() || IsCollapse())) return std::string();
+    return m_raw->data.treeNode.id ? m_raw->data.treeNode.id : "";
+}
 void* Event::GetNodeUserData() const { return m_raw->data.treeNode.userData; }
+
+// P0-105：拖拽框架访问器（C ABI UIEventData.data.drag 已完整携带；bind 侧原缺失）
+bool Event::IsDragStart()    const { return GetName() == PropertyNames::kEventDragStart; }
+bool Event::IsDragOver()     const { return GetName() == PropertyNames::kEventDragOver; }
+bool Event::IsDrop()         const { return GetName() == PropertyNames::kEventDrop; }
+bool Event::IsDragEnd()      const { return GetName() == PropertyNames::kEventDragEnd; }
+bool Event::IsReordered()    const { return GetName() == PropertyNames::kEventReordered; }
+bool Event::IsTabReordered() const { return GetName() == PropertyNames::kEventTabReordered; }
+int Event::GetDragKind() const { return m_raw ? m_raw->data.drag.payload.kind : 0; }
+std::string Event::GetDragId() const {
+    return (m_raw && m_raw->data.drag.payload.id) ? m_raw->data.drag.payload.id : "";
+}
+int Event::GetDragIndex() const { return m_raw ? m_raw->data.drag.payload.index : -1; }
+std::string Event::GetDragText() const {
+    return (m_raw && m_raw->data.drag.payload.text) ? m_raw->data.drag.payload.text : "";
+}
+void* Event::GetDragUserData() const { return m_raw ? m_raw->data.drag.payload.userData : nullptr; }
+UIControlHandle Event::GetDragSource() const { return m_raw ? m_raw->data.drag.payload.source : nullptr; }
+int Event::GetHintKind() const { return m_raw ? m_raw->data.drag.hint.kind : 0; }
+int Event::GetHintIndex() const { return m_raw ? m_raw->data.drag.hint.index : -1; }
+std::string Event::GetHintTargetId() const {
+    return (m_raw && m_raw->data.drag.hint.targetId) ? m_raw->data.drag.hint.targetId : "";
+}
+int Event::GetDropped() const { return m_raw ? m_raw->data.drag.dropped : 0; }
 
 bool Event::IsListSelectionChanged() const { return GetName() == PropertyNames::kEventListSelectionChanged; }
 bool Event::IsItemClick() const { return GetName() == PropertyNames::kEventItemClick; }

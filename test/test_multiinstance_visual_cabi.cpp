@@ -36,7 +36,7 @@ typedef void       (*UIPushUIEventFn)(UIInstance, const UIEvent*);
 typedef void*      (*UIFindControlFn)(UIInstance, const char*);
 typedef int        (*UILoadLayoutFn)(UIInstance, const char*);
 typedef void       (*UIRegisterActionFn)(UIInstance, const char*, void(*)(void*, void*), void*);
-typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int        (*UISetStringFn)(UIInstance, void*, const char*, const char*);
 typedef void       (*UIGetRectFn)(UIInstance, void*, float*, float*, float*, float*);
 typedef int        (*UIGetBoolFn)(UIInstance, void*, const char*, int*);
@@ -60,6 +60,7 @@ static UIFindControlFn             uiFindControl               = nullptr;
 static UILoadLayoutFn              uiLoadLayout                = nullptr;
 static UIRegisterActionFn          uiRegisterAction            = nullptr;
 static UIGetStringFn               uiGetString                 = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UISetStringFn               uiSetString                 = nullptr;
 static UIGetRectFn                 uiGetRect                   = nullptr;
 static UIGetBoolFn                 uiGetBool                   = nullptr;
@@ -116,7 +117,7 @@ static void onSend(UIControlHandle ctl, void* userData) {
     (void)ctl;
     SendCtx* ctx = (SendCtx*)userData;
     char buf[128] = {0};
-    if (!uiGetString(ctx->self, ctx->edit, "text", buf, sizeof(buf))) {
+    if (!uiGetString(ctx->self, ctx->edit, "text", buf, sizeof(buf), &g_gsLen)) {
         printf("[send] FAIL: cannot read edit text\n");
         return;
     }
@@ -282,14 +283,14 @@ int main(int argc, char** argv) {
         injectClick(winA, 90.0f, 128.0f);   // 点击 A 的按钮
         assert(ctxA.sendCount == 1);        // 回调已触发（JSON events.onClick 绑定生效）
         char got[160] = {0};
-        assert(uiGetString(winB, msgB, "caption", got, sizeof(got)) == 1);
+        assert(uiGetString(winB, msgB, "caption", got, sizeof(got), &g_gsLen) == 1, &g_gsLen);
         assert(strcmp(got, "Message: hello from A") == 0);   // B 窗口显示 A 发送的内容
         printf("PASS: button click -> content shown in other window (\"%s\")\n", got);
 
         // 反向：B 按钮 → A 窗口显示 B 的内容
         injectClick(winB, 90.0f, 128.0f);
         assert(ctxB.sendCount == 1);
-        assert(uiGetString(winA, msgA, "caption", got, sizeof(got)) == 1);
+        assert(uiGetString(winA, msgA, "caption", got, sizeof(got), &g_gsLen) == 1, &g_gsLen);
         assert(strcmp(got, "Message: hello from B") == 0);
         printf("PASS: reverse direction content shown in other window (\"%s\")\n", got);
 

@@ -11,6 +11,7 @@
 
 #ifdef _MSC_VER
 #include <windows.h>
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 #endif
 
 #ifdef UICORNERSTONE_BUILD_SHARED
@@ -118,7 +119,7 @@ int main(void) {
     if (capA) UICornerstone_SetColor(inst, capA, "text.hover", grn);
     if (cb2) UICornerstone_SetRect(inst, cb2, 0, 150, 120, 30);   /* 触发 CheckBox recreate */
     char capbuf[32] = {0};
-    int gs = cb2 ? UICornerstone_GetString(inst, cb2, "caption", capbuf, sizeof(capbuf)) : 0;
+    int gs = cb2 ? UICornerstone_GetString(inst, cb2, "caption", capbuf, sizeof(capbuf), &g_gsLen) : 0;
     printf("CheckBox factory text after recreate: rc=%d text=%s\n", gs, capbuf);
     if (gs != 1 || strcmp(capbuf, "T1") != 0) { printf("FAIL: 工厂文本 recreate 持久\n"); pass = 0; }
     void* capB = NULL;
@@ -132,7 +133,7 @@ int main(void) {
     char sbuf[256];
     int s1 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/bitmap1.bmp");
     memset(sbuf, 0, sizeof(sbuf));
-    int g1 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    int g1 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(normal-image)=%d Get=%d val=%s\n", s1, g1, sbuf);
     if (s1 != 1 || g1 != 1 || strcmp(sbuf, "assets/images/bitmap1.bmp") != 0) {
         printf("FAIL: normal-image 原值读回\n"); pass = 0;
@@ -140,14 +141,14 @@ int main(void) {
 
     /* 未设置态：读回 0（不崩） */
     memset(sbuf, 0, sizeof(sbuf));
-    int g2 = UICornerstone_GetString(inst, btn, "hover-image", sbuf, sizeof(sbuf));
+    int g2 = UICornerstone_GetString(inst, btn, "hover-image", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Get(hover-image unset)=%d (expect 0)\n", g2);
     if (g2 != 0) { printf("FAIL: 未设置态应返回 0\n"); pass = 0; }
 
     /* animation 往返（有效资源；basePath 由引擎解析，原值读回） */
     int s3 = UICornerstone_SetString(inst, btn, "animation", "assets/animations/rotateBtn/rotateBtn.jsonc");
     memset(sbuf, 0, sizeof(sbuf));
-    int g3 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf));
+    int g3 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(animation)=%d Get=%d val=%s\n", s3, g3, sbuf);
     if (s3 != 1 || g3 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
         printf("FAIL: animation 原值读回\n"); pass = 0;
@@ -163,7 +164,7 @@ int main(void) {
     /* Bonus A：无效 animation 路径 → 返回 0、进程存活、旧动画保留 */
     int s4 = UICornerstone_SetString(inst, btn, "animation", "assets/animations/__missing__.jsonc");
     memset(sbuf, 0, sizeof(sbuf));
-    int g4 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf));
+    int g4 = UICornerstone_GetString(inst, btn, "animation", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(invalid animation)=%d (expect 0) Get after=%d val=%s\n", s4, g4, sbuf);
     if (s4 != 0 || g4 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
         printf("FAIL: 无效 animation 应返回 0 且旧动画保留\n"); pass = 0;
@@ -173,7 +174,7 @@ int main(void) {
     UIControlHandle ani = UICornerstone_CreateAnimation(inst, "assets/animations/rotateBtn/rotateBtn.jsonc",
                                                         300, 300, 120, 120, 1.0f, 1.0f);
     memset(sbuf, 0, sizeof(sbuf));
-    int g5 = ani ? UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf)) : 0;
+    int g5 = ani ? UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf), &g_gsLen) : 0;
     printf("LuotiAni GetString(animation)=%d val=%s\n", g5, sbuf);
     if (g5 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
         printf("FAIL: LuotiAni animation 原值读回\n"); pass = 0;
@@ -182,13 +183,13 @@ int main(void) {
     /* 9. P0-22：image 空串 = 卸载（读回 0）；再设有效路径恢复；失败路径读回=尝试值 */
     int s5 = UICornerstone_SetString(inst, btn, "normal-image", "");
     memset(sbuf, 0, sizeof(sbuf));
-    int g6 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    int g6 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(normal-image empty)=%d Get=%d (expect 1/0)\n", s5, g6);
     if (s5 != 1 || g6 != 0) { printf("FAIL: 空串卸载\n"); pass = 0; }
 
     int s6 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/bitmap2.bmp");
     memset(sbuf, 0, sizeof(sbuf));
-    int g7 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    int g7 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(restore)=%d Get=%d val=%s\n", s6, g7, sbuf);
     if (s6 != 1 || g7 != 1 || strcmp(sbuf, "assets/images/bitmap2.bmp") != 0) {
         printf("FAIL: 卸载后恢复\n"); pass = 0;
@@ -196,7 +197,7 @@ int main(void) {
 
     int s7 = UICornerstone_SetString(inst, btn, "normal-image", "assets/images/__missing__.bmp");
     memset(sbuf, 0, sizeof(sbuf));
-    int g8 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf));
+    int g8 = UICornerstone_GetString(inst, btn, "normal-image", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(bad image)=%d Get=%d val=%s (readback=attempted)\n", s7, g8, sbuf);
     if (s7 != 1 || g8 != 1 || strcmp(sbuf, "assets/images/__missing__.bmp") != 0) {
         printf("FAIL: 失败路径保留尝试值\n"); pass = 0;
@@ -204,14 +205,14 @@ int main(void) {
 
     /* 10. P0-24/P0-25：path 别名 + CreateAnimation 空路径占位 */
     memset(sbuf, 0, sizeof(sbuf));
-    int a1 = UICornerstone_GetString(inst, ani, "path", sbuf, sizeof(sbuf));
+    int a1 = UICornerstone_GetString(inst, ani, "path", sbuf, sizeof(sbuf), &g_gsLen);
     printf("GetString(path alias)=%d val=%s\n", a1, sbuf);
     if (a1 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
         printf("FAIL: path 别名读回\n"); pass = 0;
     }
     int a2 = UICornerstone_SetString(inst, ani, "path", "assets/animations/rotateBtn/rotateBtn.jsonc");
     memset(sbuf, 0, sizeof(sbuf));
-    int a3 = UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf));
+    int a3 = UICornerstone_GetString(inst, ani, "animation", sbuf, sizeof(sbuf), &g_gsLen);
     printf("Set(path)=%d Get(animation)=%d val=%s\n", a2, a3, sbuf);
     if (a2 != 1 || a3 != 1 || strcmp(sbuf, "assets/animations/rotateBtn/rotateBtn.jsonc") != 0) {
         printf("FAIL: path 别名写入\n"); pass = 0;
@@ -219,12 +220,12 @@ int main(void) {
 
     UIControlHandle ani2 = UICornerstone_CreateAnimation(inst, "", 450, 300, 120, 120, 1.0f, 1.0f);
     memset(sbuf, 0, sizeof(sbuf));
-    int b0 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf)) : -1;
+    int b0 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf), &g_gsLen) : -1;
     printf("CreateAnimation(\"\") handle=%s GetString=%d (expect OK/0)\n", ani2 ? "OK" : "NULL", b0);
     if (!ani2 || b0 != 0) { printf("FAIL: 空路径占位创建\n"); pass = 0; }
     int c1 = ani2 ? UICornerstone_SetString(inst, ani2, "path", "assets/animations/rotateBtn/rotateBtn.jsonc") : 0;
     memset(sbuf, 0, sizeof(sbuf));
-    int c2 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf)) : 0;
+    int c2 = ani2 ? UICornerstone_GetString(inst, ani2, "animation", sbuf, sizeof(sbuf), &g_gsLen) : 0;
     int tot = 0;
     int c3 = ani2 ? UICornerstone_GetInt(inst, ani2, "total-frames", &tot) : 0;
     printf("placeholder Set(path)=%d Get=%d val=%s total=%d\n", c1, c2, sbuf, tot);

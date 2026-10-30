@@ -111,6 +111,8 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>MenuBarRemoveMenu(bar, caption)</code></td><td>移除菜单（面板保活可再挂载）</td></tr>
 <tr><td><code>MenuItemSetSubMenu(item, panel)</code></td><td>挂子菜单</td></tr>
 <tr><td><code>MenuPanelAddItem(panel, item) / MenuPanelAddSeparator(panel) / MenuPanelRemoveItem(panel, item)</code></td><td>组装/移除菜单面板项（P0-98②：RemoveItem 完整移除，1=成功 0=非法；移除后句柄失效）</td></tr>
+<tr><td><code>Control ContextMenuAddItemEx(menu, caption, shortcut = "")</code></td><td>右键菜单条目（P0-105）：返回条目句柄（空 Control=失败）；随后 <code>item.SetCallback("click", ...)</code> 绑定动作（延迟一帧）</td></tr>
+<tr><td>拖拽事件访问器：<code>Event.IsDragStart/IsDragOver/IsDrop/IsDragEnd/IsReordered/IsTabReordered</code>；<code>GetDragKind/Id/Index/Text/UserData/Source</code>；<code>GetHintKind/Index/TargetId</code>；<code>GetDropped</code></td><td>P0-105：拖拽/内置换序事件负载（binding 访问器；<code>GetNodeId()</code> 仅 tree 事件有效，drag 请用 <code>GetDragId()</code>）</td></tr>
 </table>
 
 <p>缩放说明见<a href="../advanced/scale.html">5.5 控件缩放</a>：系数作用于绘制内容，rect 不变，
@@ -292,10 +294,11 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td>select / expand / collapse</td><td><code>IsSelect()</code> / <code>IsExpand()</code> / <code>IsCollapse()</code> → <code>GetNodeId()</code> / <code>GetNodeUserData()</code></td></tr>
 <tr><td>selection-changed</td><td><code>IsSelectionChanged()</code> → <code>GetSelectedIndex()</code> / <code>GetSelectedValue()</code></td></tr>
 <tr><td>text-changed</td><td><code>IsTextChanged()</code> → <code>GetTextChanged()</code>（string）</td></tr>
+<tr><td>expression-changed</td><td><code>IsExpressionChanged()</code> → <code>GetExpression()</code>（string，ColorPicker 表达式）</td></tr>
 <tr><td>value-changed</td><td><code>IsValueChanged()</code> → <code>GetValueChanged()</code>（float）/ <code>GetValueChangedDouble()</code>（double）</td></tr>
 </table>
 
-<p>注意：<code>IsColorChanged()</code> 恒为 false（ColorPicker 用轮询读取）；通用原始访问：
+<p>注意：<code>IsColorChanged()</code> 在 <code>color-changed</code> 事件中为真，<code>GetChangedColor()</code> 读取该事件载荷颜色（实测验证）；通用原始访问：
 <code>GetNameRaw()</code> / <code>GetIntVal()</code> / <code>GetFloatVal()</code> / <code>GetDoubleVal()</code> /
 <code>GetStrVal()</code> / <code>GetPtrVal()</code>；<code>GetName()</code> 返回 <code>std::string</code> 事件名，<code>GetChangedColor()</code> 仅在事件携带颜色时有效。</p>
 
@@ -326,6 +329,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>DebugIsControlFocused(instance, handle)</code></td><td>焦点查询（静态）</td></tr>
 <tr><td><code>SetBool(ctl, "draggable"/"droppable"/"reorderable"/"drag-visual")</code> + <code>SetCallback(ctl, "drag-start"/"drag-over"/"drop"/"drag-end"/"reordered"/"tab-reordered")</code></td><td>拖拽框架（P0-94/96：通用属性/事件；<code>reorderable</code> 自含换序；教程见 <a href="../advanced/drag-drop.html">5.7</a>）</td></tr>
 <tr><td><code>TreeViewMoveNode(tree, id, newParentId, index)</code> / <code>ListViewMoveRow(lv, from, to)</code></td><td>换序（P0-94；tree 换序/换父、list 行换序）</td></tr>
+<tr><td><code>std::string TreeViewGetNodeAt(tree, x, y)</code></td><td>窗口坐标→行节点 id（P0-107：未命中/空白/滚动条返回空串；纯查询；先查后取防截断）</td></tr>
 <tr><td><code>DebugValidateHandle(ctl)</code></td><td>句柄归属校验（P0-84c，Release 可用）：1=属于本实例，0=不属于/非法——行/控件构建期自检，防跨实例句柄误用</td></tr>
 <tr><td><code>SetBackendConfig(key, value) / SetBackendConfigBool(key, bool) / GetBackendConfigBool(key, bool&amp;)</code></td><td>后端差异配置（见 12）</td></tr>
 <tr><td><code>uint32_t GetBackendCapabilities() const</code></td><td>能力位（对应 C ABI <code>UICornerstone_GetBackendCapabilities</code>，见 8.1）</td></tr>

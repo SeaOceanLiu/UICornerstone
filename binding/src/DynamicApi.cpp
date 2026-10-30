@@ -153,6 +153,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(StatusBarSetItemIcon);
     RESOLVE(StatusBarSetItemMenu);
     RESOLVE(ContextMenuAddItem);
+    RESOLVE(ContextMenuAddItemEx);
     RESOLVE(ContextMenuAddSeparator);
     RESOLVE(ContextMenuShow);
     RESOLVE(ContextMenuClose);
@@ -186,6 +187,7 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(TreeViewCollapseAll);
     RESOLVE(TreeViewClearItems);
     RESOLVE(TreeViewGetSelectedId);
+    RESOLVE(TreeViewGetNodeAt);
     RESOLVE(EditBoxSelectAll);
     RESOLVE(EditBoxSetSelection);
     RESOLVE(EditBoxClearSelection);

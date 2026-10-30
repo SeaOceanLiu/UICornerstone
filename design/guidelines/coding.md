@@ -1,4 +1,4 @@
-# 编码规范
+﻿# 编码规范
 
 ## 编码前思考
 
@@ -31,6 +31,13 @@
 - 将"新增校验功能"转化为：针对异常输入编写测试用例，保证全部通过。
 - 将"代码重构"转化为：完成重构后，确保原有所有测试用例正常运行。
 - 多步骤复杂任务，先输出简短执行计划，同时标注每一步的验证方式。
+
+## 颜色状态约定（P0-106）
+
+- 控件的 `hover`/`pressed`/`disabled` 状态色**未显式设置时 = 当前 `normal`**（`StateColor` 显式位 + 解析型 getter，动态跟随 `setNormal`）；
+- 新增控件**不得**在构造函数写"历史缺省态色"（显式 `set*` 会置位，破坏回退语义）；需要缺省观感时由主题/布局显式设色；
+- 需要"两态声明"（如 WinFrame：pressed/disabled 恒等于 normal）时，用 `StateColor::clearPressed()/clearDisabled()` 清位，**不要**重打包 `set*(normal)`（会误置显式位）；
+- `StateColor` 为 C++ 内部类型；C ABI `UIStateColor` 不变。
 
 ## 提交规则
 

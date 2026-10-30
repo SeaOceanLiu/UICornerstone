@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -52,14 +52,14 @@ label.SetString(PropertyNames::kFontFile, "fonts/MyCustom.ttf");       // "font-
 
 <pre><code>// C ABI：设置按钮四态背景
 UICornerstone_SetStateColor(g_inst, btn, "background",
-    stateNormal, stateHover, statePressed, stateDisabled);
+    (UIStateColor){ stateNormal, stateHover, statePressed, stateDisabled });
 
 // C++ Binding
 button.SetStateColor("background",
-    UIColor{64,96,160,255},  // normal
-    UIColor{80,128,192,255}, // hover
-    UIColor{48,80,144,255},  // pressed
-    UIColor{80,80,80,255});  // disabled</code></pre>
+    UIStateColor{ UIColor{64,96,160,255},  // normal
+                  UIColor{80,128,192,255}, // hover
+                  UIColor{48,80,144,255},  // pressed
+                  UIColor{80,80,80,255} }); // disabled</code></pre>
 
 <h2>3.3.4 回调属性</h2>
 

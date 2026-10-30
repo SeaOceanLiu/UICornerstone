@@ -147,6 +147,7 @@ struct Api {
     int (*fnStatusBarSetItemIcon)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnStatusBarSetItemMenu)(UIInstance, UIControlHandle, const char*, void*) = nullptr;
     int (*fnContextMenuAddItem)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
+    UIControlHandle (*fnContextMenuAddItemEx)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;   // P0-105
     int (*fnContextMenuAddSeparator)(UIInstance, UIControlHandle) = nullptr;
     int (*fnContextMenuShow)(UIInstance, UIControlHandle, float, float) = nullptr;
     int (*fnContextMenuClose)(UIInstance, UIControlHandle) = nullptr;
@@ -180,6 +181,7 @@ struct Api {
     void (*fnTreeViewCollapseAll)(UIInstance, UIControlHandle) = nullptr;
     void (*fnTreeViewClearItems)(UIInstance, UIControlHandle) = nullptr;
     int  (*fnTreeViewGetSelectedId)(UIInstance, UIControlHandle, char*, int) = nullptr;
+    int  (*fnTreeViewGetNodeAt)(UIInstance, UIControlHandle, float, float, char*, int) = nullptr;   // P0-107
 
     // EditBox / TextArea 文本操作
     int  (*fnEditBoxSelectAll)(UIInstance, UIControlHandle) = nullptr;
@@ -251,7 +253,7 @@ struct Api {
     int (*fnGetBool)(UIInstance, UIControlHandle, const char*, int*) = nullptr;
     int (*fnGetInt)(UIInstance, UIControlHandle, const char*, int*) = nullptr;
     int (*fnGetFloat)(UIInstance, UIControlHandle, const char*, float*) = nullptr;
-    int (*fnGetString)(UIInstance, UIControlHandle, const char*, char*, int) = nullptr;
+    int (*fnGetString)(UIInstance, UIControlHandle, const char*, char*, int, int*) = nullptr;   // P0-108：长度查询（cap,outLen）
     int (*fnGetEnum)(UIInstance, UIControlHandle, const char*, char*, int) = nullptr;
     int (*fnGetPtr)(UIInstance, UIControlHandle, const char*, void**) = nullptr;
     int (*fnGetControlType)(UIInstance, UIControlHandle, char*, int) = nullptr;

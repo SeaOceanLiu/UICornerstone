@@ -38,35 +38,28 @@ public:
         Text,
         TextShadow
     };
-    StateColor(SColor n, SColor h, SColor a, SColor d):normal(n), hover(h), pressed(a), disabled(d){}
+    // P0-106：显式设置标记（bit0=hover / bit1=pressed / bit2=disabled）。
+    // 未显式设置的态在 getter 中解析为该组"当前 normal"（动态跟随 setNormal）。
+    unsigned char stateFlags = 0;
+    StateColor(SColor n, SColor h, SColor a, SColor d):normal(n), hover(h), pressed(a), disabled(d), stateFlags(7){}
     StateColor(StateColor::Type colorType=StateColor::Type::Background):
         normal(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
                 colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
                 colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
                     ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
-        // P0-30：未显式设置 hover/pressed → 回退 normal（全控件切态不再默认变蓝；
-        // 历史缺省由 Button/CheckBox/Label 构造时显式写入保持）
-        hover(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
-                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
-                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
-                    ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
-        pressed(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_NORMAL_COLOR :
-                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_NORMAL_COLOR :
-                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_NORMAL_COLOR :
-                    ConstDef::DEFAULT_TEXT_SHADOW_NORMAL_COLOR),
-        disabled(colorType == StateColor::Type::Background ? ConstDef::DEFAULT_DISABLED_COLOR :
-                colorType == StateColor::Type::Border ? ConstDef::DEFAULT_BORDER_DISABLED_COLOR :
-                colorType == StateColor::Type::Text ? ConstDef::DEFAULT_TEXT_DISABLED_COLOR :
-                    ConstDef::DEFAULT_TEXT_SHADOW_DISABLED_COLOR)
+        // P0-106：未显式设置 hover/pressed/disabled → 解析时回退"当前 normal"（动态跟随；
+        // setNormal 后未设态自动生效）。历史缺省观感由主题/布局显式设色接管。
+        hover(normal), pressed(normal), disabled(normal)
     {}
     // 赋值构造函数
-    StateColor(const StateColor& p):normal(p.normal), hover(p.hover), pressed(p.pressed), disabled(p.disabled){}
-    StateColor(const StateColor&& p):normal(p.normal), hover(p.hover), pressed(p.pressed), disabled(p.disabled){}
+    StateColor(const StateColor& p):normal(p.normal), hover(p.hover), pressed(p.pressed), disabled(p.disabled), stateFlags(p.stateFlags){}
+    StateColor(const StateColor&& p):normal(p.normal), hover(p.hover), pressed(p.pressed), disabled(p.disabled), stateFlags(p.stateFlags){}
     StateColor& operator=(const StateColor& p){
         normal = p.normal;
         hover = p.hover;
         pressed = p.pressed;
         disabled = p.disabled;
+        stateFlags = p.stateFlags;
         return *this;
     }
     StateColor& operator=(const StateColor&& p){
@@ -74,6 +67,7 @@ public:
         hover = p.hover;
         pressed = p.pressed;
         disabled = p.disabled;
+        stateFlags = p.stateFlags;
         return *this;
     }
 
@@ -86,25 +80,32 @@ public:
     }
     StateColor& setHover(SColor color){
         hover = color;
+        stateFlags |= 1;   // P0-106：显式设置
         return *this;
     }
     SColor getHover(void){
-        return hover;
+        return (stateFlags & 1) ? hover : normal;   // 未显式设置 → 回退当前 normal（动态）
     }
     StateColor& setPressed(SColor color){
         pressed = color;
+        stateFlags |= 2;
         return *this;
     }
     SColor getPressed(void){
-        return pressed;
+        return (stateFlags & 2) ? pressed : normal;
     }
     StateColor& setDisabled(SColor color){
         disabled = color;
+        stateFlags |= 4;
         return *this;
     }
     SColor getDisabled(void){
-        return disabled;
+        return (stateFlags & 4) ? disabled : normal;
     }
+    // P0-106：清除显式位（供"两态声明"等场景——pressed/disabled 回退 normal 且不置位）
+    StateColor& clearHover(){    stateFlags &= (unsigned char)~1; hover = normal;    return *this; }
+    StateColor& clearPressed(){  stateFlags &= (unsigned char)~2; pressed = normal;  return *this; }
+    StateColor& clearDisabled(){ stateFlags &= (unsigned char)~4; disabled = normal; return *this; }
     StateColor& set(StateColor::Type type, SColor color){
         switch (type)
         {

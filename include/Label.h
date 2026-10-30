@@ -69,6 +69,7 @@ private:
     int m_lineHeight;
     bool m_enableExpand;
     bool m_clickable;
+    bool m_mousePressed = false;   // 本次按下命中（ControlImpl 先切态，不能再用 m_state 判定点击）
     SRect m_originalRect;
     bool m_debugDraw;
     float m_defaultLineSpacingRatio;

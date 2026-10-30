@@ -49,7 +49,7 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>说明</th></tr>
 <tr><td><code>caption</code></td><td><code>kCaption</code></td><td>String</td><td>MenuItem 文字（SetString）</td></tr>
 <tr><td><code>checked</code></td><td><code>kChecked</code></td><td>Bool</td><td>MenuItem 勾选（SetBool）</td></tr>
-<tr><td><code>click</code></td><td><code>kEventClick</code></td><td>callback</td><td>MenuItem 点击回调（SetCallback）</td></tr>
+<tr><td><code>click</code></td><td><code>kEventClick</code></td><td>callback</td><td>MenuItem 点击回调（SetCallback）；<strong>延迟一帧执行</strong>（P0-103：关链同步、回调在下一帧起始 flush——模态对话框不遮挡菜单关闭呈现）</td></tr>
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>菜单字体名（默认 MapleMono_NF_CN_Regular）</td></tr>
 <tr><td><code>value</code></td><td><code>kValue</code></td><td>Float</td><td>MenuBar 字号（float 通道，setFontSize）</td></tr>
 <tr><td><code>bar-height</code></td><td><code>kBarHeight</code></td><td>Float</td><td>MenuBar 尺寸属性（setFloatProperty）</td></tr>

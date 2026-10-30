@@ -300,6 +300,15 @@
           "type": "string",
           "description": "初始颜色 hex"
         },
+        "allow-expression": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-110：允许文本域输入任意表达式（如 {{bgColor}}）"
+        },
+        "color-expression": {
+          "type": "string",
+          "description": "P0-110：当前颜色表达式（空=无；非空时 color 仅作回退色）"
+        },
         "popup-bg": {
           "$ref": "#/$defs/color"
         },
@@ -653,8 +662,8 @@
           "$ref": "#/$defs/font-spec"
         },
         "password-char": {
-          "type": "integer",
-          "description": "掩码字符 ASCII 码"
+          "type": "string",
+          "description": "掩码字符（取首字符，如 \"●\"）"
         },
         "password-mode": {
           "type": "boolean",
@@ -958,6 +967,11 @@
         "caption": {
           "type": "string",
           "description": "文本内容（对齐运行时属性名 caption）"
+        },
+        "clickable": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "可点击命中（配合 events.onClick）"
         },
         "debug-draw": {
           "type": "boolean",
@@ -1756,14 +1770,38 @@
           "type": "number",
           "description": "轨道粗细"
         },
+        "style": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"],
+          "x-default": "horizontal"
+        },
         "tick": {
-          "$ref": "#/$defs/color"
+          "type": "object",
+          "properties": {
+            "interval": { "type": "number" },
+            "length": { "type": "number" },
+            "color": { "$ref": "#/$defs/state-color-4" }
+          },
+          "additionalProperties": false
         },
         "track": {
-          "$ref": "#/$defs/color"
+          "type": "object",
+          "properties": {
+            "thickness": { "type": "number" },
+            "color": { "$ref": "#/$defs/state-color-4" },
+            "fill": { "$ref": "#/$defs/state-color-4" }
+          },
+          "additionalProperties": false
         },
         "thumb": {
-          "$ref": "#/$defs/color"
+          "type": "object",
+          "properties": {
+            "size": { "type": "number" },
+            "color": { "$ref": "#/$defs/state-color-4" },
+            "border": { "$ref": "#/$defs/state-color-4" },
+            "hover": { "$ref": "#/$defs/state-color-4" }
+          },
+          "additionalProperties": false
         },
         "value": {
           "type": "number",

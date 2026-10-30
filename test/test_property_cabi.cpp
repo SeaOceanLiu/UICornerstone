@@ -41,7 +41,7 @@ typedef int   (*UIGetIntFn)(UIInstance,void*,const char*,int*);
 typedef int   (*UISetFloatFn)(UIInstance,void*,const char*,float);
 typedef int   (*UIGetFloatFn)(UIInstance,void*,const char*,float*);
 typedef int   (*UISetStringFn)(UIInstance,void*,const char*,const char*);
-typedef int   (*UIGetStringFn)(UIInstance,void*,const char*,char*,int);
+typedef int   (*UIGetStringFn)(UIInstance,void*,const char*,char*,int,int*);
 typedef int   (*UISetEnumFn)(UIInstance,void*,const char*,const char*);
 typedef int   (*UIGetEnumFn)(UIInstance,void*,const char*,char*,int);
 typedef int   (*UISetCallbackFn)(UIInstance,void*,const char*,UIEventCallback,void*);
@@ -79,6 +79,7 @@ static UISetFloatFn         uiSetFloat             = nullptr;
 static UIGetFloatFn         uiGetFloat             = nullptr;
 static UISetStringFn        uiSetString            = nullptr;
 static UIGetStringFn        uiGetString            = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UISetEnumFn          uiSetEnum              = nullptr;
 static UIGetEnumFn          uiGetEnum              = nullptr;
 static UISetCallbackFn      uiSetCallback          = nullptr;
@@ -341,10 +342,10 @@ static int runPropertyTests(void) {
     // 控件特有 getter 现在已实现
     char sbuf[128];
     memset(sbuf, 0, sizeof(sbuf));
-    CHECK_RET(uiGetString(g_inst, slider, "label-format", sbuf, (int)sizeof(sbuf)), 1, "Slider: GetString(label-format) -> 1");
+    CHECK_RET(uiGetString(g_inst, slider, "label-format", sbuf, (int)sizeof(sbuf), &g_gsLen), 1, "Slider: GetString(label-format) -> 1", &g_gsLen);
     CHECK(strcmp(sbuf, "%.0f px") == 0, "  -> label-format = '%.0f px'");
     memset(sbuf, 0, sizeof(sbuf));
-    CHECK_RET(uiGetString(g_inst, slider, "invalid", sbuf, (int)sizeof(sbuf)), 0, "Slider: GetString(invalid) -> 0");
+    CHECK_RET(uiGetString(g_inst, slider, "invalid", sbuf, (int)sizeof(sbuf), &g_gsLen), 0, "Slider: GetString(invalid) -> 0", &g_gsLen);
 
     printf("\n--- Enum property tests ---\n");
 
@@ -593,7 +594,7 @@ static int runPropertyTests(void) {
         CHECK(strcmp(sf, "harmonyos-sans-sc-regular") == 0, "Slider default font == harmonyos-sans-sc-regular");
         CHECK_RET(uiSetString(g_inst, slider, "font", "muyao-softbrush"), 1, "Slider SetString(font, muyao-softbrush)");
         memset(sf, 0, sizeof(sf));
-        CHECK_RET(uiGetString(g_inst, slider, "font", sf, (int)sizeof(sf)), 1, "Slider GetString(font)");
+        CHECK_RET(uiGetString(g_inst, slider, "font", sf, (int)sizeof(sf), &g_gsLen), 1, "Slider GetString(font)", &g_gsLen);
         CHECK(strcmp(sf, "muyao-softbrush") == 0, "Slider font read-back matches");
     }
 

@@ -201,6 +201,8 @@ public:
 
     // ── ContextMenu 组装/显示 ──
     bool ContextMenuAddItem(Control& menu, const std::string& caption, const std::string& shortcut = "");
+    // P0-105：创建条目并返回句柄（失败返回空 Control）；随后 item.SetCallback("click", ...) 绑定动作
+    Control ContextMenuAddItemEx(Control& menu, const std::string& caption, const std::string& shortcut = "");
     bool ContextMenuAddSeparator(Control& menu);
     bool ContextMenuShow(Control& menu, float x, float y);
     bool ContextMenuClose(Control& menu);
@@ -240,6 +242,8 @@ public:
     void TreeViewCollapseAll(Control& tree);
     void TreeViewClearItems(Control& tree);
     std::string TreeViewGetSelectedId(Control& tree);
+    // P0-107：窗口坐标 → 行节点 id（未命中/空白/滚动条区域返回空串；纯查询不改选中；先查后取防截断）
+    std::string TreeViewGetNodeAt(Control& tree, float x, float y);
 
     // ── EditBox / TextArea 文本操作 ──
     void EditBoxSelectAll(Control& ctl);

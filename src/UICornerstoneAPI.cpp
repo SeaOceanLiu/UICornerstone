@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <climits>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -830,6 +831,19 @@ void DispatchDropFileEvent(UIContext* instance, const Event& evt) {
     DispatchDropFile(owner, evt);
 }
 
+// P0-103：菜单点击回调延迟一帧队列 flush（帧起始调用：上一帧已 Render/Present）。
+// move-out 重入保护：回调内若再次调用 ProcessEvents，不重入本队列（新点击入新队列、下一帧执行）。
+void FlushDeferredMenuClicks(UIContext* instance) {
+    if (!instance) return;
+    UIInstance owner = instance->owner ? instance->owner : instance;
+    if (!owner || owner->deferredClicks.empty()) return;
+    std::vector<std::function<void()>> pending;
+    pending.swap(owner->deferredClicks);
+    for (auto& fn : pending) {
+        if (fn) fn();
+    }
+}
+
 // ============================================================
 // 帧循环
 // ============================================================
@@ -908,6 +922,9 @@ static bool pumpInstanceEvents(UIInstance instance) {
 // 事件为止——每个实例只消费自己窗口的事件，总有一个实例能处理队头）
 int UICornerstone_ProcessEvents(UIInstance instance) {
     if (!instance || !instance->initialized || instance->destroying) return 0;
+
+    // P0-103：帧起始 flush 延迟的菜单点击回调（上一帧已 Render/Present → 菜单关闭已呈现）
+    FlushDeferredMenuClicks(instance);
 
     bool handled = false;
     if (instance->ownsBackend) {
@@ -1953,8 +1970,8 @@ UIControlHandle UICornerstone_CreateAnimation(UIInstance instance,
     instance->bench->addControl(ani);                         // setContext 传播
     if (jsoncPath && jsoncPath[0]) {                          // 空串=占位创建（P0-25）：不 load/prepare，path 行运行时设置加载
         try {                                                 // §6.4-1：异常边界，失败回滚 + 返回 nullptr
-            // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
-            ani->loadFromFile(fs::path(jsoncPath));
+            // 原值直传（P0-102 UTF-8）：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+            ani->loadFromFile(fs::u8path(jsoncPath));
             ani->prepare();
             // 设计语义（test_animation A2）：创建后不自动播放，由调用方 SetBool "playing" 启动
         } catch (...) {
@@ -2230,6 +2247,19 @@ int UICornerstone_ContextMenuAddItem(UIInstance instance, UIControlHandle menu,
     if (shortcut) item->setShortcut(shortcut);
     v->addItem(item);
     return 1;
+}
+
+UIControlHandle UICornerstone_ContextMenuAddItemEx(UIInstance instance, UIControlHandle menu,
+    const char* caption, const char* shortcut)
+{
+    auto* v = contextMenuOf(instance, menu);
+    if (!v || !caption) return nullptr;
+    auto item = std::make_shared<MenuItem>(v->getMenuPanel().get(), MenuItemType::Normal, 1.f, 1.f);
+    item->setCaption(caption);
+    if (shortcut) item->setShortcut(shortcut);
+    v->addItem(item);
+    // 条目由菜单面板持有（shared_ptr）→ 句柄在面板存活期内有效
+    return reinterpret_cast<UIControlHandle>(static_cast<Control*>(item.get()));
 }
 
 int UICornerstone_ContextMenuAddSeparator(UIInstance instance, UIControlHandle menu) {
@@ -3275,6 +3305,25 @@ int UICornerstone_TreeViewGetSelectedId(UIInstance instance, UIControlHandle tre
     return 1;
 }
 
+int UICornerstone_TreeViewGetNodeAt(UIInstance instance, UIControlHandle tree,
+    float x, float y, char* outBuf, int outSize) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv) return 0;
+    // P0-107：内容区命中（与 MouseDown 共用 helper：扣除滚动条 + 行边界）
+    int row = tv->hitTestRowInContent(x, y);
+    if (row < 0) return 0;
+    auto node = tv->getNodeAtRow(row);
+    if (!node) return 0;
+    const int need = (int)node->id.size() + 1;   // 含 NUL（snprintf 语义）
+    if (outBuf && outSize > 0) {
+        int n = (int)node->id.size();
+        if (n > outSize - 1) n = outSize - 1;
+        memcpy(outBuf, node->id.c_str(), (size_t)n);
+        outBuf[n] = '\0';
+    }
+    return need;
+}
+
 UIControlHandle UICornerstone_CreateHandleControl(UIInstance instance,
     UIControlHandle target, float x, float y, float w, float h,
     float xScale, float yScale) {
@@ -3509,13 +3558,21 @@ int UICornerstone_GetFloat(UIInstance instance, UIControlHandle ctl, const char*
     return c->getFloatProperty(prop, *out);
 }
 
-int UICornerstone_GetString(UIInstance instance, UIControlHandle ctl, const char* prop, char* out, int maxLen) {
-    if (!instance || !ctl || !prop || !out || maxLen <= 0) return 0;
+int UICornerstone_GetString(UIInstance instance, UIControlHandle ctl, const char* prop, char* out, int cap, int* outLen) {
+    if (!instance || !ctl || !prop || !outLen) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
     const char* s = nullptr;
     if (!c->getStringProperty(prop, s) || !s) return 0;
-    strncpy_s(out, maxLen, s, _TRUNCATE);
+    const size_t slen = strlen(s);
+    if (slen >= (size_t)INT_MAX) return 0;   // P0-108：len+1 溢出保护
+    const int len = (int)slen;
+    *outLen = len;                            // 完整长度（空串=0，仍属成功）
+    if (out && cap > 0) {
+        const int n = (len < cap - 1) ? len : cap - 1;
+        memcpy(out, s, (size_t)n);
+        out[n] = '\0';
+    }
     return 1;
 }
 

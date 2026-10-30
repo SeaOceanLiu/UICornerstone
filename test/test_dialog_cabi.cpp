@@ -29,7 +29,7 @@ typedef void* (*UIFindControlFn)(UIInstance,const char*);
 typedef void  (*UIRegisterActionFn)(UIInstance,const char*,void(*)(void*,void*),void*);
 typedef void  (*UIPushUIEventFn)(UIInstance,const UIEvent*);
 typedef int   (*UISetStringFn)(UIInstance,void*,const char*,const char*);
-typedef int   (*UIGetStringFn)(UIInstance,void*,const char*,char*,int);
+typedef int   (*UIGetStringFn)(UIInstance,void*,const char*,char*,int,int*);
 typedef int   (*UISetColorFn)(UIInstance,void*,const char*,UIColor);
 typedef int   (*UISetBoolFn)(UIInstance,void*,const char*,int);
 typedef int   (*UISetFloatFn)(UIInstance,void*,const char*,float);
@@ -52,6 +52,7 @@ static UIFindControlFn     uiFindControl          = nullptr;
 static UIRegisterActionFn  uiRegisterAction       = nullptr;
 static UISetStringFn       uiSetString            = nullptr;
 static UIGetStringFn       uiGetString            = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UISetColorFn        uiSetColor             = nullptr;
 static UISetBoolFn         uiSetBool              = nullptr;
 static UISetFloatFn        uiSetFloat             = nullptr;
@@ -193,7 +194,7 @@ static void onHexChanged(void* ctl, void* user) {
     (void)ctl; (void)user;
     if (g_updatingHex) return;
     char textBuf[256] = "";
-    uiGetString(g_inst, ctl, "text", textBuf, sizeof(textBuf));
+    uiGetString(g_inst, ctl, "text", textBuf, sizeof(textBuf), &g_gsLen);
     const char* text = textBuf;
     if (text) parseHexAndApply(text);
 }

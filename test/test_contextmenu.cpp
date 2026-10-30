@@ -53,7 +53,9 @@ static void runAssertions(shared_ptr<ContextMenu> menu) {
     float iy = pr.top + 12.f;
     panel->handleEvent(makeMouse(EventType::MouseDown, ix, iy));
     panel->handleEvent(makeMouse(EventType::MouseUp, ix, iy));
-    CHECK(clicked, "item click fires user callback");
+    // P0-103：菜单点击回调延迟一帧（下一次 ProcessEvents 起始 flush）——此处手动驱动一帧
+    UICornerstone_ProcessEvents(g_uiInstance);
+    CHECK(clicked, "item click fires user callback (deferred)");
     CHECK(!menu->isPopupVisible(), "menu closes after item click");
     menu->close();
     TestUtil::log("---- assertions done: pass=%d fail=%d ----", g_pass, g_fail);
@@ -176,15 +178,20 @@ public:
             m_capShown = true;
         }
 
-        // 第 25 帧：模拟点击菜单「复制」项 → 关闭
+        // 第 25 帧：模拟点击菜单「复制」项（P0-103：回调入队，延迟一帧）
         if (m_frames == 25 && g_menu && g_menu->isPopupVisible()) {
             auto* panel = g_menu->getMenuPanel().get();
             SRect pr = panel->getDrawRect();
             float ix = pr.left + 80.f, iy = pr.top + 12.f;   // 避开首项 leadingControl 图标槽
             g_menu->handleEvent(makeMouse(EventType::MouseDown, ix, iy));
             g_menu->handleEvent(makeMouse(EventType::MouseUp, ix, iy));
-            TestUtil::log("after item click: popupVisible=%d", g_menu->isPopupVisible() ? 1 : 0);
-            CHECK(!g_menu->isPopupVisible(), "item click closes menu");
+            m_menuClickQueued = true;
+        }
+        // 第 26 帧：帧起始已 flush（回调触发 + 关闭生效）
+        if (m_frames == 26 && m_menuClickQueued) {
+            m_menuClickQueued = false;
+            TestUtil::log("after item click (deferred): popupVisible=%d", g_menu->isPopupVisible() ? 1 : 0);
+            CHECK(!g_menu->isPopupVisible(), "item click closes menu (deferred)");
         }
 
         // 第 35 帧：重新 show，模拟外部点击关闭（走 beforeEventHandlingWatcher）
@@ -230,6 +237,7 @@ public:
 private:
     int m_frames = 0;
     bool m_capShown = false;
+    bool m_menuClickQueued = false;   // P0-103：菜单点击已入队（等下一帧 flush）
 };
 
 int main(int argc, char* argv[]) {

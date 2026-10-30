@@ -20,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cctype>
 #include <unordered_set>
 #include "PlatformUtils.h"
 
@@ -455,6 +456,11 @@ shared_ptr<Label> LayoutParser::parseLabel(const json& j, Control* parent) {
         popJsonPath();
     }
 
+    // clickable（Label 属性系统既有键，JSON 此前漏解析）
+    if (j.contains(PropertyNames::kClickable) && j[PropertyNames::kClickable].is_boolean()) {
+        label->setClickable(j[PropertyNames::kClickable].get<bool>());
+    }
+
     // lineHeight
     if (j.contains(PropertyNames::kLineHeight) && j[PropertyNames::kLineHeight].is_number()) {
         label->setLineHeight(j[PropertyNames::kLineHeight].get<int>());
@@ -520,7 +526,7 @@ shared_ptr<Control> LayoutParser::parseAnimation(const json& j, Control* parent)
         string p = j[PropertyNames::kJsonPath].get<string>();
         try {
             // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
-            ani->loadFromFile(fs::path(p));
+            ani->loadFromFile(fs::u8path(p));   // P0-102：UTF-8 路径
         } catch (...) {
             logWarn("animation load failed: " + p);
             return nullptr;
@@ -1161,7 +1167,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
                 // 传按钮 scale 会造成双重缩放
                 auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
                 // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
-                luotiAni->loadFromFile(fs::path(filePath));
+                luotiAni->loadFromFile(fs::u8path(filePath));   // P0-102：UTF-8 路径
                 luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
                 // parse 阶段尚无渲染设备：不 prepare/play，挂树后由
                 // LuotiAni::setRenderDevice 补 prepare（同 CreateAnimation 模式），
@@ -1192,7 +1198,7 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         j.contains(PropertyNames::kAnimation) && j[PropertyNames::kAnimation].is_string()) {
         try {
             auto luotiAni = make_shared<LuotiAni>(btn.get(), 1.0f, 1.0f);
-            luotiAni->loadFromFile(fs::path(j[PropertyNames::kAnimation].get<string>()));
+            luotiAni->loadFromFile(fs::u8path(j[PropertyNames::kAnimation].get<string>()));   // P0-102：UTF-8 路径
             luotiAni->setRect(SRect(0, 0, rect.width, rect.height));
             // parse 阶段尚无渲染设备：不 prepare/play（同 luotiAni 对象形式，挂树后由 setRenderDevice 补 prepare）
             btn->setLuotiAni(luotiAni);
@@ -1698,6 +1704,11 @@ shared_ptr<ColorPicker> LayoutParser::parseColorPicker(const json& j, Control* p
 
     if (j.contains(PropertyNames::kJsonPopupBGColor))
         cp->setPopupBGColor(parseColor(j[PropertyNames::kJsonPopupBGColor]));
+
+    if (j.contains(PropertyNames::kAllowExpression) && j[PropertyNames::kAllowExpression].is_boolean())   // P0-110
+        cp->setBoolProperty(PropertyNames::kAllowExpression, j[PropertyNames::kAllowExpression].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kColorExpression) && j[PropertyNames::kColorExpression].is_string())     // P0-110
+        cp->setStringProperty(PropertyNames::kColorExpression, j[PropertyNames::kColorExpression].get<string>().c_str());
 
     parseEvents(cp, j);
 
@@ -3203,6 +3214,47 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
         }
     }
 
+    // ListView: onSelectionChanged, onColumnSort（文档示例对齐）
+    if (auto lv = dynamic_pointer_cast<ListView>(ctrl)) {
+        if (events.contains(PropertyNames::kEventKeySelectionChanged) && events[PropertyNames::kEventKeySelectionChanged].is_string()) {
+            string handlerName = events[PropertyNames::kEventKeySelectionChanged].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                lv->setOnSelectionChanged([handler](shared_ptr<ListView> sender) {
+                    handler(sender);
+                });
+            }
+        }
+        if (events.contains(PropertyNames::kEventKeyColumnSort) && events[PropertyNames::kEventKeyColumnSort].is_string()) {
+            string handlerName = events[PropertyNames::kEventKeyColumnSort].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                lv->setOnColumnSort([handler](shared_ptr<ListView>, int, bool) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // TabControl: onTabChange（文档示例对齐）
+    if (auto tc = dynamic_pointer_cast<TabControl>(ctrl)) {
+        if (events.contains(PropertyNames::kEventKeyTabChange) && events[PropertyNames::kEventKeyTabChange].is_string()) {
+            string handlerName = events[PropertyNames::kEventKeyTabChange].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                tc->setOnTabChange([handler](shared_ptr<TabControl>, int) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
     // TreeView: onSelect
     if (auto tv = dynamic_pointer_cast<TreeView>(ctrl)) {
         if (events.contains(PropertyNames::kEventKeySelect) && events[PropertyNames::kEventKeySelect].is_string()) {
@@ -3272,6 +3324,21 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
             if (it != m_handlers.end()) {
                 auto handler = it->second;
                 cp->setOnColorChanged([handler](shared_ptr<ColorPicker>, const SColor&) {
+                    handler(nullptr);
+                });
+            }
+        }
+    }
+
+    // ColorPicker: onExpressionChanged（P0-110）
+    if (auto cp = dynamic_pointer_cast<ColorPicker>(ctrl)) {
+        if (events.contains(PropertyNames::kEventKeyExpressionChanged) && events[PropertyNames::kEventKeyExpressionChanged].is_string()) {
+            string handlerName = events[PropertyNames::kEventKeyExpressionChanged].get<string>();
+            auto it = m_handlers.find(handlerName);
+            if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+            if (it != m_handlers.end()) {
+                auto handler = it->second;
+                cp->setOnExpressionChanged([handler](shared_ptr<ColorPicker>, const string&) {
                     handler(nullptr);
                 });
             }
@@ -3844,45 +3911,66 @@ void LayoutParser::parseComponents(const json& j) {
     popJsonPath();
 }
 
+// P0-109：占位符取值（instance 非 null 优先 → default 非 null 回退；无值返回 nullptr）
+static const json* findPlaceholderValue(const string& name, const json& props, const json& instanceJ) {
+    if (instanceJ.contains(name) && !instanceJ[name].is_null()) return &instanceJ[name];
+    if (props.contains(name) && props[name].contains(PropertyNames::kJsonDefault) &&
+        !props[name][PropertyNames::kJsonDefault].is_null())
+        return &props[name][PropertyNames::kJsonDefault];
+    return nullptr;
+}
+static string trimPlaceholder(const string& s) {
+    size_t b = 0, e = s.size();
+    while (b < e && std::isspace(static_cast<unsigned char>(s[b]))) ++b;
+    while (e > b && std::isspace(static_cast<unsigned char>(s[e - 1]))) --e;
+    return s.substr(b, e - b);
+}
+
 void LayoutParser::replacePlaceholders(json& node, const json& props, const json& instanceJ) {
     if (node.is_string()) {
-        string val = node.get<string>();
-        size_t start = val.find("{{");
-        if (start != string::npos) {
-            size_t end = val.find("}}", start);
-            if (end != string::npos) {
-                string propName = val.substr(start + 2, end - start - 2);
-                // Look up in instanceJ first, then props default
-                if (instanceJ.contains(propName)) {
-                    const json& propVal = instanceJ[propName];
-                    if (propVal.is_string()) {
-                        val.replace(start, end - start + 2, propVal.get<string>());
-                        node = val;
-                    } else if (propVal.is_number()) {
-                        val.replace(start, end - start + 2, to_string(propVal.get<double>()));
-                        node = val;
-                    } else if (propVal.is_boolean()) {
-                        val.replace(start, end - start + 2, propVal.get<bool>() ? "true" : "false");
-                        node = val;
-                    }
-                } else if (props.contains(propName) && props[propName].contains(PropertyNames::kJsonDefault)) {
-                    // Use default value
-                    const json& def = props[propName][PropertyNames::kJsonDefault];
-                    if (def.is_string()) {
-                        val.replace(start, end - start + 2, def.get<string>());
-                        node = val;
-                    } else if (def.is_number()) {
-                        val.replace(start, end - start + 2, to_string(def.get<double>()));
-                        node = val;
-                    } else if (def.is_boolean()) {
-                        val.replace(start, end - start + 2, def.get<bool>() ? "true" : "false");
-                        node = val;
-                    }
-                } else {
-                    logWarn("placeholder \"{{" + propName + "}}\" not provided and no default");
+        const string orig = node.get<string>();
+        // P0-109：整串单占位（trim 后恰为 "{{name}}"）→ 继承值类型（number/bool 直传；string 保持字符串）
+        const string trimmed = trimPlaceholder(orig);
+        if (trimmed.size() > 4 && trimmed.rfind("{{", 0) == 0 &&
+            trimmed.compare(trimmed.size() - 2, 2, "}}") == 0) {
+            const string inner = trimmed.substr(2, trimmed.size() - 4);
+            if (inner.find("{{") == string::npos && inner.find("}}") == string::npos) {
+                const string name = trimPlaceholder(inner);
+                const json* val = findPlaceholderValue(name, props, instanceJ);
+                if (val && (val->is_number() || val->is_boolean() || val->is_string())) {
+                    node = *val;   // 类型化直传（0/false 原样；不递归）
+                    return;
+                }
+                if (!val) {
+                    logWarn("placeholder \"{{" + name + "}}\" not provided and no default");
+                    return;        // 保留字面占位
                 }
             }
         }
+        // P0-109：单遍扫描原串构造输出——替换结果不再扫描（保证不递归）
+        string out;
+        out.reserve(orig.size());
+        size_t pos = 0;
+        while (pos < orig.size()) {
+            size_t start = orig.find("{{", pos);
+            if (start == string::npos) { out.append(orig, pos, string::npos); break; }
+            out.append(orig, pos, start - pos);
+            size_t end = orig.find("}}", start + 2);
+            if (end == string::npos) { out.append(orig, start, string::npos); break; }
+            const string name = trimPlaceholder(orig.substr(start + 2, end - start - 2));
+            const json* val = findPlaceholderValue(name, props, instanceJ);
+            if (val) {
+                if (val->is_string()) out.append(val->get<string>());
+                else if (val->is_number()) out.append(to_string(val->get<double>()));
+                else if (val->is_boolean()) out.append(val->get<bool>() ? "true" : "false");
+                else out.append(orig, start, end - start + 2);
+            } else {
+                logWarn("placeholder \"{{" + name + "}}\" not provided and no default");
+                out.append(orig, start, end - start + 2);
+            }
+            pos = end + 2;
+        }
+        node = out;
     } else if (node.is_object()) {
         for (auto it = node.begin(); it != node.end(); ++it) {
             replacePlaceholders(it.value(), props, instanceJ);

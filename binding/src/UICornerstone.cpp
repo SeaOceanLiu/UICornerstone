@@ -496,6 +496,12 @@ bool UICornerstone::ContextMenuAddItem(Control& menu, const std::string& caption
     if (!m_impl->instance || !menu.Handle()) return false;
     return Dyn::API().fnContextMenuAddItem(m_impl->instance, menu.Handle(), caption.c_str(), shortcut.c_str()) != 0;
 }
+Control UICornerstone::ContextMenuAddItemEx(Control& menu, const std::string& caption, const std::string& shortcut) {
+    if (!m_impl->instance || !menu.Handle() || !Dyn::API().fnContextMenuAddItemEx) return Control();
+    UIControlHandle h = Dyn::API().fnContextMenuAddItemEx(
+        m_impl->instance, menu.Handle(), caption.c_str(), shortcut.c_str());
+    return h ? MakeControl(h) : Control();
+}
 bool UICornerstone::ContextMenuAddSeparator(Control& menu) {
     if (!m_impl->instance || !menu.Handle()) return false;
     return Dyn::API().fnContextMenuAddSeparator(m_impl->instance, menu.Handle()) != 0;
@@ -713,6 +719,20 @@ std::string UICornerstone::TreeViewGetSelectedId(Control& tree) {
             return std::string(buf);
     }
     return std::string();
+}
+
+std::string UICornerstone::TreeViewGetNodeAt(Control& tree, float x, float y) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewGetNodeAt)
+        return std::string();   // 旧 DLL 无该入口 → 空串（不崩溃）
+    // 先查后取（snprintf 语义；避免静默截断成错误 id）
+    int need = Dyn::API().fnTreeViewGetNodeAt(
+        m_impl->instance, tree.Handle(), x, y, nullptr, 0);
+    if (need <= 0) return std::string();
+    std::vector<char> buf(static_cast<size_t>(need));
+    int got = Dyn::API().fnTreeViewGetNodeAt(
+        m_impl->instance, tree.Handle(), x, y, buf.data(), need);
+    if (got <= 0) return std::string();
+    return std::string(buf.data());
 }
 
 // ── EditBox / TextArea 文本操作 ──

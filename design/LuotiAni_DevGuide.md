@@ -1,4 +1,4 @@
-# LuotiAni 动画开发手册
+﻿# LuotiAni 动画开发手册
 
 LuotiAni 是 UICornerstone 内置的关键帧动画引擎。它把一份 JSON 描述文件（`.jsonc`）在加载时**烘焙**为全部帧的贴图，播放时只做"按毫秒跳帧"——运行时零插值、零计算。本文从原理讲起，带你从 0 做出第一个动画。
 
@@ -218,7 +218,7 @@ SharedSurface canvas = ani->getFrameCanvas(7);  // 该帧合成后的画布
 |------|------|------|------|
 | `name` | string | ✓ | 图层名 |
 | `type` | string | ✓ | `image`（当前仅 image 走通；shape/text 待扩展，跳过） |
-| `src` | string | ✓ | 相对资源根的贴图路径 |
+| `src` | string | ✓ | 贴图路径：资源包 ID（相对资源根）或**同 jsonc 目录相对短名**（P0-102） |
 | `width/height` | number | — | 显式拉伸尺寸；都缺省保持贴图原始尺寸 |
 | `opacity` | number | ✓ | 图层级不透明度百分比。**见 §5 陷阱**：建议关键帧始终显式定义透明度 |
 | `blendMode` | string | ✓ | 见下 |
@@ -259,7 +259,7 @@ SharedSurface canvas = ani->getFrameCanvas(7);  // 该帧合成后的画布
 | 9 | **异常风格**：加载/烘焙失败 throw C 字符串（fopen、JSON、资源缺失）。C ABI 入口已捕获（返回 nullptr / 属性返回 0）；C++ 直接使用时注意 try/catch |
 | 10 | **内存**：烘焙 = 全帧贴图。长动画/大画布注意（60 帧 512×512 ≈ 63MB） |
 | 11 | **尺寸**：控件 w/h 传 0 → 回退 `view` 尺寸；不是贴图自然尺寸 |
-| 12 | **资源路径**：`src` 与加载路径均相对资源根（默认 `subModules/assets`）；代码侧传相对路径会自动拼 `GetBasePath` |
+| 12 | **资源路径**：`src` 解析链（P0-102）= 资源包（provider）优先 → **jsonc 所在目录**（相对短名）→ `<exeDir>/assets` → `<exeDir>`；加载路径相对资源根（默认 `subModules/assets`），代码侧传相对路径自动拼 `GetBasePath`；全程 UTF-8 感知（中文/超长路径可用） |
 
 ---
 

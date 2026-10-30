@@ -86,8 +86,8 @@ UICornerstone_StatusBarAddItem(g_inst, bar, "branch", u8"main", 0);
 <h2>4.22.5 C++ Binding 样例</h2>
 
 <pre><code>auto bar = ui->CreateStatusBar(0, 876, 1400, 24);
-bar.SetString(PropertyNames::kItemId, "branch");   // 段定位后属性分发
-bar.SetInt(PropertyNames::kFontSize, 13);   // int 通道</code></pre>
+ui->StatusBarSetItemText(bar, "branch", "main");   // 段级文本
+bar.SetInt(PropertyNames::kFontSize, 13);          // 控件级字号</code></pre>
 
 <h2>4.22.6 C ABI 调用样例</h2>
 

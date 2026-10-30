@@ -5,7 +5,7 @@
 > 前置：P0-87（菜单项 id 注册）/ P0-88（菜单关闭链 ownerBar）已实施并同步
 > 状态：**已放行，已实施**（2026-10-17；复核：`requirements/P098_099_100_复核意见.md`——通过）
 > 复核勘误：`MenuPanel::getItems()` **已存在**（include/Menu.h:170）——§2.3"需补"作废。
-> 实施备注（2026-10-17）：① ①b 按复核补丁逐字落地（Normal 无条件关链 + `m_onClick`/SetCallback 并存均触发）；② ActionThunk 落地（Impl::actions 载体调整；动作内 `ctl.GetId()`/`GetString()` 已验证）；③ `MenuPanelRemoveItem` 落地（id 注销 + 子菜单链 hide + 断父 + 重算；移除后句柄失效——Debug 下对失效句柄调用 API 会断言，属 P0-84c 既有语义）；④ setCaption 经 `getParent()` 定位面板重算（项在 addItem 时已 setParent，无需新成员）；⑤ 验证：引擎探针 `temp_p098_099_100_probe` 1~3 全过；**binding 探针** `temp_p098_binding_probe`（RegisterAction→GetId='btnA'/GetString='B1'）OK；全量回归仅 4 项预存。
+> 实施备注（2026-10-17）：① ①b 按复核补丁逐字落地（Normal 无条件关链 + `m_onClick`/SetCallback 并存均触发）；② ActionThunk 落地（Impl::actions 载体调整；动作内 `ctl.GetId()`/`GetString()` 已验证）；③ `MenuPanelRemoveItem` 落地（id 注销 + 子菜单链 hide + 断父 + 重算；移除后句柄失效——Debug 下对失效句柄调用 API 会断言，属 P0-84c 既有语义）；④ setCaption 经 `getParent()` 定位面板重算（项在 addItem 时已 setParent，无需新成员）；⑤ 验证：引擎探针 `temp_p098_099_100_probe` 1~3 全过；**binding 探针** `temp_p098_binding_probe`（RegisterAction→GetId='btnA'/GetString='B1'）OK；全量回归仅 4 项预存。⑥ **后续语义变更（P0-103）**：click 回调改为**延迟一帧**执行（关链仍同步）——详见 `P103_MenuClickDeferred_Design.md`。
 
 ---
 

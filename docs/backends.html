@@ -17,7 +17,7 @@
 
 <p>UICornerstone 的界面代码<strong>与后端无关</strong>：同一份业务代码，仅编译开关 / 实例创建参数不同即可切换后端。</p>
 
-<h2>5.7.1 三后端对比</h2>
+<h2>5.8.1 三后端对比</h2>
 
 <table>
 <tr><th></th><th>SDL3（推荐）</th><th>SFML</th><th>raylib</th></tr>
@@ -30,7 +30,7 @@
 <tr><td>vsync 配置</td><td><code>vsync</code> + <code>swap-ratio</code></td><td><code>vsync</code></td><td><code>vsync</code>（创建期全局）</td></tr>
 </table>
 
-<h2>5.7.2 编译时选择后端</h2>
+<h2>5.8.2 编译时选择后端</h2>
 
 <pre><code>:: Windows
 build_scripts\build.bat sdl3        :: SDL3 后端
@@ -41,7 +41,7 @@ build_scripts\build.bat raylib      :: Raylib 后端
 cmake -B build -DUICORNERSTONE_BACKEND=SFML -DCMAKE_BUILD_TYPE=Debug
 cmake -B build -DUICORNERSTONE_BACKEND=RAYLIB -DCMAKE_BUILD_TYPE=Debug</code></pre>
 
-<h2>5.7.3 运行时选择后端</h2>
+<h2>5.8.3 运行时选择后端</h2>
 
 <pre><code>// C ABI：从插件名创建实例（同一 DLL 内含全部后端？否——按构建时后端）
 UICornerstone_CreateInstanceFromPlugin("sfml", NULL);
@@ -56,7 +56,7 @@ sample_cpp_hosted.exe backend=sfml auto=4</code></pre>
 
 <div class="note">「运行时选择」指插件加载路径的写法统一；实际可用的后端取决于编译时构建的 DLL/库。Binding 的 <code>Config</code> 通过 <code>backendSearchPath</code> / <code>coreLibraryDir</code> 指定动态库搜索位置，样例可内置多后端 DLL 按参数加载。</div>
 
-<h2>5.7.4 后端能力位与条件化</h2>
+<h2>5.8.4 后端能力位与条件化</h2>
 
 <pre><code>uint32_t caps = UICornerstone_GetBackendCapabilities(g_inst);
 bool multiWindow = (caps &amp; UICORN_BACKEND_CAP_MULTI_WINDOW) != 0;
@@ -65,7 +65,7 @@ else { /* headless 降级：Window::isHeadless()，跳过渲染 */ }</code></pre
 
 <p>详见 <a href="advanced.html">5.2 多视口与多窗口</a> 与 <a href="appendix/backend-config.html">10 后端差异及后端配置</a>。</p>
 
-<h2>5.7.5 后端配置键（运行时）</h2>
+<h2>5.8.5 后端配置键（运行时）</h2>
 
 <pre><code>// C ABI：SetBackendConfig / SetBackendConfigInt / SetBackendConfigBool
 // inst == NULL 时为创建期全局默认（raylib 的 vsync 必须这样设置）

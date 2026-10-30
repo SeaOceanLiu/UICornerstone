@@ -5,6 +5,7 @@
 #include "FocusManager.h"
 #include "Bench.h"
 #include <algorithm>
+#include <cctype>
 
 // ==================== PresetCell ====================
 
@@ -123,7 +124,9 @@ void ColorPicker::ensurePopupBuilt() {
     m_dialog->setOnClose([this](shared_ptr<Popup>, DialogResult r) {
         if (r == DialogResult::Cancelled) {
             m_color = m_committedColor;
+            m_colorExpression = m_committedExpression;   // P0-110
             syncUIFromColor();
+            syncExpressionDisplay();
         }
     });
     m_dialog->setCloseOnClickOutside(true);
@@ -308,6 +311,7 @@ void ColorPicker::openPopup() {
     m_dialog->setAbsolute(pr);
     layoutButtons();
     m_committedColor = m_color;
+    m_committedExpression = m_colorExpression;   // P0-110：打开时记录基线
     syncUIFromColor();
     m_dialog->open();
     if (m_hexInput)
@@ -405,8 +409,11 @@ void ColorPicker::createHexInput() {
     m_hexInput = make_shared<EditBox>(m_dialog.get(),
         SRect(hexX, hexY, hexW, inputH), 1.0f, 1.0f);
     m_hexInput->setText(m_color.toRRGGBBAA());
+    // P0-110 R2：回车等价「确定」（提交并关闭）。通常 ConfirmPopup 先截获 Return，
+    // 此处仅覆盖弹窗未提供确认按钮的配置，保证语义一致。
     m_hexInput->setOnEnter([this](shared_ptr<Control>) {
-        onHexInputChanged(m_hexInput->getText());
+        onOK();
+        if (m_dialog) m_dialog->close(DialogResult::Confirmed);
     });
     m_hexInput->create();
     m_dialog->addControl(m_hexInput);
@@ -547,8 +554,8 @@ void ColorPicker::setPresetLayout(int cols, int rows) {
 
 void ColorPicker::syncUIFromColor() {
     string h8 = m_color.toRRGGBBAA();
-    if (m_hexInput && m_hexInput->getText() != h8)
-        m_hexInput->setText(h8);
+    if (m_hexInput && m_colorExpression.empty() && m_hexInput->getText() != h8)
+        m_hexInput->setText(h8);   // P0-110：表达式非空时保留原文
     if (m_previewSwatch) {
         m_previewSwatch->setNormalStateBGColor(m_color);
         m_previewSwatch->setDisabledStateBGColor(m_color);
@@ -558,7 +565,7 @@ void ColorPicker::syncUIFromColor() {
         m_closedSwatch->setDisabledStateBGColor(m_color);
     }
     if (m_closedLabel)
-        m_closedLabel->setCaption(m_color.toHex(true));
+        m_closedLabel->setCaption(m_colorExpression.empty() ? m_color.toHex(true) : m_colorExpression);
     m_isSyncing = true;
     if (m_sliderR) m_sliderR->setValue((float)m_color.redByte());
     if (m_sliderG) m_sliderG->setValue((float)m_color.greenByte());
@@ -572,6 +579,7 @@ void ColorPicker::syncUIFromColor() {
 
 void ColorPicker::syncColorFromSliders() {
     if (m_isSyncing || !m_sliderR || !m_sliderG || !m_sliderB || !m_sliderA) return;
+    clearExpression(true);   // P0-110：用户取色 → 清表达式
     int r = (std::min)((std::max)((int)m_sliderR->getValue(), 0), 255);
     int g = (std::min)((std::max)((int)m_sliderG->getValue(), 0), 255);
     int b = (std::min)((std::max)((int)m_sliderB->getValue(), 0), 255);
@@ -598,10 +606,43 @@ void ColorPicker::syncColorFromSliders() {
 // ==================== Event Handlers ====================
 
 void ColorPicker::onPresetClicked(const SColor& color) {
+    clearExpression(true);   // P0-110：用户取色 → 清表达式
     setColor(color);
 }
 
-void ColorPicker::onHexInputChanged(const string& text) {
+// P0-110 R2：提交路径（确定/回车确认时由 onOK 调用）。
+// 编辑过程中的文本不写任何状态（不更新 current/committed、不发事件）；取消/ESC 无需回滚。
+void ColorPicker::commitHexInput(const string& text) {
+    if (m_allowExpression) {
+        // P0-110：空文本 = 无表达式（原表达式非空 → 发 expression-changed("")）
+        if (text.empty()) {
+            clearExpression(true);
+            return;
+        }
+        // 合法 hex（允许空白与前导 #）→ 用户取色：清表达式 + 应用颜色
+        string hex;
+        bool exprLike = false;
+        for (char c : text) {
+            if (c == '#' || std::isspace(static_cast<unsigned char>(c))) continue;
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+                hex += c;
+            else { exprLike = true; break; }
+        }
+        SColor c;
+        if (!exprLike && SColor::fromRRGGBBAA(hex, c)) {
+            clearExpression(true);
+            m_color = c;
+            syncUIFromColor();
+            return;
+        }
+        // 非 hex → 保留原文作为表达式；提交（Enter/OK）时通知宿主
+        const bool changed = (m_colorExpression != text) || (m_committedExpression != text);
+        m_colorExpression = text;
+        m_committedExpression = text;
+        syncExpressionDisplay();
+        if (changed) fireExpressionChanged(text);
+        return;
+    }
     string filtered;
     for (char c : text) {
         if ((c >= '0' && c <= '9') ||
@@ -614,6 +655,38 @@ void ColorPicker::onHexInputChanged(const string& text) {
         m_color = c;
     }
     syncUIFromColor();
+}
+
+// P0-110：清空表达式（用户取色 fire=true 发 expression-changed("")；程序化关闭 fire=false 静默）
+void ColorPicker::clearExpression(bool fireEvent) {
+    if (m_colorExpression.empty() && m_committedExpression.empty()) {
+        syncExpressionDisplay();
+        return;
+    }
+    m_colorExpression.clear();
+    m_committedExpression.clear();
+    syncExpressionDisplay();
+    if (fireEvent) fireExpressionChanged("");
+}
+
+void ColorPicker::fireExpressionChanged(const string& expr) {
+    fireCCallback(PropertyNames::kEventExpressionChanged, CCallbackData::String, expr.c_str());
+    if (m_onExpressionChanged)
+        m_onExpressionChanged(std::dynamic_pointer_cast<ColorPicker>(getThis()), expr);
+}
+
+// P0-110：hex 文本域/关闭态标签显示（表达式优先）
+void ColorPicker::syncExpressionDisplay() {
+    if (!m_colorExpression.empty()) {
+        if (m_hexInput && m_hexInput->getText() != m_colorExpression)
+            m_hexInput->setText(m_colorExpression);
+        if (m_closedLabel) m_closedLabel->setCaption(m_colorExpression);
+    } else {
+        const string h8 = m_color.toRRGGBBAA();
+        if (m_hexInput && m_hexInput->getText() != h8)
+            m_hexInput->setText(h8);
+        if (m_closedLabel) m_closedLabel->setCaption(m_color.toHex(true));
+    }
 }
 
 void ColorPicker::onSliderRChanged(shared_ptr<Slider> s, float val) {
@@ -633,8 +706,14 @@ void ColorPicker::onSliderAChanged(shared_ptr<Slider> s, float val) {
 }
 
 void ColorPicker::onOK() {
-    if (m_hexInput) onHexInputChanged(m_hexInput->getText());
+    if (m_hexInput) commitHexInput(m_hexInput->getText());
+    const bool exprMode = m_allowExpression && !m_colorExpression.empty();
     m_committedColor = m_color;
+    m_committedExpression = m_colorExpression;
+    if (exprMode) {
+        // P0-110：表达式提交 → 仅 expression-changed（已在输入处理内发）；不回写 hex、不发 color-changed
+        return;
+    }
     if (m_onColorChanged)
         m_onColorChanged(std::dynamic_pointer_cast<ColorPicker>(getThis()), m_committedColor);
     ColorPayload cp = { m_committedColor.redByte(), m_committedColor.greenByte(),
@@ -644,7 +723,9 @@ void ColorPicker::onOK() {
 
 void ColorPicker::onCancel() {
     m_color = m_committedColor;
+    m_colorExpression = m_committedExpression;   // P0-110：恢复已提交表达式
     syncUIFromColor();
+    syncExpressionDisplay();
 }
 
 // ── Property system overrides ──
@@ -671,6 +752,11 @@ int ColorPicker::setColorProperty(const char* prop, SColor color) {
 }
 
 int ColorPicker::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kAllowExpression) == 0) {   // P0-110
+        m_allowExpression = (value != 0);
+        if (!m_allowExpression) clearExpression(false);   // 程序化关闭：静默清空（复核 §8.3 选项 1）
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kShadow) == 0) {   // P0-26：关闭态文字阴影开关
         if (m_closedLabel) { m_closedLabel->setShadow(value != 0); return 1; }
         return 0;
@@ -705,6 +791,16 @@ int ColorPicker::setEnumProperty(const char* prop, const char* value) {
 }
 
 int ColorPicker::setStringProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kAllowExpression) == 0) {   // P0-110：string 通道别名（"0"=关，其余非空=开）
+        const bool on = (value != nullptr) && (strcmp(value, "0") != 0) && (value[0] != '\0');
+        return setBoolProperty(PropertyNames::kAllowExpression, on ? 1 : 0);
+    }
+    if (strcmp(prop, PropertyNames::kColorExpression) == 0) {   // P0-110：外部设置 → 同步 committed
+        m_colorExpression = (value != nullptr) ? value : "";
+        m_committedExpression = m_colorExpression;
+        syncExpressionDisplay();
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kColor) == 0) { setColor(string(value)); return 1; }
     return Panel::setStringProperty(prop, value);
 }
@@ -718,6 +814,8 @@ int ColorPicker::getColorProperty(const char* prop, SColor& out) {
 }
 
 int ColorPicker::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kAllowExpression) == 0) { out = m_allowExpression ? 1 : 0; return 1; }   // P0-110
+    if (strcmp(prop, PropertyNames::kPopupVisible) == 0)    { out = isPopupVisible() ? 1 : 0; return 1; }    // 补齐映射表既有声明
     if (strcmp(prop, PropertyNames::kShadow) == 0) {
         if (m_closedLabel) { out = m_closedLabel->isShadowEnabled() ? 1 : 0; return 1; }
         return 0;
@@ -752,6 +850,7 @@ int ColorPicker::getEnumProperty(const char* prop, const char*& out) {
 }
 
 int ColorPicker::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kColorExpression) == 0) { out = m_colorExpression.c_str(); return 1; }   // P0-110
     return Panel::getStringProperty(prop, out);
 }
 

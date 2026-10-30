@@ -23,7 +23,7 @@
 <tr><th>函数</th><th>说明</th></tr>
 <tr><td><code>UICornerstone_CreateInstance(label, config)</code></td><td>创建 UI 实例（config 可 NULL）</td></tr>
 <tr><td><code>UICornerstone_CreateInstanceFromPlugin(name, config)</code></td><td>从后端插件名创建（"sdl3"/"sfml"/"raylib"）</td></tr>
-<tr><td><code>UICornerstone_CreateViewport(inst, x, y, w, h)</code></td><td>在当前窗口内创建子视口（单窗口多视口，见 <a href="../advanced/multiwindow.html">5.2</a>）</td></tr>
+<tr><td><code>UICornerstone_CreateViewport(parent, (UIRect){ x, y, w, h })</code></td><td>在当前窗口内创建子视口（单窗口多视口，见 <a href="../advanced/multiwindow.html">5.2</a>）</td></tr>
 <tr><td><code>UICornerstone_DestroyInstance(inst)</code></td><td>销毁实例</td></tr>
 <tr><td><code>UICornerstone_GetBackendCapabilities(inst)</code></td><td>能力位（UICORN_BACKEND_CAP_*，含 WINDOW_SET_SIZE：运行期 SetWindowSize 可用）</td></tr>
 <tr><td><code>UICornerstone_GetWindowSize(inst, &amp;w, &amp;h)</code></td><td>运行期窗口尺寸（headless 返回 0×0；v1.1.1 增）</td></tr>
@@ -111,6 +111,7 @@
 <tr><td><code>UICornerstone_CreateTreeView(inst, x, y, w, h, xScale, yScale)</code></td><td>TreeView（节点经 <code>SetString("items", json)</code> 填充，见 7 TreeView）</td></tr>
 <tr><td><code>UICornerstone_CreateWinFrame(inst, title, x, y, w, h, xScale, yScale)</code></td><td>WinFrame</td></tr>
 <tr><td><code>UICornerstone_MenuBarAddMenu / MenuPanelAddItem / MenuPanelAddSeparator / MenuPanelRemoveItem / MenuItemSetSubMenu</code></td><td>菜单组装；<code>MenuPanelRemoveItem</code>（P0-98②）完整移除（子菜单链关闭 + id 注销 + 重算），移除后句柄失效</td></tr>
+<tr><td><code>UICornerstone_ContextMenuAddItemEx(inst, menu, caption, shortcut)</code></td><td>右键菜单：创建条目并**返回条目句柄**（NULL=失败；旧 <code>ContextMenuAddItem</code> 返回 0/1 保留）——随后 <code>SetCallback(item, "click", ...)</code> 绑定动作（P0-105；延迟一帧语义）</td></tr>
 <tr><td><code>UICornerstone_MenuBarRemoveMenu(inst, bar, caption)</code></td><td>菜单移除（1=移除 0=未找到；面板保活可再挂载）</td></tr>
 </table>
 
@@ -130,6 +131,7 @@
 <tr><td><code>TabMovePage(inst, tab, from, to)</code></td><td>页序调整（P0-91；完整迁移 title/page/leadingControl，currentIndex 重映射；1=移动 0=越界/同位）</td></tr>
 <tr><td><code>TabGetItemRect(inst, tab, index, &amp;x,&amp;y,&amp;w,&amp;h)</code></td><td>页签项矩形（P0-91；<b>TabControl 局部逻辑坐标</b>；1=成功 0=越界）</td></tr>
 <tr><td><code>TreeViewMoveNode(inst, tree, id, newParentId, index)</code></td><td>节点迁移（P0-94；换序/换父，完整子树，index&lt;0=追加）</td></tr>
+<tr><td><code>TreeViewGetNodeAt(inst, tree, x, y, buf, cap)</code></td><td>窗口坐标→行节点 id（P0-107：内容区扣除滚动条；空白/滚动条/越界返回 0；snprintf 式返回所需长度；纯查询不改选中）</td></tr>
 <tr><td><code>ListViewMoveRow(inst, lv, from, to)</code></td><td>行换序（P0-94；from→to 最终索引）</td></tr>
 <tr><td>拖拽框架（P0-94；教程见 <a href="../advanced/drag-drop.html">5.7</a>）</td><td>属性 <code>draggable</code>/<code>droppable</code>/<code>reorderable</code>/<code>drag-threshold</code>/<code>drag-visual</code>（通用 SetBool/SetFloat；<code>reorderable</code> 自含：无需 draggable/droppable）；事件 <code>drag-start</code>/<code>drag-over</code>/<code>drop</code>/<code>drag-end</code>/<code>reordered</code>/<code>tab-reordered</code>（SetCallback）；载荷 <code>UIEventData.data.drag.{payload,hint,dropped}</code>（<code>UIDragPayload</code>/<code>UIDropHint</code>，kind 见 <code>UI_DRAG_KIND_*</code>/<code>UI_DROP_HINT_*</code>）；<code>drag-over</code> 内 <code>SetBool("drag-accept",0)</code> 拒绝；<code>drag-active</code> 只读</td></tr>
 <tr><td><code>ShapeSetPoints / ShapeMapToDrawPoint / ShapeAddPrimitive / ShapeSetPrimitiveColor / ShapeSetPrimitiveFloat / ShapeSetPrimitivePoints / ShapeClearPrimitives</code></td><td>Shape 顶点/映射/多图元</td></tr>
@@ -148,8 +150,8 @@
 <tr><td><code>UICornerstone_SetFloat(inst, ctl, name, float)</code></td><td><code>UICornerstone_GetFloat(inst, ctl, name, float&amp;)</code></td><td>浮点属性</td></tr>
 <tr><td><code>UICornerstone_SetInt(inst, ctl, name, int)</code></td><td><code>UICornerstone_GetInt(inst, ctl, name, int&amp;)</code></td><td>整数属性</td></tr>
 <tr><td><code>UICornerstone_SetPtr(inst, ctl, name, void*)</code></td><td><code>UICornerstone_GetPtr(inst, ctl, name, void**)</code></td><td>指针属性</td></tr>
-<tr><td><code>UICornerstone_SetStateColor(inst, ctl, name, n, h, p, d)</code></td><td><code>UICornerstone_GetStateColor(inst, ctl, name, UIColor[4])</code></td><td>状态色（normal/hover/pressed/disabled）</td></tr>
-<tr><td><code>UICornerstone_SetString(inst, ctl, name, const char*)</code></td><td><code>UICornerstone_GetString(inst, ctl, name, char*, maxLen)</code></td><td>字符串属性（Get 用缓冲区，返回 1 成功 / 0 失败）</td></tr>
+<tr><td><code>UICornerstone_SetStateColor(inst, ctl, name, UIStateColor)</code></td><td><code>UICornerstone_GetStateColor(inst, ctl, name, UIStateColor*)</code></td><td>状态色（UIStateColor{normal,hover,pressed,disabled}）</td></tr>
+<tr><td><code>UICornerstone_SetString(inst, ctl, name, const char*)</code></td><td><code>UICornerstone_GetString(inst, ctl, name, char* out, int cap, int* outLen)</code></td><td>字符串属性（P0-108：outLen 返回完整字节长；out=NULL 仅查询长度；返回 1 成功（空串 outLen=0）/ 0 失败且不改写 outLen；cap&gt;0 时 NUL 截断）</td></tr>
 </table>
 
 <h2 id="treeview-item">8.4.1 tree-view item 级属性（item-id 定位模式）</h2>
@@ -221,7 +223,7 @@ UICornerstone_SetFloat( inst, tree, "indent-width", 20.0f);</code></pre>
 <tr><td><code>UICornerstone_AddChildControl(inst, parent, child)</code></td><td>挂载/重挂子控件（P0-50：任意旧父自动摘除，跨容器 reparent 无双挂载；非 Panel 父/自身/祖先环 → 静默 no-op）</td></tr>
 <tr><td><code>UICornerstone_RemoveChild(inst, parent, child)</code></td><td>摘除子控件（P0-50：<b>不销毁</b>，实例级保活可反复挂载；要求 child 当前父 == parent；返回 1/0）</td></tr>
 <tr><td><code>UICornerstone_DestroyControl(inst, ctl)</code></td><td>销毁控件</td></tr>
-<tr><td><code>UICornerstone_GetControlId(inst, ctl, char*, maxLen)</code></td><td>控件 id（字符串属性 <code>id</code> 的 C ABI 通道）</td></tr>
+<tr><td><code>const char* UICornerstone_GetControlId(inst, ctl)</code></td><td>控件 id（只读；字符串属性 <code>id</code> 的 C ABI 通道）</td></tr>
 <tr><td><code>UICornerstone_GetControlType(inst, ctl, char*, maxLen)</code></td><td>控件运行时类型名（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code>；<code>"menu-item"</code> / <code>"menu-panel"</code> / <code>"handle-control"</code> 仅查询返回，实现见 design/CABI_Property_Design.md §8.2）</td></tr>
 <tr><td><code>UICornerstone_SetRect(inst, ctl, x, y, w, h)</code> / <code>GetRect(inst, ctl, float* x, *y, *w, *h)</code></td><td>位置尺寸读/写（rect 不含缩放）</td></tr>
 </table>
@@ -275,19 +277,20 @@ UICornerstone_GetBackendConfig(inst, key, char*, len) /* 只读查询 */</code><
 
 <p>注册内存资源后，以 <code>provider:name</code> 前缀在工厂 / 布局 / 属性（<code>font-file</code> 等）中引用，引擎不再访问磁盘；未命中注册名时回退文件系统查找。详细设计见 <code>design/ResourceProvider_Design.md</code>。</p>
 
+<div class="note">以下接口均为<strong>后端回调表 <code>UIBackendCallbacks</code> 成员</strong>（经 <code>GetUIBackendCallbacks()</code>（静态链接）或插件加载返回的指针访问，非独立导出符号）；Binding 封装见 11.3 <code>RegisterResource</code> / <code>AdoptResource</code>。</div>
 <table>
-<tr><th>函数</th><th>说明</th></tr>
-<tr><td><code>int memoryProviderAdopt(provider, name, data, len, freeFn)</code></td><td>零拷贝注册：引擎仅引用 data，覆盖/销毁时经 freeFn 释放（null → 默认 free）</td></tr>
+<tr><th>回调成员</th><th>说明</th></tr>
+<tr><td><code>UIResourceProviderHandle createMemoryResourceProvider(void)</code></td><td>创建内存注册表</td></tr>
 <tr><td><code>int memoryProviderRegister(provider, name, data, len)</code></td><td>拷贝注册：引擎复制字节，调用方可立即释放</td></tr>
-<tr><td><code>int setResourceProvider(inst, role, provider)</code></td><td>挂载到实例（角色 <code>"resourceProviders"</code>）；同名 provider 覆盖旧条目并先释放</td></tr>
-<tr><td><code>UIMemoryResourceProvider* createMemoryResourceProvider(alloc, freeFn, user)</code></td><td>创建内存 provider（alloc/freeFn 可 null → 默认 malloc/free）</td></tr>
+<tr><td><code>int memoryProviderAdopt(provider, name, data, len, freeFn)</code></td><td>零拷贝注册：引擎仅引用 data，覆盖/销毁时经 freeFn 释放（null → 默认 free）</td></tr>
+<tr><td><code>int setResourceProvider(inst, provider)</code></td><td>挂载到实例；同名 provider 覆盖旧条目并先释放</td></tr>
 </table>
 
-<pre><code>/* 直连 C ABI 用法 */
-UIMemoryResourceProvider* rp = createMemoryResourceProvider(NULL, NULL, NULL);
-memoryProviderAdopt(rp, "cross-down", pngData, pngLen, NULL);   /* 零拷贝引用 */
-setResourceProvider(inst, "resourceProviders", rp);
-UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0);</code></pre>
+<pre><code>/* 后端回调表（cbs = GetUIBackendCallbacks() 或插件提供的回调表） */
+UIResourceProviderHandle rp = cbs->createMemoryResourceProvider();
+cbs->memoryProviderAdopt(rp, "cross-down", pngData, pngLen, NULL);   /* 零拷贝引用 */
+cbs->setResourceProvider(inst, rp);
+UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0, 1.0f, 1.0f);</code></pre>
 
 <div class="note">adopt 契约：调用方须保持缓冲有效直至实例销毁；C++ Binding 的 <code>RegisterResource</code> / <code>AdoptResource</code> 封装了懒创建 + 自动挂载（见 11.3）。</div>
 

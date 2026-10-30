@@ -6,6 +6,7 @@
 #include "DynamicApi.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 // 访问 Impl 中的回调 userData 注册表（ControlState::ownerImpl 指向 UICornerstone::Impl*）
@@ -80,10 +81,22 @@ float Control::GetFloat(const char* prop) const {
     return v;
 }
 std::string Control::GetString(const char* prop) const {
-    char buf[256];
-    buf[0] = '\0';
-    if (IsValid()) UICornerstone::Dyn::API().fnGetString(m_state->instance, m_state->handle, prop, buf, sizeof(buf));
-    return std::string(buf);
+    if (!IsValid() || !UICornerstone::Dyn::API().fnGetString) return std::string();
+    int len = 0;
+    char stackBuf[512];
+    // P0-108：短文本快路径（1 次 C ABI；len=511 时 cap=512 可完整写入 + NUL）
+    if (!UICornerstone::Dyn::API().fnGetString(m_state->instance, m_state->handle, prop,
+                                               stackBuf, (int)sizeof(stackBuf), &len))
+        return std::string();
+    if (len == 0) return std::string();
+    if (len < (int)sizeof(stackBuf)) return std::string(stackBuf, (size_t)len);
+    // 长文本：按 len+1 精确分配再取（复核：got 可能大于 len，读取时取 min 防越界）
+    std::vector<char> buf((size_t)len + 1);
+    int got = 0;
+    if (!UICornerstone::Dyn::API().fnGetString(m_state->instance, m_state->handle, prop,
+                                               buf.data(), (int)buf.size(), &got))
+        return std::string();
+    return std::string(buf.data(), (size_t)((got < len) ? got : len));
 }
 std::string Control::GetEnum(const char* prop) const {
     char buf[64];

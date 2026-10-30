@@ -48,7 +48,7 @@ typedef int   (*UISetFloatFn)(UIInstance, void*, const char*, float);
 typedef int   (*UISetIntFn)(UIInstance, void*, const char*, int);
 typedef int   (*UISetStringFn)(UIInstance, void*, const char*, const char*);
 typedef int   (*UISetPtrFn)(UIInstance, void*, const char*, void*);
-typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int   (*UIGetFloatFn)(UIInstance, void*, const char*, float*);
 typedef int   (*UIGetBoolFn)(UIInstance, void*, const char*, int*);
 typedef int   (*UISetCallbackFn)(UIInstance, void*, const char*, UIEventCallback, void*);
@@ -86,6 +86,7 @@ static UISetFloatFn    uiSetFloat    = nullptr;
 static UISetIntFn      uiSetInt      = nullptr;
 static UISetStringFn   uiSetString   = nullptr;
 static UIGetStringFn   uiGetString   = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetFloatFn    uiGetFloat    = nullptr;
 static UIGetBoolFn     uiGetBool     = nullptr;
 static UISetCallbackFn uiSetCallback = nullptr;
@@ -125,7 +126,7 @@ static void onButtonClick(void* ctl, const UIEventData* evt, void* userData) {
     if (!g_textAreaHandle || !uiGetString) return;
 
     char text[4096] = "";
-    uiGetString(g_inst, g_textAreaHandle, "text", text, sizeof(text));
+    uiGetString(g_inst, g_textAreaHandle, "text", text, sizeof(text), &g_gsLen);
 
     if (!g_winFrameHandle) {
         g_winFrameHandle = uiCreateWinFrame(
@@ -379,7 +380,7 @@ static void updateStatusLabels() {
 
     if (g_editHandle && uiGetString && g_edtStatus && uiSetString) {
         char text[4096] = "";
-        uiGetString(g_inst, g_editHandle, "text", text, sizeof(text));
+        uiGetString(g_inst, g_editHandle, "text", text, sizeof(text), &g_gsLen);
         size_t tlen = strlen(text);
         if (tlen > 32) {
             memcpy(buf, text, 32);
@@ -403,7 +404,7 @@ static void updateStatusLabels() {
 
     if (g_colorPickerHandle && uiGetString) {
         char hex[16];
-        uiGetString(g_inst, g_colorPickerHandle, "color", hex, sizeof(hex));
+        uiGetString(g_inst, g_colorPickerHandle, "color", hex, sizeof(hex), &g_gsLen);
     }
 
     if (g_splitterHandle && uiGetFloat) {

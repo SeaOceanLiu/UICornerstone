@@ -241,10 +241,20 @@ bool MenuItem::handleEvent(shared_ptr<Event> event) {
             if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Left) {
                 // P0-98①b：Normal 项无条件关链 + 发 click（m_onClick 与 SetCallback 并存均触发；
                 // 动态创建项无 m_onClick 也走统一属性系统回调，与 API 头文档语义一致）
+                // P0-103：关链保持同步（菜单立即进入关闭态）；回调入队延迟一帧执行
+                //（下一次 ProcessEvents 起始 flush——宿主模态对话框不遮挡菜单关闭呈现）
                 if (m_type == MenuItemType::Normal) {
                     closeMenuChain();
-                    if (m_onClick) m_onClick(dynamic_pointer_cast<MenuItem>(getThis()));
-                    fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr);
+                    UIContext* ctx = getContext();
+                    UIInstance owner = (ctx && ctx->owner) ? ctx->owner : ctx;
+                    if (owner != nullptr) {
+                        auto sender = dynamic_pointer_cast<MenuItem>(getThis());
+                        owner->deferredClicks.push_back([sender]() {
+                            if (!sender) return;
+                            if (sender->m_onClick) sender->m_onClick(sender);
+                            sender->fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr);
+                        });
+                    }
                 }
                 return true;
             }
@@ -1094,6 +1104,18 @@ MenuBar::~MenuBar() {
     // 仅实例存活期执行（退出期 m_context 可能已随 Instance 释放，BENCH 宏将解引用悬垂指针）
     if (UIContext::isActive(m_context)) {
         closeAllMenus();
+        // P0-104 R2：兜底遍历——任何仍附着 bench 的面板一律摘除
+        //（不依赖 m_activeIndex 条件；防 R1 残留/索引失配导致面板滞留 bench、栏销毁后 parent 悬垂）
+        Control* bench = BENCH;
+        if (bench != nullptr) {
+            for (auto& entry : m_entries) {
+                if (entry.panel && entry.panel->getParent() == bench) {
+                    entry.panel->hide();
+                    bench->removeControl(entry.panel);
+                    entry.panel->setParent(this);
+                }
+            }
+        }
     }
 }
 
@@ -1223,9 +1245,19 @@ shared_ptr<MenuPanel> MenuBar::detachMenu(const string& caption) {
     auto it = std::find_if(m_entries.begin(), m_entries.end(),
         [&caption](const MenuEntry& e) { return e.caption == caption; });
     if (it == m_entries.end()) return nullptr;
+    const int idx = (int)(it - m_entries.begin());
     auto panel = it->panel;
+    // P0-104 R1：开启态移除 → 完整 detach（hide + bench 摘除 + 父链还原 + watcher 注销）+ 状态复位
+    //（原实现仅 hide：面板滞留 bench 子级、m_activeIndex 残留指向已移除条目）
+    if (idx == m_activeIndex) {
+        detachMenuPanel(m_activeIndex);
+        m_activeIndex = -1;
+        m_menuMode = false;
+        m_hoveredIndex = -1;
+    }
     m_entries.erase(it);
-    if (panel) panel->hide();   // 防摘除时下拉处于展开态残留
+    if (panel) panel->hide();   // 防摘除时下拉处于展开态残留（非开启态路径）
+    if (m_activeIndex > idx) m_activeIndex--;   // 索引前移修正（防后续关闭路径错位）
     layoutEntries();
     return panel;
 }

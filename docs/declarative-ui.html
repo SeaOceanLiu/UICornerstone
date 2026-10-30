@@ -135,32 +135,35 @@ ui->LoadLayout(layoutJson);</code></pre>
 <pre><code>{
   "components": {
     "SearchBar": {
-      "props": { "placeholder": "Search...", "btnText": "Go" },
+      "props": {
+        "placeholder": { "type": "string", "default": "Search..." },
+        "btnText":     { "type": "string", "default": "Go" }
+      },
       "template": {
         "type": "panel", "layout": { "type": "h-flow", "gap": 4 },
         "children": [
-          { "type": "edit-box", "id": "$search", "rect": { "w": 200, "h": 30 },
-            "placeholder": "$props.placeholder" },
-          { "type": "button", "id": "$go", "rect": { "w": 60, "h": 30 },
-            "caption": "$props.btnText", "events": { "onClick": "onSearch" } }
+          { "type": "edit-box", "id": "search", "rect": { "x": 0, "y": 0, "w": 200, "h": 30 },
+            "placeholder": "{{placeholder}}" },
+          { "type": "button", "id": "go", "rect": { "x": 0, "y": 0, "w": 60, "h": 30 },
+            "caption": "{{btnText}}", "events": { "onClick": "onSearch" } }
         ]
       }
     }
   },
   "layouts": [
-    { "use": "SearchBar", "id": "topSearch",
-      "props": { "placeholder": "输入关键词", "btnText": "搜索" },
+    { "type": "SearchBar", "id": "topSearch",
+      "placeholder": "输入关键词", "btnText": "搜索",
       "rect": { "x": 20, "y": 20, "w": 300, "h": 40 } }
   ]
 }</code></pre>
 
-<div class="note">组件系统会将组件中的控件（<code>$id</code> 形式）实例化到 <code>layouts</code> 数组指定的布局中；事件处理器同样经 <code>RegisterAction</code> 注册。</div>
+<div class="note">实例化时 <code>type</code> 写组件名；模板内控件 id 自动加 <code>实例id__</code> 前缀（如 <code>topSearch__search</code>），事件键经 <code>remapEvents</code> 映射到实例事件。占位符语法为 <code>{{propName}}</code>（P0-109：整串占位按 props/default 类型直传 number/bool；混合串按字符串替换，替换结果不再递归）。</div>
 
-<p>组件实例支持<strong>数据绑定</strong>：<code>layouts</code> 条目上的 <code>bind</code> 对象把控件属性绑定到数据源键（默认单向 <code>oneway</code>；<code>twoway</code> 双向回写）：</p>
-<pre><code>{ "use": "SearchBar", "id": "topSearch",
+<p>普通控件条目支持<strong>数据绑定</strong>：<code>bind</code> 对象把控件属性绑定到数据源键（默认单向 <code>oneway</code>；<code>twoway</code> 双向回写）：</p>
+<pre><code>{ "type": "edit-box", "id": "search", "rect": { "x": 20, "y": 20, "w": 300, "h": 30 },
   "bind": {
-    "text": "user.keyword",                                  // 简写：字符串=源键（oneway）
-    "caption": { "source": "user.title", "mode": "twoway" }  // 对象：source + mode（oneway|twoway）
+    "text": "user.keyword",                                     // 简写：字符串=源键（oneway）
+    "visible": { "source": "user.loggedIn", "mode": "oneway" }  // 对象：source + mode（oneway|twoway）
   } }</code></pre>
 
 <h2>3.4.4 声明式 UI 的事件回调</h2>
@@ -170,9 +173,12 @@ ui->LoadLayout(layoutJson);</code></pre>
 <tr><td>CheckBox</td><td><code>onCheckChanged</code></td></tr>
 <tr><td>Button / Label / MenuItem</td><td><code>onClick</code></td></tr>
 <tr><td>WinFrame / Dialog</td><td><code>onClose</code>、<code>onConfirm</code>、<code>onCancel</code></td></tr>
-<tr><td>ColorPicker</td><td><code>onColorChanged</code></td></tr>
+<tr><td>ColorPicker</td><td><code>onColorChanged</code>、<code>onExpressionChanged</code></td></tr>
 <tr><td>ScrollBar</td><td><code>onPositionChanged</code></td></tr>
-<tr><td>ComboBox</td><td><code>onSelectionChanged</code></td></tr>
+<tr><td>ComboBox / ListView</td><td><code>onSelectionChanged</code></td></tr>
+<tr><td>ListView</td><td><code>onColumnSort</code></td></tr>
+<tr><td>TabControl</td><td><code>onTabChange</code></td></tr>
+<tr><td>TreeView</td><td><code>onSelect</code></td></tr>
 <tr><td>Splitter</td><td><code>onSplitterMoved</code></td></tr>
 <tr><td>EditBox / TextArea</td><td><code>onTextChanged</code>、<code>onEnter</code></td></tr>
 <tr><td>ProgressBar</td><td><code>onValueChanged</code></td></tr>
@@ -180,9 +186,9 @@ ui->LoadLayout(layoutJson);</code></pre>
 </table>
 
 <pre><code>// C++（直接 API 的 LayoutParser）
-parser.registerHandler("onSearch", [](shared_ptr<Control> ctl){
-    auto edit = ctl->findControlById("topSearch_search");
-    printf("search: %s\n", edit->getStringProperty("text").c_str());
+parser.registerHandler("onSearch", [&parser](shared_ptr<Control>) {
+    auto edit = parser.findControlById("topSearch__search");   // 实例id__模板id
+    if (edit) printf("search: %s\n", edit->getStringProperty("text").c_str());
 });
 parser.parseLayoutFile("layouts/main.json");</code></pre>
 
@@ -235,7 +241,7 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
     { "name": "up-image", "path": "images/cross_up.png" },
     { "name": "bomb-ani", "path": "animations/bombBlock/bombBlock.jsonc" }
   ],
-  "controls": [ ... ]
+  "controls": [ { "type": "panel", "id": "root", "rect": { "x": 0, "y": 0, "w": 800, "h": 600 } } ]
 }</code></pre>
 
 <p>引用语法（与 C ABI 属性 / 工厂等价）：</p>
@@ -271,12 +277,12 @@ reloader.setPollInterval(15);   // 调整检查间隔（帧数）</code></pre>
 
 <p>Label 字体三形态（<code>font</code> 枚举、<code>font-resource</code> 内存资源、<code>font-file</code> 任意路径）与字符串属性互斥覆盖，均可带 <code>provider:</code> 前缀：</p>
 
-<pre><code>{ "type": "label", "caption": "Hello",
-  "font-resource": "maple-font", "font-size": 20 }        // 内存注册的字体 ID
-{ "type": "label", "caption": "Hello",
-  "font-file": "fonts/MyCustom.ttf" }                    // 任意字体文件（相对 resourceRoot）
-{ "type": "label", "caption": "Hello",
-  "font-file": "provider:maple-font" }                   // 文件形态走内存注册</code></pre>
+<pre><code>[ { "type": "label", "caption": "Hello",
+    "font-resource": "maple-font", "font-size": 20 },     // 内存注册的字体 ID
+  { "type": "label", "caption": "Hello",
+    "font-file": "fonts/MyCustom.ttf" },                  // 任意字体文件（相对 resourceRoot）
+  { "type": "label", "caption": "Hello",
+    "font-file": "provider:maple-font" } ]                // 文件形态走内存注册</code></pre>
 
 <div class="note">内存 provider 模式下引擎不读磁盘：<code>resourceRoot</code> 指向不存在目录也可运行，全部资源（含动画 JSON 内层图片 <code>src</code> 原串，如 <code>animations/bombBlock/marker.svg</code>）须按原串注册进 provider。<code>provider:</code> 是保留前缀，请勿用作真实文件名。</div>
 

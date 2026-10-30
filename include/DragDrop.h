@@ -19,5 +19,7 @@ bool DragQueryActive(const Control* ctl);
 void DragSetAccept(const Control* ctl, bool accept);
 // P0-100：内部事件队列拖放（OS 文件/文本）→ 实例级回调分发（owner 归并）
 void DispatchDropFileEvent(UIContext* instance, const Event& evt);
+// P0-103：菜单点击回调延迟一帧队列 flush（ProcessEvents/MainWindow 帧起始调用；move-out 重入保护）
+void FlushDeferredMenuClicks(UIContext* instance);
 
 #endif // DRAGDROP_H

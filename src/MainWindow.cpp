@@ -70,6 +70,8 @@ bool MainWindow::init(AppCallbacks* app) {
 
 bool MainWindow::processEvents(AppCallbacks* app) {
     if (!m_context || !m_context->inputBackend) return true;
+    // P0-103：帧起始 flush 延迟的菜单点击回调（Mode 1；语义与 ProcessEvents 一致）
+    FlushDeferredMenuClicks(m_context);
     auto* inputBackend = m_context->inputBackend;
     inputBackend->newFrame();
 

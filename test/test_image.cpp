@@ -40,7 +40,7 @@ typedef int        (*UISetIntFn)(UIInstance, void*, const char*, int);
 typedef int        (*UIGetIntFn)(UIInstance, void*, const char*, int*);
 typedef int        (*UISetStringFn)(UIInstance, void*, const char*, const char*);
 typedef int        (*UIActorSetSourceRectFn)(UIInstance, void*, float, float, float, float);
-typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int        (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int        (*UIDebugGetAliveCountFn)(void);
 
 static UIPluginCreateInstanceFn uiCreateInstanceFromPlugin = nullptr;
@@ -67,6 +67,7 @@ static UIGetIntFn               uiGetInt                   = nullptr;
 static UISetStringFn            uiSetString                = nullptr;
 static UIActorSetSourceRectFn   uiActorSetSourceRect       = nullptr;
 static UIGetStringFn            uiGetString                = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIDebugGetAliveCountFn   uiDebug_GetAliveCount      = nullptr;
 
 static HMODULE g_uiDll = nullptr;
@@ -212,7 +213,7 @@ int main(int argc, char* argv[]) {
         assert(uiGetInt(inst, img, "alpha", &v) == 1 && v == 128);
 
         // image 只写不读（fs::path 悬垂语义）
-        assert(uiGetString(inst, img, "image", buf, sizeof(buf)) == 0);
+        assert(uiGetString(inst, img, "image", buf, sizeof(buf), &g_gsLen) == 0, &g_gsLen);
         assert(uiSetString(inst, img, "image", "assets/images/cross_down.png") == 1);
         printf("PASS: T3 property round-trip + write-only image\n");
         uiDestroyControl(inst, img);

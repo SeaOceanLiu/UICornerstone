@@ -228,6 +228,8 @@ PROP_CONSTEXPR const char* kCancelText          = "cancel-text";
 PROP_CONSTEXPR const char* kId                  = "id";
 PROP_CONSTEXPR const char* kControlType         = "control-type";
 PROP_CONSTEXPR const char* kColor               = "color";
+PROP_CONSTEXPR const char* kAllowExpression     = "allow-expression";     // P0-110
+PROP_CONSTEXPR const char* kColorExpression     = "color-expression";     // P0-110
 PROP_CONSTEXPR const char* kAnimation           = "animation";
 PROP_CONSTEXPR const char* kPlaying             = "playing";            // LuotiAni 播放/暂停（命令式，置 1=play 帧复位 0 重播）
 PROP_CONSTEXPR const char* kLoop                = "loop";               // LuotiAni 循环开关
@@ -418,6 +420,7 @@ PROP_CONSTEXPR const char* kEventPositionChanged  = "position-changed";
 PROP_CONSTEXPR const char* kEventSelectionChanged = "selection-changed";
 PROP_CONSTEXPR const char* kEventMoved            = "moved";
 PROP_CONSTEXPR const char* kEventColorChanged     = "color-changed";
+PROP_CONSTEXPR const char* kEventExpressionChanged = "expression-changed";   // P0-110
 PROP_CONSTEXPR const char* kEventSelect           = "select";
 PROP_CONSTEXPR const char* kEventListSelectionChanged = "list-selection-changed";
 PROP_CONSTEXPR const char* kEventItemClick        = "item-click";
@@ -616,11 +619,14 @@ PROP_CONSTEXPR const char* kEventKeySelect           = "onSelect";
 PROP_CONSTEXPR const char* kEventKeyValueChanged     = "onValueChanged";
 PROP_CONSTEXPR const char* kEventKeyPositionChanged  = "onPositionChanged";
 PROP_CONSTEXPR const char* kEventKeyColorChanged     = "onColorChanged";
+PROP_CONSTEXPR const char* kEventKeyExpressionChanged = "onExpressionChanged";   // P0-110
 PROP_CONSTEXPR const char* kEventKeyConfirm          = "onConfirm";
 PROP_CONSTEXPR const char* kEventKeyCancel           = "onCancel";
 PROP_CONSTEXPR const char* kEventKeyClose            = "onClose";
 PROP_CONSTEXPR const char* kEventKeySplitterMoved    = "onSplitterMoved";
 PROP_CONSTEXPR const char* kEventKeyPropertyChanged  = "onPropertyChanged";
+PROP_CONSTEXPR const char* kEventKeyColumnSort      = "onColumnSort";   // ListView 列头排序
+PROP_CONSTEXPR const char* kEventKeyTabChange       = "onTabChange";    // TabControl 页签切换
 
 // -- 控件类型名（布局 JSON type 字段，小写 kebab-case）--
 PROP_CONSTEXPR const char* kControlTypeLabel = "label";

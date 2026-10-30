@@ -22,11 +22,12 @@
 <h2>5.7.1 快速开始</h2>
 
 <p>JSON 声明（通用键，任意控件可加）：</p>
-<pre><code>{ "type": "tree-view", "id": "src", "draggable": true, "reorderable": true,
-  "rect": { "x": 20, "y": 20, "w": 240, "h": 320 }, "items": [ ... ] }
-
-{ "type": "panel", "id": "dst", "droppable": true,
-  "rect": { "x": 300, "y": 20, "w": 300, "h": 320 } }</code></pre>
+<pre><code>{ "controls": [
+  { "type": "tree-view", "id": "src", "draggable": true, "reorderable": true,
+    "rect": { "x": 20, "y": 20, "w": 240, "h": 320 },
+    "items": [ { "id": "a", "label": "A" } ] },
+  { "type": "panel", "id": "dst", "droppable": true,
+    "rect": { "x": 300, "y": 20, "w": 300, "h": 320 } } ] }</code></pre>
 
 <p>C ABI / C++ Binding 注册与处理：</p>
 <pre><code>UICornerstone_SetBool(inst, tree, "draggable", 1);
@@ -102,7 +103,12 @@ static void onDragOver(UIControlHandle ctl, const UIEventData* ev, void* user) {
 无需 <code>draggable</code>/<code>droppable</code>）；引擎在 <code>drop</code> 后直接执行数据迁移并发语义事件
 （<code>reordered</code> / <code>tab-reordered</code>），宿主据此同步模型：</p>
 
-<pre><code>{ "type": "tab-control", "reorderable": true, ... }
+<pre><code>{ "type": "tab-control", "reorderable": true,
+  "rect": { "x": 20, "y": 20, "w": 400, "h": 260 },
+  "tabs": [ { "title": "A", "page": { "type": "panel" } },
+            { "title": "B", "page": { "type": "panel" } } ] }</code></pre>
+
+<pre><code>// C 侧注册：
 UICornerstone_SetCallback(inst, tab, "tab-reordered", onTabReordered, NULL);
 // onTabReordered：from = ev->data.drag.payload.index; to = ev->data.drag.hint.index;</code></pre>
 
@@ -190,8 +196,8 @@ static void onDrop(UIControlHandle ctl, const UIEventData* ev, void* user) {
 <p class="note">完整 API 面：C ABI 见 <a href="../appendix/capi.html">9.x C ABI 速查</a>（拖拽框架行）；属性键见
 <a href="../appendix/properties.html">7 属性速查</a>；JSON 通用键见 <a href="../appendix/declarative-syntax.html">6.2 控件通用键</a>。</p>
 
-<div class="nav-links">
-  <a href="canvas-scale.html">← 上一节：5.6 视口画布缩放</a>
+<div class="chapter-nav">
+  <a href="canvas-scale.html">← 5.6 视口画布缩放（Canvas Scale）</a>
   <a href="../backends.html">下一节：5.8 使用其它后端 →</a>
 </div>
 

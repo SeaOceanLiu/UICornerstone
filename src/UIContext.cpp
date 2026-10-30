@@ -112,6 +112,7 @@ void UIContext::destroy() {
     detachedControls.clear();   // P0-50：摘除保活池随实例销毁级联释放
     controlsById.clear();
     actions.clear();
+    deferredClicks.clear();     // P0-103：延迟点击队列随实例销毁清空（防悬垂闭包）
     while (true) {
         std::lock_guard<std::mutex> lock(queuedEventsMutex);
         if (queuedEvents.empty()) break;

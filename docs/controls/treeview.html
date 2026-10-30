@@ -206,6 +206,7 @@ void* cb = UICornerstone_FindControl(g_inst, "cb_n2");</code></pre>
 <table>
 <tr><th>方法</th><th>参数</th></tr>
 <tr><td><code>addChild(parentId, node) / removeNode(id) / clearItems()</code></td><td>节点增删</td></tr>
+<tr><td><code>hitTestRowInContent(x, y)</code>（C ABI/Binding <code>TreeViewGetNodeAt</code>）</td><td>窗口坐标→行命中（P0-107）：内容区扣除滚动条；空白/滚动条/越界返回未命中；纯查询不改选中；C ABI 缓冲为 snprintf 语义（返回所需长度）</td></tr>
 <tr><td><code>expandNode(id) / collapseNode(id) / expandAll() / collapseAll()</code></td><td>展开 / 折叠</td></tr>
 <tr><td><code>getScrollBar() / getHScrollBar() / getFlatRowCount() / getSelectedRow()</code></td><td>滚动条 / 展开后行数 / 选中行号</td></tr>
 <tr><td><code>selectNode(id) / getSelectedId()</code></td><td>选中 / 查询</td></tr>

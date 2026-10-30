@@ -47,7 +47,7 @@
 <tr><td><code>margin-right</code></td><td><code>kMarginRight</code></td><td>Float</td><td>外边距分量</td></tr>
 <tr><td><code>margin-bottom</code></td><td><code>kMarginBottom</code></td><td>Float</td><td>外边距分量</td></tr>
 </table>
-<p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。</p>
+<p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。<b>P0-106</b>：未显式设置的 <code>hover/pressed/disabled</code> = <b>与当前 <code>normal</code> 一致</b>（解析式回退——<code>SetColor(...,"background", C)</code> 后读回三态即 C；修改 normal 后未设态自动跟随；显式设置的态不受影响）。</p>
 
 <h3>7.1.1 视觉能力矩阵（按控件类型）</h3>
 <p class="note">矩阵已迁移至用户手册 <a href="declarative-syntax.html">6 声明式 UI 语法速查表 → 6.3.1 视觉能力矩阵（按控件类型）</a>（唯一权威来源，避免双份漂移）。本表为运行时属性键全量参考。</p>
@@ -113,11 +113,13 @@
 <h3>ColorPicker（类型 <code>color-picker</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
-<tr><td><code>closed-font-size</code></td><td><code>kClosedFontSize</code></td><td>Float</td><td>12</td></tr>
+<tr><td><code>closed-font-size</code></td><td><code>kClosedFontSize</code></td><td>Int</td><td>12</td></tr>
 <tr><td><code>closed-swatch-size</code></td><td><code>kClosedSwatchSize</code></td><td>Float</td><td>16</td></tr>
-<tr><td><code>closed-text</code></td><td><code>kClosedText</code></td><td>Color</td><td>#DBDBDB / #3C3C41</td></tr>
-<tr><td><code>popup-bg</code></td><td><code>kPopupBG</code></td><td>Color</td><td>#DBDBDB / #3C3C41</td></tr>
-<tr><td><code>color</code></td><td><code>kColor</code></td><td>String</td><td>—（当前颜色 hex，读写）</td></tr>
+<tr><td><code>closed-text</code></td><td><code>kClosedText</code></td><td>Color</td><td>#DBDBDB</td></tr>
+<tr><td><code>popup-bg</code></td><td><code>kPopupBG</code></td><td>Color</td><td>#3C3C41</td></tr>
+<tr><td><code>color</code></td><td><code>kColor</code></td><td>String</td><td>—（当前颜色 hex，读写；表达式非空时仅作回退色）</td></tr>
+<tr><td><code>allow-expression</code></td><td><code>kAllowExpression</code></td><td>Bool</td><td>false（P0-110：允许文本域输入任意表达式）</td></tr>
+<tr><td><code>color-expression</code></td><td><code>kColorExpression</code></td><td>String</td><td>—（P0-110：当前表达式；空=无；外部设置同步已提交基线）</td></tr>
 <tr><td><code>preset-cols</code></td><td><code>kPresetCols</code></td><td>Int</td><td>5 / 4</td></tr>
 <tr><td><code>preset-rows</code></td><td><code>kPresetRows</code></td><td>Int</td><td>5 / 4</td></tr>
 </table>
@@ -188,7 +190,7 @@
 </table>
 
 <h3>HandleControl（无 JSON 类型）</h3>
-<p>核心类专属能力（C ABI 经 <code>UICornerstone_CreateHandleControl(inst, target, ...)</code> 创建，无属性系统键名 / 无布局 JSON 分支）：手柄拖动调整目标控件尺寸。尺寸/颜色/显隐均为 C++ API（<code>setHandleSize</code> / <code>setMinSize</code> / <code>setHandleColor</code> 等，见 <a href="../controls/handlecontrol.html">4.10 HandleControl</a>）。</p>
+<p>核心类专属能力（C ABI 经 <code>UICornerstone_CreateHandleControl(inst, target, x, y, w, h, xScale, yScale)</code> 创建，无属性系统键名 / 无布局 JSON 分支）：手柄拖动调整目标控件尺寸。尺寸/颜色/显隐均为 C++ API（<code>setHandleSize</code> / <code>setMinSize</code> / <code>setHandleColor</code> 等，见 <a href="../controls/handlecontrol.html">4.10 HandleControl</a>）。</p>
 
 <h3>Label（类型 <code>label</code>）</h3>
 <table>

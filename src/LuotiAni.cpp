@@ -105,18 +105,24 @@ SharedSurface LuotiAni::getImageFromResource(string resourceId){
     if (explicitProvider) {
         Platform::Log("[LuotiAni] provider ref '%s' not found, falling back to file system", rid.c_str());
     }
-    // 2) 文件回退：<exeDir>/assets（jsonc src 实测根）→ <exeDir>（Actor 同款基准，兼容 src 自带 assets/ 前缀）
-    const fs::path bases[2] = { ConstDef::pathPrefix, fs::path(Platform::GetBasePath()) };
+    // 2) 文件回退（P0-102）：jsonc 所在目录（新，最具体上下文优先）→ <exeDir>/assets → <exeDir>（P0-23 双基准）
+    std::vector<fs::path> bases;
+    if (!m_descDir.empty()) bases.push_back(fs::u8path(m_descDir));
+    bases.push_back(ConstDef::pathPrefix);
+    bases.push_back(fs::path(Platform::GetBasePath()));
     for (const auto& base : bases) {
-        fs::path p = base / rid;
-        if (!fs::exists(p)) continue;
-        SharedSurface surface = Surface::loadFromFile(p.string());
+        fs::path p = base / fs::u8path(rid);   // P0-102：UTF-8 源（中文/超长路径）
+        std::error_code ec;
+        if (!fs::exists(p, ec)) continue;
+        SharedSurface surface = Surface::loadFromFile(p.u8string());   // 后端 IMG_Load 按 UTF-8 解析
         if (surface != nullptr) return surface;
     }
 
-    // 3) 仍失败：throw（调用方 catch 链不变；错误信息含两基准，便于诊断）
-    printf("LuotiAni::getImageFromResource Error: '%s' not found (provider + file fallback: '%s', '%s')\n",
-           rid.c_str(), bases[0].string().c_str(), bases[1].string().c_str());
+    // 3) 仍失败：throw（调用方 catch 链不变；错误信息含全部基准，便于诊断）
+    std::string baseList;
+    for (const auto& b : bases) baseList += " '" + b.u8string() + "'";
+    printf("LuotiAni::getImageFromResource Error: '%s' not found (provider + file fallback:%s)\n",
+           rid.c_str(), baseList.c_str());
     throw "LuotiAni::getImageFromResource Error: resource not found";
 }
 
@@ -155,7 +161,7 @@ LuotiAni::OpData LuotiAni::keyFrameToOpData(shared_ptr<KeyFrame> keyFrame, OpDat
 
 
 void LuotiAni::loadFromFile(fs::path filePath) {
-    std::string p = filePath.string();
+    std::string p = filePath.u8string();   // P0-102：UTF-8 原值（中文/超长路径安全）
     if (p.rfind(PropertyNames::kProviderPrefix, 0) == 0) {  // 内存资源引用：剥前缀走资源 ID 路径
         loadFromResource(p.substr(strlen(PropertyNames::kProviderPrefix)));
         return;
@@ -169,10 +175,13 @@ void LuotiAni::loadFromFile(fs::path filePath) {
 void LuotiAni::loadFromResource(string resourceId) {
     m_resourceId = resourceId;
     m_filePathStr.clear();               // 资源引用不冒充文件路径（P0-21：animation 键读回返回 0）
+    m_descDir.clear();                   // P0-102：资源引用无文件目录基准（防切换动画残留）
     loadAniDesc(resourceId);
 }
 void LuotiAni::loadAniDesc(fs::path filePath){
-    std::string p = filePath.string();
+    std::string p = filePath.u8string();   // P0-102：UTF-8（provider 键 / 日志 / 文件打开）
+    // P0-102：记录 jsonc 所在目录（src 相对解析基准；provider 命中场景亦按入参设置——相对基准自然 miss 回落，无害）
+    m_descDir = filePath.parent_path().u8string();
     bool explicitProvider = false;
     if (p.rfind(PropertyNames::kProviderPrefix, 0) == 0) {   // provider: 资源引用（P0-79）
         p = p.substr(strlen(PropertyNames::kProviderPrefix));
@@ -194,7 +203,12 @@ void LuotiAni::loadAniDesc(fs::path filePath){
     if (explicitProvider) {
         Platform::Log("[LuotiAni] provider ref '%s' not found, falling back to file system", p.c_str());
     }
+    // P0-102：UTF-8 感知打开（中文/超长路径；_wfopen 走宽字符，MSVC <cstdio> 提供）
+#ifdef _WIN32
+    FILE* stream = _wfopen(fs::u8path(p).wstring().c_str(), L"rb");
+#else
     FILE* stream = fopen(p.c_str(), "rb");
+#endif
     if (!stream) {
         printf("Open aniDesc json file error\n");
         throw "Open aniDesc json file error";
@@ -888,7 +902,7 @@ int LuotiAni::setStringProperty(const char* prop, const char* value) {
     if (strcmp(prop, PropertyNames::kAnimation) == 0 || strcmp(prop, PropertyNames::kJsonPath) == 0) {
         if (!value || !value[0]) return 0;
         try {
-            fs::path p(value);   // 原值直传：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
+            fs::path p = fs::u8path(value);   // 原值直传（P0-102 UTF-8）：basePath 解析与 provider: 分流统一在 loadFromFile（P0-21 原值读回）
             bool wasPlaying = m_isPlaying;
             loadFromFile(p);     // 依赖 §6.5 换动画状态重置（parseJsonDesc 开头）
             prepare();

@@ -156,6 +156,8 @@ private:
 public:
     // P0-94（Phase 2）：换序支持——行命中（公共）/行→节点/父/序号查询 + 节点迁移（完整子树）
     int hitTestRow(float mx, float my);
+    // P0-107：内容区（扣除滚动条，与绘制裁剪区同口径）内的行命中（窗口坐标）；MouseDown 与 C ABI 共用
+    int hitTestRowInContent(float mx, float my);
     std::shared_ptr<TreeNode> getNodeAtRow(int row) const;
     std::string getParentId(const std::string& id);   // 根级返回 ""（调用方以 findNodeById 先行判定存在）
     int getChildIndex(const std::string& id);

@@ -266,6 +266,7 @@ private:
     string m_name;
     string m_resourceId;              // 内存资源引用：parse 阶段 provider 未就绪时记忆，挂树后由 setRenderDevice 补读
     string m_filePathStr;             // 文件路径设置原值（稳定存储，P0-21 读回；resource 路径清空）
+    string m_descDir;                 // P0-102：jsonc 所在目录（UTF-8，绝对；空=无文件基准）——src 相对解析用
     SSize m_canvasSize;
     uint16_t m_frameRate;
     uint32_t m_totalFrames;

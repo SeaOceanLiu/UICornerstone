@@ -63,7 +63,10 @@ UIControlHandle cp = UICornerstone_CreateColorPicker(g_inst, 240, 498, 96, 24, "
 <table>
 <tr><th>事件名</th><th>事件常量</th><th>触发时机</th><th>参数</th></tr>
 <tr><td><code>color-changed</code></td>（回调名 onColorChanged）</td><td><code>kEventColorChanged</code></td><td>点击弹窗「确定」或按 Enter 提交时；取消 / ESC / 外部点击不触发</td><td><code>(shared_ptr&lt;ColorPicker&gt;, const SColor&amp;)</code> / <code>UIEventData.data.color{r,g,b,a}</code></td></tr>
+<tr><td><code>expression-changed</code>（P0-110）</td><td><code>kEventExpressionChanged</code></td><td>表达式提交（Enter / 确定）/ 用户取色或清空文本导致表达式被清除时；程序化 1→0 静默清空不发事件</td><td><code>UIEventData.data.strVal</code>（表达式原文，清空为 ""）；Binding：<code>IsExpressionChanged()</code> / <code>GetExpression()</code></td></tr>
 </table>
+
+<div class="note">表达式模式（P0-110）：<code>allow-expression=true</code> 时文本域可输入任意表达式（如 <code>{{bgColor}}</code>）；按「确定」或回车确认时提交（回车等价确定并关闭弹窗）——提交合法 hex 视为用户取色（清空表达式并应用颜色），提交非空表达式仅发 <code>expression-changed</code>、<code>color</code> 只作回退色且不发 <code>color-changed</code>；编辑过程中的输入不写状态，取消 / ESC / 点击外部一律丢弃未提交输入并恢复已提交表达式。</div>
 
 
 <h2>4.5.4 JSON 语法</h2>
@@ -79,7 +82,9 @@ UIControlHandle cp = UICornerstone_CreateColorPicker(g_inst, 240, 498, 96, 24, "
   "closed-font-size": 12,
   "closed-text-color": "#DBDBDB",
   "popup-bg": "#303030",
-  "events": { "onColorChanged": "onColorChanged" }
+  "allow-expression": true,
+  "color-expression": "{{bgColor}}",
+  "events": { "onColorChanged": "onColorChanged", "onExpressionChanged": "onExprChanged" }
 }</code></pre>
 
 

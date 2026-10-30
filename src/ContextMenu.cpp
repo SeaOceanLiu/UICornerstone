@@ -90,9 +90,11 @@ void ContextMenu::close(DialogResult result) {
 void ContextMenu::addItem(shared_ptr<MenuItem> item) {
     if (!item || !m_menuPanel) return;
     auto orig = item->getOnClick();
-    item->setOnClick([this, orig](shared_ptr<MenuItem> it) {
+    // P0-103：菜单点击回调延迟一帧执行——捕获 weak（菜单可能先于回调析构；同步时代裸 this 安全，延迟后悬垂）
+    weak_ptr<ContextMenu> self = dynamic_pointer_cast<ContextMenu>(getThis());
+    item->setOnClick([self, orig](shared_ptr<MenuItem> it) {
         if (orig) orig(it);
-        this->close();
+        if (auto s = self.lock()) s->close();
     });
     m_menuPanel->addItem(item);
 }
@@ -100,13 +102,14 @@ void ContextMenu::addItem(shared_ptr<MenuItem> item) {
 void ContextMenu::addItem(const string& caption, ItemClickHandler onClick) {
     auto item = make_shared<MenuItem>(m_menuPanel.get(), MenuItemType::Normal, 1.f, 1.f);
     item->setCaption(caption);
+    weak_ptr<ContextMenu> self = dynamic_pointer_cast<ContextMenu>(getThis());   // P0-103：同上
     if (onClick) {
-        item->setOnClick([this, onClick](shared_ptr<MenuItem> it) {
+        item->setOnClick([self, onClick](shared_ptr<MenuItem> it) {
             onClick(it);
-            this->close();
+            if (auto s = self.lock()) s->close();
         });
     } else {
-        item->setOnClick([this](shared_ptr<MenuItem>) { this->close(); });
+        item->setOnClick([self](shared_ptr<MenuItem>) { if (auto s = self.lock()) s->close(); });
     }
     m_menuPanel->addItem(item);
 }

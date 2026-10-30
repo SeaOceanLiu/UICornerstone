@@ -15,7 +15,7 @@
 
 <h1>5 进阶主题</h1>
 
-<p>本章深入引擎的六个高级方向，每节都附可直接运行的完整样例。按需直达：</p>
+<p>本章深入引擎的九个高级方向，每节都附可直接运行的完整样例。按需直达：</p>
 
 <div class="card-grid">
   <div class="card">
@@ -41,6 +41,18 @@
   <div class="card">
     <h3><a href="advanced/canvas-scale.html">5.6 视口画布缩放（Canvas Scale）</a></h3>
     <p>设计分辨率适配：off / fit / stretch 三种模式、基准画布与 JSON viewport 键、运行时切换（setEnumProperty / C ABI / Binding）、字号随复合重建与可见性过滤、坐标逆变换与字体缓存统计。</p>
+  </div>
+  <div class="card">
+    <h3><a href="advanced/drag-drop.html">5.7 拖拽框架（Drag &amp; Drop）</a></h3>
+    <p>控件级通用拖拽：draggable / droppable / reorderable 注册，语义化载荷与落点（tree 节点 / list 行 / tab 页自动填充），drag-start / drag-over / drop / drag-end 事件与默认视觉，tree / list / tab 内置换序，以及 OS 文件拖入（SetDropFileCallback）。</p>
+  </div>
+  <div class="card">
+    <h3><a href="backends.html">5.8 使用其它后端（SFML / raylib）</a></h3>
+    <p>同一份业务代码切换 SFML / raylib 后端：编译期与运行时选择、后端能力位与条件化渲染、后端差异配置键（vsync / swap-ratio 等）与已知差异对照。</p>
+  </div>
+  <div class="card">
+    <h3><a href="integration.html">5.9 嵌入到你的逻辑回路中</a></h3>
+    <p>把引擎接进宿主主循环：Embedded / AppCallbacks / 事件泵手工驱动 / 显式 LoadLibrary 四种集成模式、与自有对象模型对接、多实例调度与自动退出参数。</p>
   </div>
 </div>
 

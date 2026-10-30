@@ -84,13 +84,13 @@ UICornerstone_ShapeAddPrimitive(g_inst, s, "circle", 10, 10, 40, 40);
 <pre><code>auto s = ui->CreateShape(40, 300, 150, 130);
 s.SetEnum(PropertyNames::kShape, "round-rect");
 s.SetColor(PropertyNames::kFill, SColor(52, 211, 153));
-s.SetFloat(PropertyNames::kLineWidth, 2.0f);</code></pre>
+s.SetFloat(PropertyNames::kLineWidthProp, 2.0f);</code></pre>
 
 <h2>4.19.6 C ABI 调用样例</h2>
 
 <pre><code>UIControlHandle s = UICornerstone_CreateShape(g_inst, 40, 300, 150, 130, 1.0f, 1.0f);
 UICornerstone_SetEnum(g_inst, s, "shape", "circle");
-UICornerstone_SetColor(g_inst, s, "fill", {59, 130, 246, 255});
+UICornerstone_SetColor(g_inst, s, "fill", (UIColor){59, 130, 246, 255});
 int p = UICornerstone_ShapeAddPrimitive(g_inst, s, "round-rect", 0, 0, 120, 90);
 UICornerstone_ShapeSetPrimitiveFloat(g_inst, s, p, "radius", 10.0f);</code></pre>
 

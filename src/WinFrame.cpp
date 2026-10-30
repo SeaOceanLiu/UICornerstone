@@ -466,11 +466,10 @@ int WinFrame::setColorProperty(const char* prop, SColor color) {
 // P032：background 两态 → ClientPanel（内容区底色；标题栏装饰保持专用键）
 void WinFrame::setBackgroundStateColor(StateColor stateColor) {
     if (!m_clientPanel) return;
-    StateColor cp;
-    cp.setNormal(stateColor.getNormal());
-    cp.setHover(stateColor.getHover());
-    cp.setPressed(stateColor.getNormal());     // 仅两态声明
-    cp.setDisabled(stateColor.getNormal());
+    // P0-106：两态声明——直接赋值保留源显式位；pressed/disabled 清位（回退 normal，不误置显式）
+    StateColor cp = stateColor;
+    cp.clearPressed();
+    cp.clearDisabled();
     m_clientPanel->setBackgroundStateColor(cp);
 }
 StateColor WinFrame::getBackgroundStateColor(void) {

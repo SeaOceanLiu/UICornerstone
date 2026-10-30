@@ -33,7 +33,7 @@ typedef int   (*UILoadLayoutFn)(UIInstance,const char*);
 typedef void* (*UIFindControlFn)(UIInstance,const char*);
 typedef void  (*UIRegisterActionFn)(UIInstance, const char*, void(*)(void*,void*), void*);
 typedef int   (*UISetStringFn)(UIInstance, void*, const char*, const char*);
-typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int);
+typedef int   (*UIGetStringFn)(UIInstance, void*, const char*, char*, int, int*);
 typedef int   (*UIGetPtrFn)(UIInstance, void*, const char*, void**);
 typedef int   (*UISetFloatFn)(UIInstance, void*, const char*, float);
 typedef int   (*UIGetFloatFn)(UIInstance, void*, const char*, float*);
@@ -83,6 +83,7 @@ static UIFindControlFn        uiFindControl        = nullptr;
 static UIRegisterActionFn     uiRegisterAction     = nullptr;
 static UISetStringFn          uiSetString          = nullptr;
 static UIGetStringFn          uiGetString          = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetPtrFn             uiGetPtr             = nullptr;
 static UISetFloatFn           uiSetFloat           = nullptr;
 static UIGetFloatFn           uiGetFloat           = nullptr;
@@ -174,7 +175,7 @@ static void onTreeNodeSelected(void* ctl, void* userData) {
     char idBuf[128] = "";
     char udBuf[128] = "";
     if (uiGetString) {
-        uiGetString(g_inst, ctl, "selected-id", idBuf, (int)sizeof(idBuf));
+        uiGetString(g_inst, ctl, "selected-id", idBuf, (int)sizeof(idBuf), &g_gsLen);
     }
     if (uiGetPtr) {
         void* ud = nullptr;

@@ -28,7 +28,7 @@ typedef int   (*UILoadLayoutFn)(UIInstance,const char*);
 typedef void* (*UIFindControlFn)(UIInstance,const char*);
 typedef void  (*UIRegisterActionFn)(UIInstance,const char*,void(*)(void*,void*),void*);
 typedef int  (*UISetStringFn)(UIInstance,void*,const char*,const char*);
-typedef int  (*UIGetStringFn)(UIInstance,void*,const char*,char*,int);
+typedef int  (*UIGetStringFn)(UIInstance,void*,const char*,char*,int,int*);
 typedef int  (*UIGetIntFn)(UIInstance,void*,const char*,int*);
 typedef void (*UIPushUIEventFn)(UIInstance,const UIEvent*);
 typedef int  (*UISetIntFn)(UIInstance,void*,const char*,int);
@@ -48,6 +48,7 @@ static UIFindControlFn     uiFindControl         = nullptr;
 static UIRegisterActionFn  uiRegisterAction      = nullptr;
 static UISetStringFn       uiSetString           = nullptr;
 static UIGetStringFn       uiGetString           = nullptr;
+static int g_gsLen = 0;   // P0-108：GetString 长度查询
 static UIGetIntFn          uiGetInt              = nullptr;
 static UIPushUIEventFn     uiPushUIEvent         = nullptr;
 static UISetIntFn          uiSetInt              = nullptr;
@@ -137,8 +138,8 @@ static void runSimInject() {
             int idx = -2;
             void* ctl = uiFindControl(g_inst, "comboEditable");
             if (ctl) {
-                uiGetString(g_inst, ctl, "text", buf, sizeof(buf));
-                uiGetString(g_inst, ctl, "selected-value", val, sizeof(val));
+                uiGetString(g_inst, ctl, "text", buf, sizeof(buf), &g_gsLen);
+                uiGetString(g_inst, ctl, "selected-value", val, sizeof(val), &g_gsLen);
                 uiGetInt(g_inst, ctl, "selected-index", &idx);
             }
             printf("[inject] comboEditable text='%s' selected-value='%s' selected-index=%d (expect text=zzz, index=-1)\n", buf, val, idx);
@@ -159,7 +160,7 @@ static void onSelectionChanged(void* ctl, void* user) {
     int idx = -1;
     uiGetInt(g_inst, ctl, "selected-index", &idx);
     char labelBuf[256] = "";
-    uiGetString(g_inst, ctl, "text", labelBuf, sizeof(labelBuf));
+    uiGetString(g_inst, ctl, "text", labelBuf, sizeof(labelBuf), &g_gsLen);
     const char* label = labelBuf;
     snprintf(g_selectionInfo, sizeof(g_selectionInfo), "Selected: #%d = %s", idx, label ? label : "(null)");
     void* lbl = uiFindControl(g_inst, "lblStatus");
@@ -179,8 +180,8 @@ static void onDumpCombo(void* ctl, void* user) {
         char text[256] = "";
         char val[256] = "";
         int idx = -2;
-        uiGetString(g_inst, c, "text", text, sizeof(text));
-        uiGetString(g_inst, c, "selected-value", val, sizeof(val));
+        uiGetString(g_inst, c, "text", text, sizeof(text), &g_gsLen);
+        uiGetString(g_inst, c, "selected-value", val, sizeof(val), &g_gsLen);
         uiGetInt(g_inst, c, "selected-index", &idx);
         printf("[dump] %s: text='%s' selected-value='%s' selected-index=%d\n", ids[i], text, val, idx);
         if (strcmp(ids[i], "comboEditable") == 0) {

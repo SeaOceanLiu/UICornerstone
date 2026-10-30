@@ -67,8 +67,8 @@ ctx-&gt;set("sharedText", string("Hello from DataContext!"));
 ctx-&gt;set("progressValue", 42.0);
 double v = ctx-&gt;get("progressValue").asDouble();
 
-// 布局 JSON 中绑定（mode: oneWay 缺省 / twoWay）
-// "bind": { "text": { "source": "userName", "mode": "twoWay" },
+// 布局 JSON 中绑定（mode: oneway 缺省 / twoway）
+// "bind": { "text": { "source": "userName", "mode": "twoway" },
 //           "visible": "isEditable" }</code></pre>
 
 <p>可绑定属性：<code>caption / text / placeholder / value / check-state / visible / enabled</code>。双向绑定回写：EditBox <code>text-changed</code> → <code>set(key, text)</code>；CheckBox → 三态字符串；ScrollBar → 数值。watcher 用 weak_ptr 捕获控件，控件销毁自动失效。</p>
@@ -90,9 +90,9 @@ auto root = g_parser.parseLayoutFile(g_layoutPath);      // 解析前必须注�
 BENCH-&gt;addControl(root);</code></pre>
 
 <pre><code>{ "type": "button", "rect": { "x": 10, "y": 10, "w": 120, "h": 32 },
-  "events": { "click": "onSubmitClick" } }   // 名字与 registerHandler 一致</code></pre>
+  "events": { "onClick": "onSubmitClick" } }   // 名字与 registerHandler 一致</code></pre>
 
-<p>机制：<code>parseEvents()</code> 按控件类型匹配事件 key（Button <code>click</code>、EditBox <code>text-changed</code>/<code>enter</code> 等），用 <code>m_handlers.find(name)</code> 查找到后包成控件回调；未注册的 handler 名静默跳过。C ABI 联动：<code>UICornerstone_RegisterAction</code> 注册的 action 会在 <code>LoadLayout</code> 时自动转为 parser handler。</p>
+<p>机制：<code>parseEvents()</code> 按控件类型匹配事件 key（Button <code>onClick</code>、EditBox <code>onTextChanged</code>/<code>onEnter</code> 等；键名见 <a href="../appendix/declarative-syntax.html#6-7">6.7 事件键名 → 控件对照</a>），用 <code>m_handlers.find(name)</code> 查找到后包成控件回调；未注册的 handler 名静默跳过。C ABI 联动：<code>UICornerstone_RegisterAction</code> 注册的 action 会在 <code>LoadLayout</code> 时自动转为 parser handler。</p>
 
 <h2>5.3.4 FocusManager：焦点系统 API</h2>
 

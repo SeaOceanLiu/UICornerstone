@@ -97,6 +97,9 @@
 | openPopup(私有) | — | — | — | — | ⛔交互驱动 | 暂不需要 |
 | isPopupVisible | — | popup-visible | GetBool("popup-visible") | GetBool("popup-visible") | ✅ | 属性 |
 | setOnColorChanged | onColorChanged | color-changed | SetCallback | SetCallback | ✅ |  |
+| setAllowExpression（P0-110） | allow-expression | allow-expression | SetBool | SetBool | ✅ |  |
+| setColorExpression（P0-110） | color-expression | color-expression | SetString | SetString | ✅ |  |
+| setOnExpressionChanged（P0-110） | onExpressionChanged | expression-changed | SetCallback（strVal） | SetCallback + `IsExpressionChanged`/`GetExpression` | ✅ |  |
 
 ## 6. ComboBox
 
@@ -492,6 +495,12 @@
 | P0-93/94 | 通用拖拽框架 + 内置换序 | `draggable`/`droppable`/`reorderable`/`drag-threshold`/`drag-visual` | 同左 + `drag-accept`/`drag-active`/主题三色 | 事件 `drag-start`/`drag-over`/`drop`/`drag-end`/`reordered`/`tab-reordered`；`TreeViewMoveNode`/`ListViewMoveRow` | ✅（Phase 3 设计器侧） |
 | P0-96/97 | reorderable 自含（门控/自目标/索引补偿）+ ghost 字体 provider 口径 | — | — | 无新 ABI（行为修复；自目标同时发 `drop`+`reordered`） | ✅ |
 | P0-98/99/100 | 菜单动态化（click 门控/动作实例/RemoveItem/caption 重算）+ 屏幕钳制 + OS 拖放 | — | — | `MenuPanelRemoveItem`；`SetDropFileCallback`（+`UI_EVENT_DROP_FILE`）；click 语义澄清 | ✅ |
+| P0-105 | 控件树交互 C ABI：拖拽落点访问器 + ContextMenu 条目句柄 | — | — | `ContextMenuAddItemEx`（返回句柄）；Binding `Event` 拖拽访问器（`GetDrag*`/`GetHint*`/`GetDropped`）；`GetNodeId()` 守卫 | ✅ |
+| P0-106 | 颜色状态缺省回退（未设态=动态 normal） | — | — | 无新 ABI（`StateColor` 显式位+解析 getter；移除 Button/CheckBox/Label 构造缺省） | ✅ 已放行，已实施 |
+| P0-107 | TreeView 行命中（右键操作光标行） | — | — | `TreeViewGetNodeAt`（CABI+Binding；内容区扣除滚动条；snprintf 语义） | ✅ |
+| P0-108 | Binding 长文本（GetString 长度查询） | — | — | `UICornerstone_GetString(inst, ctl, prop, out, cap, outLen)`（6 参；out=NULL 查长度；破坏性 ABI，需同批重编） | ✅（Binding 512B 快路径+精确分配） |
+| P0-109 | 组件模板占位符类型化 | `{{name}}`（整串继承 number/bool；混合串单遍不递归） | — | — | ✅（声明式解析） |
+| P0-110 | ColorPicker 表达式模式 | `allow-expression` / `color-expression` / `events.onExpressionChanged` | `kAllowExpression` / `kColorExpression` / `kEventExpressionChanged` | 通用 Set/Get + SetCallback | 通用 + `Event::IsExpressionChanged`/`GetExpression` | ✅ |
 
 ---
 
