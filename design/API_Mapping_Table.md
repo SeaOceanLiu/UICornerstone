@@ -501,6 +501,11 @@
 | P0-108 | Binding 长文本（GetString 长度查询） | — | — | `UICornerstone_GetString(inst, ctl, prop, out, cap, outLen)`（6 参；out=NULL 查长度；破坏性 ABI，需同批重编） | ✅（Binding 512B 快路径+精确分配） |
 | P0-109 | 组件模板占位符类型化 | `{{name}}`（整串继承 number/bool；混合串单遍不递归） | — | — | ✅（声明式解析） |
 | P0-110 | ColorPicker 表达式模式 | `allow-expression` / `color-expression` / `events.onExpressionChanged` | `kAllowExpression` / `kColorExpression` / `kEventExpressionChanged` | 通用 Set/Get + SetCallback | 通用 + `Event::IsExpressionChanged`/`GetExpression` | ✅ |
+| P0-111 | ListView 单元格就地编辑 | `cell-editing` / `editable-columns` / `read-only-columns` / `read-only-row-ids` / `events.onCellEdit*` | `kCellEditing` 等 | `ListViewBeginEditCell/CommitEdit/CancelEdit/IsEditing/GetEditingCell` + SetCallback | `ui->ListView*` + `Event::IsCellEdit*`/`GetEdit*` | ✅ |
+| P0-112 | TreeView 节点标签就地编辑 | `label-editing` / `read-only-ids` / `events.onNodeEdit*` | `kLabelEditing` / `kReadOnlyIds` | `TreeViewBeginEditNode/CommitEdit/CancelEdit/IsEditing/GetEditingId` | `ui->TreeView*` + `Event::IsNodeEdit*`/`GetEdit*` | ✅ |
+| P0-113 | ListView 设计态列宽手势 | — | `kEventColumnResize*` | `ListViewHitTestColumnDivider/Begin/Update/End/CancelColumnResize` | `ui->ListView*` + `Event::IsColumnResize*`/`GetResize*` | ✅ |
+| P0-113+ | 列宽可发现性（合并 CR005） | — | — | `ListViewSetColumnResizeCursor`（8px/最后一列/EW 光标） | `ui->ListViewSetColumnResizeCursor` | ✅ |
+| P0-114 | ListView 通用单元格控件 | —（本期不新增 JSON） | — | `ListViewSetCellControl/ClearCellControl/GetCellControl`（FILL/LEADING） | 同 + borrowed handle | ✅ |
 
 ---
 

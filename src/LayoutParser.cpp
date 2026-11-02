@@ -693,6 +693,15 @@ shared_ptr<Control> LayoutParser::parseListView(const json& j, Control* parent) 
         lv->setHoverHighlight(j[PropertyNames::kJsonHover].get<bool>());
     if (j.contains(PropertyNames::kMinColumnWidth) && j[PropertyNames::kMinColumnWidth].is_number())
         lv->setMinColumnWidth(j[PropertyNames::kMinColumnWidth].get<float>());
+    // P0-111：就地编辑属性
+    if (j.contains(PropertyNames::kCellEditing) && j[PropertyNames::kCellEditing].is_boolean())
+        lv->setBoolProperty(PropertyNames::kCellEditing, j[PropertyNames::kCellEditing].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kEditableColumns) && j[PropertyNames::kEditableColumns].is_string())
+        lv->setStringProperty(PropertyNames::kEditableColumns, j[PropertyNames::kEditableColumns].get<string>().c_str());
+    if (j.contains(PropertyNames::kReadOnlyColumns) && j[PropertyNames::kReadOnlyColumns].is_string())
+        lv->setStringProperty(PropertyNames::kReadOnlyColumns, j[PropertyNames::kReadOnlyColumns].get<string>().c_str());
+    if (j.contains(PropertyNames::kReadOnlyRowIds) && j[PropertyNames::kReadOnlyRowIds].is_string())
+        lv->setStringProperty(PropertyNames::kReadOnlyRowIds, j[PropertyNames::kReadOnlyRowIds].get<string>().c_str());
 
     // columns [{title,width,sortable,(icon 一期暂缓：StatusBar icon 机制未落地)}]
     if (j.contains(PropertyNames::kJsonColumns) && j[PropertyNames::kJsonColumns].is_array()) {
@@ -2538,6 +2547,11 @@ shared_ptr<TreeView> LayoutParser::parseTreeView(const json& j, Control* parent)
         tv->setCycleNavigation(j[PropertyNames::kCycleNavigation].get<bool>());
     if (j.contains(PropertyNames::kDefaultExpand))
         tv->setDefaultExpand(j[PropertyNames::kDefaultExpand].get<bool>());
+    // P0-112：节点标签就地编辑属性
+    if (j.contains(PropertyNames::kLabelEditing) && j[PropertyNames::kLabelEditing].is_boolean())
+        tv->setBoolProperty(PropertyNames::kLabelEditing, j[PropertyNames::kLabelEditing].get<bool>() ? 1 : 0);
+    if (j.contains(PropertyNames::kReadOnlyIds) && j[PropertyNames::kReadOnlyIds].is_string())
+        tv->setStringProperty(PropertyNames::kReadOnlyIds, j[PropertyNames::kReadOnlyIds].get<string>().c_str());
 
     if (j.contains(PropertyNames::kItems) && j[PropertyNames::kItems].is_array()) {
         vector<shared_ptr<TreeNode>> items;
@@ -3238,6 +3252,26 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
                 });
             }
         }
+        // P0-111：就地编辑事件
+        const std::pair<const char*, void (ListView::*)(ListView::OnCellEditHandler)> cellEvents[] = {
+            { PropertyNames::kEventKeyCellEditBegin,  &ListView::setOnCellEditBegin },
+            { PropertyNames::kEventKeyCellEdited,     &ListView::setOnCellEdited },
+            { PropertyNames::kEventKeyCellEditCancel, &ListView::setOnCellEditCancel },
+        };
+        for (const auto& ev : cellEvents) {
+            if (events.contains(ev.first) && events[ev.first].is_string()) {
+                string handlerName = events[ev.first].get<string>();
+                auto it = m_handlers.find(handlerName);
+                if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+                if (it != m_handlers.end()) {
+                    auto handler = it->second;
+                    (lv.get()->*(ev.second))([handler](shared_ptr<ListView>, int, int,
+                                                       const std::string&, const std::string&, bool) {
+                        handler(nullptr);
+                    });
+                }
+            }
+        }
     }
 
     // TabControl: onTabChange（文档示例对齐）
@@ -3266,6 +3300,26 @@ void LayoutParser::parseEvents(shared_ptr<ControlImpl> ctrl, const json& j) {
                 tv->setOnSelect([handler, tv](shared_ptr<TreeView>, const string&) {
                     handler(tv);
                 });
+            }
+        }
+        // P0-112：节点标签编辑事件
+        const std::pair<const char*, void (TreeView::*)(TreeView::OnNodeEditHandler)> nodeEvents[] = {
+            { PropertyNames::kEventKeyNodeEditBegin,  &TreeView::setOnNodeEditBegin },
+            { PropertyNames::kEventKeyNodeEdited,     &TreeView::setOnNodeEdited },
+            { PropertyNames::kEventKeyNodeEditCancel, &TreeView::setOnNodeEditCancel },
+        };
+        for (const auto& ev : nodeEvents) {
+            if (events.contains(ev.first) && events[ev.first].is_string()) {
+                string handlerName = events[ev.first].get<string>();
+                auto it = m_handlers.find(handlerName);
+                if (it == m_handlers.end()) logMissingHandler(handlerName, ctrlId);
+                if (it != m_handlers.end()) {
+                    auto handler = it->second;
+                    (tv.get()->*(ev.second))([handler](shared_ptr<TreeView>, const std::string&,
+                                                       const std::string&, const std::string&, bool) {
+                        handler(nullptr);
+                    });
+                }
             }
         }
     }

@@ -319,6 +319,7 @@ protected:
     bool m_isCreated;
     int m_id;
     shared_ptr<class ContextMenu> m_contextMenu;   // 右键上下文菜单（决策点 2-B）
+    Control* m_capturedChild = nullptr;           // P0-114：MouseDown 消费子控件（Up/Move 优先）
     bool m_visible;
     bool m_enable;
     float m_xScale;
@@ -444,6 +445,11 @@ public:
     void resized(SRect newRect) override;
     void moved(SRect newRect) override;
     bool handleEvent(shared_ptr<Event> event) override;
+    virtual bool commitEditOnTab() { return false; }   // P0-111/112：Tab 焦点遍历前提交就地编辑
+    // P0-114/CR004：通用子控件派发 + 鼠标捕获（子控件消费 MouseDown 后，Up/Move 优先派发给它）
+    bool dispatchToChild(shared_ptr<Event> event, Control** consumedChild = nullptr);
+    void clearMouseCapture(bool resetState = true);
+    Control* getMouseCapturedChild() const { return m_capturedChild; }
     bool beforeEventHandlingWatcher(shared_ptr<Event> event) override;
     bool afterEventHandlingWatcher(shared_ptr<Event> event) override;
     void addControl(shared_ptr<Control> child) override;
@@ -557,10 +563,11 @@ public:
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
 
     struct SelectionPayload { int idx; const char* val; };
-    struct TreeNodePayload { const char* id; void* userData; };
+    struct TreeNodePayload { const char* id; void* userData; const char* oldText = nullptr; const char* newText = nullptr; int readOnly = 0; };
     struct ColorPayload { uint8_t r,g,b,a; };
-    struct GridPayload { int row; int col; int asc; };
-    enum class CCallbackData { None, Int, Float, String, Selection, Ptr, TreeNode, Color, Grid, Drag };
+    struct GridPayload { int row; int col; int asc; const char* oldText = nullptr; const char* newText = nullptr; int readOnly = 0; };
+    struct ResizePayload { int col; float oldWidth; float newWidth; int canceled; };
+    enum class CCallbackData { None, Int, Float, String, Selection, Ptr, TreeNode, Color, Grid, Drag, Resize };
     // P0-94：拖拽事件载荷束（fireCCallback(CallbackData::Drag, &bundle)）
     struct DragEventBundle {
         int kind = 0;

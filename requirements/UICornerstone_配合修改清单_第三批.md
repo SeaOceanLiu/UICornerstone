@@ -1,5 +1,6 @@
 # UICornerstone 配合修改清单（第三批）
 
+> **格式说明（2026-11-01）**：本文件为历史归档，采用旧 P0 格式；P0-111/P0-112/P0-113 已迁至 `Temp/UICornerstone_配合修改清单_2026-11.md` 并改用 CR 格式。今后新需求按 CR 格式写入当月清单。
 > **用途**：设计器 → 引擎的需求/缺陷提交清单。
 > **排序**：正文按 **P0 编号升序**；同编号多次追加按日期升序；未编号的早期批次按日期归档。
 > **编号**：`P0-XX` 全局唯一、只增不减；已闭环条目保留供追溯。
@@ -829,5 +830,9 @@ int UICornerstone_GetStringEx(UIInstance, UIControlHandle, const char* prop,
 
 - **P0-108 已交付**：`GetString` 新 ABI（outLen）+ Binding 短/长路径；设计器删除 `readControlTextLong`，8KB 读回通过 ✓。
 - **P0-109 已交付**：整串类型化/多占位/trim/null；设计器幽灵替换已对齐 ✓。
-- **P0-110 已交付（有遗留）**：表达式属性/事件可用，设计器模板颜色槽已接入；**但实现为逐键更新 `m_committedExpression` 并即时发 `expression-changed`**（ColorPicker.cpp:610-639），`onCancel` 只恢复同一 committed → **取消不会丢弃本次表达式输入**；合法 hex 输入也会即时清 committed。与设计"onOK/回车/失焦提交、onCancel 恢复"不符。请引擎修复为：输入只更新 current；提交时才更新 committed + 发事件；onCancel 恢复原 committed（或提供取消事件/明确取消语义）。设计器当前按实时事件写模型，取消后需撤销恢复；`fx` 仍可作为可靠绑定入口。
+- **P0-110 已交付（R2 修复）**：`commitHexInput` 仅在确定/回车提交（编辑中不写 current/committed、不发事件），`onCancel` 无需回滚；设计器按提交事件写模型，取消安全 ✓。程序化 `allow-expression=0` 静默清空（对行池复用更安全）；失焦不自动提交（Enter/确定即可）。
 - 子模块目录当前为**未初始化**状态（`git submodule status` 前缀 `-`，父指针仍 32309cc），文件已为新版；提交设计器前需初始化/提交 release 子模块并更新指针。
+
+## 新需求迁移（2026-11-01）
+
+P0-111/P0-112/P0-113 已迁至当月独立清单 `Temp/UICornerstone_配合修改清单_2026-11.md`；本文件保留 P0-108~P0-110 交付记录，不再追加新需求。

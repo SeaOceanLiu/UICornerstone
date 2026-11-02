@@ -681,6 +681,37 @@ bool UICornerstone::TreeViewSetNodeUserData(Control& tree, const std::string& id
             id.c_str(), userData) != 0;
     return false;
 }
+bool UICornerstone::TreeViewBeginEditNode(Control& tree, const std::string& id) {
+    if (!tree.IsValid() || !Dyn::API().fnTreeViewBeginEditNode) return false;
+    return Dyn::API().fnTreeViewBeginEditNode(m_impl->instance, tree.Handle(), id.c_str()) != 0;
+}
+bool UICornerstone::TreeViewCommitEdit(Control& tree) {
+    if (!tree.IsValid() || !Dyn::API().fnTreeViewCommitEdit) return false;
+    return Dyn::API().fnTreeViewCommitEdit(m_impl->instance, tree.Handle()) != 0;
+}
+bool UICornerstone::TreeViewCancelEdit(Control& tree) {
+    if (!tree.IsValid() || !Dyn::API().fnTreeViewCancelEdit) return false;
+    return Dyn::API().fnTreeViewCancelEdit(m_impl->instance, tree.Handle()) != 0;
+}
+bool UICornerstone::TreeViewIsEditing(Control& tree) {
+    if (!tree.IsValid() || !Dyn::API().fnTreeViewIsEditing) return false;
+    return Dyn::API().fnTreeViewIsEditing(m_impl->instance, tree.Handle()) != 0;
+}
+bool UICornerstone::TreeViewGetEditingId(Control& tree, std::string& outId, bool* outReadOnly) {
+    outId.clear();
+    if (!tree.IsValid() || !Dyn::API().fnTreeViewGetEditingId) return false;
+    int ro = 0;
+    int len = Dyn::API().fnTreeViewGetEditingId(m_impl->instance, tree.Handle(), nullptr, 0, &ro);
+    if (len <= 0) return false;
+    std::string s((size_t)len, '\0');
+    int got = Dyn::API().fnTreeViewGetEditingId(m_impl->instance, tree.Handle(), &s[0], len + 1, &ro);
+    if (got < 0) return false;
+    s.resize((size_t)got);
+    outId = s;
+    if (outReadOnly) *outReadOnly = (ro != 0);
+    return true;
+}
+
 bool UICornerstone::TreeViewSelectNode(Control& tree, const std::string& id) {
     if (m_impl->instance && tree.Handle())
         return Dyn::API().fnTreeViewSelectNode(m_impl->instance, tree.Handle(), id.c_str()) != 0;
@@ -800,6 +831,68 @@ Control UICornerstone::CreateListView(float x, float y, float w, float h, float 
     if (!m_impl->instance) return Control();
     return MakeControl(Dyn::API().fnCreateListView(m_impl->instance, x, y, w, h, xScale, yScale));
 }
+bool UICornerstone::ListViewBeginEditCell(Control& lv, int row, int col) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewBeginEditCell) return false;
+    return Dyn::API().fnListViewBeginEditCell(m_impl->instance, lv.Handle(), row, col) != 0;
+}
+bool UICornerstone::ListViewCommitEdit(Control& lv) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewCommitEdit) return false;
+    return Dyn::API().fnListViewCommitEdit(m_impl->instance, lv.Handle()) != 0;
+}
+bool UICornerstone::ListViewCancelEdit(Control& lv) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewCancelEdit) return false;
+    return Dyn::API().fnListViewCancelEdit(m_impl->instance, lv.Handle()) != 0;
+}
+bool UICornerstone::ListViewIsEditing(Control& lv) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewIsEditing) return false;
+    return Dyn::API().fnListViewIsEditing(m_impl->instance, lv.Handle()) != 0;
+}
+bool UICornerstone::ListViewGetEditingCell(Control& lv, int& row, int& col, bool& readOnly) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewGetEditingCell) return false;
+    int r = -1, c = -1, ro = 0;
+    if (!Dyn::API().fnListViewGetEditingCell(m_impl->instance, lv.Handle(), &r, &c, &ro)) return false;
+    row = r; col = c; readOnly = (ro != 0);
+    return true;
+}
+int UICornerstone::ListViewHitTestColumnDivider(Control& lv, float localX, float localY) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewHitTestColumnDivider) return -1;
+    return Dyn::API().fnListViewHitTestColumnDivider(m_impl->instance, lv.Handle(), localX, localY);
+}
+bool UICornerstone::ListViewBeginColumnResize(Control& lv, int col, float localX) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewBeginColumnResize) return false;
+    return Dyn::API().fnListViewBeginColumnResize(m_impl->instance, lv.Handle(), col, localX) != 0;
+}
+float UICornerstone::ListViewUpdateColumnResize(Control& lv, float localX) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewUpdateColumnResize) return -1.0f;
+    return Dyn::API().fnListViewUpdateColumnResize(m_impl->instance, lv.Handle(), localX);
+}
+bool UICornerstone::ListViewEndColumnResize(Control& lv, bool commit) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewEndColumnResize) return false;
+    return Dyn::API().fnListViewEndColumnResize(m_impl->instance, lv.Handle(), commit ? 1 : 0) != 0;
+}
+bool UICornerstone::ListViewCancelColumnResize(Control& lv) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewCancelColumnResize) return false;
+    return Dyn::API().fnListViewCancelColumnResize(m_impl->instance, lv.Handle()) != 0;
+}
+bool UICornerstone::ListViewSetColumnResizeCursor(Control& lv, bool active) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewSetColumnResizeCursor) return false;
+    return Dyn::API().fnListViewSetColumnResizeCursor(m_impl->instance, lv.Handle(), active ? 1 : 0) != 0;
+}
+bool UICornerstone::ListViewSetCellControl(Control& lv, int row, int col, Control& ctl, int layout) {
+    if (!lv.IsValid() || !ctl.IsValid() || !Dyn::API().fnListViewSetCellControl) return false;
+    return Dyn::API().fnListViewSetCellControl(m_impl->instance, lv.Handle(), row, col, ctl.Handle(), layout) != 0;
+}
+bool UICornerstone::ListViewClearCellControl(Control& lv, int row, int col) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewClearCellControl) return false;
+    return Dyn::API().fnListViewClearCellControl(m_impl->instance, lv.Handle(), row, col) != 0;
+}
+Control UICornerstone::ListViewGetCellControl(Control& lv, int row, int col) {
+    if (!lv.IsValid() || !Dyn::API().fnListViewGetCellControl) return Control();
+    UIControlHandle h = Dyn::API().fnListViewGetCellControl(m_impl->instance, lv.Handle(), row, col);
+    if (!h) return Control();
+    return FromHandle(h);
+}
+
 bool UICornerstone::ListViewAddRow(Control& lv, const std::string& id,
                                    const std::vector<std::string>& cells) {
     if (!m_impl->instance || !lv.Handle()) return false;

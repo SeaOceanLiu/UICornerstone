@@ -224,6 +224,38 @@ void* cb = UICornerstone_FindControl(g_inst, "cb_n2");</code></pre>
 
 
 
+<h2>4.25.7 节点标签就地编辑（P0-112 / CR20261101002）</h2>
+<table>
+<tr><th>属性键</th><th>类型</th><th>默认</th><th>说明</th></tr>
+<tr><td><code>label-editing</code></td><td>Bool</td><td>false</td><td>开启双击节点标签就地编辑</td></tr>
+<tr><td><code>read-only-ids</code></td><td>String</td><td>""</td><td>只读节点 id 逗号串；仍可进入编辑，EditBox 只读（可全选/复制）</td></tr>
+<tr><td><code>edit-old-text</code> / <code>edit-new-text</code></td><td>String（只读）</td><td>—</td><td>编辑会话前值/新值；begin/cancel 时 new 为空</td></tr>
+</table>
+<p>交互：双击节点标签（节点行<strong>纵向完整可见</strong>且<strong>文本 rect 横向完整</strong>）进入编辑；Enter/失焦提交；Esc 取消；滚动、展开/折叠、节点增删移/重排、刷新、隐藏/禁用/销毁时取消（销毁不回调）。只读节点仍可进入编辑（EditBox 只读），Enter/失焦记为 <code>cancel</code>（<code>readOnly=1</code>）。空节点 id 不允许进入编辑；Tab=失焦提交并继续焦点遍历。</p>
+<table>
+<tr><th>事件名</th><th>载荷</th><th>说明</th></tr>
+<tr><td><code>node-edit-begin</code></td><td>treeNode{id} + oldText</td><td>进入编辑（newText 为空）</td></tr>
+<tr><td><code>node-edited</code></td><td>treeNode{id} + oldText + newText</td><td>可写会话提交（label 已更新）</td></tr>
+<tr><td><code>node-edit-cancel</code></td><td>treeNode{id} + oldText</td><td>Esc / 只读提交 / 生命周期取消</td></tr>
+</table>
+<pre><code>{ "type": "tree-view", "id": "tv", "rect": { "x": 20, "y": 20, "w": 300, "h": 240 },
+  "label-editing": true, "read-only-ids": "group1",
+  "items": [ { "id": "group1", "label": "Group" },
+             { "id": "leaf1", "label": "Leaf" } ],
+  "events": { "onNodeEdited": "onNodeEdited" } }</code></pre>
+<pre><code>/* C ABI */
+UICornerstone_SetBool(g_inst, tv, "label-editing", 1);
+UICornerstone_SetCallback(g_inst, tv, "node-edited", onNodeEdited, NULL);
+UICornerstone_TreeViewBeginEditNode(g_inst, tv, "leaf1");
+UICornerstone_TreeViewCommitEdit(g_inst, tv);
+/* Binding */
+tv.SetBool(PropertyNames::kLabelEditing, true);
+tv.SetCallback(PropertyNames::kEventNodeEdited, [](const Event& e) {
+    e.GetEditNodeId(); e.GetEditOldText(); e.GetEditNewText(); e.IsEditReadOnly();
+});
+ui->TreeViewBeginEditNode(tv, "leaf1");
+ui->TreeViewGetEditingId(tv, id, &readOnly);</code></pre>
+
 <div class="chapter-nav">
   <a href="textarea.html">← 4.24 TextArea</a>
   <a href="winframe.html">下一节：4.26 WinFrame →</a>

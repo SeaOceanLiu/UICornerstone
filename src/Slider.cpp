@@ -57,6 +57,9 @@ Slider::Slider(Control* parent, SRect rect, float xScale, float yScale):
 }
 
 Slider::~Slider() {
+    Cursor::restoreDefault(static_cast<Control*>(this));
+    delete m_cursorPointer;
+    m_cursorPointer = nullptr;
     destroyCachedTickTexts();
 }
 
@@ -630,7 +633,8 @@ bool Slider::handleEvent(shared_ptr<Event> event)
             float rawValue = offsetToValue(offset);
             m_value = rawValue;
             updateValueLabel();
-            Cursor::setCurrent(Cursor::createSystem(SystemCursorType::Pointer));
+            if (!m_cursorPointer) m_cursorPointer = Cursor::createSystem(SystemCursorType::Pointer);
+            if (m_cursorPointer) Cursor::setCurrentWithOwner(m_cursorPointer, getThis().get());
             return true;
         }
 
@@ -638,9 +642,12 @@ bool Slider::handleEvent(shared_ptr<Event> event)
         SRect thumbR = getThumbRect();
         bool onThumb = thumbR.contains(mousePos.x, mousePos.y);
         m_thumbHovered = onThumb;
-        Cursor::setCurrent(onThumb
-            ? Cursor::createSystem(SystemCursorType::Pointer)
-            : Cursor::getDefault());
+        if (onThumb) {
+            if (!m_cursorPointer) m_cursorPointer = Cursor::createSystem(SystemCursorType::Pointer);
+            if (m_cursorPointer) Cursor::setCurrentWithOwner(m_cursorPointer, getThis().get());
+        } else {
+            Cursor::restoreDefault(getThis().get());
+        }
         return false; // Don't consume — siblings may also handle hover
     }
 
@@ -654,12 +661,14 @@ bool Slider::handleEvent(shared_ptr<Event> event)
         // After release, refresh cursor based on whether mouse is still on thumb
         if (hasPos && dr.contains(mousePos.x, mousePos.y)) {
             SRect thumbR = getThumbRect();
-            if (thumbR.contains(mousePos.x, mousePos.y))
-                Cursor::setCurrent(Cursor::createSystem(SystemCursorType::Pointer));
-            else
-                Cursor::setCurrent(Cursor::getDefault());
+            if (thumbR.contains(mousePos.x, mousePos.y)) {
+                if (!m_cursorPointer) m_cursorPointer = Cursor::createSystem(SystemCursorType::Pointer);
+                if (m_cursorPointer) Cursor::setCurrentWithOwner(m_cursorPointer, getThis().get());
+            } else {
+                Cursor::restoreDefault(getThis().get());
+            }
         } else {
-            Cursor::setCurrent(Cursor::getDefault());
+            Cursor::restoreDefault(getThis().get());
         }
         return true;
     }
@@ -675,7 +684,8 @@ bool Slider::handleEvent(shared_ptr<Event> event)
         if (thumbR.contains(mousePos.x, mousePos.y)) {
             m_dragging = true;
             m_dragStartMouse = mousePos;
-            Cursor::setCurrent(Cursor::createSystem(SystemCursorType::Pointer));
+            if (!m_cursorPointer) m_cursorPointer = Cursor::createSystem(SystemCursorType::Pointer);
+            if (m_cursorPointer) Cursor::setCurrentWithOwner(m_cursorPointer, getThis().get());
             return true;
         }
         // Click on track — jump to position
@@ -690,7 +700,8 @@ bool Slider::handleEvent(shared_ptr<Event> event)
         setValue(rawValue);
         m_dragging = true;
         m_dragStartMouse = mousePos;
-        Cursor::setCurrent(Cursor::createSystem(SystemCursorType::Pointer));
+        if (!m_cursorPointer) m_cursorPointer = Cursor::createSystem(SystemCursorType::Pointer);
+        if (m_cursorPointer) Cursor::setCurrentWithOwner(m_cursorPointer, getThis().get());
         return true;
     }
 

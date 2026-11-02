@@ -29,6 +29,39 @@ int Event::GetCheckState() const { return m_raw->data.intVal; }
 bool Event::IsColorChanged() const { return GetName() == PropertyNames::kEventColorChanged; }
 bool Event::IsExpressionChanged() const { return GetName() == PropertyNames::kEventExpressionChanged; }
 std::string Event::GetExpression() const { return m_raw->data.strVal ? m_raw->data.strVal : ""; }
+
+bool Event::IsCellEditBegin() const    { return GetName() == PropertyNames::kEventCellEditBegin; }
+bool Event::IsCellEdited() const       { return GetName() == PropertyNames::kEventCellEdited; }
+bool Event::IsCellEditCancel() const   { return GetName() == PropertyNames::kEventCellEditCancel; }
+int  Event::GetEditRow() const         { return m_raw->data.grid.row; }
+int  Event::GetEditCol() const         { return m_raw->data.grid.col; }
+bool Event::IsNodeEditBegin() const    { return GetName() == PropertyNames::kEventNodeEditBegin; }
+bool Event::IsNodeEdited() const       { return GetName() == PropertyNames::kEventNodeEdited; }
+bool Event::IsNodeEditCancel() const   { return GetName() == PropertyNames::kEventNodeEditCancel; }
+std::string Event::GetEditNodeId() const { return m_raw->data.treeNode.id ? m_raw->data.treeNode.id : ""; }
+std::string Event::GetEditOldText() const {
+    const char* s = (IsCellEditBegin() || IsCellEdited() || IsCellEditCancel())
+                    ? m_raw->data.grid.oldText : m_raw->data.treeNode.oldText;
+    return s ? s : "";
+}
+std::string Event::GetEditNewText() const {
+    const char* s = nullptr;
+    if (IsCellEdited()) s = m_raw->data.grid.newText;
+    else if (IsNodeEdited()) s = m_raw->data.treeNode.newText;
+    return s ? s : "";
+}
+bool Event::IsEditReadOnly() const {
+    if (IsCellEditBegin() || IsCellEdited() || IsCellEditCancel())
+        return m_raw->data.grid.editReadOnly != 0;
+    return m_raw->data.treeNode.editReadOnly != 0;
+}
+bool Event::IsColumnResizeBegin() const   { return GetName() == PropertyNames::kEventColumnResizeBegin; }
+bool Event::IsColumnResizeChanged() const { return GetName() == PropertyNames::kEventColumnResizeChanged; }
+bool Event::IsColumnResizeEnded() const   { return GetName() == PropertyNames::kEventColumnResizeEnded; }
+int  Event::GetResizeCol() const          { return m_raw->data.resize.col; }
+float Event::GetResizeOldWidth() const    { return m_raw->data.resize.oldWidth; }
+float Event::GetResizeNewWidth() const    { return m_raw->data.resize.newWidth; }
+bool Event::GetResizeCanceled() const     { return m_raw->data.resize.canceled != 0; }
 UIColor Event::GetChangedColor() const {
     UIColor c{m_raw->data.color.r, m_raw->data.color.g, m_raw->data.color.b, m_raw->data.color.a};
     return c;

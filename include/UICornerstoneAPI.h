@@ -459,6 +459,14 @@ UICORNERSTONE_API int UICornerstone_TreeViewSetNodeLabel(UIInstance instance,
     UIControlHandle tree, const char* id, const char* label);
 UICORNERSTONE_API int UICornerstone_TreeViewSetNodeUserData(UIInstance instance,
     UIControlHandle tree, const char* id, void* userData);
+// P0-112：节点标签就地编辑（GetEditingId 采用 P107 缓冲语义：返回完整长度；out=NULL/cap=0 仅查长度）
+UICORNERSTONE_API int UICornerstone_TreeViewBeginEditNode(UIInstance instance,
+    UIControlHandle tree, const char* id);
+UICORNERSTONE_API int UICornerstone_TreeViewCommitEdit(UIInstance instance, UIControlHandle tree);
+UICORNERSTONE_API int UICornerstone_TreeViewCancelEdit(UIInstance instance, UIControlHandle tree);
+UICORNERSTONE_API int UICornerstone_TreeViewIsEditing(UIInstance instance, UIControlHandle tree);
+UICORNERSTONE_API int UICornerstone_TreeViewGetEditingId(UIInstance instance,
+    UIControlHandle tree, char* out, int cap, int* outReadOnly);
 UICORNERSTONE_API int UICornerstone_TreeViewSelectNode(UIInstance instance,
     UIControlHandle tree, const char* id);
 UICORNERSTONE_API void UICornerstone_TreeViewClearSelection(UIInstance instance, UIControlHandle tree);
@@ -591,6 +599,11 @@ UICORNERSTONE_API int UICornerstone_ShapeClearPrimitives(UIInstance instance, UI
 // "min-column-width")、SetInt("selected-index"/"sort-column")；数据/对象类走下列专用函数。
 // 返回值约定：int 1=成功 / 0=失败（非 list-view 或越界）。
 typedef int (*ListViewSortFn)(const char* a, const char* b, void* userData);
+// P0-114/CR004：单元格控件布局
+typedef enum {
+    UI_LIST_CELL_LAYOUT_FILL = 0,     /* 单元格内容区（默认） */
+    UI_LIST_CELL_LAYOUT_LEADING = 1   /* 既有图标槽 */
+} UIListCellControlLayout;
 UICORNERSTONE_API UIControlHandle UICornerstone_CreateListView(UIInstance instance,
     float x, float y, float w, float h, float xScale, float yScale);
 // 行（cells 为字符串数组，自动补足/截断到列数）
@@ -617,6 +630,26 @@ UICORNERSTONE_API int UICornerstone_ListViewInsertColumn(UIInstance instance, UI
 UICORNERSTONE_API int UICornerstone_ListViewRemoveColumn(UIInstance instance, UIControlHandle lv, int index);
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnWidth(UIInstance instance, UIControlHandle lv,
     int index, float width);
+// P0-111：单元格就地编辑（1=成功 / 0=失败；GetEditingCell 输出仅返回 1 时有效）
+UICORNERSTONE_API int UICornerstone_ListViewBeginEditCell(UIInstance instance, UIControlHandle lv,
+    int row, int col);
+UICORNERSTONE_API int UICornerstone_ListViewCommitEdit(UIInstance instance, UIControlHandle lv);
+UICORNERSTONE_API int UICornerstone_ListViewCancelEdit(UIInstance instance, UIControlHandle lv);
+UICORNERSTONE_API int UICornerstone_ListViewIsEditing(UIInstance instance, UIControlHandle lv);
+UICORNERSTONE_API int UICornerstone_ListViewGetEditingCell(UIInstance instance, UIControlHandle lv,
+    int* outRow, int* outCol, int* outReadOnly);
+// P0-113：设计态列宽手势（localX/localY 为 ListView 局部逻辑坐标；已含水平滚动偏移）
+UICORNERSTONE_API int UICornerstone_ListViewHitTestColumnDivider(UIInstance instance, UIControlHandle lv,
+    float localX, float localY);
+UICORNERSTONE_API int UICornerstone_ListViewBeginColumnResize(UIInstance instance, UIControlHandle lv,
+    int col, float localX);
+UICORNERSTONE_API float UICornerstone_ListViewUpdateColumnResize(UIInstance instance, UIControlHandle lv,
+    float localX);
+UICORNERSTONE_API int UICornerstone_ListViewEndColumnResize(UIInstance instance, UIControlHandle lv,
+    int commit);
+UICORNERSTONE_API int UICornerstone_ListViewCancelColumnResize(UIInstance instance, UIControlHandle lv);
+// P0-113/CR005：显式光标（设计态）：active=1 → EW_Resize（隐藏/禁用/未 create 失败）；active=0 始终恢复默认
+UICORNERSTONE_API int UICornerstone_ListViewSetColumnResizeCursor(UIInstance instance, UIControlHandle lv, int active);
 // 对象注入（leadingControl 语义）
 UICORNERSTONE_API int UICornerstone_ListViewSetColumnIcon(UIInstance instance, UIControlHandle lv,
     int colIndex, UIControlHandle iconControl);
@@ -624,6 +657,13 @@ UICORNERSTONE_API int UICornerstone_ListViewSetRowLeadingControl(UIInstance inst
     int index, UIControlHandle iconControl);
 UICORNERSTONE_API int UICornerstone_ListViewSetCellLeadingControl(UIInstance instance, UIControlHandle lv,
     int row, int col, UIControlHandle control);
+// P0-114/CR004：通用单元格控件（引擎接管所有权；ctl=NULL 等价 Clear；layout=UI_LIST_CELL_LAYOUT_*）
+UICORNERSTONE_API int UICornerstone_ListViewSetCellControl(UIInstance instance, UIControlHandle lv,
+    int row, int col, UIControlHandle ctl, int layout);
+UICORNERSTONE_API int UICornerstone_ListViewClearCellControl(UIInstance instance, UIControlHandle lv,
+    int row, int col);
+UICORNERSTONE_API UIControlHandle UICornerstone_ListViewGetCellControl(UIInstance instance, UIControlHandle lv,
+    int row, int col);
 // 样式（bg 颜色 + fontSize；font 缺省；JSON/Binding 二期）
 UICORNERSTONE_API int UICornerstone_ListViewSetCellStyle(UIInstance instance, UIControlHandle lv,
     int row, int col, uint8_t bgR, uint8_t bgG, uint8_t bgB, uint8_t bgA, int fontSize);
@@ -890,10 +930,11 @@ typedef struct {
         const char*     strVal;
         void*           ptrVal;
         struct { int idx; const char* val; } selection;
-        struct { const char* id; void* userData; } treeNode;
+        struct { const char* id; void* userData; const char* oldText; const char* newText; int editReadOnly; } treeNode;
         struct { uint8_t r,g,b,a; } color;
-        struct { int row; int col; int asc; } grid;
+        struct { int row; int col; int asc; const char* oldText; const char* newText; int editReadOnly; } grid;
         struct { UIDragPayload payload; UIDropHint hint; int dropped; } drag;   /* P0-94 */
+        struct { int col; float oldWidth; float newWidth; int canceled; } resize; /* P0-113 */
         struct { const char* path; float x; float y; int isText; } dropFile;    /* P0-100 */
     } data;
 } UIEventData;

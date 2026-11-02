@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+﻿cmake_minimum_required(VERSION 3.16)
 project(UICornerstone VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -48,6 +48,7 @@ set(CORE_SOURCES
     src/Dialog.cpp
     src/WinFrame.cpp
     src/EditBox.cpp
+    src/InlineEditBox.cpp
     src/EventQueue.cpp
     src/FocusManager.cpp
     src/GraphTool.cpp

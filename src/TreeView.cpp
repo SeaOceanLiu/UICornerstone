@@ -7,8 +7,11 @@
 #include "PlatformUtils.h"
 #include "EventQueue.h"
 #include "LeadingControlSlot.h"
+#include "InlineEditBox.h"
+#include "FocusManager.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 // P0-62②：节点着色辅助（定义见 Property system 段；draw 先于此定义使用，需前置声明）
 static uint8_t nodeStateBit(ControlState s);
@@ -33,6 +36,9 @@ TreeView::TreeView(Control* parent, const SRect& rect,
 }
 
 TreeView::~TreeView() {
+    m_editing = false;
+    m_editDestroyPending = false;
+    if (m_editBox) { removeControl(m_editBox); m_editBox.reset(); }
     for (auto& root : m_rootItems)
         clearNodeRecursive(root);
 }
@@ -66,7 +72,11 @@ void TreeView::create() {
         .setStepSize(getStride())
         .setPageSize(m_rect.height)
         .setOnPositionChanged([this](shared_ptr<ScrollBar>, float, float, float, float) {
-            m_scrollOffset = m_scrollBar->getValue();
+            if (!m_scrollBar) return;
+            const float nv = m_scrollBar->getValue();
+            if (fabs(nv - m_scrollOffset) <= 0.01f) return;   // setValue 每帧重复通知
+            cancelEditForMutation();
+            m_scrollOffset = nv;
         })
         .build();
     addControl(m_scrollBar);
@@ -78,7 +88,11 @@ void TreeView::create() {
         ScrollBarOrientation::Horizontal, 1.0f, 1.0f)
         .setStepSize(m_indentWidth)
         .setOnPositionChanged([this](shared_ptr<ScrollBar>, float, float, float, float) {
-            m_hScrollOffset = m_hScrollBar->getValue();
+            if (!m_hScrollBar) return;
+            const float nv = m_hScrollBar->getValue();
+            if (fabs(nv - m_hScrollOffset) <= 0.01f) return;
+            cancelEditForMutation();
+            m_hScrollOffset = nv;
         })
         .build();
     addControl(m_hScrollBar);
@@ -173,6 +187,7 @@ void TreeView::setFontSize(int size) {
 
 // 父链缩放变更时重建字体（保持 setFontSize 语义：字号随复合缩放）
 void TreeView::refreshScaleWith(float parentXX, float parentYY){
+    cancelEditForMutation();
     float oldScaleX = getScaleXX();
     float oldScaleY = getScaleYY();
     ControlImpl::refreshScaleWith(parentXX, parentYY);
@@ -194,6 +209,7 @@ void TreeView::setBorderColor(const SColor& c) {
 }
 
 void TreeView::draw() {
+    cleanupPendingEdit();
     if (!m_visible) return;
     auto* dev = getRenderDevice();
     if (!dev) return;
@@ -374,7 +390,9 @@ void TreeView::drawArrow(RenderDevice* dev, float x, float y, bool expanded) {
 }
 
 bool TreeView::handleEvent(shared_ptr<Event> event) {
+    cleanupPendingEdit();
     if (!m_enable || !m_visible) return false;
+    if (m_editing && m_editBox && m_editBox->handleEvent(event)) return true;
 
     if (event->m_type == EventType::KeyDown && getFocused()) {
         KeyCode kc = event->keyEvent.keycode;
@@ -486,6 +504,40 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
 
     if (event->m_type == EventType::MouseUp && event->mouseButton.button == MouseButton::Left) {
         m_pressedRow = -1;   // P032：抬起清除 item pressed
+        if (m_labelEditing && !m_editing && isContainsPoint(event->mouseButton.x, event->mouseButton.y)) {
+            const int row = hitTestRowInContent(event->mouseButton.x, event->mouseButton.y);
+            if (row >= 0 && !hitTestArrow(row, event->mouseButton.x)) {
+                auto& node = m_flatRows[row].node;
+                const bool overLeading = node->leadingControl &&
+                    node->leadingControl->isContainsPoint(event->mouseButton.x, event->mouseButton.y);
+                if (!overLeading) {
+                    SRect lr; bool vis = false;
+                    if (nodeLabelRect(node->id, lr, vis) && vis) {
+                        const SRect dr = getDrawRect();
+                        const float sx = getScaleXX() != 0.f ? getScaleXX() : 1.f;
+                        const float sy = getScaleYY() != 0.f ? getScaleYY() : 1.f;
+                        const float lx = (event->mouseButton.x - dr.left) / sx;
+                        const float ly = (event->mouseButton.y - dr.top) / sy;
+                        if (lr.contains(lx, ly)) {
+                            const uint64_t now = Platform::GetTicks();
+                            const float dx = event->mouseButton.x - m_lastClickX;
+                            const float dy = event->mouseButton.y - m_lastClickY;
+                            if (node->id == m_lastClickId && (now - m_lastClickTick) <= 450 &&
+                                fabs(dx) <= 4.f && fabs(dy) <= 4.f) {
+                                beginEditNode(node->id);
+                                m_lastClickTick = 0;
+                                m_lastClickId.clear();
+                            } else {
+                                m_lastClickTick = now;
+                                m_lastClickX = event->mouseButton.x;
+                                m_lastClickY = event->mouseButton.y;
+                                m_lastClickId = node->id;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (event->m_type == EventType::MouseWheel) {
@@ -496,6 +548,7 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
         float vMax = (m_scrollBar && m_scrollBar->getVisible()) ? m_scrollBar->getMaxValue() : 0.f;
         float hMax = (m_hScrollBar && m_hScrollBar->getVisible()) ? m_hScrollBar->getMaxValue() : 0.f;
         if (vMax <= 0.f && hMax <= 0.f) return false;
+        cancelEditForMutation();
 
         if (event->mouseWheel.scrollY != 0 && m_scrollBar) {
             float step = getStride() * ConstDef::TREEVIEW_SCROLL_STEP_LINES;
@@ -590,6 +643,7 @@ int TreeView::getChildIndex(const std::string& id) {
 }
 
 bool TreeView::moveNode(const std::string& id, const std::string& newParentId, int index) {
+    cancelEditForMutation();
     if (id.empty()) return false;
     auto node = findNodeById(id);
     if (!node) return false;
@@ -666,6 +720,7 @@ void TreeView::rebuildFlatRows() {
 }
 
 void TreeView::setItems(const vector<shared_ptr<TreeNode>>& items) {
+    cancelEditForMutation();
     for (auto& root : m_rootItems)
         clearNodeRecursive(root);
     m_nodeFonts.clear();  // 旧树节点已销毁，逐节点字体缓存 key 失效
@@ -686,6 +741,7 @@ void TreeView::setItems(const vector<shared_ptr<TreeNode>>& items) {
 }
 
 bool TreeView::addChild(const string& parentId, shared_ptr<TreeNode> node) {
+    cancelEditForMutation();
     if (!node) return false;
     auto parent = findNodeById(parentId);
     if (!parent) return false;
@@ -701,6 +757,7 @@ bool TreeView::addChild(const string& parentId, shared_ptr<TreeNode> node) {
 }
 
 bool TreeView::addRootItem(shared_ptr<TreeNode> node) {
+    cancelEditForMutation();
     if (!node) return false;
     m_rootItems.push_back(node);
     rebuildFlatRows();
@@ -708,6 +765,7 @@ bool TreeView::addRootItem(shared_ptr<TreeNode> node) {
 }
 
 bool TreeView::removeNode(const string& id) {
+    cancelEditForMutation();
     if (m_rootItems.empty()) return false;
     if (m_nodeMap.find(id) == m_nodeMap.end()) return false;
 
@@ -753,10 +811,8 @@ bool TreeView::removeNode(const string& id) {
 }
 
 bool TreeView::setNodeLabel(const string& id, const string& label) {
-    auto node = findNodeById(id);
-    if (!node) return false;
-    node->label = label;
-    return true;
+    cancelEditForMutation();
+    return applyNodeLabelInternal(id, label);
 }
 
 bool TreeView::setNodeUserData(const string& id, void* userData) {
@@ -768,6 +824,7 @@ bool TreeView::setNodeUserData(const string& id, void* userData) {
 }
 
 void TreeView::clearItems() {
+    cancelEditForMutation();
     // 行控件先行摘除（节点随后销毁；clearItems 不触发 rebuildFlatRows）
     for (auto& c : m_rowControls)
         removeControl(c);
@@ -791,6 +848,7 @@ shared_ptr<TreeNode> TreeView::findNodeById(const string& id) {
 }
 
 bool TreeView::toggleExpand(const string& id) {
+    cancelEditForMutation();
     auto node = findNodeById(id);
     if (!node || node->children.empty()) return false;
     if (node->expanded)
@@ -800,6 +858,7 @@ bool TreeView::toggleExpand(const string& id) {
 }
 
 bool TreeView::expandNode(const string& id) {
+    cancelEditForMutation();
     auto node = findNodeById(id);
     if (!node || node->expanded || node->children.empty()) return false;
     node->expanded = true;
@@ -810,6 +869,7 @@ bool TreeView::expandNode(const string& id) {
 }
 
 bool TreeView::collapseNode(const string& id) {
+    cancelEditForMutation();
     auto node = findNodeById(id);
     if (!node || !node->expanded) return false;
     node->expanded = false;
@@ -920,21 +980,25 @@ float TreeView::calcContentWidth() {
     return maxW;
 }
 
-void TreeView::setIndentWidth(float px) {
+void TreeView::setIndentWidth(float px) {    cancelEditForMutation();
+
     m_indentWidth = max(0.0f, px);
 }
 
-void TreeView::setRowHeight(float px) {
+void TreeView::setRowHeight(float px) {    cancelEditForMutation();
+
     m_rowHeight = max(1.0f, px);
     if (m_scrollBar) m_scrollBar->setStepSize(getStride());
 }
 
-void TreeView::setLineSpacing(float px) {
+void TreeView::setLineSpacing(float px) {    cancelEditForMutation();
+
     m_lineSpacing = max(0.0f, px);
     if (m_scrollBar) m_scrollBar->setStepSize(getStride());
 }
 
-void TreeView::setArrowGap(float px) {
+void TreeView::setArrowGap(float px) {    cancelEditForMutation();
+
     m_arrowGap = max(0.0f, px);
 }
 
@@ -1119,6 +1183,23 @@ int TreeView::setCallbackProperty(const char* event, void (*cb)(void*, const voi
 }
 
 int TreeView::setStringProperty(const char* prop, const char* value) {
+    if (strcmp(prop, PropertyNames::kReadOnlyIds) == 0) {
+        cancelEditForMutation();
+        m_readOnlyIdsRaw = value ? value : "";
+        m_readOnlyIds.clear();
+        size_t pos = 0;
+        while (pos <= m_readOnlyIdsRaw.size()) {
+            size_t comma = m_readOnlyIdsRaw.find(',', pos);
+            std::string tok = m_readOnlyIdsRaw.substr(pos,
+                comma == std::string::npos ? std::string::npos : comma - pos);
+            size_t b = tok.find_first_not_of(" \t");
+            size_t e = tok.find_last_not_of(" \t");
+            if (b != std::string::npos) m_readOnlyIds.insert(tok.substr(b, e - b + 1));
+            if (comma == std::string::npos) break;
+            pos = comma + 1;
+        }
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTreeExpand) == 0)   { return value && expandNode(value) ? 1 : 0; }
     if (strcmp(prop, PropertyNames::kTreeCollapse) == 0) { return value && collapseNode(value) ? 1 : 0; }
     if (strcmp(prop, PropertyNames::kTreeItemId) == 0)   { m_itemTargetId = value ? value : ""; return 1; }
@@ -1126,6 +1207,9 @@ int TreeView::setStringProperty(const char* prop, const char* value) {
 }
 
 int TreeView::getStringProperty(const char* prop, const char*& out) {
+    if (strcmp(prop, PropertyNames::kReadOnlyIds) == 0) { out = m_readOnlyIdsRaw.c_str(); return 1; }
+    if (strcmp(prop, PropertyNames::kEditOldText) == 0) { out = m_editOldText.c_str();  return 1; }
+    if (strcmp(prop, PropertyNames::kEditNewText) == 0) { out = m_editNewText.c_str();  return 1; }
     if (strcmp(prop, PropertyNames::kSelectedId) == 0) { out = m_selectedId.c_str(); return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemId) == 0) { out = m_itemTargetId.c_str(); return 1; }
     return ControlImpl::getStringProperty(prop, out);
@@ -1170,6 +1254,11 @@ int TreeView::getPtrProperty(const char* prop, void*& out) {
 }
 
 int TreeView::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kLabelEditing) == 0) {
+        m_labelEditing = (value != 0);
+        if (!m_labelEditing) cancelEditForMutation();
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
         strcmp(prop, PropertyNames::kItemShadow) == 0 ||
         strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032：item 级开关（item-id 定位）
@@ -1257,6 +1346,7 @@ int TreeView::setEnumProperty(const char* prop, const char* value) {
     return ControlImpl::setEnumProperty(prop, value);
 }
 int TreeView::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kLabelEditing) == 0) { out = m_labelEditing ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kItemBorderVisible) == 0 ||
         strcmp(prop, PropertyNames::kItemShadow) == 0 ||
         strcmp(prop, PropertyNames::kItemDisabled) == 0) {   // P032
@@ -1351,4 +1441,209 @@ int TreeView::getEnumProperty(const char* prop, const char*& out) {
         return 1;
     }
     return ControlImpl::getEnumProperty(prop, out);
+}
+
+// ==================== P0-112：节点标签就地编辑 ====================
+
+void TreeView::cleanupPendingEdit() {
+    if (!m_editDestroyPending || !m_editBox) return;
+    m_editDestroyPending = false;
+    auto box = m_editBox;
+    m_editBox.reset();
+    removeControl(box);
+}
+
+void TreeView::fireNodeEditEvent(const char* eventName, const std::string& id,
+                                 const std::string& oldText, const std::string& newText, bool readOnly) {
+    TreeNodePayload p{id.c_str(), nullptr};
+    p.oldText = oldText.c_str();
+    p.newText = newText.empty() ? nullptr : newText.c_str();
+    p.readOnly = readOnly ? 1 : 0;
+    fireCCallback(eventName, CCallbackData::TreeNode, &p);
+    OnNodeEditHandler* typed = nullptr;
+    if (eventName == PropertyNames::kEventNodeEditBegin)       typed = &m_onNodeEditBegin;
+    else if (eventName == PropertyNames::kEventNodeEdited)     typed = &m_onNodeEdited;
+    else if (eventName == PropertyNames::kEventNodeEditCancel) typed = &m_onNodeEditCancel;
+    if (typed && *typed) {
+        if (auto self = std::dynamic_pointer_cast<TreeView>(
+                std::dynamic_pointer_cast<Control>(getThis())))
+            (*typed)(self, id, oldText, newText, readOnly);
+    }
+}
+
+void TreeView::finishEdit(bool commit, bool fromFocusLost) {
+    if (!m_editing) return;
+    m_editing = false;
+    const std::string id = m_editNodeId;
+    const std::string oldText = m_editOldText;
+    std::string newText;
+    const bool ro = m_editReadOnly;
+    if (commit && !ro) {
+        if (m_editBox) newText = m_editBox->getText();
+        applyNodeLabelInternal(id, newText);
+        m_editNewText = newText;
+    }
+    if (m_editBox) {
+        m_editBox->setEditActive(false);
+        m_editBox->setVisible(false);
+        m_editDestroyPending = true;
+    }
+    if (!fromFocusLost && getContext())
+        GET_FOCUSMANAGER->focusControl(this);
+    if (commit && !ro)
+        fireNodeEditEvent(PropertyNames::kEventNodeEdited, id, oldText, newText, false);
+    else
+        fireNodeEditEvent(PropertyNames::kEventNodeEditCancel, id, oldText, "", ro);
+    m_editNodeId.clear();
+    m_editOldText.clear();
+    m_editNewText.clear();
+    m_editReadOnly = false;
+}
+
+void TreeView::cancelEditForMutation() {
+    if (m_editing) finishEdit(false, false);
+    cleanupPendingEdit();
+}
+
+int TreeView::flatRowIndexById(const std::string& id) const {
+    for (int i = 0; i < (int)m_flatRows.size(); ++i)
+        if (m_flatRows[i].node && m_flatRows[i].node->id == id) return i;
+    return -1;
+}
+
+bool TreeView::nodeLabelRect(const std::string& id, SRect& outRect, bool& fullyVisible) {
+    fullyVisible = false;
+    const int row = flatRowIndexById(id);
+    if (row < 0) return false;
+    const auto& node = m_flatRows[row].node;
+    const float scaleX = getScaleXX() != 0.f ? getScaleXX() : 1.f;
+    const float scaleY = getScaleYY() != 0.f ? getScaleYY() : 1.f;
+    const float hSb = (m_hScrollBar && m_hScrollBar->getVisible()) ? ConstDef::SCROLLBAR_WIDTH : 0.f;
+    const float vSb = (m_scrollBar && m_scrollBar->getVisible()) ? ConstDef::SCROLLBAR_WIDTH : 0.f;
+    const float contentW = m_rect.width - vSb;
+    const float contentH = m_rect.height - hSb;
+    const float stride = getStride();
+    const float top = row * stride - m_scrollOffset;
+
+    float labelX = LEFT_PADDING + m_flatRows[row].depth * m_indentWidth + m_arrowGap - m_hScrollOffset;
+    float labelW = 0.f;
+    TextRenderer* renderer = getTextRenderer();
+    SharedFont font = getNodeFont(node);
+    if (renderer && font) {
+        SSize sz = renderer->measureText(font.get(), node->label);
+        labelW = sz.width / scaleX;
+    }
+    if (node->leadingControl) {
+        float ratio = 1.0f;
+        if (auto* actor = dynamic_cast<Actor*>(node->leadingControl.get())) {
+            Texture* tex = actor->getTexture();
+            if (tex && tex->height() > 0) ratio = (float)tex->width() / tex->height();
+        }
+        if (ratio == 1.0f) {
+            float ow = node->leadingControl->getRect().width;
+            float oh = node->leadingControl->getRect().height;
+            if (oh > 0 && ow > 0) ratio = ow / oh;
+        }
+        float slotH = m_rowHeight;
+        if (renderer && font) {
+            int fh = renderer->getFontHeight(font.get());
+            if (fh > 0) slotH = (float)fh / scaleY;
+        }
+        labelX += slotH * ratio + node->leadingGap;
+    }
+    const float w = max(20.f, labelW + 8.f);
+    outRect = SRect(labelX, top + 1.f, w, max(0.f, m_rowHeight - 2.f));
+    fullyVisible = top >= -0.5f && top + m_rowHeight <= contentH + 0.5f &&
+                   labelX >= -0.5f && labelX + labelW <= contentW + 0.5f;
+    return true;
+}
+
+bool TreeView::beginEditNode(const std::string& id) {
+    if (!m_labelEditing || id.empty() || !m_visible || !m_enable || !m_isCreated) return false;
+    if (!findNodeById(id)) return false;
+    SRect r; bool visible = false;
+    if (!nodeLabelRect(id, r, visible) || !visible) return false;
+    if (m_editing) finishEdit(false, false);
+    cleanupPendingEdit();
+
+    m_editing = true;
+    m_editNodeId = id;
+    m_editOldText = m_flatRows[flatRowIndexById(id)].node->label;
+    m_editNewText.clear();
+    m_editReadOnly = m_readOnlyIds.count(id) != 0;
+
+    auto box = make_shared<InlineEditBox>(this, r);
+    m_editBox = box;
+    addControl(box);
+    box->setContext(getContext());
+    box->create();
+    auto node = m_flatRows[flatRowIndexById(id)].node;
+    box->setFontSize(node->fontSize > 0 ? node->fontSize : m_fontSize);
+    box->setText(m_editOldText);
+    box->setReadOnly(m_editReadOnly);
+    box->setOnEnter([this](shared_ptr<Control>) { commitEdit(); });
+    box->setCommitHandler([this](const std::string& text) {
+        m_editNewText = text;
+        finishEdit(true, true);
+    });
+    box->setCancelHandler([this]() { finishEdit(false, false); });   // Esc：恢复焦点
+    box->setEditActive(true);
+    if (getContext()) GET_FOCUSMANAGER->focusControl(box.get());
+
+    fireNodeEditEvent(PropertyNames::kEventNodeEditBegin, id, m_editOldText, "", m_editReadOnly);
+    return true;
+}
+
+bool TreeView::commitEdit() {
+    if (!m_editing) return false;
+    finishEdit(true, false);
+    return true;
+}
+
+bool TreeView::cancelEdit() {
+    if (!m_editing) return false;
+    finishEdit(false, false);
+    return true;
+}
+
+int TreeView::getEditingId(char* out, int cap, bool* outReadOnly) const {
+    (void)outReadOnly;
+    if (!m_editing) return 0;
+    if (outReadOnly) *outReadOnly = m_editReadOnly;
+    const int len = (int)m_editNodeId.size();
+    if (out && cap > 0) {
+        const int n = (len < cap - 1) ? len : cap - 1;
+        memcpy(out, m_editNodeId.data(), (size_t)n);
+        out[n] = '\0';
+    }
+    return len;
+}
+
+bool TreeView::applyNodeLabelInternal(const std::string& id, const std::string& label) {
+    auto node = findNodeById(id);
+    if (!node) return false;
+    node->label = label;
+    updateScrollBar();
+    return true;
+}
+
+void TreeView::setVisible(bool visible) {
+    if (!visible) {
+        cancelEditForMutation();
+    }
+    ControlImpl::setVisible(visible);
+}
+void TreeView::setEnable(bool enable) {
+    if (!enable) {
+        cancelEditForMutation();
+    }
+    ControlImpl::setEnable(enable);
+}
+void TreeView::setRect(SRect rect) {
+    cancelEditForMutation();
+    ControlImpl::setRect(rect);
+}
+void TreeView::resized(SRect newRect) {
+    cancelEditForMutation();
+    ControlImpl::resized(newRect);
 }

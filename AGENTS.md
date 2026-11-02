@@ -8,7 +8,7 @@
 - **访问范围仅限两个项目目录**：`D:\GitSpace\UIControls` 与 `D:\GitSpace\CornerstoneDesigner`——不触碰其它任何路径（含系统目录、用户目录；临时文件用仓库内 `Temp/`）。
 - `D:\GitSpace\CornerstoneDesigner` 中**除 `subModules/` 外，其它目录（含 Temp/、源代码、工程文件）严格只读**：禁止写入、修改、删除、重命名其中任何文件（读取不受限）。
 - **唯一写入例外**：发布交付同步 `release/ → D:\GitSpace\CornerstoneDesigner\subModules\UICornerstone`（robocopy /MIR 交付通道）。
-- 设计器发现的问题与需求一律走**配合修改清单**（`D:\GitSpace\CornerstoneDesigner\Temp\UICornerstone_配合修改清单_第三批.md`）→ 引擎分析 → 设计文档（待评审）→ 设计器复核 → 实施，**禁止直接改动设计器项目**。
+- 设计器发现的问题与需求一律走**月度配合修改清单**（`D:\GitSpace\CornerstoneDesigner\Temp\UICornerstone_配合修改清单_<YYYY-MM>.md`，CR 编号 `CR<YYYYMMDD><NNN>`）→ 引擎分析/设计文档（待评审）→ 设计器 + 用户复核 → 实施 → 验证闭环；**禁止直接改动设计器项目**（详见下方 CR 协作规则）。
 
 ## Compulsory Reading Before Each Session
 
@@ -62,6 +62,16 @@
 | Session 历史记录 | [history.md](design/guidelines/history.md) |
 | 测试用例规范 | [testing.md](design/guidelines/testing.md) |
 | C ABI 属性系统 | [CABI_Property_Design.md](design/CABI_Property_Design.md) |
+
+## 配合修改清单（CR）协作规则（2026-11-01 起）
+
+- **按月建档**：每月新需求单独成档 `UICornerstone_配合修改清单_<YYYY-MM>.md`（设计器 Temp），历史清单只读归档；引擎镜像到 `requirements/`。
+- **CR 格式**：编号 `CR<YYYYMMDD><NNN>`（当日 001 起）；每条 CR 含类型（requirement/bug）、修订记录、验收、CR 状态。
+- **状态归属**：设计器只能修改「设计器」项，引擎只能修改「引擎」项，**不得代改对方**；镜像清单中引擎仅维护「引擎」状态。
+- **归档门禁**：仅当「设计器」「引擎」两项均为 `closed` 后，才可归档该 CR 相关文档。
+- **交付物**：每个 CR 必须有对应的**分析 + 设计文档**（`design/CR..._Design.md`），并覆盖：自动化测试计划、用户手册更新计划（含示例可运行性）。
+- **评审门禁**：分析/设计文档输出后，须等待设计器与用户评审通过，**方可开始实施**；未通过按评审意见修订，再次提交复核，直至通过。
+- **实施闭环**：实施后刷新设计文档状态、用户手册与 schema、补自动化测试/探针，跑全量回归与发布同步；将镜像清单「引擎」项置 `closed`。
 
 ## 提交与推送规则
 

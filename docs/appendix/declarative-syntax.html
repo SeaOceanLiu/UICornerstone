@@ -261,10 +261,11 @@
 <pre><code>{ "type":"tree-view", "id":"tree",
   "rect":{"x":20,"y":20,"w":240,"h":300},
   "indent-width":16, "row-height":22, "cycle-navigation":false, "default-expand":true,
+  "label-editing":true, "read-only-ids":"group1",
   "items":[ { "id":"root","label":"Root","expanded":true,"userData":"extra",
               "children":[ { "id":"child1","label":"Child 1" } ] } ],
   "events":{"onSelect":"onTreeSelect"} }</code></pre>
-<p class="note">TreeView 的 JSON 事件键当前仅 <code>onSelect</code>；<code>expand</code>/<code>collapse</code> 请经 C ABI/Binding <code>SetCallback</code> 注册。</p>
+<p class="note">TreeView 的 JSON 事件键：<code>onSelect</code> 与 <code>onNodeEditBegin/onNodeEdited/onNodeEditCancel</code>；<code>expand</code>/<code>collapse</code> 请经 C ABI/Binding <code>SetCallback</code> 注册。</p>
 
 <h4>tree-view item 增强（二期）</h4>
 <pre><code>"items":[ {
@@ -389,6 +390,8 @@ parser.registerHandler("handleSubmit", [](shared_ptr&lt;Control&gt; ctl){ /* ...
 <tr><td><code>onClick</code></td><td>Button / Label（clickable）/ MenuItem</td></tr>
 <tr><td><code>onClose</code> / <code>onConfirm</code> / <code>onCancel</code></td><td>WinFrame / Dialog</td></tr>
 <tr><td><code>onColorChanged</code> / <code>onExpressionChanged</code></td><td>ColorPicker</td></tr>
+<tr><td><code>onCellEditBegin</code> / <code>onCellEdited</code> / <code>onCellEditCancel</code></td><td>ListView（P0-111）</td></tr>
+<tr><td><code>onNodeEditBegin</code> / <code>onNodeEdited</code> / <code>onNodeEditCancel</code></td><td>TreeView（P0-112）</td></tr>
 <tr><td><code>onPositionChanged</code></td><td>ScrollBar</td></tr>
 <tr><td><code>onSelectionChanged</code></td><td>ComboBox / ListView</td></tr>
 <tr><td><code>onColumnSort</code></td><td>ListView</td></tr>

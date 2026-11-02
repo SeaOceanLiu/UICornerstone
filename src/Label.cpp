@@ -47,6 +47,7 @@ Label::Label(Control *parent, SRect rect, float xScale, float yScale):
 }
 
 Label::~Label(void){
+    Cursor::restoreDefault(static_cast<Control*>(this));
     releaseTexts();
     m_font.reset();
 
@@ -407,7 +408,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
                 m_mousePressed = true;   // ControlImpl 随后会把 state 置 Pressed/Hover，点击判定用本地标志
                 setState(ControlState::Pressed);
                 if(m_hoverCursor != nullptr){
-                    Cursor::setCurrent(m_hoverCursor);
+                    Cursor::setCurrentWithOwner(m_hoverCursor, getThis().get());
                 }
                 return true;
             }
@@ -419,14 +420,14 @@ bool Label::handleEvent(shared_ptr<Event> event){
                 fireCCallback(PropertyNames::kEventClick, CCallbackData::None, nullptr);
                 setState(ControlState::Hover);
                 if(m_hoverCursor != nullptr){
-                    Cursor::setCurrent(m_hoverCursor);
+                    Cursor::setCurrentWithOwner(m_hoverCursor, getThis().get());
                 }
                 return true;
             }
             if (event->m_type == EventType::MouseMove) {
                 setState(ControlState::Hover);
                 if(m_hoverCursor != nullptr){
-                    Cursor::setCurrent(m_hoverCursor);
+                    Cursor::setCurrentWithOwner(m_hoverCursor, getThis().get());
                 }
                 return true;
             }
@@ -435,7 +436,7 @@ bool Label::handleEvent(shared_ptr<Event> event){
             if (event->m_type == EventType::MouseUp) m_mousePressed = false;   // 松手在热区外：取消本次点击
             setState(ControlState::Normal);
             if(m_defaultCursor){
-                Cursor::setCurrent(m_defaultCursor);
+                Cursor::restoreDefault(getThis().get());
             }
         }
     }

@@ -134,7 +134,8 @@ UICornerstone_SetCallback(g_inst, sp, "moved", onMoved, NULL);</code></pre>
 
 <p>三种模式互斥优先级：<strong>引擎模式</strong>（布局引擎容器内）&gt; <strong>linked 自动模式</strong>（引擎外 + 有面板）&gt; <strong>手柄模式</strong>（其余）。</p>
 
-<div class="note">历史修复：拖拽"超动/不跟手"根因为逐帧以"当前宽（已含上一帧增量）+ 累计增量"双重累加（实测 5.7× 超动）；已改为"拖拽起点宽 + 累计增量"固定基准。鼠标路过非分条区域光标残留箭头问题同批修复（默认光标改为独立创建的系统默认光标，不再取"当前光标"缓存）。</div>
+<div class="note">历史修复：拖拽"超动/不跟手"根因为逐帧以"当前宽（已含上一帧增量）+ 累计增量"双重累加（实测 5.7× 超动）；已改为"拖拽起点宽 + 累计增量"固定基准。鼠标路过非分条区域光标残留箭头问题同批修复（默认光标改为独立创建的系统默认光标，不再取"当前光标"缓存）。
+<br>光标 owner：引擎使用全局光标 owner 仲裁；其他控件/ListView 的隐藏、失焦、MouseLeave 不会清除 Splitter 当前 EW/NS resize 光标，仅当前 owner 恢复默认。</div>
 
 <details class="methods">
 <summary>4.21.8 控件的方法（核心引擎内部 API，点击展开）</summary>

@@ -230,6 +230,11 @@
 <tr><td><code>horizontal-gridlines</code></td><td><code>kHorizontalGridlines</code></td><td>Bool</td><td>true / false</td></tr>
 <tr><td><code>hover</code></td><td><code>kHoverHighlight</code></td><td>Bool</td><td>true</td></tr>
 <tr><td><code>min-column-width</code></td><td><code>kMinColumnWidth</code></td><td>Float</td><td>20</td></tr>
+<tr><td><code>cell-editing</code></td><td><code>kCellEditing</code></td><td>Bool</td><td>false（P0-111：双击单元格就地编辑）</td></tr>
+<tr><td><code>editable-columns</code></td><td><code>kEditableColumns</code></td><td>String</td><td>""（列索引逗号串；空=全部）</td></tr>
+<tr><td><code>read-only-columns</code></td><td><code>kReadOnlyColumns</code></td><td>String</td><td>""（只读列；仍可进入编辑，EditBox 只读）</td></tr>
+<tr><td><code>read-only-row-ids</code></td><td><code>kReadOnlyRowIds</code></td><td>String</td><td>""（只读行 id；同样只读 EditBox）</td></tr>
+<tr><td><code>edit-old-text</code> / <code>edit-new-text</code></td><td><code>kEditOldText</code> / <code>kEditNewText</code></td><td>String（只读）</td><td>P0-111 会话前值/新值</td></tr>
 <tr><td><code>cycle-navigation</code></td><td><code>kCycleNavigation</code></td><td>Bool</td><td>true</td></tr>
 <tr><td><code>sort-column</code></td><td><code>kSortColumn</code></td><td>Int / Bool</td><td>-1 / true</td></tr>
 <tr><td><code>sort-ascending</code></td><td><code>kSortAscending</code></td><td>Int / Bool</td><td>-1 / true</td></tr>
@@ -430,6 +435,9 @@
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>
 <tr><td><code>arrow-gap</code></td><td><code>kArrowGap</code></td><td>Float</td><td>箭头与文本间距（默认 6）</td></tr>
+<tr><td><code>label-editing</code></td><td><code>kLabelEditing</code></td><td>Bool</td><td>false（P0-112：双击节点标签就地编辑）</td></tr>
+<tr><td><code>read-only-ids</code></td><td><code>kReadOnlyIds</code></td><td>String</td><td>""（只读节点 id 逗号串；仍可进入编辑，EditBox 只读）</td></tr>
+<tr><td><code>edit-old-text</code> / <code>edit-new-text</code></td><td><code>kEditOldText</code> / <code>kEditNewText</code></td><td>String（只读）</td><td>P0-112 会话前值/新值</td></tr>
 <tr><td><code>cycle-navigation</code></td><td><code>kCycleNavigation</code></td><td>Bool</td><td>Tab 环是否包含树节点</td></tr>
 <tr><td><code>default-expand</code></td><td><code>kDefaultExpand</code></td><td>Bool</td><td>缺省展开全部节点</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Int</td><td>节点文本字号（默认 14）</td></tr>

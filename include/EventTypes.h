@@ -9,7 +9,7 @@ enum class EventType : uint8_t {
     MouseMove, MouseDown, MouseUp, MouseWheel,
     KeyDown, KeyUp, TextInput, TextEditing,
     WindowResize, WindowMoved, WindowClose,
-    FocusGained, FocusLost,
+    FocusGained, FocusLost, MouseLeave,
     FingerDown, FingerUp, FingerMotion,
     DropFile,   // P0-100：OS 文件/文本拖放（dropPath/dropX/dropY；customInt=1 表示 DROP_TEXT）
     Custom,

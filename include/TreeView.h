@@ -6,6 +6,8 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <set>
+#include <cstdint>
 
 #include "ConstDef.h"
 #include "ScrollBar.h"
@@ -82,6 +84,8 @@ inline std::shared_ptr<TreeNode> cloneNode(
     return node;
 }
 
+class InlineEditBox;
+
 class TreeView : public ControlImpl {
     friend class TreeViewBuilder;
 public:
@@ -89,6 +93,10 @@ public:
     using OnSelectDataHandler = std::function<void(shared_ptr<TreeView>, const std::string& nodeId, void* userData)>;
     using OnExpandHandler = std::function<void(shared_ptr<TreeView>, const std::string& nodeId)>;
     using OnCollapseHandler = std::function<void(shared_ptr<TreeView>, const std::string& nodeId)>;
+    // P0-112：节点标签就地编辑事件（begin/cancel 的 newText 为空）
+    using OnNodeEditHandler = std::function<void(shared_ptr<TreeView>, const std::string& id,
+                                                 const std::string& oldText,
+                                                 const std::string& newText, bool readOnly)>;
     using OnClearNodeHandler = std::function<void(shared_ptr<TreeView>, void* userData)>;
 
 private:
@@ -138,6 +146,23 @@ private:
     OnSelectDataHandler m_onSelectData;
     OnExpandHandler m_onExpand;
     OnCollapseHandler m_onCollapse;
+    OnNodeEditHandler m_onNodeEditBegin;
+    OnNodeEditHandler m_onNodeEdited;
+    OnNodeEditHandler m_onNodeEditCancel;
+
+    // P0-112：就地编辑状态
+    bool m_labelEditing = false;
+    std::string m_readOnlyIdsRaw;
+    std::set<std::string> m_readOnlyIds;
+    bool m_editing = false;
+    std::string m_editNodeId, m_editOldText, m_editNewText;
+    bool m_editReadOnly = false;
+    std::shared_ptr<InlineEditBox> m_editBox;
+    bool m_editDestroyPending = false;
+    bool m_applyingEdit = false;
+    uint64_t m_lastClickTick = 0;
+    float m_lastClickX = 0.f, m_lastClickY = 0.f;
+    std::string m_lastClickId;
     OnClearNodeHandler m_onClearNode;
 
     void ensureFont();
@@ -150,6 +175,15 @@ private:
     void drawArrow(RenderDevice* dev, float x, float y, bool expanded);
     float calcContentWidth();
     void clearNodeRecursive(const std::shared_ptr<TreeNode>& node);
+    // P0-112：就地编辑
+    void cleanupPendingEdit();
+    void finishEdit(bool commit, bool fromFocusLost);
+    void cancelEditForMutation();
+    void fireNodeEditEvent(const char* eventName, const std::string& id,
+                           const std::string& oldText, const std::string& newText, bool readOnly);
+    bool nodeLabelRect(const std::string& id, SRect& outRect, bool& fullyVisible);
+    int  flatRowIndexById(const std::string& id) const;
+    bool applyNodeLabelInternal(const std::string& id, const std::string& label);
     float getStride() const { return m_rowHeight + m_lineSpacing; }
     void syncStateColor();
 
@@ -171,6 +205,10 @@ public:
     void draw() override;
     bool handleEvent(std::shared_ptr<Event> event) override;
     void refreshScaleWith(float parentXX, float parentYY) override;
+    void setRect(SRect rect) override;
+    void resized(SRect newRect) override;
+    void setVisible(bool visible) override;
+    void setEnable(bool enable) override;
 
     // ── CRUD ──
     void setItems(const std::vector<std::shared_ptr<TreeNode>>& items);
@@ -215,6 +253,16 @@ public:
     void setOnSelectData(OnSelectDataHandler h) { m_onSelectData = std::move(h); }
     void setOnExpand(OnExpandHandler h) { m_onExpand = std::move(h); }
     void setOnCollapse(OnCollapseHandler h) { m_onCollapse = std::move(h); }
+    void setOnNodeEditBegin(OnNodeEditHandler h)  { m_onNodeEditBegin = std::move(h); }
+    void setOnNodeEdited(OnNodeEditHandler h)     { m_onNodeEdited = std::move(h); }
+    void setOnNodeEditCancel(OnNodeEditHandler h) { m_onNodeEditCancel = std::move(h); }
+
+    // ── P0-112：程序化编辑 API ──
+    bool beginEditNode(const std::string& id);
+    bool commitEdit();
+    bool cancelEdit();
+    bool isEditing() const { return m_editing; }
+    int  getEditingId(char* out, int cap, bool* outReadOnly) const;   // P107 缓冲语义（返回完整长度）
     void setOnClearNode(OnClearNodeHandler h) { m_onClearNode = std::move(h); }
 
     void setBgColor(const SColor& c);

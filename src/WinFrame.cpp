@@ -99,6 +99,7 @@ void WinFrame::create() {
 }
 
 WinFrame::~WinFrame() {
+    Cursor::restoreDefault(static_cast<Control*>(this));
     if (UIContext::isActive(m_context)) {
         FocusManager* fm = m_context->focusManager;
         if (fm) fm->unregisterBoundary(this);
@@ -155,7 +156,10 @@ void WinFrame::setResizeCursor(uint8_t flags) {
     // Delegate to backend — consistent with HandleControl approach.
     // Each backend's setCurrent is responsible for both the immediate cursor
     // switch and WM_SETCURSOR persistence.
-    if (cursor) Cursor::setCurrent(cursor);
+    if (cursor) {
+        if (cursor == m_cursorDefault) Cursor::restoreDefault(getThis().get());
+        else Cursor::setCurrentWithOwner(cursor, getThis().get());
+    }
 }
 
 bool WinFrame::handleEvent(shared_ptr<Event> event) {

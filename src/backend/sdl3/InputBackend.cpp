@@ -233,6 +233,7 @@ public:
                 case SDL_EVENT_WINDOW_MOVED:
                 case SDL_EVENT_WINDOW_FOCUS_GAINED:
                 case SDL_EVENT_WINDOW_FOCUS_LOST:
+                case SDL_EVENT_WINDOW_MOUSE_LEAVE:
                     winId = peekBuf[i].window.windowID; break;
                 case SDL_EVENT_KEY_DOWN:
                 case SDL_EVENT_KEY_UP:
@@ -269,6 +270,7 @@ public:
                 case SDL_EVENT_WINDOW_MOVED:
                 case SDL_EVENT_WINDOW_FOCUS_GAINED:
                 case SDL_EVENT_WINDOW_FOCUS_LOST:
+                case SDL_EVENT_WINDOW_MOUSE_LEAVE:
                     hw = headOne.window.windowID; break;
                 case SDL_EVENT_KEY_DOWN:
                 case SDL_EVENT_KEY_UP:
@@ -328,6 +330,10 @@ public:
 
             case SDL_EVENT_WINDOW_FOCUS_LOST:
                 event.m_type = EventType::FocusLost;
+                break;
+
+            case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                event.m_type = EventType::MouseLeave;
                 break;
 
             case SDL_EVENT_KEY_DOWN:

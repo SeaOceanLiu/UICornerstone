@@ -2410,6 +2410,7 @@ UIControlHandle UICornerstone_CreateListView(UIInstance instance,
     if (!instance || !instance->initialized) return nullptr;
     auto lv = std::make_shared<ListView>(instance->bench, SRect(x, y, w, h), xScale, yScale);
     instance->bench->addControl(lv);
+    lv->create();
     lv->setVisible(true);
     return reinterpret_cast<UIControlHandle>(static_cast<Control*>(lv.get()));
 }
@@ -2524,6 +2525,66 @@ int UICornerstone_ListViewSetColumnWidth(UIInstance instance, UIControlHandle lv
     return 1;
 }
 
+// P0-111：单元格就地编辑
+int UICornerstone_ListViewBeginEditCell(UIInstance instance, UIControlHandle lv, int row, int col) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->beginEditCell(row, col) ? 1 : 0;
+}
+int UICornerstone_ListViewCommitEdit(UIInstance instance, UIControlHandle lv) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->commitEdit() ? 1 : 0;
+}
+int UICornerstone_ListViewCancelEdit(UIInstance instance, UIControlHandle lv) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->cancelEdit() ? 1 : 0;
+}
+int UICornerstone_ListViewIsEditing(UIInstance instance, UIControlHandle lv) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->isEditing() ? 1 : 0;
+}
+int UICornerstone_ListViewGetEditingCell(UIInstance instance, UIControlHandle lv,
+                                         int* outRow, int* outCol, int* outReadOnly) {
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    int row = -1, col = -1;
+    bool ro = false;
+    if (!v->getEditingCell(row, col, ro)) return 0;
+    if (outRow) *outRow = row;
+    if (outCol) *outCol = col;
+    if (outReadOnly) *outReadOnly = ro ? 1 : 0;
+    return 1;
+}
+
+// P0-113：设计态列宽手势
+int UICornerstone_ListViewHitTestColumnDivider(UIInstance instance, UIControlHandle lv,
+                                               float localX, float localY) {
+    auto* v = listViewOf(instance, lv);
+    return v ? v->hitTestColumnDivider(localX, localY) : -1;
+}
+int UICornerstone_ListViewBeginColumnResize(UIInstance instance, UIControlHandle lv,
+                                            int col, float localX) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->beginColumnResize(col, localX) ? 1 : 0;
+}
+float UICornerstone_ListViewUpdateColumnResize(UIInstance instance, UIControlHandle lv,
+                                               float localX) {
+    auto* v = listViewOf(instance, lv);
+    return v ? v->updateColumnResize(localX) : -1.0f;
+}
+int UICornerstone_ListViewEndColumnResize(UIInstance instance, UIControlHandle lv, int commit) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->endColumnResize(commit != 0) ? 1 : 0;
+}
+int UICornerstone_ListViewCancelColumnResize(UIInstance instance, UIControlHandle lv) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->cancelColumnResize() ? 1 : 0;
+}
+int UICornerstone_ListViewSetColumnResizeCursor(UIInstance instance, UIControlHandle lv, int active) {
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    return v->setColumnResizeCursor(active != 0) ? 1 : 0;
+}
+
 int UICornerstone_ListViewSetColumnIcon(UIInstance instance, UIControlHandle lv,
     int colIndex, UIControlHandle iconControl)
 {
@@ -2556,6 +2617,29 @@ int UICornerstone_ListViewSetCellLeadingControl(UIInstance instance, UIControlHa
     if (control && !ctl) return 0;
     v->setCellLeadingControl(row, col, ctl ? ctl->getThis() : nullptr);
     return 1;
+}
+
+int UICornerstone_ListViewSetCellControl(UIInstance instance, UIControlHandle lv,
+    int row, int col, UIControlHandle control, int layout) {
+    auto* v = listViewOf(instance, lv);
+    if (!v) return 0;
+    if (!control) return v->clearCellControl(row, col) ? 1 : 0;
+    Control* ctl = validateControl(instance, control);
+    if (!ctl) return 0;
+    if (layout != UI_LIST_CELL_LAYOUT_FILL && layout != UI_LIST_CELL_LAYOUT_LEADING) return 0;
+    return v->setCellControl(row, col, ctl->getThis(),
+        layout == UI_LIST_CELL_LAYOUT_FILL ? ListView::CellControlLayout::Fill
+                                           : ListView::CellControlLayout::Leading) ? 1 : 0;
+}
+int UICornerstone_ListViewClearCellControl(UIInstance instance, UIControlHandle lv, int row, int col) {
+    auto* v = listViewOf(instance, lv);
+    return v && v->clearCellControl(row, col) ? 1 : 0;
+}
+UIControlHandle UICornerstone_ListViewGetCellControl(UIInstance instance, UIControlHandle lv, int row, int col) {
+    auto* v = listViewOf(instance, lv);
+    if (!v) return nullptr;
+    auto ctl = v->getCellControl(row, col);
+    return ctl ? reinterpret_cast<UIControlHandle>(static_cast<Control*>(ctl.get())) : nullptr;
 }
 
 int UICornerstone_ListViewSetCellStyle(UIInstance instance, UIControlHandle lv,
@@ -3245,6 +3329,34 @@ int UICornerstone_TreeViewSetNodeLabel(UIInstance instance, UIControlHandle tree
     TreeView* tv = treeViewOf(instance, tree);
     if (!tv || !id || !label) return 0;
     return tv->setNodeLabel(id, label) ? 1 : 0;
+}
+
+// P0-112：节点标签就地编辑
+int UICornerstone_TreeViewBeginEditNode(UIInstance instance, UIControlHandle tree, const char* id) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id) return 0;
+    return tv->beginEditNode(id) ? 1 : 0;
+}
+int UICornerstone_TreeViewCommitEdit(UIInstance instance, UIControlHandle tree) {
+    TreeView* tv = treeViewOf(instance, tree);
+    return tv && tv->commitEdit() ? 1 : 0;
+}
+int UICornerstone_TreeViewCancelEdit(UIInstance instance, UIControlHandle tree) {
+    TreeView* tv = treeViewOf(instance, tree);
+    return tv && tv->cancelEdit() ? 1 : 0;
+}
+int UICornerstone_TreeViewIsEditing(UIInstance instance, UIControlHandle tree) {
+    TreeView* tv = treeViewOf(instance, tree);
+    return tv && tv->isEditing() ? 1 : 0;
+}
+int UICornerstone_TreeViewGetEditingId(UIInstance instance, UIControlHandle tree,
+                                       char* out, int cap, int* outReadOnly) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv) return 0;
+    bool ro = false;
+    int len = tv->getEditingId(cap > 0 ? out : nullptr, cap, &ro);
+    if (outReadOnly) *outReadOnly = ro ? 1 : 0;
+    return len;
 }
 
 int UICornerstone_TreeViewSetNodeUserData(UIInstance instance, UIControlHandle tree,

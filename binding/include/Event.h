@@ -29,6 +29,29 @@ public:
     UIColor GetChangedColor() const;
     bool IsExpressionChanged() const;           // "expression-changed"（ColorPicker）：strVal
     std::string GetExpression() const;
+
+    // ── P0-111/P0-112：就地编辑（grid/treeNode 扩展载荷）──
+    bool IsCellEditBegin() const;
+    bool IsCellEdited() const;
+    bool IsCellEditCancel() const;
+    int  GetEditRow() const;
+    int  GetEditCol() const;
+    bool IsNodeEditBegin() const;
+    bool IsNodeEdited() const;
+    bool IsNodeEditCancel() const;
+    std::string GetEditNodeId() const;
+    std::string GetEditOldText() const;
+    std::string GetEditNewText() const;
+    bool IsEditReadOnly() const;
+
+    // ── P0-113：列宽手势 ──
+    bool IsColumnResizeBegin() const;
+    bool IsColumnResizeChanged() const;
+    bool IsColumnResizeEnded() const;
+    int  GetResizeCol() const;
+    float GetResizeOldWidth() const;
+    float GetResizeNewWidth() const;
+    bool GetResizeCanceled() const;
     bool IsPositionChanged() const;             // "position-changed"：floatVal
     float GetPositionChanged() const;
     bool IsMoved() const;                       // "moved"：floatVal

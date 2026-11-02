@@ -426,6 +426,15 @@ PROP_CONSTEXPR const char* kEventListSelectionChanged = "list-selection-changed"
 PROP_CONSTEXPR const char* kEventItemClick        = "item-click";
 PROP_CONSTEXPR const char* kEventMouseWheel       = "mouse-wheel";
 PROP_CONSTEXPR const char* kEventColumnSort       = "column-sort";
+PROP_CONSTEXPR const char* kEventCellEditBegin     = "cell-edit-begin";     // P0-111
+PROP_CONSTEXPR const char* kEventCellEdited        = "cell-edited";
+PROP_CONSTEXPR const char* kEventCellEditCancel    = "cell-edit-cancel";
+PROP_CONSTEXPR const char* kEventNodeEditBegin     = "node-edit-begin";     // P0-112
+PROP_CONSTEXPR const char* kEventNodeEdited        = "node-edited";
+PROP_CONSTEXPR const char* kEventNodeEditCancel    = "node-edit-cancel";
+PROP_CONSTEXPR const char* kEventColumnResizeBegin = "column-resize-begin"; // P0-113
+PROP_CONSTEXPR const char* kEventColumnResizeChanged = "column-resize-changed";
+PROP_CONSTEXPR const char* kEventColumnResizeEnded = "column-resize-ended";
 PROP_CONSTEXPR const char* kEventAnimationEnded   = "animation-ended";
 PROP_CONSTEXPR const char* kEventStatusItemClick  = "status-item-click";
 PROP_CONSTEXPR const char* kEventTabChanged       = "tab-changed";
@@ -610,6 +619,17 @@ PROP_CONSTEXPR const char* kJsonYScale              = "yScale";
 PROP_CONSTEXPR const char* kJsonEnable              = "enable";
 
 // 布局 JSON 事件键（events 对象）
+// P0-111/P0-112/P0-113 就地编辑与列宽手势属性键
+PROP_CONSTEXPR const char* kCellEditing         = "cell-editing";
+PROP_CONSTEXPR const char* kEditableColumns     = "editable-columns";
+PROP_CONSTEXPR const char* kReadOnlyColumns     = "read-only-columns";
+PROP_CONSTEXPR const char* kReadOnlyRowIds      = "read-only-row-ids";
+PROP_CONSTEXPR const char* kLabelEditing        = "label-editing";
+PROP_CONSTEXPR const char* kReadOnlyIds         = "read-only-ids";
+PROP_CONSTEXPR const char* kEditOldText         = "edit-old-text";
+PROP_CONSTEXPR const char* kEditNewText         = "edit-new-text";
+
+// 布局 JSON 事件键（events 对象）
 PROP_CONSTEXPR const char* kEventKeyClick            = "onClick";
 PROP_CONSTEXPR const char* kEventKeyEnter            = "onEnter";
 PROP_CONSTEXPR const char* kEventKeyTextChanged      = "onTextChanged";
@@ -625,6 +645,12 @@ PROP_CONSTEXPR const char* kEventKeyCancel           = "onCancel";
 PROP_CONSTEXPR const char* kEventKeyClose            = "onClose";
 PROP_CONSTEXPR const char* kEventKeySplitterMoved    = "onSplitterMoved";
 PROP_CONSTEXPR const char* kEventKeyPropertyChanged  = "onPropertyChanged";
+PROP_CONSTEXPR const char* kEventKeyCellEditBegin   = "onCellEditBegin";   // P0-111
+PROP_CONSTEXPR const char* kEventKeyCellEdited      = "onCellEdited";
+PROP_CONSTEXPR const char* kEventKeyCellEditCancel  = "onCellEditCancel";
+PROP_CONSTEXPR const char* kEventKeyNodeEditBegin   = "onNodeEditBegin";    // P0-112
+PROP_CONSTEXPR const char* kEventKeyNodeEdited      = "onNodeEdited";
+PROP_CONSTEXPR const char* kEventKeyNodeEditCancel  = "onNodeEditCancel";
 PROP_CONSTEXPR const char* kEventKeyColumnSort      = "onColumnSort";   // ListView 列头排序
 PROP_CONSTEXPR const char* kEventKeyTabChange       = "onTabChange";    // TabControl 页签切换
 

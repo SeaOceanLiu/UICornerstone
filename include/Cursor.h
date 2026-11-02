@@ -36,6 +36,10 @@ public:
     static Cursor* createSystem(SystemCursorType type);
     static Cursor* getDefault();
     static void setCurrent(Cursor* cursor);
+    // P0-113 联测：全局光标 owner 仲裁（非 owner 的恢复调用不覆盖其它控件光标）
+    static void setCurrentWithOwner(Cursor* cursor, const void* owner);
+    static bool restoreDefault(const void* owner);   // 仅当 owner 为当前 owner 时恢复默认
+    static const void* getCurrentOwner();
 
     // Backend plugin registration (called from UIBackend_xxx.dll during init)
     // Exported via CORE_API so backend plugin can call it

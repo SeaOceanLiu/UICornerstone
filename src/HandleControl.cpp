@@ -9,8 +9,8 @@ HandleControl::HandleControl()
     m_visible = true;
 }
 
-HandleControl::~HandleControl()
-{
+HandleControl::~HandleControl() {
+    Cursor::restoreDefault(static_cast<Control*>(this));
     m_target = nullptr;
     m_targetWeak.reset();
     m_targetShared.reset();
@@ -71,7 +71,7 @@ void HandleControl::detach()
     m_dragging = false;
     m_activeHandle = HandleType::None;
     setAlwaysOnTop(false);
-    Cursor::setCurrent(m_cursorDefault ? m_cursorDefault : Cursor::getDefault());
+    Cursor::restoreDefault(getThis().get());
 
     Control* parent = getParent();
     if (parent) {
@@ -327,7 +327,10 @@ void HandleControl::setResizeCursor(HandleType type)
     // Delegate to backend — each backend's setCurrent updates its internal
     // cursor state, ensuring the wndproc (SDL3 DefWindowProc / SFML wndproc
     // / GLFW wndproc) restores the correct cursor on WM_SETCURSOR.
-    if (c) Cursor::setCurrent(c);
+    if (c) {
+        if (c == m_cursorDefault) Cursor::restoreDefault(getThis().get());
+        else Cursor::setCurrentWithOwner(c, getThis().get());
+    }
 }
 
 // ── 事件处理 ──

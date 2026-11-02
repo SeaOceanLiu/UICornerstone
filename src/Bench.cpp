@@ -92,6 +92,8 @@ bool Bench::handleEvent(shared_ptr<Event> event) {
                 GET_FOCUSMANAGER->focusNextScope();
         } else {
             Control* current = GET_FOCUSMANAGER->getCurrentFocused();
+            if (auto* impl = dynamic_cast<ControlImpl*>(current))
+                impl->commitEditOnTab();   // P0-111/112：Tab=失焦提交（随后继续焦点遍历）
             if (shift)
                 GET_FOCUSMANAGER->focusPrev(current);
             else

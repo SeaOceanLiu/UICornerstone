@@ -895,6 +895,31 @@
           "type": "number",
           "x-default": "20"
         },
+        "cell-editing": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-111：开启单元格双击就地编辑"
+        },
+        "editable-columns": {
+          "type": "string",
+          "description": "P0-111：可编辑列索引逗号串（空=全部；single 模式仅列 0）"
+        },
+        "read-only-columns": {
+          "type": "string",
+          "description": "P0-111：只读列索引逗号串（仍可进入编辑，EditBox 只读）"
+        },
+        "read-only-row-ids": {
+          "type": "string",
+          "description": "P0-111：只读行 id 逗号串（仍可进入编辑，EditBox 只读）"
+        },
+        "edit-old-text": {
+          "type": "string",
+          "description": "P0-111：编辑会话前值（只读属性）"
+        },
+        "edit-new-text": {
+          "type": "string",
+          "description": "P0-111：编辑会话新值（只读属性；begin/cancel 为空）"
+        },
         "mode": {
           "enum": [
             "multi",
@@ -2141,6 +2166,23 @@
         "default-expand": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "label-editing": {
+          "type": "boolean",
+          "x-default": "false",
+          "description": "P0-112：开启节点标签双击就地编辑"
+        },
+        "read-only-ids": {
+          "type": "string",
+          "description": "P0-112：只读节点 id 逗号串（仍可进入编辑，EditBox 只读）"
+        },
+        "edit-old-text": {
+          "type": "string",
+          "description": "P0-112：编辑会话前值（只读属性）"
+        },
+        "edit-new-text": {
+          "type": "string",
+          "description": "P0-112：编辑会话新值（只读属性；begin/cancel 为空）"
         },
         "hover": {
           "$ref": "#/$defs/color",

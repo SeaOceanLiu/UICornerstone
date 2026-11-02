@@ -347,7 +347,7 @@ void Splitter::startDrag(const SPoint& mousePos) {
         m_dragWatcherRegistered = true;
     }
     ensureCursors();
-    if (m_cursorResize) Cursor::setCurrent(m_cursorResize);
+    if (m_cursorResize) Cursor::setCurrentWithOwner(m_cursorResize, getThis().get());
     m_dragStartMousePos = mousePos;
     m_dragStartRatio = m_splitRatio;
     m_dragStartLocalPos = m_orientation ? m_rect.left : m_rect.top;
@@ -478,7 +478,7 @@ bool Splitter::beforeEventHandlingWatcher(shared_ptr<Event> event) {
     if (!m_dragging) return false;
     if (event->m_type == EventType::MouseMove) {
         ensureCursors();
-        if (m_cursorResize) Cursor::setCurrent(m_cursorResize);
+        if (m_cursorResize) Cursor::setCurrentWithOwner(m_cursorResize, getThis().get());
         updateDrag({event->mousePos.x, event->mousePos.y});
         return true;
     }
@@ -537,8 +537,8 @@ void Splitter::cleanupCursors() {
 }
 
 void Splitter::updateCursor(bool inside) {
-    if (inside) { ensureCursors(); if (m_cursorResize) Cursor::setCurrent(m_cursorResize); }
-    else { if (!m_cursorDefault) m_cursorDefault = Cursor::getDefault(); Cursor::setCurrent(m_cursorDefault); }
+    if (inside) { ensureCursors(); if (m_cursorResize) Cursor::setCurrentWithOwner(m_cursorResize, getThis().get()); }
+    else { Cursor::restoreDefault(getThis().get()); }   // owner 仲裁：不覆盖其它控件光标
 }
 
 // ── Property system overrides ──

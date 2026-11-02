@@ -107,6 +107,7 @@ private:
 public:
     Slider(Control* parent, SRect rect, float xScale = 1.0f, float yScale = 1.0f);
     ~Slider();
+    Cursor* m_cursorPointer = nullptr;   // P0-113：owner 仲裁光标缓存
     void create(void) override;
     void update(void) override;
     void draw(void) override;

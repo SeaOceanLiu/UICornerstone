@@ -235,6 +235,23 @@ auto lv = ui->CreateListView(30, 60, 420, 240);
 ui->ListViewAddColumn(lv, u8"名称", 180, true);
 std::vector&lt;std::string&gt; cells = { u8"main.cpp", u8"2.1 KB" };
 ui->ListViewAddRow(lv, "f1", cells);
+// P0-111/P0-113：就地编辑 / 设计态列宽
+lv.SetBool(PropertyNames::kCellEditing, true);
+lv.SetString(PropertyNames::kEditableColumns, "0,1");
+ui->ListViewBeginEditCell(lv, 0, 0);   ui->ListViewCommitEdit(lv);
+int col = ui->ListViewHitTestColumnDivider(lv, 180.0f, 10.0f);
+if (col >= 0) { ui->ListViewSetColumnResizeCursor(lv, true);
+                ui->ListViewBeginColumnResize(lv, col, 180.0f);
+                ui->ListViewUpdateColumnResize(lv, 200.0f);
+                ui->ListViewEndColumnResize(lv, true);
+                ui->ListViewSetColumnResizeCursor(lv, false); }
+// P0-114：通用单元格控件
+auto panel = ui->CreatePanel(0, 0, 100, 24);
+auto btn = ui->CreateButton(0, 0, 60, 20, "Open");
+panel.AddChild(btn);
+ui->RemoveChild(ui->Root(), panel);   // Set 仅接受无父控件；先摘除再移交
+ui->ListViewSetCellControl(lv, 0, 0, panel, UI_LIST_CELL_LAYOUT_FILL);
+ui->ListViewClearCellControl(lv, 0, 0);
 ui->ListViewSetColumnHeaderBackground(lv, 0, UIColor{32, 48, 64, 255});   // P0-56（per-column）
 ui->ListViewSetColumnHeaderShadow(lv, 0, UIColor{0, 0, 0, 255}, 1.0f, 1.0f);
 ui->ListViewSetCellTextColor(lv, 0, 0, UIColor{230, 30, 30, 255});          // P0-62①
@@ -295,6 +312,9 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td>selection-changed</td><td><code>IsSelectionChanged()</code> → <code>GetSelectedIndex()</code> / <code>GetSelectedValue()</code></td></tr>
 <tr><td>text-changed</td><td><code>IsTextChanged()</code> → <code>GetTextChanged()</code>（string）</td></tr>
 <tr><td>expression-changed</td><td><code>IsExpressionChanged()</code> → <code>GetExpression()</code>（string，ColorPicker 表达式）</td></tr>
+<tr><td>cell-edit-begin / edited / cancel</td><td><code>IsCellEditBegin()</code> / <code>IsCellEdited()</code> / <code>IsCellEditCancel()</code> → <code>GetEditRow()</code> / <code>GetEditCol()</code> / <code>GetEditOldText()</code> / <code>GetEditNewText()</code> / <code>IsEditReadOnly()</code></td></tr>
+<tr><td>node-edit-begin / edited / cancel</td><td><code>IsNodeEditBegin()</code> / <code>IsNodeEdited()</code> / <code>IsNodeEditCancel()</code> → <code>GetEditNodeId()</code> / <code>GetEditOldText()</code> / <code>GetEditNewText()</code> / <code>IsEditReadOnly()</code></td></tr>
+<tr><td>column-resize-begin / changed / ended</td><td><code>IsColumnResizeBegin()</code> / <code>IsColumnResizeChanged()</code> / <code>IsColumnResizeEnded()</code> → <code>GetResizeCol()</code> / <code>GetResizeOldWidth()</code> / <code>GetResizeNewWidth()</code> / <code>GetResizeCanceled()</code></td></tr>
 <tr><td>value-changed</td><td><code>IsValueChanged()</code> → <code>GetValueChanged()</code>（float）/ <code>GetValueChangedDouble()</code>（double）</td></tr>
 </table>
 

@@ -145,6 +145,74 @@ UICornerstone_SetInt(g_inst, lv, "selected-index", 0);</code></pre>
 
 
 
+<h2>4.12.8 单元格就地编辑（P0-111 / CR20261101001）</h2>
+<table>
+<tr><th>属性键</th><th>类型</th><th>默认</th><th>说明</th></tr>
+<tr><td><code>cell-editing</code></td><td>Bool</td><td>false</td><td>开启双击单元格就地编辑</td></tr>
+<tr><td><code>editable-columns</code></td><td>String</td><td>""</td><td>可编辑列索引逗号串；空=全部；single 模式仅列 0</td></tr>
+<tr><td><code>read-only-columns</code></td><td>String</td><td>""</td><td>只读列；仍可进入编辑，EditBox 只读（可全选/复制）</td></tr>
+<tr><td><code>read-only-row-ids</code></td><td>String</td><td>""</td><td>只读行 id；同样进入只读 EditBox</td></tr>
+<tr><td><code>edit-old-text</code> / <code>edit-new-text</code></td><td>String（只读）</td><td>—</td><td>编辑会话前值/新值；begin/cancel 时 new 为空</td></tr>
+</table>
+<p>交互：双击单元格（仅<strong>完全可见</strong>的单元格）进入编辑；Enter 或失焦提交；Esc 取消；滚动、列宽变化、行/列增删移、排序、刷新、隐藏/禁用/销毁时取消（销毁不回调）。只读行/列仍可进入编辑，但 EditBox 只读；其 Enter/失焦记为 <code>cancel</code>（<code>readOnly=1</code>）。Tab=失焦提交并继续焦点遍历。</p>
+<table>
+<tr><th>事件名</th><th>载荷</th><th>说明</th></tr>
+<tr><td><code>cell-edit-begin</code></td><td>grid{row,col} + oldText</td><td>进入编辑（newText 为空）</td></tr>
+<tr><td><code>cell-edited</code></td><td>grid{row,col} + oldText + newText</td><td>可写会话提交（数据已写回）</td></tr>
+<tr><td><code>cell-edit-cancel</code></td><td>grid{row,col} + oldText</td><td>Esc / 只读提交 / 生命周期取消（未写回）</td></tr>
+</table>
+<pre><code>{ "type": "list-view", "id": "lv", "rect": { "x": 20, "y": 60, "w": 400, "h": 200 },
+  "cell-editing": true, "editable-columns": "0,1",
+  "read-only-columns": "1", "read-only-row-ids": "ro1",
+  "columns": [ { "title": "Name", "width": 180, "sortable": true } ],
+  "rows": [ { "id": "r1", "cells": ["a"] }, { "id": "ro1", "cells": ["b"] } ],
+  "events": { "onCellEdited": "onCellEdited", "onCellEditCancel": "onCellCancel" } }</code></pre>
+<pre><code>/* C ABI */
+UICornerstone_SetBool(g_inst, lv, "cell-editing", 1);
+UICornerstone_SetString(g_inst, lv, "editable-columns", "0,1");
+UICornerstone_SetCallback(g_inst, lv, "cell-edited", onCellEdited, NULL);
+UICornerstone_ListViewBeginEditCell(g_inst, lv, 0, 0);   /* 程序化开始 */
+UICornerstone_ListViewCommitEdit(g_inst, lv);            /* 提交 */
+/* Binding */
+lv.SetBool(PropertyNames::kCellEditing, true);
+lv.SetCallback(PropertyNames::kEventCellEdited, [](const Event& e) {
+    e.GetEditRow(); e.GetEditCol(); e.GetEditOldText(); e.GetEditNewText(); e.IsEditReadOnly();
+});
+ui->ListViewBeginEditCell(lv, 0, 0);
+ui->ListViewGetEditingCell(lv, row, col, readOnly);</code></pre>
+
+<h2>4.12.9 设计态列宽手势 API（P0-113 / CR20261101003）</h2>
+<table>
+<tr><th>API</th><th>说明</th></tr>
+<tr><td><code>ListViewHitTestColumnDivider(lv, x, y)</code></td><td>multi 表头分隔线命中（**8px** 半宽，与运行时同判定）；返回列索引/-1；纯查询不改光标；最后一列支持可见右边界命中</td></tr>
+<tr><td><code>ListViewBeginColumnResize(lv, col, x)</code> / <code>UpdateColumnResize(lv, x)</code> / <code>EndColumnResize(lv, commit)</code> / <code>CancelColumnResize(lv)</code></td><td>引擎拥有命中/宽度/会话；设计器转发局部逻辑坐标并持久化模型</td></tr>
+<tr><td><code>ListViewSetColumnResizeCursor(lv, active)</code></td><td>设计态光标：1=EW 左右双箭头；0=恢复默认（隐藏/禁用时也允许，但仅当前 owner 生效，非 owner 不覆盖其它控件/ListView 光标）；运行时自动管理 hover 光标与 owner 仲裁</td></tr>
+</table>
+<p>事件：<code>column-resize-begin/changed/ended</code>，载荷 <code>resize{col,oldWidth,newWidth,canceled}</code>；<code>changed</code> 仅在宽度实际变化时发，成功 Begin 后 <code>ended</code> 恰好一次。坐标口径：<code>local = (screen - getDrawRect().left/top) / getScaleX/Y()</code>（已含水平滚动偏移，不含 DPI）。</p>
+<pre><code>int col = ui->ListViewHitTestColumnDivider(lv, lx, ly);
+if (col >= 0) {
+    ui->ListViewSetColumnResizeCursor(lv, true);
+    ui->ListViewBeginColumnResize(lv, col, lx);
+    ui->ListViewUpdateColumnResize(lv, lx + dx);   /* 引擎钳制/relayout */
+    ui->ListViewEndColumnResize(lv, true);         /* false/取消恢复旧宽 */
+}
+ui->ListViewSetColumnResizeCursor(lv, false);      /* 离开/结束恢复默认 */</code></pre>
+
+<h2>4.12.10 单元格控件（cell control，P0-114 / CR20261101004）</h2>
+<table>
+<tr><th>API</th><th>说明</th></tr>
+<tr><td><code>ListViewSetCellControl(lv, row, col, ctl, layout)</code></td><td>放入单元格控件（引擎接管所有权）；layout=<code>UI_LIST_CELL_LAYOUT_FILL</code>（默认，内容区 2/1px 内缩）或 <code>LEADING</code>（既有图标槽）</td></tr>
+<tr><td><code>ListViewClearCellControl(lv, row, col)</code></td><td>移除并释放单元格控件</td></tr>
+<tr><td><code>ListViewGetCellControl(lv, row, col)</code></td><td>只读借用句柄；移除后返回 NULL，不得 Destroy</td></tr>
+</table>
+<p>约定：仅接受**无父控件**且属于同一实例的控件，已有父容器/跨实例 → 失败；Set/Clear/替换/行删/列删/缩列/销毁后宿主代理不得再使用（借用语义，不承诺 IsValid）。FILL 仅完整可见时显示；FILL 区域双击不进入 P0-111 编辑；按钮/子控件消费鼠标时不触发行选择，FILL 空白未消费时回落行选择。复合按钮用 Panel 组合。</p>
+<pre><code>auto panel = ui->CreatePanel(0, 0, 100, 24);
+auto btn = ui->CreateButton(0, 0, 60, 20, "Open");
+panel.AddChild(btn);
+ui->RemoveChild(ui->Root(), panel);   // Set 仅接受无父控件；先摘除再移交
+ui->ListViewSetCellControl(lv, 0, 0, panel, UI_LIST_CELL_LAYOUT_FILL);
+ui->ListViewClearCellControl(lv, 0, 0);</code></pre>
+
 <div class="chapter-nav">
   <a href="label.html">← 4.11 Label</a>
   <a href="luotiani.html">下一节：4.13 LuotiAni（动画） →</a>

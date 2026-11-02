@@ -16,6 +16,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 #include <vector>
 
 class ScrollBar;
@@ -82,10 +83,14 @@ struct ListRow {
     shared_ptr<Control> leadingControl;          // 行图标（首列前，可空）
     void* userData = nullptr;
     map<int, shared_ptr<Control>> cellControls;  // 单元格级控件（稀疏；排序/移动/删除跟随行）
+    map<int, uint8_t> cellControlLayouts;        // P0-114：0=FILL / 1=LEADING（稀疏；缺省=LEADING 兼容）
     map<int, CellStyle> cellStyles;              // 单元格级样式（稀疏）
     bool hasStyle = false;                       // P032：行级样式已设置
     RowStyle style;                              // P032：行级样式
 };
+
+class InlineEditBox;
+class Cursor;
 
 class ListView : public ControlImpl {
 public:
@@ -96,6 +101,10 @@ public:
     using OnSelectionChangedHandler = std::function<void(shared_ptr<ListView>)>;
     using OnItemClickHandler        = std::function<void(shared_ptr<ListView>, int row, int col)>;
     using OnColumnSortHandler       = std::function<void(shared_ptr<ListView>, int col, bool ascending)>;
+    // P0-111：就地编辑事件（begin/cancel 的 newText 为空；readOnly 随会话）
+    using OnCellEditHandler         = std::function<void(shared_ptr<ListView>, int row, int col,
+                                                          const std::string& oldText,
+                                                          const std::string& newText, bool readOnly)>;
 
     ListView(Control* parent, const SRect& rect, float xScale = 1.0f, float yScale = 1.0f);
 
@@ -142,6 +151,11 @@ public:
     void setCell(int row, int col, const string& text);
     shared_ptr<Control> getCellLeadingControl(int row, int col);
     void setCellLeadingControl(int row, int col, shared_ptr<Control> ctl);
+    // P0-114/CR004：通用单元格控件（引擎接管所有权；FILL/LEADING）
+    enum class CellControlLayout { Fill = 0, Leading = 1 };
+    bool setCellControl(int row, int col, shared_ptr<Control> ctl, CellControlLayout layout = CellControlLayout::Fill);
+    bool clearCellControl(int row, int col);
+    shared_ptr<Control> getCellControl(int row, int col) const;
 
     // ── 单元格样式（稀疏）──
     void setCellStyle(int row, int col, const CellStyle& style);
@@ -192,6 +206,23 @@ public:
     void setOnSelectionChanged(OnSelectionChangedHandler h) { m_onSelectionChanged = std::move(h); }
     void setOnItemClick(OnItemClickHandler h)               { m_onItemClick = std::move(h); }
     void setOnColumnSort(OnColumnSortHandler h)             { m_onColumnSort = std::move(h); }
+    void setOnCellEditBegin(OnCellEditHandler h)            { m_onCellEditBegin = std::move(h); }
+    void setOnCellEdited(OnCellEditHandler h)               { m_onCellEditEdited = std::move(h); }
+    void setOnCellEditCancel(OnCellEditHandler h)           { m_onCellEditCancel = std::move(h); }
+
+    // ── P0-111：程序化编辑 API（C ABI/Binding 入口）──
+    bool beginEditCell(int row, int col);
+    bool commitEdit();
+    bool cancelEdit();
+    bool isEditing() const { return m_editing; }
+    bool getEditingCell(int& row, int& col, bool& readOnly) const;
+    // ── P0-113：设计态列宽手势会话（局部逻辑坐标）──
+    int   hitTestColumnDivider(float localX, float localY) const;
+    bool  beginColumnResize(int col, float localX);
+    float updateColumnResize(float localX);
+    bool  endColumnResize(bool commit);
+    bool  cancelColumnResize();
+    bool  setColumnResizeCursor(bool active);   // P0-113/CR005：显式 EW/默认光标
 
     // ── 引擎接口 ──
     void create(void) override;
@@ -199,6 +230,9 @@ public:
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
     void resized(SRect newRect) override;
+    void setVisible(bool visible) override;
+    void setEnable(bool enable) override;
+    ~ListView() override;
 
     // ── 属性系统 override（通用属性键；数据类走专用 CABI 不在此）──
     int setEnumProperty(const char* prop, const char* value) override;   // "mode"
@@ -224,6 +258,25 @@ private:
     void rebuildLayout();                         // 列 x 偏移缓存 + 滚动范围 + 子控件定位
     void updateScrollBars();                      // 垂直/水平滚动条范围与可见性
     void syncChildControls();                     // leadingControl/cellControls 定位与挂摘
+    // P0-111：就地编辑
+    void cleanupPendingEdit();                    // 延迟销毁覆盖层（避免回调内自毁）
+    void finishEdit(bool commit, bool fromFocusLost);
+    bool canEditCell(int row, int col) const;
+    bool isCellReadOnly(int row, int col) const;
+    bool cellFullyVisible(int row, int col) const;
+    SRect cellRectLocal(int row, int col) const;
+    void cancelEditForMutation();
+    void fireCellEditEvent(const char* eventName, int row, int col,
+                           const std::string& oldText, const std::string& newText, bool readOnly);
+    // P0-113：列宽手势
+    void applyColumnWidthInternal(int index, float width);
+    void cancelColumnResizeInternal(bool fire);
+    // P0-114：单元格控件
+    void removeCellControlAt(int row, int col, bool destroy);
+    void removeCellControlsForColumn(int col);
+    void focusHandoffFromChild(Control* ctl);
+    bool isFocusWithin(Control* ctl) const;
+    bool cellControlFullyVisible(int row, int col) const;
     int  hitTestColumn(float x) const;            // 列命中（含水平滚动）；-1 未命中
     float columnX(int index) const;               // 列左缘 x（含水平滚动偏移）
     float totalContentWidth() const;              // Σ列宽（single 模式 = 控件宽）
@@ -292,6 +345,33 @@ private:
     OnSelectionChangedHandler m_onSelectionChanged;
     OnItemClickHandler        m_onItemClick;
     OnColumnSortHandler       m_onColumnSort;
+    OnCellEditHandler         m_onCellEditBegin;
+    OnCellEditHandler         m_onCellEditEdited;
+    OnCellEditHandler         m_onCellEditCancel;
+
+    // P0-111：就地编辑状态
+    bool m_cellEditing = false;
+    std::string m_editableColumnsRaw, m_readOnlyColumnsRaw, m_readOnlyRowIdsRaw;
+    std::set<int> m_editableCols, m_readOnlyCols;
+    std::set<std::string> m_readOnlyRows;
+    bool m_editing = false;
+    int  m_editRow = -1, m_editCol = -1;
+    bool m_editReadOnly = false;
+    std::string m_editOldText, m_editNewText;
+    std::shared_ptr<InlineEditBox> m_editBox;
+    bool m_editDestroyPending = false;
+    uint64_t m_lastClickTick = 0;
+    float m_lastClickX = 0.f, m_lastClickY = 0.f;
+    int m_lastClickRow = -1, m_lastClickCol = -1;
+
+    // P0-113：API 列宽会话
+    bool  m_apiResizeActive = false;
+    int   m_apiResizeCol = -1;
+    float m_apiResizeOldWidth = 0.f;
+    float m_apiResizeStartX = 0.f;
+    float m_apiResizeLastWidth = 0.f;
+    Cursor* m_resizeCursor = nullptr;   // 惰性创建（EW_Resize）
+    bool m_overDivider = false;
 
     std::set<Control*> m_attachedChildren;   // 子控件挂树去重（leadingControl/cellControls）
 };

@@ -103,6 +103,9 @@ set(UI_TEST_EXECUTABLES
     test_dialog
     test_graphtool
     test_handlecontrol
+    test_cr_cells
+    test_cr_ui
+    test_cr_cellcontrol
     test_slider
     test_shape
     test_listview

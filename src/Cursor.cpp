@@ -8,6 +8,7 @@
 static CursorCreateSystemFn g_createSystemFn = nullptr;
 static CursorGetDefaultFn   g_getDefaultFn   = nullptr;
 static CursorSetCurrentFn   g_setCurrentFn   = nullptr;
+static const void*          g_currentOwner   = nullptr;
 
 void Cursor::registerFactories(CursorCreateSystemFn c, CursorGetDefaultFn g, CursorSetCurrentFn s) {
     g_createSystemFn = c;
@@ -32,9 +33,27 @@ Cursor* Cursor::getDefault() {
 }
 
 void Cursor::setCurrent(Cursor* cursor) {
+    g_currentOwner = nullptr;
     if (!g_setCurrentFn) {
         printf("Cursor::setCurrent: no backend factory registered\n");
         return;
     }
     g_setCurrentFn(cursor);
 }
+
+void Cursor::setCurrentWithOwner(Cursor* cursor, const void* owner) {
+    if (!g_setCurrentFn) {
+        printf("Cursor::setCurrent: no backend factory registered\n");
+        return;
+    }
+    g_setCurrentFn(cursor);
+    g_currentOwner = owner;
+}
+
+bool Cursor::restoreDefault(const void* owner) {
+    if (g_currentOwner != owner) return false;
+    setCurrent(getDefault());
+    return true;
+}
+
+const void* Cursor::getCurrentOwner() { return g_currentOwner; }

@@ -235,6 +235,12 @@ public:
     bool TreeViewSetNodeLabel(Control& tree, const std::string& id, const std::string& label);
     bool TreeViewSetNodeUserData(Control& tree, const std::string& id, void* userData);
     bool TreeViewSelectNode(Control& tree, const std::string& id);
+    // P0-112：节点标签就地编辑
+    bool TreeViewBeginEditNode(Control& tree, const std::string& id);
+    bool TreeViewCommitEdit(Control& tree);
+    bool TreeViewCancelEdit(Control& tree);
+    bool TreeViewIsEditing(Control& tree);
+    bool TreeViewGetEditingId(Control& tree, std::string& outId, bool* outReadOnly = nullptr);
     void TreeViewClearSelection(Control& tree);
     bool TreeViewExpandNode(Control& tree, const std::string& id);
     bool TreeViewCollapseNode(Control& tree, const std::string& id);
@@ -268,6 +274,24 @@ public:
     // ── ListView 列表控件（属性走 Control::Set*；数据走专用方法）──
     Control CreateListView(float x, float y, float w, float h, float xScale = 1.0f, float yScale = 1.0f);
     bool ListViewAddRow(Control& lv, const std::string& id, const std::vector<std::string>& cells = {});
+    // P0-111：单元格就地编辑
+    bool ListViewBeginEditCell(Control& lv, int row, int col);
+    bool ListViewCommitEdit(Control& lv);
+    bool ListViewCancelEdit(Control& lv);
+    bool ListViewIsEditing(Control& lv);
+    bool ListViewGetEditingCell(Control& lv, int& row, int& col, bool& readOnly);
+    // P0-113：设计态列宽手势
+    int   ListViewHitTestColumnDivider(Control& lv, float localX, float localY);
+    bool  ListViewBeginColumnResize(Control& lv, int col, float localX);
+    float ListViewUpdateColumnResize(Control& lv, float localX);
+    bool  ListViewEndColumnResize(Control& lv, bool commit);
+    bool  ListViewCancelColumnResize(Control& lv);
+    bool  ListViewSetColumnResizeCursor(Control& lv, bool active);
+    // P0-114/CR004：通用单元格控件（借用语义，引擎接管所有权）
+    bool  ListViewSetCellControl(Control& lv, int row, int col, Control& ctl,
+                                 int layout = UI_LIST_CELL_LAYOUT_FILL);
+    bool  ListViewClearCellControl(Control& lv, int row, int col);
+    Control ListViewGetCellControl(Control& lv, int row, int col);
     bool ListViewRemoveRow(Control& lv, int index);
     bool ListViewMoveRow(Control& lv, int from, int to);   // P0-94
     bool ListViewSetCellText(Control& lv, int row, int col, const std::string& text);

@@ -295,6 +295,77 @@ void ControlImpl::moved(SRect newRect){
     m_rect.left = newRect.left;
     m_rect.top = newRect.top;
 }
+void ControlImpl::clearMouseCapture(bool resetState) {
+    if (!m_capturedChild) return;
+    if (resetState && m_capturedChild->getVisible() && m_capturedChild->getEnable())
+        m_capturedChild->setState(ControlState::Normal);
+    m_capturedChild = nullptr;
+}
+
+// P0-114/CR004：逆序派发子控件；MouseDown 消费时记录 captured；Up/Move 优先派发 captured。
+bool ControlImpl::dispatchToChild(shared_ptr<Event> event, Control** consumedChild) {
+    if (consumedChild) *consumedChild = nullptr;
+    if (!event) return false;
+    if (!getVisible() || !getEnable()) return false;
+
+    const EventType et = event->m_type;
+    const bool isDown = (et == EventType::MouseDown || et == EventType::FingerDown);
+    const bool isUp   = (et == EventType::MouseUp || et == EventType::FingerUp);
+    const bool isMove = (et == EventType::MouseMove || et == EventType::FingerMotion);
+
+    if (isDown) clearMouseCapture(true);
+
+    Control* cap = m_capturedChild;
+    if ((isUp || isMove) && cap) {
+        if (!cap->getVisible() || !cap->getEnable()) {
+            clearMouseCapture(true);
+            cap = nullptr;
+        } else {
+            bool consumed = cap->handleEvent(event);
+            if (consumed) {
+                if (consumedChild) *consumedChild = cap;
+                if (isUp) clearMouseCapture(false);
+                return true;
+            }
+            if (isUp) clearMouseCapture(false);
+        }
+    }
+
+    float mx = 0.f, my = 0.f;
+    bool hasPos = false;
+    if (et == EventType::MouseMove || et == EventType::FingerMotion) {
+        mx = event->mousePos.x; my = event->mousePos.y; hasPos = true;
+    } else if (et == EventType::MouseDown || et == EventType::MouseUp) {
+        mx = event->mouseButton.x; my = event->mouseButton.y; hasPos = true;
+    } else if (et == EventType::FingerDown || et == EventType::FingerUp) {
+        mx = event->mousePos.x; my = event->mousePos.y; hasPos = true;
+    } else if (et == EventType::MouseWheel) {
+        mx = event->mouseWheel.x; my = event->mouseWheel.y; hasPos = true;
+    }
+
+    auto childrenCopy = m_children;
+    for (auto it = childrenCopy.rbegin(); it != childrenCopy.rend(); ++it) {
+        if (cap && it->get() == cap) continue;   // captured 已优先派发，避免双重派发
+        if (hasPos) {
+            bool covered = false;
+            for (auto coverIt = childrenCopy.rbegin(); coverIt != it; ++coverIt) {
+                if ((*coverIt)->getVisible() && (*coverIt)->isContainsPoint(mx, my)) {
+                    covered = true;
+                    break;
+                }
+            }
+            if (covered) continue;
+        }
+        if ((*it)->handleEvent(event)) {
+            if (isDown) m_capturedChild = it->get();
+            if (consumedChild) *consumedChild = it->get();
+            return true;
+        }
+    }
+    if (isUp) clearMouseCapture(false);
+    return false;
+}
+
 //事件处理，返回值表示是否处理了该事件，true表示处理了，false表示未处理
 bool ControlImpl::handleEvent(shared_ptr<Event> event){
     // 右键上下文菜单（决策点 2-B）：命中本控件且菜单未显示 → 弹出
@@ -321,25 +392,8 @@ bool ControlImpl::handleEvent(shared_ptr<Event> event){
             mx = event->mousePos.x; my = event->mousePos.y; hasPos = true;
         }
 
-        // 逆向遍历当前控件的所有子控件，保证后添加的控件先处理事件，因为后添加的控件在屏幕上位于上层
-        // 使用副本遍历，防止子控件的 bringToFront 等操作修改 m_children 导致迭代器失效
-        auto childrenCopy = m_children;
-        for (auto it = childrenCopy.rbegin(); it != childrenCopy.rend(); ++it){
-            // 对有位置的事件：检查当前子控件是否被更高层级的兄弟控件遮挡
-            if (hasPos) {
-                bool covered = false;
-                for (auto coverIt = childrenCopy.rbegin(); coverIt != it; ++coverIt) {
-                    if ((*coverIt)->getVisible() && (*coverIt)->isContainsPoint(mx, my)) {
-                        covered = true;
-                        break;
-                    }
-                }
-                if (covered) continue;
-            }
-            if ((*it)->handleEvent(event)){
-                return true;
-            }
-        }
+        // P0-114/CR004：子控件派发（含 captured 捕获）
+        if (dispatchToChild(event)) return true;
 
         // P0-30：自身命中（子控件未消费）——按下/抬起切态（不消费事件，保持既有分发语义）
         if (hasPos && (event->m_type == EventType::MouseDown || event->m_type == EventType::MouseUp) &&
@@ -418,6 +472,7 @@ void ControlImpl::stabilizeTopmostChildren() {
 }
 
 void ControlImpl::removeControl(shared_ptr<Control> child){
+    if (child && m_capturedChild == child.get()) clearMouseCapture(true);
     m_children.erase(std::remove(m_children.begin(), m_children.end(), child), m_children.end());
 }
 // 只调用setParent的话，是不会添加到父控件的children中的，用于自行控制绘制逻辑和事件处理逻辑
@@ -1059,9 +1114,10 @@ void ControlImpl::fireCCallback(const char* eventName, CCallbackData data, const
     case CCallbackData::String:    if (ptr) evt.data.strVal = static_cast<const char*>(ptr); break;
     case CCallbackData::Ptr:       if (ptr) evt.data.ptrVal = const_cast<void*>(ptr); break;
     case CCallbackData::Selection: if (ptr) { auto* s = static_cast<const SelectionPayload*>(ptr); evt.data.selection = {s->idx, s->val}; } break;
-    case CCallbackData::TreeNode:  if (ptr) { auto* t = static_cast<const TreeNodePayload*>(ptr); evt.data.treeNode = {t->id, t->userData}; } break;
+    case CCallbackData::TreeNode:  if (ptr) { auto* t = static_cast<const TreeNodePayload*>(ptr); evt.data.treeNode = {t->id, t->userData, t->oldText, t->newText, t->readOnly}; } break;
     case CCallbackData::Color:     if (ptr) { auto* c = static_cast<const ColorPayload*>(ptr); evt.data.color = {c->r, c->g, c->b, c->a}; } break;
-    case CCallbackData::Grid:      if (ptr) { auto* g = static_cast<const GridPayload*>(ptr); evt.data.grid = {g->row, g->col, g->asc}; } break;
+    case CCallbackData::Grid:      if (ptr) { auto* g = static_cast<const GridPayload*>(ptr); evt.data.grid = {g->row, g->col, g->asc, g->oldText, g->newText, g->readOnly}; } break;
+    case CCallbackData::Resize:    if (ptr) { auto* r = static_cast<const ResizePayload*>(ptr); evt.data.resize = {r->col, r->oldWidth, r->newWidth, r->canceled}; } break;
     case CCallbackData::Drag:      if (ptr) {   // P0-94
         auto* b = static_cast<const DragEventBundle*>(ptr);
         evt.data.drag.payload.kind = b->kind;
