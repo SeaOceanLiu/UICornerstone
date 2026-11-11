@@ -125,6 +125,9 @@ static std::unique_ptr&lt;UICornerstone&gt; Create(const UIBackendCallbacks* cal
 <tr><td><code>bool IsValid() const</code></td><td>句柄是否有效（控件销毁后自动失效）</td></tr>
 <tr><td><code>GetColor / GetStateColor / GetBool / GetInt / GetFloat / GetString / GetEnum / GetPtr</code></td><td>属性读取</td></tr>
 <tr><td><code>SetColor / SetStateColor / SetBool / SetInt / SetFloat / SetString / SetEnum / SetPtr</code></td><td>属性写入（一一对应 C ABI <code>UICornerstone_Set*</code>）</td></tr>
+<tr><td><code>ApplyTheme / SetThemeVariant / GetThemeVariant / RefreshResponsiveTheme / GetActiveMedia</code></td><td>CR20261102001/003：CSS-like 主题、变体与响应式</td></tr>
+<tr><td><code>ClearThemeOverrides(Control&amp;)</code></td><td>清除控件显式覆盖并重算</td></tr>
+<tr><td><code>Control::SetContentPadding / GetContentPadding</code></td><td>通用内容内边距（CR20261102002）</td></tr>
 <tr><td><code>std::string GetId() const</code></td><td>取控件 id</td></tr>
 <tr><td><code>std::string GetType() const</code></td><td>控件运行时类型（与 JSON <code>"type"</code> 值一致，如 <code>"check-box"</code> / <code>"image"</code> / <code>"tree-view"</code>）</td></tr>
 <tr><td><code>UIRect GetRect() const</code></td><td>读取布局矩形</td></tr>
@@ -332,6 +335,7 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 <tr><td><code>PushEvent(const UIEvent&amp;)</code></td><td>注入任意事件（UIEventFactory 构造）</td></tr>
 <tr><td><code>PushMouseButton / PushMouseMove / PushMouseWheel / PushKey / PushTextInput</code></td><td>输入注入（模拟输入/测试）</td></tr>
 <tr><td><code>RegisterAction(name, ActionCallback)</code></td><td>注册 JSON 布局动作处理器</td></tr>
+<p class="note"><b>CR20261110002</b>：StatusBar item / ContextMenu item 等无控件 sender 的 action 仍会执行，回调收到 invalid <code>Control</code>（<code>IsValid()==false</code>、<code>Handle()==nullptr</code>）；使用 Control 前先判空或 <code>IsValid()</code>。普通 Button/MenuBar action 仍收到有效 Control。</p>
 <tr><td><code>SetCanvasSize(w, h)</code></td><td>显式基准画布尺寸（fit/stretch 适配基准）</td></tr>
 <tr><td><code>SetViewport(x, y, w, h) / GetViewport()</code></td><td>切换 / 查询当前视口</td></tr>
 <tr><td><code>SetViewportAnchor(ax, ay)</code></td><td>手动锚点偏移（增量叠加）</td></tr>
@@ -368,3 +372,21 @@ lbl.SetPtr(PropertyNames::kPropContextMenu, menu.Handle());</code></pre>
 </div>
 </body>
 </html>
+
+<h2>窗口可见性（CR20261105003）</h2>
+<table>
+<tr><th>Binding</th><th>说明</th></tr>
+<tr><td><code>ui.SetWindowVisible(bool)</code></td><td>显示/隐藏独立窗口；子视口/共享实例/headless 返回 false。</td></tr>
+<tr><td><code>ui.IsWindowVisible()</code></td><td>引擎本地可见状态；旧 DLL 缺入口返回 false。</td></tr>
+<tr><td><code>UIWindowFlags::Hidden</code></td><td>创建期隐藏标志。</td></tr>
+</table>
+
+<h2>窗口外观（CR20261105004）</h2>
+<table>
+<tr><td><code>UIWindowFlags::Borderless</code></td><td>创建期无边框；SFML Style::None 同时去掉 resize。</td></tr>
+<tr><td><code>UIWindowFlags::Utility</code></td><td>创建期任务栏/窗口列表隐藏；SDL3 原生，SFML/raylib 忽略。</td></tr>
+<tr><td><code>ui.SetWindowAlwaysOnTop(bool)</code> / <code>IsWindowAlwaysOnTop()</code></td><td>置顶状态；SFML 返回不支持。</td></tr>
+<tr><td><code>ui.SetWindowForeground()</code></td><td>尽力前台，不保证 OS 强制焦点。</td></tr>
+</table>
+<p><b>CR20261108001</b>：<code>UIWindowFlags::NoShadow</code> 创建期无系统阴影；仅 SDL3 Windows 有实际语义，SFML/raylib 忽略并诊断。</p>
+<p><b>CR20261109001</b>：<code>UIWindowFlags::Utility</code> 创建期不显示在任务栏/窗口列表；SDL3 原生，Windows backend 幂等补 <code>WS_EX_TOOLWINDOW</code>；SFML/raylib 忽略。无运行期 API。</p>

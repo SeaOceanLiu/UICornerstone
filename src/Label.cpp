@@ -74,6 +74,8 @@ void Label::releaseTexts(void) {
 }
 
 void Label::recreate() {
+    // CR20261105002 P0：解析期属性批量写入时，延迟到 parser 的统一 create。
+    if (ControlImpl::isDeferredRecreate()) return;
     if(!m_isCreated) {
         // 两阶段创建：context 就绪后（挂树）由 setContext 触发，重试字体加载
         create();
@@ -137,6 +139,11 @@ void Label::create(void) {
     computeLineOffsets();
 
     ControlImpl::create();
+}
+
+void Label::setContentPadding(Margin padding) {
+    ControlImpl::setContentPadding(padding);
+    computeLineOffsets();
 }
 
 void Label::computeLineOffsets(void) {
@@ -497,6 +504,7 @@ string Label::getCaption(void) const{
     return m_caption;
 }
 void Label::setFont(FontName fontName){
+    if (fontName == m_fontName && !m_fontFile.empty() && (m_font || !m_isCreated)) return;
     m_fontName = fontName;
     m_fontFile = fs::path(ConstDef::fontFiles.at(fontName));
 
@@ -505,6 +513,7 @@ void Label::setFont(FontName fontName){
     recreate();
 }
 void Label::setAlignmentMode(AlignmentMode Alignment){
+    if (m_AlignmentMode == Alignment) return;
     m_AlignmentMode = Alignment;
 
     recreate();
@@ -513,12 +522,14 @@ AlignmentMode Label::getAlignmentMode(void) const{
     return m_AlignmentMode;
 }
 void Label::setMargin(Margin margin){
+    if (m_margin.left == margin.left && m_margin.top == margin.top &&
+        m_margin.right == margin.right && m_margin.bottom == margin.bottom) return;
     m_margin = margin;
 
     recreate();
 }
 void Label::setFontSize(int fontSize){
-    if (fontSize == m_fontSize) return;
+    if (fontSize == m_fontSize && (m_font || !m_isCreated)) return;
     m_fontSize = fontSize;
 
     releaseFont();
@@ -546,7 +557,7 @@ void Label::SetFontStyle(int fontStyle){
 }
 
 void Label::setLineHeight(int height){
-    if (height <= 0) return;
+    if (height <= 0 || height == m_defaultLineHeight) return;
     m_defaultLineHeight = height;
 
     recreate();
@@ -557,6 +568,7 @@ int Label::getLineHeight() const{
 }
 
 void Label::setLineSpacingRatio(float spacingRatio) {
+    if (m_defaultLineSpacingRatio == spacingRatio) return;
     m_defaultLineSpacingRatio = spacingRatio;
 
     recreate();
@@ -567,6 +579,7 @@ void Label::setDebugDraw(bool enabled) {
 }
 
 void Label::setEnableExpand(bool enable){
+    if (m_enableExpand == enable) return;
     m_enableExpand = enable;
 
     recreate();

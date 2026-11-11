@@ -1,0 +1,194 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.6 ComboBox",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Placeholder, selected and editable states",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "m0",
+          "rect": {
+            "x": 40,
+            "y": 95,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "placeholder / unselected",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "combo-box",
+          "id": "m0b",
+          "rect": {
+            "x": 40,
+            "y": 120,
+            "w": 300,
+            "h": 36
+          },
+          "placeholder": "Select a city...",
+          "items": [
+            {
+              "label": "Beijing",
+              "value": "beijing"
+            },
+            {
+              "label": "Wuhan",
+              "value": "wuhan"
+            },
+            {
+              "label": "Shenzhen",
+              "value": "shenzhen"
+            }
+          ],
+          "editable": true,
+          "selected-index": -1
+        },
+        {
+          "type": "label",
+          "id": "m1",
+          "rect": {
+            "x": 360,
+            "y": 95,
+            "w": 320,
+            "h": 24
+          },
+          "caption": "selected-index: 1",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "combo-box",
+          "id": "m1b",
+          "rect": {
+            "x": 360,
+            "y": 120,
+            "w": 300,
+            "h": 36
+          },
+          "items": [
+            {
+              "label": "Beijing",
+              "value": "beijing"
+            },
+            {
+              "label": "Wuhan",
+              "value": "wuhan"
+            },
+            {
+              "label": "Shenzhen",
+              "value": "shenzhen"
+            }
+          ],
+          "selected-index": 1
+        },
+        {
+          "type": "label",
+          "id": "m2",
+          "rect": {
+            "x": 40,
+            "y": 195,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "editable: true / max-visible-items: 6",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "combo-box",
+          "id": "m2b",
+          "rect": {
+            "x": 40,
+            "y": 220,
+            "w": 300,
+            "h": 36
+          },
+          "editable": true,
+          "items": [
+            {
+              "label": "Beijing",
+              "value": "beijing"
+            },
+            {
+              "label": "Wuhan",
+              "value": "wuhan"
+            },
+            {
+              "label": "Shenzhen",
+              "value": "shenzhen"
+            }
+          ],
+          "selected-index": 2
+        }
+      ]
+    }
+  ]
+}

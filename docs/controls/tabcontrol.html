@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.23 TabControl（选项卡） - UICornerstone v1.1.0 用户手册</title>
+<title>4.23 TabControl（选项卡） - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/tabcontrol.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.23 TabControl（选项卡）</h1>
 
 <p>TabControl 多页签控件：页签条四方向（上/下/左/右），页面为任意控件子树。两层焦点作用域：Tab 在页内控件循环，Ctrl+Tab 在「页签条 ↔ 页内」间切换。继承链：<code>TabControl → ControlImpl → Control</code>。设计文档见 <code>design/TabControl_Design.md</code>。</p>
+
+<figure>
+  <img src="../assets/controls/tabcontrol-overview.png" alt="TabControl 页签与当前页" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>顶部页签、选中指示条与 Settings 页内容。</figcaption>
+</figure>
 
 <h2>4.23.1 控件的创建</h2>
 

@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.4 CheckBox - UICornerstone v1.1.0 用户手册</title>
+<title>4.4 CheckBox - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/checkbox.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>CheckBox 支持<strong>三态</strong>（未勾选 / 勾选 / 半选）、三种符号样式与两种文字排布，内部组合一个 Label 作标题。继承链：<code>CheckBox → ControlImpl → Control</code>。</p>
 
 <div class="note">缩放联动：标题文本为内部 Label（树成员），置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时字号随复合缩放系数重建。</div>
+
+<figure>
+  <img src="../assets/controls/checkbox-overview.png" alt="CheckBox 三种勾选状态" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>unchecked / checked / indeterminate classic / cross / circle 三种 style，以及 0.8 / 1.2 / 1.6 三档 size-ratio。</figcaption>
+</figure>
 
 <h2>4.4.1 控件的创建</h2>
 

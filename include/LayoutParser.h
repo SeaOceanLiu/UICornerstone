@@ -39,6 +39,8 @@ namespace fs = std::filesystem;
 class UIContext;
 class ContextMenu;   // P0-45：独立 type:"context-menu" 返回类型（前置声明）
 
+class ThemeRuntime;
+
 class LayoutParser {
 public:
     explicit LayoutParser(DataContext* dataContext = nullptr);
@@ -48,6 +50,7 @@ public:
     void setDataContext(DataContext* dataContext) { m_dataContext = dataContext; }
     // 视口缩放目标实例（顶层 viewport 键的应用落点；nullptr = 忽略该键）
     void setViewportTarget(UIContext* ctx) { m_viewportTarget = ctx; }
+    void setThemeRuntime(ThemeRuntime* rt) { m_themeRuntime = rt; }
 
     shared_ptr<Control> parseLayout(const string& jsonContent);
     shared_ptr<Control> parseLayoutFile(const fs::path& jsonPath);
@@ -75,6 +78,7 @@ public:
 
 private:
     Theme m_theme;
+    ThemeRuntime* m_themeRuntime = nullptr;
     // 数据绑定上下文（多实例：每个实例传入自己的 DataContext）
     DataContext* m_dataContext;
     // 视口缩放目标实例（顶层 viewport 键的应用落点）

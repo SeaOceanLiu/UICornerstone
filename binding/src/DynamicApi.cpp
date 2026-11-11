@@ -58,6 +58,11 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(GetWindowSize);
     RESOLVE(SetWindowSize);
     RESOLVE(GetNativeWindowHandle);
+    RESOLVE(SetWindowVisible);
+    RESOLVE(GetWindowVisible);
+    RESOLVE(SetWindowAlwaysOnTop);
+    RESOLVE(GetWindowAlwaysOnTop);
+    RESOLVE(SetWindowForeground);
     RESOLVE(SetWindowResizeCallback);
     RESOLVE(SetDropFileCallback);
 
@@ -76,6 +81,14 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(Debug_GetActiveViewport);
     RESOLVE(Debug_IsControlFocused);
 
+    RESOLVE(ApplyTheme);
+    RESOLVE(SetThemeVariant);
+    RESOLVE(GetThemeVariant);
+    RESOLVE(ClearThemeOverrides);
+    RESOLVE(RefreshResponsiveTheme);
+    RESOLVE(GetActiveMedia);
+    RESOLVE(SetContentPadding);
+    RESOLVE(GetContentPadding);
     RESOLVE(LoadLayout);
     RESOLVE(LoadLayoutFromFile);
     RESOLVE(FindControl);

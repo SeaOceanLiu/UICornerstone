@@ -21,7 +21,7 @@ void Panel::draw(void){
     if (m_clipChildren) {
         // 子项裁剪：内容 rect = 控件绘制区（含缩放/锚点，与 EditBox 同口径），
         // 子控件递归绘制在其内，超出即裁（clipStack 支持嵌套 Panel）
-        getRenderDevice()->pushClipRect(getDrawRect());
+        getRenderDevice()->pushClipRect(getContentDrawRect());
         ControlImpl::draw();
         getRenderDevice()->popClipRect();
     } else {
@@ -74,12 +74,13 @@ void Panel::removeAllControls() {
 void Panel::reflowChildren() {
     if (!m_layoutEngine) return;
     string type = m_layoutEngine->getType();
+    SRect content = getContentRect();
     if (type == PropertyNames::kLayoutTypeGrid) {
-        m_layoutEngine->applyGrid(m_rect, m_children, m_gridItemProps);
+        m_layoutEngine->applyGrid(content, m_children, m_gridItemProps);
     } else if (type == PropertyNames::kLayoutTypeAnchor) {
-        m_layoutEngine->applyAnchor(m_rect, m_children, m_anchorItemProps);
+        m_layoutEngine->applyAnchor(content, m_children, m_anchorItemProps);
     } else {
-        m_layoutEngine->apply(m_rect, m_children, m_flowItemProps);
+        m_layoutEngine->apply(content, m_children, m_flowItemProps);
     }
 }
 

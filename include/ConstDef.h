@@ -16,7 +16,7 @@ class Margin; // 前向声明Margin类
 
 // ********************************在这里定义创建主窗体的初始参数********************************
 #define APP_NAME u8"LuotiAniTool"
-#define APP_VERSION "1.0.0"
+#define APP_VERSION "1.2.0"
 #define APP_AUTHOR "SeaOcean"
 #define APP_COPYRIGHT "Copyright (c) 2023 SeaOcean"
 #define APP_COMPANY "SeaOcean.Ltd."

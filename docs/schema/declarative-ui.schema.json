@@ -451,7 +451,7 @@
         },
         "context-menu": {
           "type": "object",
-          "description": "控件级右键菜单（ContextMenu）：{items:[{caption,shortcut,type,icon…}]}（元素宽松校验）"
+          "description": "控件级右键菜单（ContextMenu）：{items:[{caption,shortcut,type,icon,events:{onClick}…}]}（元素宽松校验；CR20261109003 独立 context-menu 支持 events.onClick）"
         },
         "events": {
           "type": "object",
@@ -459,6 +459,56 @@
         },
         "margin": {
           "$ref": "#/$defs/margin"
+        },
+        "content-padding": {
+          "description": "CR20261102002：通用内容内边距；number / \"v h\" / \"t r b l\" / {left,top,right,bottom}；默认 0（Dialog 旧 padding 独立）",
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "left": { "type": "number" },
+                "top": { "type": "number" },
+                "right": { "type": "number" },
+                "bottom": { "type": "number" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "corner-radius": {
+          "type": "number",
+          "x-default": "0",
+          "description": "CR20261102001：通用圆角（px）"
+        },
+        "classes": {
+          "description": "CR20261102001：CSS-like 主题类名（string 空格分隔或 string[]）",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "theme-role": {
+          "type": "string",
+          "description": "CR20261102001：classes 兼容别名"
+        },
+        "theme-eligible": {
+          "type": "boolean",
+          "x-default": "true",
+          "description": "CR20261102001：是否参与主题匹配（false 子树跳过）；内部辅助控件默认 false"
+        },
+        "box-shadow": {
+          "type": "object",
+          "description": "CR20261102001：通用盒阴影 {color,offset-x,offset-y,blur,spread}",
+          "properties": {
+            "color": { "type": "string" },
+            "offset-x": { "type": "number" },
+            "offset-y": { "type": "number" },
+            "blur": { "type": "number" },
+            "spread": { "type": "number" }
+          },
+          "additionalProperties": false
         },
         "anchor": {
           "type": "string",
@@ -1082,7 +1132,26 @@
           "description": "挂载点数组 [{name, path}]；path 可为文件或目录（目录经 provider:name/相对路径 引用，P0-70）"
         },
         "theme": {
-          "type": "object"
+          "type": "object",
+          "description": "旧 fonts/colors + CSS-like variables/styles/variants/media/containerQueries（声明对象宽松校验，键集合由引擎诊断）",
+          "properties": {
+            "variables": { "type": "object" },
+            "styles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "selector": { "type": "string" },
+                  "declarations": { "type": "object" }
+                }
+              }
+            },
+            "variants": { "type": "object" },
+            "media": { "type": "array" },
+            "containerQueries": { "type": "array" },
+            "colors": { "type": "object" },
+            "fonts": { "type": "object" }
+          }
         },
         "viewport": {
           "type": "object",
@@ -1137,7 +1206,7 @@
         },
         "menus": {
           "type": "array",
-          "description": "顶级菜单 [{caption, items:[...], font, size, item-height-ratio, shadow-radius}]；items 元素 [{id,caption,shortcut,checked,type,items,font,size,leadingGap,leadingControl,text-color,background-color,hover-background-color}]（元素键走全局层；text-color 字符串=normal/对象四态；background-color 字符串或 {normal,hover}；P0-72①④）。items 的 id 注册进实例 id 表（FindControl 可达；与控件 id 同表，重名后注册覆盖——P0-87）",
+          "description": "顶级菜单 [{caption, items:[...], font, size, item-height-ratio, shadow-radius}]；items 元素 [{id,caption,shortcut,checked,type,items,events,font,size,leadingGap,leadingControl,text-color,background-color,hover-background-color}]（元素键走全局层；text-color 字符串=normal/对象四态；background-color 字符串或 {normal,hover}；P0-72①④）。items[].events.onClick 绑定菜单项点击动作，不需要 id；items 的 id 注册进实例 id 表（FindControl 可达；与控件 id 同表，重名后注册覆盖——P0-87）",
           "items": {
             "type": "object"
           }
@@ -1399,6 +1468,25 @@
         "border-visible": {
           "type": "boolean",
           "x-default": "true"
+        },
+        "items": {
+          "type": "array",
+          "description": "CR20261109003：独立右键菜单项；V1 仅支持 caption/shortcut/type:separator/events.onClick（兼容 items[].onClick）；不支持嵌套子菜单/icon",
+          "items": {
+            "type": "object",
+            "properties": {
+              "caption": { "type": "string" },
+              "shortcut": { "type": "string" },
+              "type": { "type": "string", "enum": ["separator"] },
+              "events": {
+                "type": "object",
+                "properties": { "onClick": { "type": "string" } },
+                "additionalProperties": false
+              },
+              "onClick": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "required": [
@@ -1929,7 +2017,7 @@
         },
         "items": {
           "type": "array",
-          "description": "段定义 [{id,text,align:right,icon,menu,onClick,text-color,background-color,hover-background-color}]（元素宽松校验；text-color 字符串=normal / 对象=四态，background-color 单色或 {normal,hover}，hover-background-color 独立悬停色（P0-75））",
+          "description": "段定义 [{id,text,align:right,icon,menu,onClick,events:{onClick},text-color,background-color,hover-background-color}]（元素宽松校验；events.onClick 优先于 onClick；text-color 字符串=normal / 对象=四态，background-color 单色或 {normal,hover}，hover-background-color 独立悬停色（P0-75））",
           "items": {
             "type": "object",
             "properties": {
@@ -1962,6 +2050,17 @@
               "text-shadow-offset-y": {
                 "type": "number",
                 "x-default": "1"
+              },
+              "events": {
+                "type": "object",
+                "description": "段级事件：onClick → action（CR20261109002；优先于 items[].onClick）",
+                "properties": {
+                  "onClick": { "type": "string" }
+                }
+              },
+              "onClick": {
+                "type": "string",
+                "description": "段级 action（兼容旧写法；events.onClick 优先）"
               }
             }
           }

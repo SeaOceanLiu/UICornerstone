@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.1 Actor（图片控件）- UICornerstone v1.1.0 用户手册</title>
+<title>4.1 Actor（图片控件）- UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/actor.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.1 Actor（图片控件）</h1>
 
 <p>Actor 是纯显示图片的控件（C ABI 中即 Image 控件）。它不参与事件命中与遮挡检测（<code>isContainsPoint</code> 恒为 false），常作为 Button 的四态外观、背景图或纯装饰。继承链：<code>Actor → Material → ControlImpl → Control</code>。</p>
+
+<figure>
+  <img src="../assets/controls/actor-overview.png" alt="Actor / Image 缩放模式" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>fit-center、stretch、center-crop 三种 scale-type。</figcaption>
+</figure>
 
 <h2>4.1.1 控件的创建</h2>
 

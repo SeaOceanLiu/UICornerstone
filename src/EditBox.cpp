@@ -60,7 +60,17 @@ void EditBox::create() {
     if (GET_CONTEXT == nullptr) return;  // 未挂入实例上下文：延迟创建（字体依赖 context）
 
     ControlImpl::create();
+    m_fontLoadPending = true;
+    m_fontRetryBlocked = false;
     loadFontInternal();
+    if (m_font) {
+        m_fontLoadPending = false;
+        m_fontRetryBlocked = false;
+    } else if (getTextRenderer() && getResourceProvider()) {
+        // provider 已就绪但加载失败：永久失败闸门，等待显式字体/尺寸变更再试
+        m_fontLoadPending = false;
+        m_fontRetryBlocked = true;
+    }
     updateTextOffset();
     // 激活文本输入：构造时可能无 context（未挂树）导致构造中的 startTextInput 未执行，
     // 挂树后 create() 由 setContext→recreate() 重跑，在此补齐
@@ -157,6 +167,29 @@ int EditBox::getCursorFromPosition(float x) {
     return bestOffset;
 }
 
+void EditBox::ensureTextOffset() {
+    // 字体延迟加载：只在显式变更置 pending；provider 就绪后最多尝试一次，失败闸门阻止逐帧重试。
+    if (!m_font && m_fontLoadPending && !m_fontRetryBlocked &&
+        getTextRenderer() && getResourceProvider()) {
+        loadFontInternal();
+        if (m_font) {
+            m_fontLoadPending = false;
+            m_fontRetryBlocked = false;
+        } else {
+            m_fontLoadPending = false;
+            m_fontRetryBlocked = true;
+            fprintf(stderr, "EditBox: font load failed; retry blocked until font/size change\n");
+        }
+    }
+    SRect dr = getContentDrawRect();
+    float fh = (getTextRenderer() && getFont())
+        ? (float)getTextRenderer()->getFontHeight(getFont())
+        : m_fontSize * getScaleYY();
+    if (fh != m_offsetFontHeight || dr.width != m_offsetDrawWidth ||
+        dr.height != m_offsetDrawHeight || getFont() != m_offsetFont)
+        updateTextOffset();
+}
+
 float EditBox::getCursorX(int cursorPos) {
     std::string displayText = getDisplayText();
     std::string prefix = getUtf8Substr(displayText, 0, cursorPos);
@@ -165,12 +198,17 @@ float EditBox::getCursorX(int cursorPos) {
 
 void EditBox::updateTextOffset() {
     SRect rect = getRect();
-    SRect drawRect = getDrawRect();
+    SRect drawRect = getContentDrawRect();
     float scaleX = getScaleXX();
     float scaleY = getScaleYY();
     float fontHeight = (getTextRenderer() && getFont())
         ? (float)getTextRenderer()->getFontHeight(getFont()) : m_fontSize * scaleY;
     m_textOffsetY = (drawRect.height - fontHeight) / 2.0f;
+    // 垂直签名先写入，避免后续横向 early-return 导致签名不更新
+    m_offsetFontHeight = fontHeight;
+    m_offsetDrawWidth = drawRect.width;
+    m_offsetDrawHeight = drawRect.height;
+    m_offsetFont = getFont();
 
     float textWidth = getTextWidth(getDisplayText());
     float visibleWidth = drawRect.width - (m_margin.left + m_margin.right) * scaleX;
@@ -258,8 +296,9 @@ void EditBox::draw(void) {
     if (!m_visible) return;
 
     ControlImpl::beforeDraw();
+    ensureTextOffset();
 
-    SRect drawRect = getDrawRect();
+    SRect drawRect = getContentDrawRect();
     float fontHeight = (getTextRenderer() && getFont())
         ? (float)getTextRenderer()->getFontHeight(getFont()) : m_fontSize * getScaleYY();
 
@@ -547,8 +586,11 @@ void EditBox::refreshScaleWith(float parentXX, float parentYY){
     float oldScaleY = getScaleYY();
     ControlImpl::refreshScaleWith(parentXX, parentYY);
     if (oldScaleX != getScaleXX() || oldScaleY != getScaleYY()) {
+        m_fontLoadPending = true;
+        m_fontRetryBlocked = false;
         if (m_visible) {
             loadFontInternal();
+            if (m_font) m_fontLoadPending = false;
             updateTextOffset();
         } else {
             m_fontScaleDirty = true;
@@ -580,6 +622,7 @@ std::string EditBox::getText() const {
 
 void EditBox::setPlaceholder(const std::string& placeholder) {
     m_placeholderText = placeholder;
+    updateTextOffset();
 }
 
 std::string EditBox::getPlaceholder() const {
@@ -652,14 +695,22 @@ void EditBox::paste() {
 }
 
 void EditBox::setFont(FontName fontName) {
+    if (fontName == m_fontName && (m_font || !m_isCreated)) return;
     m_fontName = fontName;
+    m_fontLoadPending = true;
+    m_fontRetryBlocked = false;
     loadFontInternal();
+    if (m_font) m_fontLoadPending = false;
     updateTextOffset();
 }
 
 void EditBox::setFontSize(int size) {
+    if (size == m_fontSize && (m_font || !m_isCreated)) return;
     m_fontSize = size;
+    m_fontLoadPending = true;
+    m_fontRetryBlocked = false;
     loadFontInternal();
+    if (m_font) m_fontLoadPending = false;
     updateTextOffset();
 }
 
@@ -709,6 +760,11 @@ void EditBox::onFocusLost() {
 
 void EditBox::setMargin(const Margin& margin) {
     m_margin = margin;
+    updateTextOffset();
+}
+
+void EditBox::setContentPadding(Margin padding) {
+    ControlImpl::setContentPadding(padding);
     updateTextOffset();
 }
 

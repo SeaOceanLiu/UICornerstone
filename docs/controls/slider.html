@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.20 Slider - UICornerstone v1.1.0 用户手册</title>
+<title>4.20 Slider - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/slider.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>Slider 是拖拽取值控件：水平 / 垂直方向、反向模式、步长吸附（松手 Snap-on-Release）、刻度标记、可选数值标签（内部 Label，支持自定义格式）。继承链：<code>Slider → ControlImpl → Control</code>。</p>
 
 <div class="note">缩放联动：刻度字体随复合缩放系数懒加载重建（字体数据复用，无重复 IO）；数值标签为内部 Label 随树自动重建。详见 <a href="../advanced/canvas-scale.html">5.6.6</a>。</div>
+
+<figure>
+  <img src="../assets/controls/slider-overview.png" alt="Slider 数值与轨道样式" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>两个不同 value，并对比自定义轨道/滑块颜色与数值标签。</figcaption>
+</figure>
 
 <h2>4.20.1 控件的创建</h2>
 

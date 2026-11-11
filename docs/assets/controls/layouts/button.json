@@ -1,0 +1,290 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.3 Button",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Normal/hover/pressed/disabled and content-padding comparison",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "b0",
+          "rect": {
+            "x": 40,
+            "y": 95,
+            "w": 140,
+            "h": 24
+          },
+          "caption": "normal",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "b1",
+          "rect": {
+            "x": 208,
+            "y": 95,
+            "w": 140,
+            "h": 24
+          },
+          "caption": ":hover",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "b2",
+          "rect": {
+            "x": 376,
+            "y": 95,
+            "w": 140,
+            "h": 24
+          },
+          "caption": ":pressed",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "b3",
+          "rect": {
+            "x": 544,
+            "y": 95,
+            "w": 140,
+            "h": 24
+          },
+          "caption": ":disabled",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "bn",
+          "rect": {
+            "x": 40,
+            "y": 130,
+            "w": 140,
+            "h": 44
+          },
+          "caption": "Primary",
+          "font-size": 15,
+          "colors": {
+            "background": {
+              "normal": "#2D7FF9",
+              "hover": "#4A90D9",
+              "pressed": "#1F6FE0",
+              "disabled": "#334155"
+            },
+            "text": {
+              "normal": "#FFFFFF",
+              "disabled": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "bh",
+          "rect": {
+            "x": 208,
+            "y": 130,
+            "w": 140,
+            "h": 44
+          },
+          "caption": "Primary",
+          "font-size": 15,
+          "colors": {
+            "background": {
+              "normal": "#2D7FF9",
+              "hover": "#4A90D9",
+              "pressed": "#1F6FE0",
+              "disabled": "#334155"
+            },
+            "text": {
+              "normal": "#FFFFFF",
+              "disabled": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "bp",
+          "rect": {
+            "x": 376,
+            "y": 130,
+            "w": 140,
+            "h": 44
+          },
+          "caption": "Primary",
+          "font-size": 15,
+          "colors": {
+            "background": {
+              "normal": "#2D7FF9",
+              "hover": "#4A90D9",
+              "pressed": "#1F6FE0",
+              "disabled": "#334155"
+            },
+            "text": {
+              "normal": "#FFFFFF",
+              "disabled": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "bd",
+          "rect": {
+            "x": 544,
+            "y": 130,
+            "w": 140,
+            "h": 44
+          },
+          "caption": "Primary",
+          "font-size": 15,
+          "colors": {
+            "background": {
+              "normal": "#2D7FF9",
+              "hover": "#4A90D9",
+              "pressed": "#1F6FE0",
+              "disabled": "#334155"
+            },
+            "text": {
+              "normal": "#FFFFFF",
+              "disabled": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "b4",
+          "rect": {
+            "x": 40,
+            "y": 215,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "content-padding: \"6 24\"  /  radius: 9",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "button",
+          "id": "wide",
+          "rect": {
+            "x": 40,
+            "y": 245,
+            "w": 280,
+            "h": 44
+          },
+          "caption": "Wide content padding",
+          "font-size": 15,
+          "content-padding": "6 24",
+          "corner-radius": 9,
+          "colors": {
+            "background": {
+              "normal": "#2D7FF9",
+              "hover": "#4A90D9",
+              "pressed": "#1F6FE0",
+              "disabled": "#334155"
+            },
+            "text": {
+              "normal": "#FFFFFF",
+              "disabled": "#94A3B8"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "_states": [
+    {
+      "id": "bh",
+      "state": "hover"
+    },
+    {
+      "id": "bp",
+      "state": "pressed"
+    },
+    {
+      "id": "bd",
+      "state": "disabled"
+    }
+  ]
+}

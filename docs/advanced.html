@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>5 进阶主题 - UICornerstone v1.1.0 用户手册</title>
+<title>5 进阶主题 - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="css/style.css">
 <script id="nav-data" src="assets/nav.js" data-prefix="" data-current="advanced.html"></script>
 </head>
@@ -15,7 +15,7 @@
 
 <h1>5 进阶主题</h1>
 
-<p>本章深入引擎的九个高级方向，每节都附可直接运行的完整样例。按需直达：</p>
+<p>本章深入引擎的十个高级方向，每节都附可直接运行的完整样例。按需直达：</p>
 
 <div class="card-grid">
   <div class="card">
@@ -47,11 +47,19 @@
     <p>控件级通用拖拽：draggable / droppable / reorderable 注册，语义化载荷与落点（tree 节点 / list 行 / tab 页自动填充），drag-start / drag-over / drop / drag-end 事件与默认视觉，tree / list / tab 内置换序，以及 OS 文件拖入（SetDropFileCallback）。</p>
   </div>
   <div class="card">
-    <h3><a href="backends.html">5.8 使用其它后端（SFML / raylib）</a></h3>
+    <h3><a href="theme.html">5.8 主题样式（CSS-like Theme）</a></h3>
+    <p>CSS-like 样式表、变量/变体/classes、响应式 media/containerQueries、content-padding、状态选择器，以及旧 fonts/colors 主题的兼容与运行时 API。</p>
+  </div>
+  <div class="card">
+    <h3><a href="advanced/components.html">5.9 组件系统（Components）</a></h3>
+    <p>components 模板、props/默认值、占位符类型化、实例 id 前缀、_comp_ 事件映射、嵌套/循环检测、诊断与实例化限制。</p>
+  </div>
+  <div class="card">
+    <h3><a href="backends.html">5.10 使用其它后端（SFML / raylib）</a></h3>
     <p>同一份业务代码切换 SFML / raylib 后端：编译期与运行时选择、后端能力位与条件化渲染、后端差异配置键（vsync / swap-ratio 等）与已知差异对照。</p>
   </div>
   <div class="card">
-    <h3><a href="integration.html">5.9 嵌入到你的逻辑回路中</a></h3>
+    <h3><a href="integration.html">5.11 嵌入到你的逻辑回路中</a></h3>
     <p>把引擎接进宿主主循环：Embedded / AppCallbacks / 事件泵手工驱动 / 显式 LoadLibrary 四种集成模式、与自有对象模型对接、多实例调度与自动退出参数。</p>
   </div>
 </div>

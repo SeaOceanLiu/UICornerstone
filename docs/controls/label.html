@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.11 Label - UICornerstone v1.1.0 用户手册</title>
+<title>4.11 Label - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/label.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>Label 是文本显示控件：支持单行 / 多行（\n）、9 种对齐、阴影、自动扩展、行高与行距调节，可设为可点击（clickable）。继承链：<code>Label → ControlImpl → Control</code>。</p>
 
 <div class="note">缩放联动：置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时，字号随复合缩放系数重建（显示字号 = 设定字号 × 复合系数）；不可见时延后重建，变为可见的当帧自动补重建。</div>
+
+<figure>
+  <img src="../assets/controls/label-overview.png" alt="Label 默认外观与字体属性对比" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>默认 16px 文本；修改后为 28px、琥珀色并带文字阴影。</figcaption>
+</figure>
 
 <h2>4.11.1 控件的创建</h2>
 

@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.6 ComboBox - UICornerstone v1.1.0 用户手册</title>
+<title>4.6 ComboBox - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/combobox.html"></script>
 </head>
@@ -19,6 +19,11 @@
 <p class="note">P0-85：只读模式对文本输入的拦截**仅在本控件聚焦时生效**（防只读显示文本被写）；未聚焦时放行事件链——同容器内其它聚焦输入框（如属性面板 EditBox）不受影响。</p>
 
 <div class="note">缩放联动：主框文本与下拉列表项共用同一字体（继承 EditBox），置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时字号随复合缩放系数重建。</div>
+
+<figure>
+  <img src="../assets/controls/combobox-overview.png" alt="ComboBox 未选择、已选择与可编辑" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>placeholder、selected-index 和 editable 三种状态。</figcaption>
+</figure>
 
 <h2>4.6.1 控件的创建</h2>
 

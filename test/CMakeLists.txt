@@ -106,6 +106,13 @@ set(UI_TEST_EXECUTABLES
     test_cr_cells
     test_cr_ui
     test_cr_cellcontrol
+    test_cr_theme
+    test_editbox_offset
+    test_cr_splitter_cursor
+    test_cr_menu_item_events
+    test_cr_statusbar_runtime
+    test_cr_contextmenu_dispatch
+    test_window_visibility
     test_slider
     test_shape
     test_listview
@@ -563,5 +570,4 @@ if(UICORNERSTONE_BUILD_DLL)
         add_fromsource_target(test_gaps_cabi test_gaps_cabi.cpp)
     endif()
 endif()
-
 

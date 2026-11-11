@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
+<link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5.9 组件系统（Components） - UICornerstone v1.2.0 用户手册</title>
+<link rel="stylesheet" href="../css/style.css">
+<script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="advanced/components.html"></script>
+</head>
+<body>
+<div id="sidebar"></div>
+<div id="content">
+
+<h1>5.9 组件系统（Components）</h1>
+
+<p><strong>组件</strong>是声明式布局层的可复用模板：在 <code>components</code> 中定义一次控件树，在 <code>layouts</code>/<code>controls</code> 中用自定义 <code>type</code> 实例化。组件不是运行期控件类型，而是在 <code>LoadLayout</code> 解析阶段展开为普通控件树；展开结果与手写布局使用同一套控件、属性、事件与布局引擎。</p>
+
+<p>组件适合：重复的表单项、工具栏、卡片、带固定结构的业务小组件。若需要运行期动态增删/替换实例，仍以普通控件树和 C ABI/Binding 操作为主。</p>
+<figure>
+  <img src="../assets/components-overview.png" alt="同一个 SearchBar 和 StatCard 组件模板通过不同 props 实例化成两组搜索框和三张指标卡" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>同一份 <code>SearchBar</code> 模板实例化两次（不同 placeholder/按钮文案/accent），同一份 <code>StatCard</code> 模板实例化三次（不同 title/value/note）；无需复制控件树。</figcaption>
+</figure>
+
+
+<h2>5.9.1 定义一个组件</h2>
+
+<pre><code>{
+  "components": {
+    "SearchBar": {
+      "props": {
+        "placeholder": { "type": "string", "default": "Search..." },
+        "buttonText":  { "type": "string", "default": "Go" }
+      },
+      "template": {
+        "type": "panel",
+        "layout": { "type": "h-flow", "gap": 4 },
+        "children": [
+          { "type": "edit-box", "id": "search",
+            "rect": { "x": 0, "y": 0, "w": 220, "h": 30 },
+            "placeholder": "{{placeholder}}" },
+          { "type": "button", "id": "go",
+            "rect": { "x": 0, "y": 0, "w": 64, "h": 30 },
+            "caption": "{{buttonText}}",
+            "events": { "onClick": "_comp_onSearch" } }
+        ]
+      }
+    }
+  }
+}</code></pre>
+
+<ul>
+<li><code>props</code> 可选；每个字段必须有 <code>type</code>，只支持 <code>string</code> / <code>number</code> / <code>bool</code>；<code>default</code> 可选。</li>
+<li><code>template</code> 必填且必须是对象，内容为普通控件 JSON（可以是容器、控件树、布局、事件、样式等）。</li>
+<li>组件名不能与内置控件类型同名（如 <code>button</code>/<code>panel</code>），否则会被内置类型优先解析。</li>
+<li>模板可以引用另一个组件名；解析器会检测循环引用并诊断。</li>
+</ul>
+
+<h2>5.9.2 实例化</h2>
+
+<pre><code>{
+  "layouts": [
+    {
+      "type": "SearchBar",
+      "id": "topSearch",
+      "placeholder": "输入关键词",
+      "buttonText": "搜索",
+      "rect": { "x": 20, "y": 20, "w": 300, "h": 40 }
+    }
+  ]
+}</code></pre>
+
+<ul>
+<li>实例的 <code>type</code> 写组件名；组件名之外的字段作为 <code>props</code> 值传入模板。</li>
+<li><code>id</code> / <code>rect</code> 在模板展开后注入：实例根控件使用实例自己的 id/rect。</li>
+<li><code>enable</code> / <code>visible</code> 可覆盖实例根控件的对应标准属性。</li>
+<li>实例的 <code>events</code> 只用于组件模板内 <code>_comp_</code> 事件的映射，不会作为模板普通事件展开；具体绑定写在模板中的控件条目上。</li>
+</ul>
+
+<h2>5.9.3 占位符规则</h2>
+
+<p>模板字符串中的 <code>{{name}}</code> 在实例化时替换：</p>
+
+<ul>
+<li>取实例同名字段；没有则用 <code>props.name.default</code>；两者都没有时保留字面占位符并输出诊断。</li>
+<li><strong>整串单占位</strong>（trim 后恰为 <code>{{name}}</code>）保留值类型：number/bool/string 直接替换，适合数字尺寸、布尔开关等。</li>
+<li>字符串中嵌入占位符时按字符串拼接；number 用数值文本、bool 为 <code>true</code>/<code>false</code>。</li>
+<li>替换只扫描一遍，替换结果不会再次展开（避免递归/注入）；占位符名称两端空白会被 trim。</li>
+</ul>
+
+<pre><code>{
+  "type": "MyCard",
+  "gap": 8,
+  "title": "Settings",
+  "showHeader": true,
+  "rect": { "x": 0, "y": 0, "w": 320, "h": 200 }
+}</code></pre>
+
+<h2>5.9.4 实例 id 与 FindControl</h2>
+
+<p>模板内的控件 id 会自动加实例前缀 <code>&lt;instanceId&gt;__</code>，避免多次实例化冲突：</p>
+
+<pre><code>template id:  search
+instance id:  topSearch
+result id:    topSearch__search</code></pre>
+
+<ul>
+<li>实例根控件保留实例 id（例如 <code>topSearch</code>），模板根 id 不叠加前缀。</li>
+<li>未提供实例 id 时使用组件名前缀（<code>_comp_&lt;ComponentName&gt;</code>）。</li>
+<li>展开后可用 <code>FindControl("topSearch")</code> 取实例根；内部子控件按 <code>topSearch__search</code> 查找。</li>
+<li>实例内部 id 必须在同一实例内唯一；跨实例会因前缀自然隔离。</li>
+</ul>
+
+<h2>5.9.5 模板事件与实例映射</h2>
+
+<p>组件模板中的 handler 以 <code>_comp_</code> 开头时，会在实例化时映射为实例 <code>events</code> 中的同名键（去掉前缀）：</p>
+
+<pre><code>"template": {
+  "type": "button",
+  "caption": "Search",
+  "events": { "onClick": "_comp_onSearch" }
+}</code></pre>
+
+<pre><code>{
+  "type": "SearchBar",
+  "id": "topSearch",
+  "events": { "onSearch": "onTopSearch" }
+}</code></pre>
+
+<p>展开后按钮事件为 <code>onTopSearch</code>。实例未提供对应事件时，模板事件保持未映射并输出诊断；实例 <code>events</code> 中的键名不需要带 <code>_comp_</code>。</p>
+
+<h2>5.9.6 嵌套、顺序与限制</h2>
+
+<ul>
+<li>组件模板可以包含其他组件类型；所有组件定义先于布局解析注册，因此定义顺序不要求先声明后被引用。</li>
+<li>递归引用（A→B→A）会被检测并拒绝，避免无限展开。</li>
+<li>实例只注入 <code>id</code>/<code>rect</code>/<code>enable</code>/<code>visible</code> 和模板 props；不能在实例上直接覆盖模板内部任意控件的属性。需要可变属性时，把它显式做成 <code>props</code> 并写入模板。</li>
+<li>模板 id 总是加实例前缀；不要依赖“裸模板 id”在实例化后仍然不变。</li>
+<li>组件实例本身没有独立运行期对象/API；它展开为普通控件树。需要运行期替换结构时，重新 <code>LoadLayout</code> 或直接操作展开后的控件。</li>
+<li>组件定义当前属于布局 JSON；不改变事件注册顺序：宿主的 action 仍应在 <code>LoadLayout</code> 前注册。</li>
+</ul>
+
+<h2>5.9.7 诊断</h2>
+
+<ul>
+<li>组件名与内置控件类型冲突、缺少 <code>template</code>、<code>props</code> 非对象、prop 缺少/非法 <code>type</code>：加载时警告并跳过该定义。</li>
+<li>循环引用：警告并拒绝该次实例化。</li>
+<li>未提供且没有 default 的占位符：警告并保留 <code>{{name}}</code> 字面量。</li>
+<li>实例 <code>_comp_</code> 事件没有对应实例事件：警告，事件不映射。</li>
+<li>组件展开失败时按普通控件解析错误处理；布局整体加载结果以 <code>LoadLayout</code>/<code>LoadLayoutFromFile</code> 返回值为准。</li>
+</ul>
+
+<h2>5.9.8 与布局/主题/设计器的关系</h2>
+
+<ul>
+<li>组件展开后就是普通控件树，主题选择器（类型/class/id）、布局引擎、焦点、事件、缩放均按普通控件工作。</li>
+<li>主题可用实例 id 或展开后子控件 id 选择；跨实例复用样式时建议用 class，而不是裸模板 id。</li>
+<li>设计器的组件模板/事件绑定属于设计器项目模型；导出为布局时仍遵循本页的 JSON 展开与 <code>_comp_</code> 映射规则。</li>
+</ul>
+
+<p class="note">声明式语法速查中的组件小节也给出了最小示例，见 <a href="../appendix/declarative-syntax.html#components">6.9 组件与实例化</a>。</p>
+
+<div class="chapter-nav">
+  <a href="../theme.html">← 5.8 主题样式（CSS-like Theme）</a>
+  <a href="../backends.html">下一节：5.10 使用其它后端（SFML / raylib） →</a>
+</div>
+</div>
+</body>
+</html>

@@ -18,6 +18,10 @@
 namespace UIWindowFlags {
     constexpr uint32_t None       = UICORN_WINDOW_FLAG_NONE;
     constexpr uint32_t Fullscreen = UICORN_WINDOW_FLAG_FULLSCREEN; // SDL_WINDOW_FULLSCREEN
+    constexpr uint32_t Hidden     = UICORN_WINDOW_FLAG_HIDDEN;     // SDL_WINDOW_HIDDEN
+    constexpr uint32_t Borderless = UICORN_WINDOW_FLAG_BORDERLESS; // SDL_WINDOW_BORDERLESS
+    constexpr uint32_t NoShadow   = UICORN_WINDOW_FLAG_NO_SHADOW;  // 应用层位：创建期无系统阴影（SDL3 Windows）
+    constexpr uint32_t Utility    = UICORN_WINDOW_FLAG_UTILITY;    // SDL_WINDOW_UTILITY：创建期任务栏/窗口列表隐藏
     constexpr uint32_t Resizable  = UICORN_WINDOW_FLAG_RESIZABLE;  // SDL_WINDOW_RESIZABLE
     constexpr uint32_t Vsync      = UICORN_WINDOW_FLAG_VSYNC;      // 应用层保留位（raylib 创建期有效）
 }
@@ -93,6 +97,11 @@ public:
     bool SetWindowSize(float w, float h);
     // 原生窗口句柄（嵌入/hosted 场景）；无窗口返回 nullptr。
     void* GetNativeWindowHandle() const;
+    bool SetWindowVisible(bool visible);
+    bool IsWindowVisible() const;
+    bool SetWindowAlwaysOnTop(bool onTop);
+    bool IsWindowAlwaysOnTop() const;
+    bool SetWindowForeground();
     using WindowResizeCallback = std::function<void(int width, int height)>;
     // 窗口尺寸变化回调（ProcessEvents 处理 WindowResize 时分发，替代帧内轮询）。
     void SetWindowResizeCallback(WindowResizeCallback callback);
@@ -122,6 +131,13 @@ public:
     // ── 布局 ──
     bool LoadLayout(const std::string& jsonContent);
     bool LoadLayoutFromFile(const std::string& filePath);
+    // CR20261102001/003：CSS-like 主题 / 响应式
+    bool ApplyTheme(const std::string& themeJson);
+    bool SetThemeVariant(const std::string& name);
+    std::string GetThemeVariant() const;
+    bool ClearThemeOverrides(Control& ctl);
+    bool RefreshResponsiveTheme(float viewportWidth = 0.0f, float viewportHeight = 0.0f);
+    std::string GetActiveMedia() const;
     Control FindControl(const std::string& id);
     // 给编程式创建的控件设置 id（注册到实例 id 表，供 FindControl 查询）。
     // id 空串 → 移除该控件名下全部 id。返回 true 成功。
@@ -384,6 +400,8 @@ public:
     void PushTextInput(const std::string& text);
 
     // ── JSON 布局动作注册 ──
+    // 回调收到 invalid Control（Handle()==nullptr）表示 action 无控件 sender
+    // （StatusBar/ContextMenu item 等）；普通控件仍为有效 Control。
     using ActionCallback = std::function<void(Control)>;
     void RegisterAction(const std::string& name, ActionCallback callback);
 

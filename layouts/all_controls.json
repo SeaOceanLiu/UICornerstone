@@ -139,8 +139,7 @@
       },
       "step": 1,
       "show-value-label": true,
-      "tick": "#888888",
-      "interval": 10
+      "tick": { "interval": 10, "color": "#888888" }
     },
     {
       "type": "scroll-bar",

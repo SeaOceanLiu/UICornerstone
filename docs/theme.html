@@ -1,0 +1,306 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="assets/UICornerstone_Logo.svg">
+<link rel="icon" type="image/png" sizes="256x256" href="assets/UICornerstone_Logo_256.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5.8 主题样式（CSS-like Theme） - UICornerstone v1.2.0 用户手册</title>
+<link rel="stylesheet" href="css/style.css">
+<script id="nav-data" src="assets/nav.js" data-prefix="" data-current="theme.html"></script>
+</head>
+<body>
+<div id="sidebar"></div>
+<div id="content">
+
+<h1>5.8 主题样式（CSS-like Theme）</h1>
+
+<p>主题系统在保留旧 <code>theme.fonts</code> / <code>theme.colors</code> 的前提下，提供一组 CSS 风格的样式表能力：变量、选择器、状态、类、变体、媒体查询和容器查询。它适合统一一组控件的视觉，也适合做换肤、紧凑模式和设计器预览。</p>
+
+<img src="assets/theme-overview.png" alt="主题效果总览：深色卡片、主/次按钮、输入框与主题色板" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+<p class="note">上图由本页示例主题渲染：<code>variables</code> + <code>panel.card</code> + <code>button.primary</code> + <code>edit-box</code> + <code>content-padding</code>。</p>
+
+<h2>5.8.1 最小示例</h2>
+
+<pre><code>{
+  "theme": {
+    "variables": {
+      "--bg": "#10141C",
+      "--accent": "#2D7FF9",
+      "--text": "#F5F8FF"
+    },
+    "styles": [
+      { "selector": "panel.root",
+        "declarations": { "background": "var(--bg)" } },
+      { "selector": "label.title",
+        "declarations": { "text-color": "var(--text)", "font-size": 24 } },
+      { "selector": "button.primary",
+        "declarations": {
+          "background": "var(--accent)", "text-color": "#FFFFFF",
+          "border-radius": 8, "padding": "8 16"
+        } },
+      { "selector": "button.primary:hover",
+        "declarations": { "background": "#4A90D9" } }
+    ]
+  },
+  "controls": [
+    { "type": "panel", "id": "root", "classes": ["root"],
+      "rect": { "x": 0, "y": 0, "w": 640, "h": 360 },
+      "children": [
+        { "type": "label", "classes": ["title"],
+          "rect": { "x": 32, "y": 28, "w": 400, "h": 36 }, "caption": "Theme" },
+        { "type": "button", "classes": ["primary"],
+          "rect": { "x": 32, "y": 90, "w": 160, "h": 40 }, "caption": "Save" }
+      ] }
+  ]
+}</code></pre>
+
+<p>规则从上到下按选择器优先级与声明顺序层叠；控件的 JSON 显式属性优先于主题。</p>
+
+<h2>5.8.2 结构总览</h2>
+
+<table>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+<tr><td><code>variables</code></td><td>object</td><td>变量表；值通过 <code>var(--name)</code> 引用。支持多级引用，循环引用会停止解析。</td></tr>
+<tr><td><code>styles</code></td><td>array</td><td>基础规则：<code>[{selector, declarations}]</code>。</td></tr>
+<tr><td><code>variants</code></td><td>object</td><td>命名变体，例如 <code>dark</code>；结构与基础主题相同，可选 <code>styles</code>/<code>declarations</code>/<code>media</code>/<code>containerQueries</code>。</td></tr>
+<tr><td><code>media</code></td><td>array</td><td>视口媒体查询；每项含 <code>id</code>、<code>query</code>、<code>variables</code>、<code>styles</code>、<code>declarations</code>。</td></tr>
+<tr><td><code>containerQueries</code></td><td>array</td><td>祖先容器查询；每项含 <code>id</code>、<code>container</code>、<code>query</code>、<code>variables</code>、<code>styles</code>、<code>declarations</code>。</td></tr>
+<tr><td><code>fonts</code> / <code>colors</code></td><td>object</td><td>旧主题语法，继续兼容；新规则可与旧主题同时存在。</td></tr>
+</table>
+
+<h2>5.8.3 选择器</h2>
+
+<table>
+<tr><th>形式</th><th>示例</th><th>说明</th></tr>
+<tr><td>类型</td><td><code>button</code>、<code>label</code>、<code>panel</code></td><td>匹配控件的 <code>control-type</code>（kebab 小写）。</td></tr>
+<tr><td>类</td><td><code>.primary</code>、<code>button.primary</code></td><td>匹配 JSON <code>classes</code> 中的类名；<code>theme-role</code> 是兼容别名。</td></tr>
+<tr><td>ID</td><td><code>#saveBtn</code></td><td>匹配 JSON <code>id</code>。</td></tr>
+<tr><td>复合</td><td><code>button.primary#saveBtn</code></td><td>类型 + 类 + ID 同时满足。</td></tr>
+<tr><td>状态伪类</td><td><code>button.primary:hover</code></td><td>支持 <code>:hover</code> / <code>:pressed</code> / <code>:disabled</code> / <code>:selected</code>；当前引擎四态为 normal/hover/pressed/disabled，<code>:selected</code> 近似使用 pressed 通道。</td></tr>
+<tr><td>通配</td><td><code>*</code></td><td>匹配全部参与主题的控件。</td></tr>
+</table>
+
+<p>V1 <b>不支持</b>后代选择器、子选择器、属性选择器、逗号分组与 <code>!important</code>。复杂选择器请拆成多条规则。</p>
+
+<h3>优先级与层叠</h3>
+<ol>
+<li>显式值最高：JSON 显式属性与公开 C ABI/Binding <code>Set*</code>。</li>
+<li>规则权重：<code>#id</code> &gt; <code>.class</code> &gt; <code>类型</code>；同权重按声明顺序后者覆盖；状态规则优先于同选择器的无状态规则。</li>
+<li>层序：基础普通 → 基础媒体 → 基础容器 → 变体普通 → 变体媒体 → 变体容器。</li>
+</ol>
+
+<h2>5.8.4 声明属性逐个说明</h2>
+
+<p>声明值中的颜色支持 <code>#RRGGBB</code> / <code>#RRGGBBAA</code>、<code>rgb(r,g,b)</code>、<code>rgba(r,g,b,a)</code> 与常用颜色名；数值支持数字或数字字符串。</p>
+
+<h3>background（背景色）</h3>
+<p>设置背景常态色；与状态伪类组合时写入对应状态。背景色 alpha&gt;0 会自动取消内部透明绘制。</p>
+<pre><code>{ "selector": "button.primary",
+  "declarations": { "background": "#2D7FF9" } }
+{ "selector": "button.primary:hover",
+  "declarations": { "background": "#4A90D9" } }
+{ "selector": "button.primary:pressed",
+  "declarations": { "background": "#1F6FE0" } }
+{ "selector": "button.primary:disabled",
+  "declarations": { "background": "#334155", "text-color": "#94A3B8" } }</code></pre>
+
+<h3>text-color（文字色）</h3>
+<p>设置文字常态色；状态规则分别写入 hover/pressed/disabled。没有显式文字色的控件可以继承父链的“主题文字色”，但父控件 JSON 显式文字色不参与继承。</p>
+<pre><code>{ "selector": "label.title",
+  "declarations": { "text-color": "#F5F8FF", "font-size": 28 } }
+{ "selector": "label.muted",
+  "declarations": { "text-color": "#94A3B8", "font-size": 13 } }</code></pre>
+
+<h3>border-color（边框色）</h3>
+<p>设置边框颜色；控件需同时开启 <code>border-visible</code>（或由键自动开启）才可见。定位规则同文字色。</p>
+<pre><code>{ "selector": "panel.card",
+  "declarations": { "background": "#1A2130", "border-color": "#2B3648" } }</code></pre>
+
+<h3>text-shadow 与 shadow-offset-x / shadow-offset-y</h3>
+<p><code>text-shadow</code> 是文字阴影颜色（alpha&gt;0 即启用），<code>shadow-offset-x</code> / <code>shadow-offset-y</code> 控制偏移。主题规则通常只声明颜色，偏移继承控件原值。</p>
+<pre><code>{ "selector": "label.title",
+  "declarations": {
+    "text-shadow": "#00000080",
+    "shadow-offset-x": 2,
+    "shadow-offset-y": 2
+  } }</code></pre>
+
+<h3>font-family / font-size / font-style</h3>
+<p>字体名使用 <code>FontNameFromString</code> 接受的枚举名（见 C ABI <code>GetFontName</code>）。字号为整数 px；样式支持 <code>normal</code> / <code>bold</code> / <code>italic</code> / <code>underline</code> / <code>strikethrough</code>（当前 Label 文本路径最完整，按钮/编辑类支持字体名与字号）。</p>
+<pre><code>{ "selector": "label.title",
+  "declarations": {
+    "font-family": "harmonyos-sans-sc-regular",
+    "font-size": 28,
+    "font-style": "bold"
+  } }</code></pre>
+<p>没有显式字体的控件沿父链继承最近的主题字体；JSON 显式 <code>font</code>/<code>font-size</code> 逐通道覆盖主题与继承。</p>
+
+<h3>border-radius（通用圆角）</h3>
+<p>设置背景与边框的圆角半径（px）。基础控件统一支持；嵌套控件各自生效。</p>
+<pre><code>{ "selector": "panel.card",
+  "declarations": { "border-radius": 14 } }
+{ "selector": "edit-box",
+  "declarations": { "border-radius": 8 } }</code></pre>
+
+<h3>box-shadow（通用盒阴影）</h3>
+<p>对象形式：<code>{ "color", "offset-x", "offset-y", "blur", "spread" }</code>。当前实现为无高斯模糊的扩展近似：按偏移/扩散绘制一层半透明圆角矩形；<code>blur</code> 作为圆角扩展量参与近似。</p>
+<pre><code>{ "selector": "panel.card",
+  "declarations": {
+    "box-shadow": {
+      "color": "#00000066", "offset-x": 0, "offset-y": 10,
+      "blur": 24, "spread": 0
+    }
+  } }</code></pre>
+
+<h3>padding → content-padding（通用内容内边距）</h3>
+<p>CSS 声明名保持 <code>padding</code>，内部映射到通用属性 <code>content-padding</code>；写法：数字（四边）、<code>"v h"</code>、<code>"t r b l"</code>。控件内容（文本、输入区、容器子控件、Tab 页内容）在 contentRect 内排布；外框、状态命中范围保持不变。</p>
+<pre><code>{ "selector": "button.primary",
+  "declarations": { "padding": "8 16" } }
+{ "selector": "edit-box",
+  "declarations": { "content-padding": "10 12" } }
+{ "selector": "panel.card",
+  "declarations": { "content-padding": { "left": 16, "top": 16, "right": 16, "bottom": 16 } } }</code></pre>
+<img src="assets/theme-padding.png" alt="content-padding 0 与 24 的输入框对比" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+<div class="note">Dialog 的旧 <code>padding</code>（Float）保持原语义；通用键是 <code>content-padding</code>。控件 <code>content-padding</code> 是外层，<code>layout.padding</code> 是布局引擎内层，两者可叠加。</div>
+
+<h3>控件专有键</h3>
+<p>除通用键外，规则可直接写控件属性键，例如 <code>header-background</code>、<code>progress-color</code>、<code>closed-text-color</code>。值按形态尝试颜色、数值、字符串，最终落到控件的 <code>Set*</code> 属性通道。</p>
+<pre><code>{ "selector": "list-view",
+  "declarations": { "header-background": "#202838", "font-size": 14 } }
+{ "selector": "progress-bar",
+  "declarations": { "progress-color": "#22C55E" } }</code></pre>
+
+<h3>opacity（本批不支持）</h3>
+<p><code>opacity</code> 需要离屏合成，当前版本不实现；出现时诊断并忽略，不影响同规则内其它声明。</p>
+
+<h2>5.8.5 状态效果</h2>
+<img src="assets/theme-states.png" alt="主题状态：normal / hover / pressed / disabled" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+<pre><code>{ "selector": "button.primary",
+  "declarations": { "background": "#2D7FF9", "text-color": "#FFFFFF" } }
+{ "selector": "button.primary:hover",
+  "declarations": { "background": "#4A90D9" } }
+{ "selector": "button.primary:pressed",
+  "declarations": { "background": "#1F6FE0" } }
+{ "selector": "button.primary:disabled",
+  "declarations": { "background": "#334155", "text-color": "#94A3B8" } }</code></pre>
+
+<h2>5.8.6 类、theme-role 与 theme-eligible</h2>
+<pre><code>{ "type": "button", "id": "saveBtn", "classes": ["primary", "toolbar"],
+  "rect": { "x": 20, "y": 20, "w": 140, "h": 40 }, "caption": "Save" }</code></pre>
+<p><code>classes</code> 也可写成字符串：<code>"classes": "primary toolbar"</code>。旧字段 <code>theme-role</code> 作为同一个字段的兼容别名。运行时可用 <code>SetString("classes", "primary")</code> 更新并立即重算。</p>
+<p><code>theme-eligible:false</code> 让控件及其整棵子树跳过主题匹配与继承；引擎内部辅助控件（按钮标题、进度条文字、滑块值标签等）默认不参与。宿主提供的 ListView cell/leading control 默认仍可匹配。</p>
+
+<h2>5.8.7 变体</h2>
+<pre><code>"variants": {
+  "dark": {
+    "styles": [
+      { "selector": "panel.root", "declarations": { "background": "#0B0F16" } },
+      { "selector": "button.primary", "declarations": { "background": "#3B82F6" } }
+    ]
+  }
+}
+// C ABI
+UICornerstone_SetThemeVariant(instance, "dark");
+UICornerstone_SetThemeVariant(instance, "default");  // 清空变体</code></pre>
+<p>变体规则叠加在基础主题之后、显式覆盖之前；未命中的属性沿用基础主题。</p>
+
+<h2>5.8.8 媒体查询</h2>
+<pre><code>"media": [
+  {
+    "id": "compact",
+    "query": { "max-width": 600, "orientation": "portrait" },
+    "variables": { "--gap": 8 },
+    "styles": [
+      { "selector": "label.title", "declarations": { "font-size": 20 } },
+      { "selector": "button.primary", "declarations": { "padding": "6 10" } }
+    ]
+  }
+]</code></pre>
+<p><code>query</code> 也可写成字符串：<code>"(max-width: 600px)"</code>。支持 <code>min-width</code>/<code>max-width</code>/<code>min-height</code>/<code>max-height</code>/<code>orientation</code>/<code>min-scale</code>/<code>max-scale</code>；媒体声明中的变量只在该媒体命中时覆盖。</p>
+<p>视口尺寸变化、窗口 resize、<code>SetViewport</code> 会标记 dirty，并在帧内合并重算；也可调用 <code>UICornerstone_RefreshResponsiveTheme(instance, w, h)</code> 强制刷新。</p>
+
+<h2>5.8.9 容器查询</h2>
+<pre><code>"containerQueries": [
+  {
+    "id": "narrow",
+    "container": "panel.sidebar",
+    "query": { "max-width": 280 },
+    "styles": [
+      { "selector": "button", "declarations": { "font-size": 12, "padding": "4 8" } }
+    ]
+  }
+]</code></pre>
+<p><code>container</code> 是祖先选择器（类型 / 类 / ID 的简单形式）；匹配最近祖先的 <code>contentRect</code>。容器尺寸变化同样进入 dirty 合并；容器查询的层序在媒体查询之后、变体之前（变体最后）。</p>
+
+<h2>5.8.10 完整可运行示例</h2>
+<p>下面是一个可直接放入布局文件的主题片段（结构对应本页第一张效果图）：</p>
+<pre><code>{
+  "theme": {
+    "variables": {
+      "--bg": "#10141C", "--card": "#1A2130", "--line": "#2B3648",
+      "--text": "#F5F8FF", "--muted": "#94A3B8", "--accent": "#2D7FF9"
+    },
+    "styles": [
+      { "selector": "panel.root", "declarations": { "background": "var(--bg)" } },
+      { "selector": "panel.card", "declarations": {
+          "background": "var(--card)", "border-color": "var(--line)",
+          "border-radius": 14,
+          "box-shadow": { "color": "#00000066", "offset-x": 0, "offset-y": 10, "blur": 24 } } },
+      { "selector": "label.title", "declarations": { "text-color": "var(--text)", "font-size": 28 } },
+      { "selector": "label.muted", "declarations": { "text-color": "var(--muted)", "font-size": 13 } },
+      { "selector": "button.primary", "declarations": {
+          "background": "var(--accent)", "text-color": "#FFFFFF",
+          "border-radius": 9, "padding": "8 16", "font-size": 15 } },
+      { "selector": "button.primary:hover", "declarations": { "background": "#4A90D9" } },
+      { "selector": "edit-box", "declarations": {
+          "background": "#111826", "border-color": "#334155", "text-color": "#E2E8F0",
+          "border-radius": 8, "content-padding": "10 12", "font-size": 14 } }
+    ]
+  },
+  "controls": [
+    { "type": "panel", "id": "root", "classes": ["root"],
+      "rect": { "x": 0, "y": 0, "w": 900, "h": 560 }, "children": [
+        { "type": "label", "classes": ["title"],
+          "rect": { "x": 40, "y": 28, "w": 620, "h": 40 }, "caption": "Theme playground" },
+        { "type": "panel", "id": "card", "classes": ["card"],
+          "rect": { "x": 40, "y": 120, "w": 390, "h": 260 }, "children": [
+            { "type": "button", "classes": ["primary"],
+              "rect": { "x": 20, "y": 56, "w": 160, "h": 40 }, "caption": "Save changes" },
+            { "type": "edit-box", "rect": { "x": 20, "y": 118, "w": 335, "h": 42 },
+              "text": "name@example.com" }
+          ] }
+      ] }
+  ]
+}</code></pre>
+
+<h2>5.8.11 运行时 API</h2>
+<table>
+<tr><th>C ABI</th><th>Binding</th><th>说明</th></tr>
+<tr><td><code>UICornerstone_ApplyTheme(inst, json)</code></td><td><code>ui.ApplyTheme(json)</code></td><td>解析并应用主题；保留显式覆盖。</td></tr>
+<tr><td><code>UICornerstone_SetThemeVariant(inst, name)</code></td><td><code>ui.SetThemeVariant(name)</code></td><td>切换变体；<code>"default"</code>/NULL 清空。</td></tr>
+<tr><td><code>UICornerstone_GetThemeVariant(inst, buf, cap, &amp;len)</code></td><td><code>ui.GetThemeVariant()</code></td><td>读当前变体。</td></tr>
+<tr><td><code>UICornerstone_ClearThemeOverrides(inst, ctl)</code></td><td><code>ui.ClearThemeOverrides(ctl)</code></td><td>清除该控件显式覆盖并重算；传 NULL 重算整树。</td></tr>
+<tr><td><code>UICornerstone_RefreshResponsiveTheme(inst, w, h)</code></td><td><code>ui.RefreshResponsiveTheme(w, h)</code></td><td>重新评估媒体/容器查询；w/h=0 用视口。</td></tr>
+<tr><td><code>UICornerstone_GetActiveMedia(inst, buf, cap, &amp;len)</code></td><td><code>ui.GetActiveMedia()</code></td><td>返回当前命中的媒体/容器 id（逗号分隔）。</td></tr>
+<tr><td><code>UICornerstone_SetContentPadding(inst, ctl, l, t, r, b)</code></td><td><code>ctl.SetContentPadding(l,t,r,b)</code></td><td>设置通用内容内边距。</td></tr>
+<tr><td><code>UICornerstone_GetContentPadding(inst, ctl, &amp;l, &amp;t, &amp;r, &amp;b)</code></td><td><code>ctl.GetContentPadding(...)</code></td><td>读取内容内边距。</td></tr>
+</table>
+
+<h2>5.8.12 兼容、诊断与限制</h2>
+<ul>
+<li>旧 <code>fonts/colors</code> 主题无需修改即可继续使用；新字段为增量能力。</li>
+<li>显式 JSON/公开 <code>Set*</code> 始终优先；内部状态同步不登记为显式覆盖；<code>ClearThemeOverrides</code> 恢复主题值。</li>
+<li>颜色规则只写状态通道；<code>:selected</code> 当前近似 pressed。</li>
+<li>不支持后代/属性选择器、<code>!important</code>、<code>opacity</code>；出现时会诊断并忽略，不崩溃、不影响同规则其它声明。</li>
+<li>主题变更不会重建控件树，不丢焦点/滚动位置；布局矩形变化仍需布局引擎或控件自身重排。</li>
+<li>DLL/Binding/宿主必须同批配套；旧引擎遇到新字段按版本不匹配处理。</li>
+</ul>
+
+<div class="chapter-nav">
+  <a href="advanced/drag-drop.html">← 5.7 拖拽框架（Drag &amp; Drop）</a>
+  <a href="advanced/components.html">下一节：5.9 组件系统（Components） →</a>
+</div>
+</div>
+</body>
+</html>

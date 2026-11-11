@@ -513,3 +513,17 @@
 
 - **getControlType**:已补 `control-type` 只读字符串属性(getter),与 `GetControlType` CABI 并存(映射表已标 ✅)。删除 CABI 会破坏现有 DLL 用户,建议保留。
 - **getId**:`UICornerstone_GetControlId` 是**实例级反查**(`instance->controlsById` 按对象找字符串 id),控件自身只有 `setId(int)`(整数序号,非 JSON id)。转属性需在控件上存字符串 id 并与 LayoutParser 的 JSON "id" 打通,改动大、易冲突。**建议保留 GetControlId CABI,**"补"列改为"暂不需要"。
+| CR20261102001 | CSS-like 主题 | `theme.styles/variables/variants/classes/theme-role` / `corner-radius` / `box-shadow` | `kClasses` 等 | `ApplyTheme/SetThemeVariant/GetThemeVariant/ClearThemeOverrides` | `ui->ApplyTheme/...` | ✅ |
+| CR20261102002 | 通用内容内边距 | `content-padding`（number/string/object；CSS `padding` 映射） | `kContentPadding` | `SetContentPadding/GetContentPadding` | `Control::SetContentPadding` | ✅（Dialog 旧 `padding` 独立） |
+| CR20261102003 | 响应式主题 | `theme.media/containerQueries` | `kJsonMedia/kJsonContainerQueries` | `RefreshResponsiveTheme/GetActiveMedia` | `ui->RefreshResponsiveTheme/GetActiveMedia` | ✅ |
+| CR20261105003 | 窗口可见性 | — | — | `UIWindowFlags::Hidden` / `SetWindowVisible` / `GetWindowVisible` | `SetWindowVisible` / `IsWindowVisible` / `UIWindowFlags::Hidden` | ✅ |
+| CR20261105004 | 窗口外观 | — | — | `UIWindowFlags::Borderless` / `SetWindowAlwaysOnTop` / `GetWindowAlwaysOnTop` / `SetWindowForeground` | `UIWindowFlags::Borderless` / `SetWindowAlwaysOnTop` / `IsWindowAlwaysOnTop` / `SetWindowForeground` | ✅（SFML 置顶不支持） |
+| CR20261108001 | 窗口无阴影（创建期） | — | — | `UIWindowFlags::NoShadow`（应用层位） | `UIWindowFlags::NoShadow` | ✅（仅 SDL3 Windows best-effort） |
+| CR20261109001 | 窗口 Utility（创建期） | — | — | `UIWindowFlags::Utility` / `UICORN_WINDOW_FLAG_UTILITY` | `UIWindowFlags::Utility` | ✅（SDL3；SFML/raylib 忽略） |
+| CR20261109002 | StatusBar item 点击 action | `items[].events.onClick` / `items[].onClick` | — | — | — | ✅（无新增 API） |
+| CR20261109003 | ContextMenu 声明式 items | `items[]` / `items[].events.onClick` | — | — | — | ✅（独立 context-menu；V1 不支持嵌套） |
+| CR20261110001 | EditBox offset 刷新 | — | — | — | — | ✅（内部修复） |
+| CR20261110002 | 无控件 sender 的 action | — | — | — | — | ✅（Binding 允许 invalid Control） |
+| CR20261110003 | 全控件右键 context-menu | `context-menu` / `SetPtr("context-menu")` | — | — | — | ✅（派发层统一；子先父兜底） |
+| CR20261110004 | 纯显示控件右键菜单 | `context-menu` / `SetPtr("context-menu")` | — | — | — | ✅（LuotiAni/Actor；HandleControl 不支持） |
+| CR20261111001 | Splitter 光标 owner | — | — | — | — | ✅（内部修复） |

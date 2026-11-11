@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7 属性速查表 - UICornerstone v1.1.0 用户手册</title>
+<title>7 属性速查表 - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="appendix/properties.html"></script>
 </head>
@@ -45,6 +45,12 @@
 <tr><td><code>margin-left</code></td><td><code>kMarginLeft</code></td><td>Float</td><td>外边距分量</td></tr>
 <tr><td><code>margin-top</code></td><td><code>kMarginTop</code></td><td>Float</td><td>外边距分量</td></tr>
 <tr><td><code>margin-right</code></td><td><code>kMarginRight</code></td><td>Float</td><td>外边距分量</td></tr>
+<tr><td><code>content-padding</code></td><td><code>kContentPadding</code></td><td>Float / String</td><td>CR20261102002：通用内容内边距；JSON 另支持 number / "v h" / "t r b l" / {left,top,right,bottom}；默认 0。Dialog 旧 <code>padding</code> 独立保留</td></tr>
+<tr><td><code>corner-radius</code></td><td><code>kCornerRadius</code></td><td>Float</td><td>CR20261102001：通用圆角（背景/边框）</td></tr>
+<tr><td><code>classes</code></td><td><code>kClasses</code></td><td>String</td><td>CR20261102001：CSS-like 主题类名（空格分隔）；JSON 也接受 string[]</td></tr>
+<tr><td><code>theme-role</code></td><td><code>kThemeRole</code></td><td>String</td><td>classes 兼容别名</td></tr>
+<tr><td><code>theme-eligible</code></td><td><code>kThemeEligible</code></td><td>Bool</td><td>是否参与主题匹配；false 子树跳过（内部辅助控件）</td></tr>
+<tr><td><code>box-shadow-color</code> / <code>box-shadow-offset-x/y</code> / <code>box-shadow-radius</code> / <code>box-shadow-spread</code></td><td>同名</td><td>Color / Float</td><td>CR20261102001：通用盒阴影（扩展近似，无高斯模糊）；JSON 可用 <code>box-shadow</code> 对象</td></tr>
 <tr><td><code>margin-bottom</code></td><td><code>kMarginBottom</code></td><td>Float</td><td>外边距分量</td></tr>
 </table>
 <p class="note">状态色单态键（12 个，属性系统 / C ABI 可逐态读写；JSON <code>colors</code> 内为同义嵌套子键）：<code>background.hover</code> / <code>background.pressed</code> / <code>background.disabled</code>（<code>kStateHover</code> / <code>kStatePressed</code> / <code>kStateDisabled</code>）；<code>border.hover</code> / <code>border.pressed</code> / <code>border.disabled</code>（<code>kBorderHover</code> …）；<code>text.hover</code> / <code>text.pressed</code> / <code>text.disabled</code>（<code>kTextHover</code> …）；<code>text-shadow.hover</code> / <code>text-shadow.pressed</code> / <code>text-shadow.disabled</code>（<code>kTextShadowHover</code> …）。JSON 写法：<code>"colors": { "text": { "hover": "#..." } }</code>。<b>P0-106</b>：未显式设置的 <code>hover/pressed/disabled</code> = <b>与当前 <code>normal</code> 一致</b>（解析式回退——<code>SetColor(...,"background", C)</code> 后读回三态即 C；修改 normal 后未设态自动跟随；显式设置的态不受影响）。</p>
@@ -402,7 +408,7 @@
 <tr><td><code>font</code></td><td><code>kFont</code></td><td>Enum</td><td>HarmonyOS_Sans_SC_Regular（P0-26）</td></tr>
 <tr><td><code>item-height</code></td><td><code>kItemHeight</code></td><td>Float</td><td>13 / rect 高</td></tr>
 </table>
-<p>段数据经 JSON <code>items[]</code>（id / text / align / icon / menu / onClick）；C ABI 专用函数 <code>StatusBarAddItem</code> 等见 8.3.1。</p>
+<p>段数据经 JSON <code>items[]</code>（id / text / align / icon / menu / events.onClick / onClick）；<code>events.onClick</code> 优先于兼容键 <code>onClick</code>；C ABI 专用函数 <code>StatusBarAddItem</code> 等见 8.3.1。</p>
 <h3>TabControl（类型 <code>tab-control</code>）</h3>
 <table>
 <tr><th>属性</th><th>属性常量</th><th>类型</th><th>默认值 / 说明</th></tr>

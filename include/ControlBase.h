@@ -4,6 +4,7 @@
 #include <vector>
 #include <typeinfo>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include "SColor.h"
 #include "ConstDef.h"
@@ -341,6 +342,17 @@ protected:
 
     SRect m_rect;
     Margin m_margin;
+    Margin m_contentPadding{0.0f, 0.0f, 0.0f, 0.0f};
+    float m_cornerRadius = 0.0f;
+    SColor m_boxShadowColor{0,0,0,0};
+    float m_boxShadowOffsetX = 0.0f;
+    float m_boxShadowOffsetY = 0.0f;
+    float m_boxShadowRadius = 0.0f;
+    float m_boxShadowSpread = 0.0f;
+    std::vector<std::string> m_themeClasses;
+    std::string m_themeCategory;
+    std::string m_jsonId;
+    bool m_themeEligible = true;
     Control *m_parent;
     vector<shared_ptr<Control>> m_children; //子控件
 
@@ -446,6 +458,13 @@ public:
     void moved(SRect newRect) override;
     bool handleEvent(shared_ptr<Event> event) override;
     virtual bool commitEditOnTab() { return false; }   // P0-111/112：Tab 焦点遍历前提交就地编辑
+    // CR20261110003：右键 context-menu 统一尝试（子控件优先、父兜底）
+    bool tryOpenContextMenu(const shared_ptr<Event>& event);
+    // CR20261110004：context-menu 专用命中（默认 drawRect；纯显示控件可 override；protected 内部接口）
+protected:
+    virtual bool isContextMenuHit(float x, float y);
+public:
+    bool tryDispatchContextMenuToChild(const shared_ptr<Event>& event);
     // P0-114/CR004：通用子控件派发 + 鼠标捕获（子控件消费 MouseDown 后，Up/Move 优先派发给它）
     bool dispatchToChild(shared_ptr<Event> event, Control** consumedChild = nullptr);
     void clearMouseCapture(bool resetState = true);
@@ -485,6 +504,22 @@ public:
     SRect getMarginedRect(void);
     virtual void setMargin(Margin margin);
     Margin getMargin(void) const override;
+    // CR20261102002：通用内容内边距（content-padding，逻辑坐标）
+    virtual void setContentPadding(Margin padding);
+    Margin getContentPadding(void) const { return m_contentPadding; }
+    SRect getContentRect(void);
+    SRect getContentDrawRect(void);
+    void setCornerRadius(float radius) { m_cornerRadius = radius > 0.0f ? radius : 0.0f; }
+    float getCornerRadius(void) const { return m_cornerRadius; }
+    // CR20261102001：CSS-like 主题状态（classes/显式覆盖/旧主题类别）
+    void setThemeClasses(const std::vector<std::string>& classes) { m_themeClasses = classes; }
+    const std::vector<std::string>& getThemeClasses(void) const { return m_themeClasses; }
+    void setThemeEligible(bool v) { m_themeEligible = v; }
+    bool isThemeEligible(void) const { return m_themeEligible; }
+    void setThemeCategory(const std::string& c) { m_themeCategory = c; }
+    void setJsonId(const std::string& id) { m_jsonId = id; }
+    const std::string& getJsonId(void) const { return m_jsonId; }
+    const std::string& getThemeCategory(void) const { return m_themeCategory; }
     void show(void) override;
     void hide(void) override;
     void setVisible(bool visible) override;
@@ -600,6 +635,10 @@ public:
         }
     }
     // 文本/文本阴影色族键判定（P0-26：内部文本控件转发过滤）
+    static bool isLive(const Control* ctl);
+    static void beginDeferredRecreate();
+    static void endDeferredRecreate();
+    static bool isDeferredRecreate();
     static bool isTextColorFamilyKey(const char* prop) {
         return strcmp(prop, PropertyNames::kText) == 0 ||
                strcmp(prop, PropertyNames::kTextHover) == 0 ||

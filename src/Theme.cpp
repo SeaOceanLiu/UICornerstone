@@ -119,6 +119,7 @@ int Theme::getFontSize(const string& category) const {
 }
 
 void Theme::applyCommonColors(shared_ptr<ControlImpl> ctrl, const string& category) const {
+    if (ctrl) ctrl->setThemeCategory(category);
     string bg = PropertyNames::kThemeColorsPrefix + category + PropertyNames::kThemeBgSuffix;
     if (has(bg)) ctrl->setBackgroundStateColor(getStateColor(bg, StateColor::Type::Background));
     string border = PropertyNames::kThemeColorsPrefix + category + PropertyNames::kThemeBorderSuffix;

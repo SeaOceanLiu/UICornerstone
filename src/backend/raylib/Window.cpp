@@ -25,6 +25,8 @@ public:
             unsigned int rlFlags = 0;
             if (flags & UIWindowFlags::Resizable) rlFlags |= FLAG_WINDOW_RESIZABLE;
             if (flags & UIWindowFlags::Fullscreen) rlFlags |= FLAG_FULLSCREEN_MODE;
+            if (flags & UIWindowFlags::Hidden) rlFlags |= FLAG_WINDOW_HIDDEN;
+            if (flags & UIWindowFlags::Borderless) rlFlags |= FLAG_WINDOW_UNDECORATED;
             if (flags & UIWindowFlags::Vsync) rlFlags |= FLAG_VSYNC_HINT;
             if (rlFlags) SetConfigFlags(rlFlags);
 
@@ -37,6 +39,7 @@ public:
         s_windowCount++;
 
         m_renderDevice = CreateRaylibRenderDevice();
+        if (m_hasOwnWindow) m_visible = !IsWindowHidden();
     }
 
     ~RaylibWindow() override {
@@ -102,6 +105,23 @@ public:
         return true;
     }
 
+    bool setVisible(bool visible) override {
+        if (!m_hasOwnWindow) return false;
+        if (visible) ClearWindowState(FLAG_WINDOW_HIDDEN);
+        else SetWindowState(FLAG_WINDOW_HIDDEN);
+        m_visible = !IsWindowHidden();
+        return m_visible == visible;
+    }
+    bool isVisible() const override { return m_hasOwnWindow ? m_visible : false; }
+    bool setAlwaysOnTop(bool onTop) override {
+        if (!m_hasOwnWindow) return false;
+        if (onTop) SetWindowState(FLAG_WINDOW_TOPMOST); else ClearWindowState(FLAG_WINDOW_TOPMOST);
+        m_alwaysOnTop = IsWindowState(FLAG_WINDOW_TOPMOST);
+        return m_alwaysOnTop == onTop;
+    }
+    bool isAlwaysOnTop() const override { return m_hasOwnWindow ? m_alwaysOnTop : false; }
+    bool setForeground() override { if (!m_hasOwnWindow) return false; SetWindowFocused(); return true; }
+
     void setResizable(bool resizable) override {
         if (!m_hasOwnWindow) return;
         if (resizable)
@@ -123,6 +143,8 @@ public:
     }
 
 private:
+    bool m_visible = true;
+    bool m_alwaysOnTop = false;
     static int s_windowCount;   // 进程级真实窗口计数（单线程创建）
     bool m_hasOwnWindow;
     RenderDevice* m_renderDevice;
@@ -134,5 +156,10 @@ int RaylibWindow::s_windowCount = 0;
 // Factory entry point
 // ============================================================
 Window* CreateRaylibWindow(const char* title, int w, int h, uint32_t flags) {
+    if (flags & UIWindowFlags::NoShadow)
+        printf("raylib NoShadow unsupported (ignored)\n");
+    if (flags & UIWindowFlags::Utility)
+        printf("raylib Utility unsupported (ignored)\n");
+    flags &= ~(UIWindowFlags::NoShadow | UIWindowFlags::Utility);   // 应用层位不得传给 raylib
     return new RaylibWindow(title, w, h, flags);
 }

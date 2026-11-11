@@ -221,7 +221,7 @@ void Button::setRect(SRect rect){
     ControlImpl::setRect(rect);
 
     if (m_caption != nullptr){
-        m_caption->setRect({0, 0, m_rect.width, m_rect.height});
+        m_caption->setRect(SRect{m_contentPadding.left, m_contentPadding.top, m_rect.width - m_contentPadding.left - m_contentPadding.right, m_rect.height - m_contentPadding.top - m_contentPadding.bottom});
     }
     if (m_luotiAni != nullptr){
         m_luotiAni->setRect({0, 0, m_rect.width, m_rect.height});
@@ -343,6 +343,7 @@ void Button::setTextShadowEnable(bool enable){
     }
 }
 void Button::setCaption(string caption){
+    if (caption == m_captionText && m_caption) return;
     m_captionText = caption;
 
     if (m_caption != nullptr){
@@ -362,6 +363,7 @@ void Button::setCaption(string caption){
                             .setShadow(m_enableTextShadow)
                             .setShadowOffset(m_shadowOffset)
                             .build();
+        m_caption->setThemeEligible(false);
         m_caption->setTransparent(true);
         addControl(m_caption);
         m_caption->setState(getState());   // (重)建时同步当前状态
@@ -376,7 +378,7 @@ void Button::setCaptionLabel(shared_ptr<Label> label){
     m_caption = label;
     if (m_caption != nullptr){
         m_caption->setParent(this);
-        m_caption->setRect({0, 0, m_rect.width, m_rect.height});
+        m_caption->setRect(SRect{m_contentPadding.left, m_contentPadding.top, m_rect.width - m_contentPadding.left - m_contentPadding.right, m_rect.height - m_contentPadding.top - m_contentPadding.bottom});
         m_captionText = m_caption->getCaption();
         addControl(m_caption);
         m_caption->setState(getState());   // 替换时同步当前状态
@@ -392,7 +394,17 @@ shared_ptr<Label> Button::getCaptionLabel(void) const {
 string Button::getCaption(void) const{
     return m_captionText;
 }
+void Button::setContentPadding(Margin padding) {
+    ControlImpl::setContentPadding(padding);
+    if (m_caption) {
+        m_caption->setRect(SRect{m_contentPadding.left, m_contentPadding.top,
+            m_rect.width - m_contentPadding.left - m_contentPadding.right,
+            m_rect.height - m_contentPadding.top - m_contentPadding.bottom});
+    }
+}
+
 void Button::setCaptionSize(float size){
+    if (size == m_captionSize) return;
     m_captionSize = size;
     if (m_caption != nullptr){
         m_caption->setFontSize((int)m_captionSize);

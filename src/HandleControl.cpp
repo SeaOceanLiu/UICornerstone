@@ -35,6 +35,8 @@ void HandleControl::setTarget(shared_ptr<Control> target)
 
     Control* parent = target->getParent();
     if (parent) {
+        m_attachParentRaw = parent;
+        try { m_attachParent = parent->getThis(); } catch (...) { m_attachParent.reset(); }
         parent->addControl(shared_from_this());
         setAlwaysOnTop(true);
         setVisible(true);
@@ -56,6 +58,8 @@ void HandleControl::setTarget(Control* target)
 
     Control* parent = target->getParent();
     if (parent) {
+        m_attachParentRaw = parent;
+        try { m_attachParent = parent->getThis(); } catch (...) { m_attachParent.reset(); }
         parent->addControl(shared_from_this());
         setAlwaysOnTop(true);
         setVisible(true);
@@ -73,10 +77,17 @@ void HandleControl::detach()
     setAlwaysOnTop(false);
     Cursor::restoreDefault(getThis().get());
 
-    Control* parent = getParent();
-    if (parent) {
+    // 目标父容器可能已随 tab 页/容器销毁；弱引用失效时禁止访问悬垂 getParent()。
+    if (auto parent = m_attachParent.lock()) {
         parent->removeControl(shared_from_this());
+    } else if (m_attachParentRaw && ControlImpl::isLive(m_attachParentRaw)) {
+        m_attachParentRaw->removeControl(shared_from_this());
+    } else {
+        // 父容器已随目标/tab 页销毁；仅断开裸指针，禁止再访问悬垂 parent。
+        m_parent = nullptr;
     }
+    m_attachParent.reset();
+    m_attachParentRaw = nullptr;
 }
 
 void HandleControl::ensureCursors()

@@ -59,6 +59,10 @@ public:
     void draw() override;
     bool handleEvent(shared_ptr<Event> event) override;
     void setRect(SRect rect) override;
+    void setVisible(bool visible) override;
+    void setEnable(bool enable) override;
+    void onMouseEnter(float x, float y) override;
+    void onMouseLeave(float x, float y) override;
 
     void  setOrientation(bool horizontal);
     bool  isHorizontal() const { return m_orientation; }
@@ -104,7 +108,7 @@ private:
     bool ensureControls();
     void startDrag(const SPoint& mousePos);
     void updateDrag(const SPoint& mousePos);
-    void endDrag();
+    void endDrag(float x, float y);
     void handleKeyEvent(shared_ptr<Event> event);
     void applySplitRatio(float ratio);
     void handleDoubleClick();

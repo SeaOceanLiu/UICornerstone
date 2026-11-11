@@ -33,6 +33,11 @@ public:
     void* nativeHandle() override;
     RenderDevice* renderDevice() override;
     bool getMousePosition(float& x, float& y) override;
+    bool setVisible(bool visible) override;
+    bool isVisible() const override;
+    bool setAlwaysOnTop(bool onTop) override;
+    bool isAlwaysOnTop() const override;
+    bool setForeground() override;
 };
 
 // ---------- CallbackTexture ----------

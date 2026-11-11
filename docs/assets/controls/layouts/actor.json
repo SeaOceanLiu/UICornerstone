@@ -1,0 +1,152 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.1 Actor",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Image scaling modes: fit-center / stretch / center-crop",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "a0",
+          "rect": {
+            "x": 50,
+            "y": 100,
+            "w": 180,
+            "h": 22
+          },
+          "caption": "fit-center 160x100",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "image",
+          "id": "img0",
+          "rect": {
+            "x": 50,
+            "y": 130,
+            "w": 160,
+            "h": 100
+          },
+          "image": "assets/images/icon.png",
+          "scale-type": "fit-center"
+        },
+        {
+          "type": "label",
+          "id": "a1",
+          "rect": {
+            "x": 250,
+            "y": 100,
+            "w": 180,
+            "h": 22
+          },
+          "caption": "stretch 100x160",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "image",
+          "id": "img1",
+          "rect": {
+            "x": 280,
+            "y": 130,
+            "w": 100,
+            "h": 160
+          },
+          "image": "assets/images/icon.png",
+          "scale-type": "stretch"
+        },
+        {
+          "type": "label",
+          "id": "a2",
+          "rect": {
+            "x": 450,
+            "y": 100,
+            "w": 200,
+            "h": 22
+          },
+          "caption": "center-crop 160x100",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "image",
+          "id": "img2",
+          "rect": {
+            "x": 450,
+            "y": 130,
+            "w": 160,
+            "h": 100
+          },
+          "image": "assets/images/icon.png",
+          "scale-type": "center-crop"
+        }
+      ]
+    }
+  ]
+}

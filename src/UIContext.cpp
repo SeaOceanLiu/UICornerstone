@@ -1,4 +1,5 @@
 ﻿#include "UIContext.h"
+#include "ThemeStyle.h"
 #include "BackendPlugin.h"
 #include "Bench.h"
 #include "MainWindow.h"
@@ -106,6 +107,7 @@ rollback:
 }
 
 void UIContext::destroy() {
+    if (themeRuntime) { themeRuntime->clear(); themeRuntime.reset(); }
     quit = true;
     popupPool.clear();
     menuPool.clear();

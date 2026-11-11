@@ -23,6 +23,8 @@ public:
     void setTarget(shared_ptr<Control> target);
     void setTarget(Control* target);  // C ABI 路径：裸指针目标（生命周期由调用方保证）
     Control* getTarget() const { return m_target; }
+    std::weak_ptr<Control> m_attachParent;   // 目标父容器的弱引用：目标/父销毁后 detach 不再访问悬垂 parent
+    Control* m_attachParentRaw = nullptr;     // getThis 不可用时的裸父指针（detach 前先查存活）
     void detach();
 
     // ── 配置 ──
@@ -66,6 +68,9 @@ public:
     void draw() override;
     bool handleEvent(shared_ptr<Event> event) override;
     bool isContainsPoint(float x, float y) override { return false; }
+
+protected:
+    bool isContextMenuHit(float x, float y) override { (void)x; (void)y; return false; }   // CR20261110004：V1 不纳入右键菜单
 
 private:
 

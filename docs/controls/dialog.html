@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.8 Dialog / Popup - UICornerstone v1.1.0 用户手册</title>
+<title>4.8 Dialog / Popup - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/dialog.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.8 Dialog / Popup（弹窗族）</h1>
 
 <p>三层弹窗族：<code>Popup</code>（无按钮）→ <code>ConfirmPopup</code>（+确定按钮，Enter 确认）→ <code>Dialog</code>（+取消按钮，ESC/外部点击走取消）。三者均为<strong>非模态</strong>（事件驱动，不阻塞主循环）。继承链：<code>Dialog → ConfirmPopup → Popup → Panel</code>。</p>
+
+<figure>
+  <img src="../assets/controls/dialog-overview.png" alt="Dialog 内容与确认/取消按钮" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>Dialog 的内容区、确认和取消按钮。</figcaption>
+</figure>
 
 <h2>4.8.1 控件的创建</h2>
 

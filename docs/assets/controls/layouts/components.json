@@ -1,0 +1,70 @@
+﻿{
+  "components": {
+    "SearchBar": {
+      "props": {
+        "placeholder": { "type": "string", "default": "Search..." },
+        "buttonText": { "type": "string", "default": "Search" },
+        "accent": { "type": "string", "default": "#2D7FF9" }
+      },
+      "template": {
+        "type": "panel",
+        "colors": { "background": { "normal": "#182130" }, "border": { "normal": "#2D3A50" } },
+        "corner-radius": 8,
+        "layout": { "type": "h-flow", "gap": 8, "padding": { "left": 10, "top": 6, "right": 25, "bottom": 6 } },
+        "children": [
+          { "type": "edit-box", "id": "input", "flow-weight": 1,
+            "rect": { "x": 0, "y": 0, "w": 0, "h": 32 },
+            "placeholder": "{{placeholder}}",
+            "colors": { "background": { "normal": "#0F1622" }, "border": { "normal": "#34445E" } } },
+          { "type": "button", "id": "go", "caption": "{{buttonText}}",
+            "rect": { "x": 0, "y": 0, "w": 76, "h": 32 },
+            "colors": { "background": { "normal": "{{accent}}", "hover": "#4A94FF" },
+                        "text": { "normal": "#FFFFFF" } } }
+        ]
+      }
+    },
+    "StatCard": {
+      "props": {
+        "title": { "type": "string", "default": "Metric" },
+        "value": { "type": "string", "default": "—" },
+        "note": { "type": "string", "default": "" }
+      },
+      "template": {
+        "type": "panel",
+        "colors": { "background": { "normal": "#161F2C" }, "border": { "normal": "#2A3850" } },
+        "corner-radius": 8,
+        "children": [
+          { "type": "label", "id": "title", "rect": { "x": 14, "y": 10, "w": 180, "h": 20 },
+            "caption": "{{title}}", "font": { "size": 12 }, "colors": { "text": { "normal": "#8FA3BF" } } },
+          { "type": "label", "id": "value", "rect": { "x": 14, "y": 30, "w": 180, "h": 38 },
+            "caption": "{{value}}", "font": { "size": 28 }, "colors": { "text": { "normal": "#F5F8FF" } } },
+          { "type": "label", "id": "note", "rect": { "x": 14, "y": 70, "w": 180, "h": 18 },
+            "caption": "{{note}}", "font": { "size": 11 }, "colors": { "text": { "normal": "#6F849F" } } }
+        ]
+      }
+    }
+  },
+  "controls": [
+    {
+      "type": "panel", "id": "componentsRoot",
+      "rect": { "x": 0, "y": 0, "w": 720, "h": 340 },
+      "colors": { "background": { "normal": "#0D131D" } },
+      "children": [
+        { "type": "label", "id": "caption", "rect": { "x": 28, "y": 18, "w": 660, "h": 24 },
+          "caption": "Same component template, different props", "font": { "size": 16 },
+          "colors": { "text": { "normal": "#DCE7F7" } } },
+        { "type": "SearchBar", "id": "searchTop", "rect": { "x": 28, "y": 54, "w": 664, "h": 46 },
+          "placeholder": "Search components...", "buttonText": "Search" },
+        { "type": "SearchBar", "id": "searchFilter", "rect": { "x": 28, "y": 112, "w": 664, "h": 46 },
+          "placeholder": "Filter project settings...", "buttonText": "Apply", "accent": "#7C5CFC" },
+        { "type": "StatCard", "id": "cardUsers", "rect": { "x": 28, "y": 182, "w": 200, "h": 104 },
+          "title": "ACTIVE USERS", "value": "1,284", "note": "same template, one prop" },
+        { "type": "StatCard", "id": "cardProjects", "rect": { "x": 244, "y": 182, "w": 200, "h": 104 },
+          "title": "PROJECTS", "value": "36", "note": "instantiated twice" },
+        { "type": "StatCard", "id": "cardAlerts", "rect": { "x": 460, "y": 182, "w": 232, "h": 104 },
+          "title": "ALERTS", "value": "0", "note": "template reused three times" }
+      ]
+    }
+  ],
+  "viewport": { "background": "#0D131D", "width": 720, "height": 340 }
+}

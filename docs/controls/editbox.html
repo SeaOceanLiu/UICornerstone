@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.9 EditBox - UICornerstone v1.1.0 用户手册</title>
+<title>4.9 EditBox - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/editbox.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>EditBox 是单行文本输入控件：支持光标、选区、剪贴板（Ctrl+C/X/V）、密码模式、占位符与焦点管理。多行输入请用 <a href="textarea.html">TextArea</a>（4.9）。继承链：<code>EditBox → ControlImpl → Control</code>。</p>
 
 <div class="note">缩放联动：置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时，字号随复合缩放系数重建；不可见时延后重建，变为可见的当帧自动补重建。</div>
+
+<figure>
+  <img src="../assets/controls/editbox-overview.png" alt="EditBox 占位、内边距与字体变化" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>placeholder、content-padding 与 font-size / text-color 修改效果。</figcaption>
+</figure>
 
 <h2>4.9.1 控件的创建</h2>
 

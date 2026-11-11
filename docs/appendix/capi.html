@@ -69,7 +69,7 @@
 <tr><td><code>UICornerstone_SetHandleMoveVisible(inst, handle, show)</code></td><td>Move 手柄可见性开关</td></tr>
 <tr><td><code>UICornerstone_LoadLayout(inst, json)</code></td><td>从内存 JSON 字符串加载布局</td></tr>
 <tr><td><code>UICornerstone_LoadLayoutFromFile(inst, path)</code></td><td>从文件加载布局</td></tr>
-<tr><td><code>UICornerstone_RegisterAction(inst, name, cb, user)</code></td><td>注册 JSON 事件处理器</td></tr>
+<tr><td><code>UICornerstone_RegisterAction(inst, name, cb, user)</code></td><td>注册 JSON 事件处理器；无控件 sender 的 action（StatusBar/ContextMenu item）回调 ctl 为 NULL</td></tr>
 </table>
 
 <h2>8.3 控件工厂</h2>
@@ -152,6 +152,9 @@
 <tr><td><code>UICornerstone_SetColor(inst, ctl, name, UIColor)</code></td><td><code>UICornerstone_GetColor(inst, ctl, name, UIColor&amp;)</code></td><td>颜色属性（单色）</td></tr>
 <tr><td><code>UICornerstone_SetEnum(inst, ctl, name, const char*)</code></td><td><code>UICornerstone_GetEnum(inst, ctl, name, char*, maxLen)</code></td><td>枚举属性（Get 用缓冲区，同 GetString）</td></tr>
 <tr><td><code>UICornerstone_SetFloat(inst, ctl, name, float)</code></td><td><code>UICornerstone_GetFloat(inst, ctl, name, float&amp;)</code></td><td>浮点属性</td></tr>
+<tr><td><code>UICornerstone_ApplyTheme(inst, themeJson)</code></td><td><code>UICornerstone_SetThemeVariant / GetThemeVariant</code></td><td>CR20261102001：CSS-like 主题与变体</td></tr>
+<tr><td><code>UICornerstone_ClearThemeOverrides(inst, ctl)</code></td><td><code>UICornerstone_RefreshResponsiveTheme / GetActiveMedia</code></td><td>清除显式覆盖 / 响应式重算与活动媒体</td></tr>
+<tr><td><code>UICornerstone_SetContentPadding(inst, ctl, l, t, r, b)</code></td><td><code>UICornerstone_GetContentPadding(inst, ctl, &amp;l, &amp;t, &amp;r, &amp;b)</code></td><td>通用内容内边距（CR20261102002）</td></tr>
 <tr><td><code>UICornerstone_SetInt(inst, ctl, name, int)</code></td><td><code>UICornerstone_GetInt(inst, ctl, name, int&amp;)</code></td><td>整数属性</td></tr>
 <tr><td><code>UICornerstone_SetPtr(inst, ctl, name, void*)</code></td><td><code>UICornerstone_GetPtr(inst, ctl, name, void**)</code></td><td>指针属性</td></tr>
 <tr><td><code>UICornerstone_SetStateColor(inst, ctl, name, UIStateColor)</code></td><td><code>UICornerstone_GetStateColor(inst, ctl, name, UIStateColor*)</code></td><td>状态色（UIStateColor{normal,hover,pressed,disabled}）</td></tr>
@@ -339,3 +342,22 @@ UICornerstone_CreateImage(inst, "provider:cross-up", 20, 70, 0, 0, 1.0f, 1.0f);<
 </div>
 </body>
 </html>
+
+<h2>窗口可见性（CR20261105003）</h2>
+<table>
+<tr><th>C ABI</th><th>说明</th></tr>
+<tr><td><code>UICornerstone_SetWindowVisible(inst, int visible)</code></td><td>1 显示 / 0 隐藏；仅 owner 独立窗口实例有效；子视口/共享实例返回 0；幂等。</td></tr>
+<tr><td><code>UICornerstone_GetWindowVisible(inst, int* visible)</code></td><td>返回引擎本地可见状态；最小化/遮挡仍为 1；空指针/子视口/headless 返回 0。</td></tr>
+<tr><td><code>UICORN_WINDOW_FLAG_HIDDEN</code></td><td>0x8，创建期隐藏（对齐 SDL_WINDOW_HIDDEN）；SFML 构造后隐藏，raylib 创建期 flag。</td></tr>
+</table>
+
+<h2>窗口外观（CR20261105004）</h2>
+<table>
+<tr><td><code>UICORN_WINDOW_FLAG_BORDERLESS</code></td><td>0x10，创建期无标题栏/关闭按钮；不承诺去除 OS 阴影。</td></tr>
+<tr><td><code>UICORN_WINDOW_FLAG_UTILITY</code></td><td>0x00020000，创建期任务栏/窗口列表隐藏；SDL3 原生，SFML/raylib 诊断忽略。</td></tr>
+<tr><td><code>UICornerstone_SetWindowAlwaysOnTop(inst, onTop)</code></td><td>运行期置顶/取消；幂等；仅独立窗口。</td></tr>
+<tr><td><code>UICornerstone_GetWindowAlwaysOnTop(inst, &amp;onTop)</code></td><td>本地置顶状态；子视口/headless 0。</td></tr>
+<tr><td><code>UICornerstone_SetWindowForeground(inst)</code></td><td>尽力带到前台；不保证 OS 强制焦点。</td></tr>
+</table>
+<p><b>CR20261108001</b>：<code>UICORN_WINDOW_FLAG_NO_SHADOW</code>（0x08000000，应用层保留位）创建期请求无系统阴影；仅 SDL3 Windows best-effort，其他后端/平台诊断忽略。仅创建期生效，无运行期 API。</p>
+<p><b>CR20261109001</b>：<code>UICORN_WINDOW_FLAG_UTILITY</code> 创建期不显示在任务栏/窗口列表；SDL3 原生 <code>SDL_WINDOW_UTILITY</code>，Windows 由 backend 幂等补 <code>WS_EX_TOOLWINDOW</code>；SFML/raylib 忽略。无运行期 API。</p>

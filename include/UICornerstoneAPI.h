@@ -38,6 +38,10 @@ typedef struct UIContext* UIInstance;
    raylib 按 SDL_WINDOW_RESIZABLE=0x20 约定，sfml 按 0x01=Fullscreen 约定） */
 #define UICORN_WINDOW_FLAG_NONE        0x00000000u
 #define UICORN_WINDOW_FLAG_FULLSCREEN  0x00000001u /* SDL_WINDOW_FULLSCREEN */
+#define UICORN_WINDOW_FLAG_HIDDEN      0x00000008u /* SDL_WINDOW_HIDDEN */
+#define UICORN_WINDOW_FLAG_BORDERLESS  0x00000010u /* SDL_WINDOW_BORDERLESS */
+#define UICORN_WINDOW_FLAG_UTILITY     0x00020000u /* SDL_WINDOW_UTILITY：创建期任务栏/窗口列表隐藏（SDL3 原生；其它后端忽略） */
+#define UICORN_WINDOW_FLAG_NO_SHADOW   0x08000000u /* 应用层保留位：创建期无系统阴影（仅 SDL3 Windows 实现） */
 #define UICORN_WINDOW_FLAG_RESIZABLE   0x00000020u /* SDL_WINDOW_RESIZABLE */
 #define UICORN_WINDOW_FLAG_VSYNC       0x40000000u /* 应用层保留位：请求垂直同步（raylib 创建期有效） */
 
@@ -231,6 +235,13 @@ typedef struct {
     // --- 截图读回（可选，可为 NULL；声明 READBACK 能力位时须提供） ---
     // 将屏幕坐标系 rect 读回为 RGBA8888（R,G,B,A，top-down 行序）到 buffer（调用方分配 w*h*4）
     void (*readPixels)(UIRenderDeviceHandle dev, void* buffer, int left, int top, int width, int height);
+
+    // --- CR20261105003：窗口可见性（可选，可为 NULL；NULL = 不支持）---
+    int (*setWindowVisible)(UIWindowHandle, int visible);   // 成功 1 / 失败 0
+    int (*getWindowVisible)(UIWindowHandle);                // 1 可见 / 0 隐藏 / -1 不支持
+    int (*setWindowAlwaysOnTop)(UIWindowHandle, int onTop);
+    int (*getWindowAlwaysOnTop)(UIWindowHandle);
+    int (*setWindowForeground)(UIWindowHandle);
 } UIBackendCallbacks;
 
 /* ============ 实例生命周期 ============ */
@@ -304,6 +315,14 @@ UICORNERSTONE_API int UICornerstone_GetWindowSize(UIInstance instance, float* w,
 UICORNERSTONE_API int UICornerstone_SetWindowSize(UIInstance instance, float w, float h);
 /* 原生窗口句柄（嵌入/hosted 场景）；无窗口返回 NULL。 */
 UICORNERSTONE_API void* UICornerstone_GetNativeWindowHandle(UIInstance instance);
+/* CR20261105003：窗口可见性。仅独立窗口实例（owner=null, ownsBackend=1）有效；
+   子视口/共享实例/headless 返回 0。Set 幂等；Get 返回引擎本地状态，最小化/遮挡仍为 1。 */
+UICORNERSTONE_API int UICornerstone_SetWindowVisible(UIInstance instance, int visible);
+UICORNERSTONE_API int UICornerstone_GetWindowVisible(UIInstance instance, int* visible);
+/* CR20261105004：创建期无边框；运行期置顶/前台（best-effort）。 */
+UICORNERSTONE_API int UICornerstone_SetWindowAlwaysOnTop(UIInstance instance, int onTop);
+UICORNERSTONE_API int UICornerstone_GetWindowAlwaysOnTop(UIInstance instance, int* onTop);
+UICORNERSTONE_API int UICornerstone_SetWindowForeground(UIInstance instance);
 
 typedef void (*UIWindowResizeCallback)(int width, int height, void* userData);
 /* 窗口尺寸变化用户回调（ProcessEvents 处理 WindowResize 事件时分发，替代用户帧内轮询）。 */
@@ -356,6 +375,16 @@ UICORNERSTONE_API int      UICornerstone_Debug_SetMousePosition(UIInstance insta
 UICORNERSTONE_API int      UICornerstone_Debug_ClearMousePosition(UIInstance instance);
 
 /* ============ 布局系统 ============ */
+/* ============ CR20261102001/002/003：CSS-like 主题 / content-padding / 响应式 ============ */
+UICORNERSTONE_API int UICornerstone_ApplyTheme(UIInstance instance, const char* themeJson);
+UICORNERSTONE_API int UICornerstone_SetThemeVariant(UIInstance instance, const char* name);
+UICORNERSTONE_API int UICornerstone_GetThemeVariant(UIInstance instance, char* out, int cap, int* outLen);
+UICORNERSTONE_API int UICornerstone_ClearThemeOverrides(UIInstance instance, UIControlHandle ctl);
+UICORNERSTONE_API int UICornerstone_RefreshResponsiveTheme(UIInstance instance, float viewportWidth, float viewportHeight);
+UICORNERSTONE_API int UICornerstone_GetActiveMedia(UIInstance instance, char* out, int cap, int* outLen);
+UICORNERSTONE_API int UICornerstone_SetContentPadding(UIInstance instance, UIControlHandle ctl, float left, float top, float right, float bottom);
+UICORNERSTONE_API int UICornerstone_GetContentPadding(UIInstance instance, UIControlHandle ctl, float* left, float* top, float* right, float* bottom);
+
 UICORNERSTONE_API int               UICornerstone_LoadLayout(UIInstance instance, const char* jsonContent);
 UICORNERSTONE_API int               UICornerstone_LoadLayoutFromFile(UIInstance instance, const char* filePath);
 UICORNERSTONE_API UIControlHandle   UICornerstone_FindControl(UIInstance instance, const char* id);

@@ -86,7 +86,7 @@ bool Splitter::handleEvent(shared_ptr<Event> event) {
             return true;
         }
         if (event->m_type == EventType::MouseUp) {
-            endDrag();
+            endDrag(event->mouseButton.x, event->mouseButton.y);
             return true;
         }
         return false;
@@ -111,6 +111,40 @@ bool Splitter::handleEvent(shared_ptr<Event> event) {
         return true;
     }
     return false;
+}
+
+void Splitter::setVisible(bool visible) {
+    ControlImpl::setVisible(visible);
+    if (!visible) {
+        m_hovered = false;
+        m_mouseInside = false;
+        Cursor::restoreDefault(getThis().get());   // disabled/hidden 清理 owner
+    }
+}
+
+void Splitter::setEnable(bool enable) {
+    ControlImpl::setEnable(enable);
+    if (!enable) {
+        m_hovered = false;
+        m_mouseInside = false;
+        Cursor::restoreDefault(getThis().get());
+    }
+}
+
+void Splitter::onMouseEnter(float x, float y) {
+    ControlImpl::onMouseEnter(x, y);
+    if (m_enable && m_visible && !m_dragging) {
+        m_hovered = true;
+        updateCursor(true);
+    }
+}
+
+void Splitter::onMouseLeave(float x, float y) {
+    ControlImpl::onMouseLeave(x, y);
+    m_hovered = false;
+    if (!m_dragging) {
+        Cursor::restoreDefault(getThis().get());   // owner 仲裁
+    }
 }
 
 void Splitter::setRect(SRect rect) {
@@ -430,12 +464,17 @@ void Splitter::updateDrag(const SPoint& mousePos) {
     m_lastRect = SRect();
 }
 
-void Splitter::endDrag() {
+void Splitter::endDrag(float x, float y) {
     if (!m_dragging) return;
     m_dragging = false;
+    auto finishCursor = [&]() {
+        const bool inside = isContainsPoint(x, y);
+        m_hovered = inside;
+        updateCursor(inside);
+    };
     // 引擎模式：拖拽期间权重已实时生效（每帧 reflow），无收尾联动
-    if (isEngineManaged()) return;
-    if (!m_first || !m_second) return;
+    if (isEngineManaged()) { finishCursor(); return; }
+    if (!m_first || !m_second) { finishCursor(); return; }
 
     ::SRect fRect = m_first->getRect();
     float firstSize, secondSize;
@@ -472,6 +511,8 @@ void Splitter::endDrag() {
     // 不拖拽时 watcher 检查 m_dragging 直接返回 false，是安全的。
     // std::weak_ptr 在 EventQueue 内部确保 watcher 不延长控件生命周期，
     // 避免静态析构顺序问题。
+
+    finishCursor();
 }
 
 bool Splitter::beforeEventHandlingWatcher(shared_ptr<Event> event) {
@@ -483,11 +524,11 @@ bool Splitter::beforeEventHandlingWatcher(shared_ptr<Event> event) {
         return true;
     }
     if (event->m_type == EventType::MouseUp) {
-        endDrag();
+        endDrag(event->mouseButton.x, event->mouseButton.y);
         return true;
     }
     if (event->m_type == EventType::MouseDown) {
-        endDrag();
+        endDrag(event->mouseButton.x, event->mouseButton.y);
         return true;
     }
     return false;

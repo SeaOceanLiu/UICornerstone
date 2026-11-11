@@ -1,0 +1,135 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.18 ScrollBar",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Horizontal and vertical orientation",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "r0",
+          "rect": {
+            "x": 40,
+            "y": 110,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "horizontal / value 30",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "scroll-bar",
+          "id": "r0b",
+          "rect": {
+            "x": 40,
+            "y": 138,
+            "w": 620,
+            "h": 18
+          },
+          "orientation": "horizontal",
+          "value": 30,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "page-size": 20,
+          "step-size": 5,
+          "thickness": 18
+        },
+        {
+          "type": "label",
+          "id": "r1",
+          "rect": {
+            "x": 40,
+            "y": 190,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "vertical / value 60",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "scroll-bar",
+          "id": "r1b",
+          "rect": {
+            "x": 40,
+            "y": 218,
+            "w": 18,
+            "h": 150
+          },
+          "orientation": "vertical",
+          "value": 60,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "page-size": 20,
+          "step-size": 5,
+          "thickness": 18
+        }
+      ]
+    }
+  ]
+}

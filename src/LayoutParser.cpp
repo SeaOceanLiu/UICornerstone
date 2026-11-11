@@ -1,5 +1,6 @@
 ﻿// 由AI(DeepSeek V4 Flash)生成，可能不完整或有错误，请自行检查和修改
 #include "LayoutParser.h"
+#include "ThemeStyle.h"
 #include "Bench.h"
 #include "WinFrame.h"
 #include "Dialog.h"
@@ -21,6 +22,8 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <exception>
 #include <unordered_set>
 #include "PlatformUtils.h"
 
@@ -49,6 +52,9 @@ shared_ptr<Control> LayoutParser::parseLayout(const string& jsonContent) {
 
     if (j.contains(PropertyNames::kJsonTheme) && j[PropertyNames::kJsonTheme].is_object()) {
         m_theme.parse(j[PropertyNames::kJsonTheme]);
+        if (m_themeRuntime) m_themeRuntime->setTheme(j[PropertyNames::kJsonTheme]);
+    } else if (m_themeRuntime) {
+        m_themeRuntime->clear();
     }
 
     // 顶层 viewport 键：显式基准画布 + 初始缩放模式（先 canvas 后 mode，
@@ -274,6 +280,10 @@ int LayoutParser::byteOffsetToLineNo(const string& content, size_t byteOffset) c
 // ==================== 控件工厂 ====================
 
 shared_ptr<Control> LayoutParser::parseControl(const json& j, Control* parent, int index) {
+    struct DeferRecreate {
+        DeferRecreate() { ControlImpl::beginDeferredRecreate(); }
+        ~DeferRecreate() { ControlImpl::endDeferredRecreate(); }
+    } deferRecreate;
     string indexPath = "controls[" + to_string(index) + "]";
     pushJsonPath(indexPath);
 
@@ -1652,10 +1662,37 @@ shared_ptr<Control> LayoutParser::parseStatusBar(const json& j, Control* parent)
                 bar->setStatusItemTextShadow(id, parseColor(ij[PropertyNames::kTextShadow]), sox, soy);
             }
 
-            // onClick 事件
-            if (ij.contains(PropertyNames::kJsonOnClick) && ij[PropertyNames::kJsonOnClick].is_string()) {
-                string action = ij[PropertyNames::kJsonOnClick].get<string>();
-                bar->setStatusItemOnClick(id, [action](shared_ptr<StatusItem>){});
+            // onClick 事件（CR20261109002）：events.onClick 优先，兼容旧直写 onClick。
+            string statusAction;
+            bool statusActionFromEvents = false;
+            if (ij.contains(PropertyNames::kJsonEvents) && ij[PropertyNames::kJsonEvents].is_object()) {
+                const auto& ev = ij[PropertyNames::kJsonEvents];
+                if (ev.contains(PropertyNames::kEventKeyClick) && ev[PropertyNames::kEventKeyClick].is_string()) {
+                    const string v = ev[PropertyNames::kEventKeyClick].get<string>();
+                    if (!v.empty()) {
+                        statusAction = v;
+                        statusActionFromEvents = true;
+                    }
+                }
+            }
+            const bool hasLegacyClick = ij.contains(PropertyNames::kJsonOnClick)
+                                     && ij[PropertyNames::kJsonOnClick].is_string()
+                                     && !ij[PropertyNames::kJsonOnClick].get<string>().empty();
+            if (statusActionFromEvents && hasLegacyClick)
+                logWarn("status-bar item \"" + id + "\" has both events.onClick and onClick; using events.onClick");
+            if (!statusActionFromEvents && hasLegacyClick)
+                statusAction = ij[PropertyNames::kJsonOnClick].get<string>();
+
+            if (!statusAction.empty()) {
+                auto hit = m_handlers.find(statusAction);
+                if (hit == m_handlers.end()) {
+                    logMissingHandler(statusAction, id);
+                } else {
+                    auto handler = hit->second;   // 捕获副本，避免迭代器/parser 生命周期
+                    bar->setStatusItemOnClick(id, [handler](shared_ptr<StatusItem>) {
+                        handler(nullptr);          // StatusItem 不是 Control；与 Menu/StatusBar 约定一致
+                    });
+                }
             }
         }
         popJsonPath();
@@ -2804,12 +2841,80 @@ shared_ptr<ContextMenu> LayoutParser::parseContextMenu(const json& j, Control* p
     auto cm = make_shared<ContextMenu>(parent, xScale, yScale);
     m_theme.applyCommonColors(cm, PropertyNames::kThemeCatPopup);
     parseCommonProperties(cm, j);
-    cm->setVisible(false);   // 保持隐藏：右键菜单由 show() 弹出（items 随后续结构化编辑批次补）
+    cm->setVisible(false);   // 保持隐藏：右键菜单由 show() 弹出（items 由 CR20261109003 解析）
 
     if (j.contains(PropertyNames::kCloseOnEsc) && j[PropertyNames::kCloseOnEsc].is_boolean())
         cm->setCloseOnEsc(j[PropertyNames::kCloseOnEsc].get<bool>());
     if (j.contains(PropertyNames::kCloseOnClickOutside) && j[PropertyNames::kCloseOnClickOutside].is_boolean())
         cm->setCloseOnClickOutside(j[PropertyNames::kCloseOnClickOutside].get<bool>());
+
+    // CR20261109003：独立 context-menu 的声明式 items（V1：caption/shortcut/separator/onClick）。
+    const string cmId = j.value(PropertyNames::kId, string());
+    bool warnedNested = false;
+    if (j.contains(PropertyNames::kItems) && j[PropertyNames::kItems].is_array()) {
+        pushJsonPath(PropertyNames::kItems);
+        for (const auto& ij : j[PropertyNames::kItems]) {
+            if (!ij.is_object()) continue;
+            const string itemType = ij.value(PropertyNames::kJsonType, string());
+            if (itemType == PropertyNames::kMenuTypeSeparator) {
+                cm->addSeparator();
+                continue;
+            }
+            if (ij.contains(PropertyNames::kItems) && ij[PropertyNames::kItems].is_array() && !warnedNested) {
+                logWarn("context-menu nested items unsupported; parent item treated as leaf");
+                warnedNested = true;
+            }
+            const string caption = ij.value(PropertyNames::kCaption, string());
+            if (caption.empty()) {
+                logWarn("context-menu item missing caption; skipped");
+                continue;
+            }
+            auto item = make_shared<MenuItem>(nullptr, MenuItemType::Normal, xScale, yScale);
+            item->setCaption(caption);
+            if (ij.contains(PropertyNames::kShortcut) && ij[PropertyNames::kShortcut].is_string())
+                item->setShortcut(ij[PropertyNames::kShortcut].get<string>());
+
+            string action;
+            bool actionFromEvents = false;
+            if (ij.contains(PropertyNames::kJsonEvents) && ij[PropertyNames::kJsonEvents].is_object()) {
+                const auto& ev = ij[PropertyNames::kJsonEvents];
+                if (ev.contains(PropertyNames::kEventKeyClick) && ev[PropertyNames::kEventKeyClick].is_string()) {
+                    const string v = ev[PropertyNames::kEventKeyClick].get<string>();
+                    if (!v.empty()) {
+                        action = v;
+                        actionFromEvents = true;
+                    }
+                }
+            }
+            const bool hasLegacyClick = ij.contains(PropertyNames::kJsonOnClick)
+                                     && ij[PropertyNames::kJsonOnClick].is_string()
+                                     && !ij[PropertyNames::kJsonOnClick].get<string>().empty();
+            if (actionFromEvents && hasLegacyClick)
+                logWarn("context-menu item \"" + caption + "\" has both events.onClick and onClick; using events.onClick");
+            if (!actionFromEvents && hasLegacyClick)
+                action = ij[PropertyNames::kJsonOnClick].get<string>();
+
+            if (!action.empty()) {
+                auto hit = m_handlers.find(action);
+                if (hit == m_handlers.end()) {
+                    logMissingHandler(action, cmId);
+                } else {
+                    auto handler = hit->second;
+                    item->setOnClick([handler](shared_ptr<MenuItem>) {
+                        try {
+                            handler(nullptr);
+                        } catch (const std::exception& e) {
+                            fprintf(stderr, "ContextMenu handler exception: %s\n", e.what());
+                        } catch (...) {
+                            fprintf(stderr, "ContextMenu handler exception: unknown\n");
+                        }
+                    });
+                }
+            }
+            cm->addItem(item);   // 内部包装：先执行 handler（异常已捕获），再关闭菜单
+        }
+        popJsonPath();
+    }
 
     parseEvents(cm, j);
     parseBindings(cm, j);
@@ -2949,6 +3054,9 @@ shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
     if (!ctrl) return;
 
+    if (j.contains(PropertyNames::kId) && j[PropertyNames::kId].is_string())
+        ctrl->setJsonId(j[PropertyNames::kId].get<string>());
+
     // scale
     if (j.contains(PropertyNames::kJsonScale) && j[PropertyNames::kJsonScale].is_object()) {
         float sx = j[PropertyNames::kJsonScale].value(PropertyNames::kJsonX, 1.0f);
@@ -3004,10 +3112,51 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
     if (j.contains(PropertyNames::kDragThreshold) && j[PropertyNames::kDragThreshold].is_number())
         ctrl->setFloatProperty(PropertyNames::kDragThreshold, j[PropertyNames::kDragThreshold].get<float>());
 
+    if (j.contains(PropertyNames::kPlaceholder) && j[PropertyNames::kPlaceholder].is_string())
+        ctrl->setStringProperty(PropertyNames::kPlaceholder, j[PropertyNames::kPlaceholder].get<string>().c_str());
+
     // 字体键（font{name,size} / font-size / fontSize）统一解析（显式声明）
     applyFontDecl(ctrl, j);
 
     applyShadowDecl(ctrl, j);
+
+    // CR20261102002：通用 content-padding（number/string/object）
+    if (j.contains(PropertyNames::kContentPadding)) {
+        const json& p = j[PropertyNames::kContentPadding];
+        if (p.is_number()) ctrl->setFloatProperty(PropertyNames::kContentPadding, p.get<float>());
+        else if (p.is_string()) ctrl->setStringProperty(PropertyNames::kContentPadding, p.get<string>().c_str());
+        else if (p.is_object()) {
+            Margin m; m.left = p.value("left", 0.0f); m.top = p.value("top", 0.0f);
+            m.right = p.value("right", 0.0f); m.bottom = p.value("bottom", 0.0f);
+            ctrl->setContentPadding(m);
+        }
+    }
+    if (j.contains(PropertyNames::kCornerRadius) && j[PropertyNames::kCornerRadius].is_number())
+        ctrl->setCornerRadius(j[PropertyNames::kCornerRadius].get<float>());
+    if (j.contains("box-shadow") && j["box-shadow"].is_object()) {
+        const json& sh = j["box-shadow"];
+        if (sh.contains("color") && sh["color"].is_string()) {
+            SColor c; if (SColor::fromHex(sh["color"].get<string>(), c)) ctrl->setColorProperty(PropertyNames::kBoxShadowColor, c);
+        }
+        if (sh.contains("offset-x")) ctrl->setFloatProperty(PropertyNames::kBoxShadowOffsetX, sh["offset-x"].get<float>());
+        if (sh.contains("offset-y")) ctrl->setFloatProperty(PropertyNames::kBoxShadowOffsetY, sh["offset-y"].get<float>());
+        if (sh.contains("blur")) ctrl->setFloatProperty(PropertyNames::kBoxShadowRadius, sh["blur"].get<float>());
+        if (sh.contains("spread")) ctrl->setFloatProperty(PropertyNames::kBoxShadowSpread, sh["spread"].get<float>());
+    }
+    if (j.contains(PropertyNames::kThemeEligible) && j[PropertyNames::kThemeEligible].is_boolean())
+        ctrl->setThemeEligible(j[PropertyNames::kThemeEligible].get<bool>());
+
+    // CR20261102001：classes / theme-role（兼容别名）+ 显式覆盖登记
+    if (j.contains(PropertyNames::kClasses)) {
+        std::vector<std::string> cls;
+        const json& c = j[PropertyNames::kClasses];
+        if (c.is_string()) { std::string s = c.get<string>(); std::string cur; for (char ch : s) { if (ch==' '||ch==',') { if(!cur.empty()){cls.push_back(cur);cur.clear();} } else cur += ch; } if(!cur.empty()) cls.push_back(cur); }
+        else if (c.is_array()) for (auto& e : c) if (e.is_string()) cls.push_back(e.get<string>());
+        ctrl->setThemeClasses(cls);
+    } else if (j.contains(PropertyNames::kThemeRole) && j[PropertyNames::kThemeRole].is_string()) {
+        ctrl->setStringProperty(PropertyNames::kThemeRole, j[PropertyNames::kThemeRole].get<string>().c_str());
+    }
+    if (m_themeRuntime) m_themeRuntime->captureExplicitFromJson(ctrl.get(), j);
 }
 
 // P0-81：解析期上下文绑定（目标实例上下文；已带上下文者不覆盖——如内嵌子控件继承父链）

@@ -66,6 +66,7 @@ public:
     shared_ptr<Label> getCaptionLabel(void) const;
     string getCaption(void) const;
     void setCaptionSize(float size);
+    void setContentPadding(Margin padding) override;
     float getCaptionSize() const;
     SRect getCaptionRect(void) const;
 

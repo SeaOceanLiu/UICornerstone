@@ -1,0 +1,200 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.12 ListView",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Default multi-column list with selected row",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "lm",
+          "rect": {
+            "x": 40,
+            "y": 88,
+            "w": 300,
+            "h": 22
+          },
+          "caption": "mode: multi (report)",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "list-view",
+          "id": "lv",
+          "rect": {
+            "x": 40,
+            "y": 112,
+            "w": 640,
+            "h": 120
+          },
+          "mode": "multi",
+          "row-height": 26,
+          "header-height": 28,
+          "selected-index": 1,
+          "columns": [
+            {
+              "title": "Name",
+              "width": 280
+            },
+            {
+              "title": "Size",
+              "width": 120
+            },
+            {
+              "title": "Status",
+              "width": 200
+            }
+          ],
+          "rows": [
+            {
+              "id": "r1",
+              "cells": [
+                "main.cpp",
+                "2.1 KB",
+                "Ready"
+              ]
+            },
+            {
+              "id": "r2",
+              "cells": [
+                "theme.cpp",
+                "8.4 KB",
+                "Modified"
+              ]
+            },
+            {
+              "id": "r3",
+              "cells": [
+                "readme.md",
+                "1.2 KB",
+                "Ready"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "ls",
+          "rect": {
+            "x": 40,
+            "y": 246,
+            "w": 300,
+            "h": 22
+          },
+          "caption": "mode: single (list)",
+          "font": {
+            "size": 13
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "list-view",
+          "id": "lv2",
+          "rect": {
+            "x": 40,
+            "y": 270,
+            "w": 640,
+            "h": 110
+          },
+          "mode": "single",
+          "row-height": 26,
+          "selected-index": 2,
+          "columns": [
+            {
+              "title": "Item",
+              "width": 640
+            }
+          ],
+          "rows": [
+            {
+              "id": "a",
+              "cells": [
+                "Alpha item"
+              ]
+            },
+            {
+              "id": "b",
+              "cells": [
+                "Beta item"
+              ]
+            },
+            {
+              "id": "c",
+              "cells": [
+                "Gamma item"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_select": [
+    {
+      "id": "lv",
+      "index": 1
+    },
+    {
+      "id": "lv2",
+      "index": 2
+    }
+  ]
+}

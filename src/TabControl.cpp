@@ -234,6 +234,12 @@ void TabControl::relayout() {
         }
     }
 
+    content.left += m_contentPadding.left;
+    content.top += m_contentPadding.top;
+    content.width -= m_contentPadding.left + m_contentPadding.right;
+    content.height -= m_contentPadding.top + m_contentPadding.bottom;
+    if (content.width < 0) content.width = 0;
+    if (content.height < 0) content.height = 0;
     m_contentRect = content;
     applyCurrentPage();
 }

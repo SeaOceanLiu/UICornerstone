@@ -132,7 +132,7 @@ public:
     string getSelectedLabel() const;
 
     // ── 占位文本 ──
-    void setPlaceholder(const string& text) { m_placeholder = text; }
+    void setPlaceholder(const string& text) { m_placeholder = text; EditBox::setPlaceholder(text); }
     string getPlaceholder() const { return m_placeholder; }
 
     // ── 视觉配置 ──

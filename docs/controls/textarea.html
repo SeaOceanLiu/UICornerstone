@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.24 TextArea - UICornerstone v1.1.0 用户手册</title>
+<title>4.24 TextArea - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/textarea.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>TextArea 是多行文本输入控件：按 \n 分行 + 自动换行（word wrap）、垂直 / 水平内置滚动条、光标与选区、剪贴板（Ctrl+C/V/X）。继承链：<code>TextArea → EditBox → ControlImpl → Control</code>（继承 EditBox 全部文本能力）。</p>
 
 <div class="note">缩放联动：置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时，字号随复合缩放系数重建；滚动范围保持本地语义恒定，不随字号漂移。</div>
+
+<figure>
+  <img src="../assets/controls/textarea-overview.png" alt="TextArea 占位与多行内容" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>占位符、自动换行和多行内容；下方为 content-padding 调整。</figcaption>
+</figure>
 
 <h2>4.24.1 控件的创建</h2>
 

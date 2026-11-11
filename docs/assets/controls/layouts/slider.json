@@ -1,0 +1,153 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.20 Slider",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Value and track/thumb styling",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "s0",
+          "rect": {
+            "x": 40,
+            "y": 90,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "value 25 / show-value-label",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "slider",
+          "id": "s0b",
+          "rect": {
+            "x": 40,
+            "y": 150,
+            "w": 620,
+            "h": 26
+          },
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "value": 25,
+          "step": 1,
+          "style": "horizontal",
+          "show-value-label": true,
+          "label-format": "%.0f"
+        },
+        {
+          "type": "label",
+          "id": "s1",
+          "rect": {
+            "x": 40,
+            "y": 195,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "value 75 / custom thumb and fill",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "slider",
+          "id": "s1b",
+          "rect": {
+            "x": 40,
+            "y": 255,
+            "w": 620,
+            "h": 26
+          },
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "value": 75,
+          "step": 1,
+          "style": "horizontal",
+          "show-value-label": true,
+          "label-format": "%.0f%%",
+          "track": {
+            "thickness": 5,
+            "color": {
+              "normal": "#2B3648"
+            },
+            "fill": {
+              "normal": "#22C55E"
+            }
+          },
+          "thumb": {
+            "size": 18,
+            "color": {
+              "normal": "#FFFFFF"
+            },
+            "border": {
+              "normal": "#22C55E"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

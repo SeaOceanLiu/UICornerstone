@@ -217,6 +217,31 @@ void* UICornerstone::GetNativeWindowHandle() const {
     return Dyn::API().fnGetNativeWindowHandle(m_impl->instance);
 }
 
+bool UICornerstone::SetWindowVisible(bool visible) {
+    if (!m_impl->instance || !Dyn::API().fnSetWindowVisible) return false;
+    return Dyn::API().fnSetWindowVisible(m_impl->instance, visible ? 1 : 0) != 0;
+}
+
+bool UICornerstone::IsWindowVisible() const {
+    if (!m_impl->instance || !Dyn::API().fnGetWindowVisible) return false;
+    int visible = 0;
+    return Dyn::API().fnGetWindowVisible(m_impl->instance, &visible) != 0 && visible != 0;
+}
+
+bool UICornerstone::SetWindowAlwaysOnTop(bool onTop) {
+    if (!m_impl->instance || !Dyn::API().fnSetWindowAlwaysOnTop) return false;
+    return Dyn::API().fnSetWindowAlwaysOnTop(m_impl->instance, onTop ? 1 : 0) != 0;
+}
+bool UICornerstone::IsWindowAlwaysOnTop() const {
+    if (!m_impl->instance || !Dyn::API().fnGetWindowAlwaysOnTop) return false;
+    int onTop = 0;
+    return Dyn::API().fnGetWindowAlwaysOnTop(m_impl->instance, &onTop) != 0 && onTop != 0;
+}
+bool UICornerstone::SetWindowForeground() {
+    if (!m_impl->instance || !Dyn::API().fnSetWindowForeground) return false;
+    return Dyn::API().fnSetWindowForeground(m_impl->instance) != 0;
+}
+
 static void WindowResizeThunk(int width, int height, void* userData) {
     auto* cb = static_cast<UICornerstone::WindowResizeCallback*>(userData);
     if (cb) (*cb)(width, height);
@@ -298,6 +323,32 @@ bool UICornerstone::LoadLayout(const std::string& jsonContent) {
 }
 bool UICornerstone::LoadLayoutFromFile(const std::string& filePath) {
     return m_impl->instance && Dyn::API().fnLoadLayoutFromFile(m_impl->instance, filePath.c_str()) != 0;
+}
+bool UICornerstone::ApplyTheme(const std::string& themeJson) {
+    return m_impl->instance && Dyn::API().fnApplyTheme && Dyn::API().fnApplyTheme(m_impl->instance, themeJson.c_str()) != 0;
+}
+bool UICornerstone::SetThemeVariant(const std::string& name) {
+    return m_impl->instance && Dyn::API().fnSetThemeVariant && Dyn::API().fnSetThemeVariant(m_impl->instance, name.c_str()) != 0;
+}
+std::string UICornerstone::GetThemeVariant() const {
+    if (!m_impl->instance || !Dyn::API().fnGetThemeVariant) return "";
+    char buf[128] = {0}; int n = 0;
+    Dyn::API().fnGetThemeVariant(m_impl->instance, buf, sizeof(buf), &n);
+    return std::string(buf);
+}
+std::string UICornerstone::GetActiveMedia() const {
+    if (!m_impl->instance || !Dyn::API().fnGetActiveMedia) return "";
+    char buf[512] = {0}; int n = 0;
+    Dyn::API().fnGetActiveMedia(m_impl->instance, buf, sizeof(buf), &n);
+    return std::string(buf);
+}
+bool UICornerstone::RefreshResponsiveTheme(float viewportWidth, float viewportHeight) {
+    return m_impl->instance && Dyn::API().fnRefreshResponsiveTheme &&
+           Dyn::API().fnRefreshResponsiveTheme(m_impl->instance, viewportWidth, viewportHeight) != 0;
+}
+bool UICornerstone::ClearThemeOverrides(Control& ctl) {
+    return m_impl->instance && ctl.IsValid() && Dyn::API().fnClearThemeOverrides &&
+           Dyn::API().fnClearThemeOverrides(m_impl->instance, ctl.Handle()) != 0;
 }
 Control UICornerstone::FindControl(const std::string& id) {
     if (!m_impl->instance) return Control();
@@ -1231,10 +1282,12 @@ void UICornerstone::RegisterAction(const std::string& name, ActionCallback callb
     Dyn::API().fnRegisterAction(m_impl->instance, name.c_str(),
         [](UIControlHandle ctl, void* userData) {
             auto* t = static_cast<ActionThunk*>(userData);
-            if (!ctl || !t) return;
+            if (!t) return;
+            // CR20261110002：StatusBar/ContextMenu item action 的 sender 为 nullptr；
+            // 仍调用 callback，传 invalid Control（Handle()==nullptr），与 C ABI 一致。
             auto state = std::make_shared<ControlState>();
             state->instance = t->inst;
-            state->handle = ctl;
+            state->handle = ctl;   // 允许 null
             t->cb(Control(std::move(state)));
         },
         thunk.get());

@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.10 HandleControl - UICornerstone v1.1.0 用户手册</title>
+<title>4.10 HandleControl - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/handlecontrol.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.10 HandleControl（变换手柄）</h1>
 
 <p>HandleControl 是编辑器类控件的选择框：附着于一个目标控件，提供<strong>8 个缩放手柄（NW/N/NE/E/SE/S/SW/W）+ 中心移动手柄 + 虚线选择框</strong>，拖拽实时修改目标的 <code>setRect()</code>。非拖拽时事件穿透给目标；目标被销毁时自动隐藏。继承链：<code>HandleControl → ControlImpl → Control</code>。</p>
+
+<figure>
+  <img src="../assets/controls/handlecontrol-overview.png" alt="HandleControl 八个缩放手柄" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>目标控件被虚线选择框和八个缩放手柄包围。</figcaption>
+</figure>
 
 <h2>4.10.1 控件的创建</h2>
 

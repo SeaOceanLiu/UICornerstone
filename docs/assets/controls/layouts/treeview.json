@@ -1,0 +1,118 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.25 TreeView",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Expanded tree with nested children",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "tree-view",
+          "id": "tree",
+          "rect": {
+            "x": 40,
+            "y": 100,
+            "w": 360,
+            "h": 260
+          },
+          "font": {
+            "size": 15
+          },
+          "items": [
+            {
+              "id": "root",
+              "label": "Project",
+              "expanded": true,
+              "children": [
+                {
+                  "id": "src",
+                  "label": "src",
+                  "expanded": true,
+                  "children": [
+                    {
+                      "id": "main",
+                      "label": "main.cpp"
+                    },
+                    {
+                      "id": "theme",
+                      "label": "theme.cpp"
+                    }
+                  ]
+                },
+                {
+                  "id": "docs",
+                  "label": "docs",
+                  "expanded": true,
+                  "children": [
+                    {
+                      "id": "readme",
+                      "label": "README.md"
+                    },
+                    {
+                      "id": "guide",
+                      "label": "guide.html"
+                    }
+                  ]
+                },
+                {
+                  "id": "build",
+                  "label": "build"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_expandAll": [
+    "tree"
+  ]
+}

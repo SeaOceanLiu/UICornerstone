@@ -1,0 +1,126 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.22 StatusBar",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Left/right aligned status items",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "panel",
+          "id": "win",
+          "rect": {
+            "x": 40,
+            "y": 90,
+            "w": 640,
+            "h": 270
+          },
+          "colors": {
+            "background": {
+              "normal": "#1A2130"
+            }
+          },
+          "children": [
+            {
+              "type": "label",
+              "id": "wl",
+              "rect": {
+                "x": 20,
+                "y": 20,
+                "w": 600,
+                "h": 24
+              },
+              "caption": "Window content area",
+              "font": {
+                "size": 15
+              },
+              "colors": {
+                "text": {
+                  "normal": "#DCE6FF"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "status-bar",
+          "id": "status",
+          "rect": {
+            "x": 40,
+            "y": 370,
+            "w": 640,
+            "h": 26
+          },
+          "font-size": 13,
+          "items": [
+            {
+              "id": "branch",
+              "text": "main"
+            },
+            {
+              "id": "file",
+              "text": "theme.cpp"
+            },
+            {
+              "id": "enc",
+              "text": "UTF-8",
+              "align": "right"
+            },
+            {
+              "id": "pos",
+              "text": "Ln 12, Col 8",
+              "align": "right"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

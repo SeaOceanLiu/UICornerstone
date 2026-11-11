@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.25 TreeView - UICornerstone v1.1.0 用户手册</title>
+<title>4.25 TreeView - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/treeview.html"></script>
 </head>
@@ -17,6 +17,11 @@
 
 <p>TreeView 是层级数据展示控件：节点（TreeNode）支持展开/折叠、选中、滚动（垂直 + 水平）、键盘环行导航与选中项滚动定位。
 继承链：<code>TreeView → ControlImpl → Control</code>。字号随复合缩放重建；行高独立不随字号（见 <a href="../advanced/canvas-scale.html">5.6.6</a>）。</p>
+
+<figure>
+  <img src="../assets/controls/treeview-overview.png" alt="TreeView 展开的层级节点" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>展开的 Project → src/docs 节点，展示缩进、箭头和子项。</figcaption>
+</figure>
 
 <h2>4.25.1 控件的创建</h2>
 

@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.2 Bench（测试台/根控件）- UICornerstone v1.1.0 用户手册</title>
+<title>4.2 Bench（测试台/根控件）- UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/bench.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.2 Bench（测试台 / 根控件）</h1>
 
 <p>Bench 是每个 <code>UIContext</code> 实例的<strong>控件树根节点</strong>：它承载整个界面的事件循环入口、焦点作用域切换，并作为所有顶层控件的父容器。继承链：<code>Bench → Panel → ControlImpl → Control</code>，并混入 <code>TopControl</code>（事件泵）。</p>
+
+<figure>
+  <img src="../assets/controls/bench-overview.png" alt="Bench 根画布与子控件" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>Bench 作为根画布承载按钮和子 Panel。</figcaption>
+</figure>
 
 <h2>4.2.1 控件的创建</h2>
 

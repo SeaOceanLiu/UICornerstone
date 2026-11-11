@@ -88,6 +88,7 @@ private:
     void loadFromResource(string resourceId);
     void createMultilineText(void);
     void computeLineOffsets(void);
+    void setContentPadding(Margin padding) override;
     void truncateLine(string& line, float maxWidth);
     SSize getTextSize(const string& text);
     float getStringWidth(const string& text);

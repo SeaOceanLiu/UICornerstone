@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.7 ContextMenu（右键菜单） - UICornerstone v1.1.0 用户手册</title>
+<title>4.7 ContextMenu（右键菜单） - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/contextmenu.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.7 ContextMenu（右键菜单）</h1>
 
 <p>ContextMenu 右键上下文菜单：Popup 浮层 + MenuPanel（子菜单/分隔线/图标/快捷键全支持），Esc / 外部点击 / 点项自动关闭。继承链：<code>ContextMenu → Popup → Panel</code>。设计文档见 <code>design/ContextMenu_Design.md</code>。</p>
+
+<figure>
+  <img src="../assets/controls/contextmenu-overview.png" alt="ContextMenu 菜单项与快捷键" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>显示菜单项、快捷键和分隔线。</figcaption>
+</figure>
 
 <h2>4.7.1 控件的创建</h2>
 
@@ -53,15 +58,21 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 
 <h2>4.7.4 JSON 语法</h2>
 
-<p>独立声明（P0-45；<code>items</code> 随结构化编辑批次补）：</p>
+<p>独立声明（P0-45；CR20261109003 起支持 <code>items</code> 与 <code>events.onClick</code>）：</p>
 <pre><code>{
   "type": "context-menu", "id": "cm", "visible": false,
   "colors": { "background": { "normal": "#202020", "hover": "#303030" },
               "border":     { "normal": "#505050", "hover": "#707070" } },
-  "close-on-esc": true, "close-on-click-outside": true
+  "close-on-esc": true, "close-on-click-outside": true,
+  "items": [
+    { "caption": "复制", "shortcut": "Ctrl+C", "events": { "onClick": "onCtxCopy" } },
+    { "type": "separator" },
+    { "caption": "删除", "events": { "onClick": "onCtxDelete" } },
+    { "caption": "旧写法", "onClick": "onCtxLegacy" }
+  ]
 }</code></pre>
 
-<p>控件级绑定：</p>
+<p>控件级绑定（控件级路径保持原有 items 解析）：</p>
 <pre><code>{
   "type": "label", "id": "lbl", "rect": { "x": 10, "y": 10, "w": 120, "h": 24 },
   "context-menu": {
@@ -75,11 +86,13 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 
 <table>
 <tr><th>JSON 键</th><th>类型</th><th>说明</th></tr>
-<tr><td><code>items[].caption</code></td><td>String</td><td>菜单项文本</td></tr>
+<tr><td><code>items[].caption</code></td><td>String</td><td>菜单项文本（V1 普通项必填）</td></tr>
 <tr><td><code>items[].shortcut</code></td><td>String</td><td>快捷键列</td></tr>
-<tr><td><code>items[].type</code></td><td>Enum</td><td>菜单项类型（<code>separator</code> ↔ <code>kMenuTypeSeparator</code> 等，见 7.3）</td></tr>
-<tr><td><code>items[].icon</code></td><td>资源引用</td><td>项图标（常量同 <code>kItemIcon</code>）</td></tr>
+<tr><td><code>items[].type</code></td><td>Enum</td><td>V1 支持 <code>separator</code>；嵌套子菜单暂不支持</td></tr>
+<tr><td><code>items[].events.onClick</code></td><td>String</td><td>动作名；优先于 <code>items[].onClick</code>；缺 handler 仅诊断，点击仍关闭</td></tr>
+<tr><td><code>items[].onClick</code></td><td>String</td><td>兼容旧写法；<code>events.onClick</code> 优先</td></tr>
 </table>
+<p class="note"><b>CR20261109003 V1</b>：独立 <code>context-menu</code> 的 items 仅支持 caption/shortcut/separator/onClick；嵌套 <code>items</code> 按叶子项降级并输出单次 warning，逐项 icon/leadingControl/样式暂不纳入。控件点击后的 action 先执行、再自动关闭菜单。</p>
 
 <h2>4.7.5 C++ Binding 样例</h2>
 
@@ -96,6 +109,8 @@ UICornerstone_ContextMenuAddSeparator(g_inst, m);
 UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 UICornerstone_SetPtr(g_inst, lbl, "context-menu", m);   // 右键绑定</code></pre>
 <p class="note"><b>P0-28</b>：编辑态常显（点击画布其它控件不关闭）——创建后 <code>SetBool("close-on-click-outside", 0)</code> + <code>SetBool("close-on-esc", 0)</code>（继承自 Popup 的能力）。</p>
+<p class="note"><b>CR20261110003</b>：任意控件经 <code>context-menu</code> 键或 <code>SetPtr("context-menu", ...)</code> 绑定后，右键在事件派发边界统一优先打开；父子同时绑定为子控件优先、父菜单兜底。未绑定菜单的控件保持原右键行为（Button 不触发左键 click/pressed）。</p>
+<p class="note"><b>CR20261110004</b>：LuotiAni/Actor 等纯显示控件按 <code>getDrawRect()</code> 矩形命中右键菜单（含透明区域），普通事件仍不参与命中；HandleControl V1 不支持右键菜单。</p>
 
 </body>
 </html>

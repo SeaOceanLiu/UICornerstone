@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.12 ListView（列表） - UICornerstone v1.1.0 用户手册</title>
+<title>4.12 ListView（列表） - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/listview.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.12 ListView（列表）</h1>
 
 <p>ListView 提供多列详情视图（Report）与单列模式（List，ListBox 替代）：列头/排序/网格线/选中高亮/hover/行列图标/滚动。继承链：<code>ListView → ControlImpl → Control</code>。设计文档见 <code>design/ListView_Design.md</code>。</p>
+
+<figure>
+  <img src="../assets/controls/listview-overview.png" alt="ListView 多列列表与选中行" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>上方为多列 Report 模式（含列头/选中行），下方为单列 List 模式。</figcaption>
+</figure>
 
 <h2>4.12.1 控件的创建</h2>
 

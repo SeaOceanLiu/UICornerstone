@@ -1,0 +1,128 @@
+﻿{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.5 ColorPicker",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Closed color swatch and text state",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "cp0",
+          "rect": {
+            "x": 40,
+            "y": 90,
+            "w": 300,
+            "h": 24
+          },
+          "caption": "color: #FF6600",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "color-picker",
+          "id": "cp0b",
+          "rect": {
+            "x": 40,
+            "y": 116,
+            "w": 140,
+            "h": 34
+          },
+          "color": "#FF6600",
+          "closed-text-color": "#DBDBDB",
+          "presets": [
+            "#FF0000",
+            "#00FF00",
+            "#0000FF",
+            "#FFFF00",
+            "#FF00FF"
+          ]
+        },
+        {
+          "type": "label",
+          "id": "cp1",
+          "rect": {
+            "x": 230,
+            "y": 90,
+            "w": 400,
+            "h": 24
+          },
+          "caption": "color: #22C55E / closed swatch size: 20",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "color-picker",
+          "id": "cp1b",
+          "rect": {
+            "x": 230,
+            "y": 116,
+            "w": 180,
+            "h": 34
+          },
+          "color": "#22C55E",
+          "closed-swatch-size": 20
+        }
+      ]
+    }
+  ]
+}

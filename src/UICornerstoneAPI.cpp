@@ -24,6 +24,7 @@
 #include "HandleControl.h"
 #include "Menu.h"
 #include "LayoutParser.h"
+#include "ThemeStyle.h"
 #include "ResourceProvider.h"
 #include "PlatformUtils.h"
 #include "Actor.h"
@@ -128,9 +129,11 @@ static bool treeContains(Control* root, Control* target) {
 }
 
 static bool instanceHoldsControl(UIInstance instance, Control* target) {
+    // 先做无解引用的存活检查：目标可能已被 DestroyControl 释放，直接读 parent 会崩溃
+    if (!ControlImpl::isLive(target)) return false;
     // 沿 parent 链上溯：菜单面板/项经 setParent 挂靠（不在 children 列表），
     // 从 target 逐层上溯到 bench 根或池成员即视为本实例持有
-    for (Control* cur = target; cur != nullptr; cur = cur->getParent()) {
+    for (Control* cur = target; cur != nullptr; ) {
         if (instance->bench && (cur == instance->bench || treeContains(instance->bench, cur)))
             return true;
         for (auto& sp : instance->popupPool)
@@ -144,9 +147,14 @@ static bool instanceHoldsControl(UIInstance instance, Control* target) {
         // 句柄控件池（HandleControl 实例级保留）
         for (auto& sp : instance->handleControls)
             if (sp.get() == cur || treeContains(sp.get(), cur)) return true;
+        Control* next = cur->getParent();
+        if (next && !ControlImpl::isLive(next)) return false;
+        cur = next;
     }
     return false;
 }
+
+static void applyThemeAllRoots(UIInstance instance);
 
 static Control* validateControl(UIInstance instance, UIControlHandle ctl) {
     if (!instance || !ctl) return nullptr;
@@ -427,7 +435,8 @@ UIInstance UICornerstone_CreateInstance(
     const UIBackendCallbacks* callbacks,
     const UIInstanceConfig* config)
 {
-    if (!callbacks || callbacks->version != 1) return nullptr;
+    // CR20261105004：接受 v1/v2 回调表；v1 不读取新增字段。
+    if (!callbacks || (callbacks->version != 1 && callbacks->version != 2)) return nullptr;
 
     auto* ctx = new UIContext();
     ctx->callbacks = callbacks;
@@ -671,6 +680,7 @@ void UICornerstone_SetViewport(UIInstance instance, float x, float y, float w, f
     if (instance->bench) {
         instance->bench->resized(instance->viewport);
     }
+    if (instance->themeRuntime) instance->themeRuntime->markResponsiveDirty();
 }
 
 void UICornerstone_GetViewport(UIInstance instance, float* x, float* y, float* w, float* h) {
@@ -790,6 +800,38 @@ void* UICornerstone_GetNativeWindowHandle(UIInstance instance) {
     return instance->window->nativeHandle();
 }
 
+int UICornerstone_SetWindowVisible(UIInstance instance, int visible) {
+    if (!instance || !instance->initialized || instance->destroying) return 0;
+    if (instance->owner != nullptr || !instance->ownsBackend || !instance->window) return 0;
+    return instance->window->setVisible(visible != 0) ? 1 : 0;
+}
+
+int UICornerstone_GetWindowVisible(UIInstance instance, int* visible) {
+    if (!visible || !instance || !instance->initialized || instance->destroying) return 0;
+    if (instance->owner != nullptr || !instance->ownsBackend || !instance->window) return 0;
+    *visible = instance->window->isVisible() ? 1 : 0;
+    return 1;
+}
+
+int UICornerstone_SetWindowAlwaysOnTop(UIInstance instance, int onTop) {
+    if (!instance || !instance->initialized || instance->destroying) return 0;
+    if (instance->owner != nullptr || !instance->ownsBackend || !instance->window) return 0;
+    return instance->window->setAlwaysOnTop(onTop != 0) ? 1 : 0;
+}
+
+int UICornerstone_GetWindowAlwaysOnTop(UIInstance instance, int* onTop) {
+    if (!onTop || !instance || !instance->initialized || instance->destroying) return 0;
+    if (instance->owner != nullptr || !instance->ownsBackend || !instance->window) return 0;
+    *onTop = instance->window->isAlwaysOnTop() ? 1 : 0;
+    return 1;
+}
+
+int UICornerstone_SetWindowForeground(UIInstance instance) {
+    if (!instance || !instance->initialized || instance->destroying) return 0;
+    if (instance->owner != nullptr || !instance->ownsBackend || !instance->window) return 0;
+    return instance->window->setForeground() ? 1 : 0;
+}
+
 void UICornerstone_SetWindowResizeCallback(UIInstance instance,
     UIWindowResizeCallback cb, void* userData) {
     if (!instance) return;
@@ -801,6 +843,7 @@ void UICornerstone_SetWindowResizeCallback(UIInstance instance,
 static void DispatchWindowResize(UIInstance instance, const EventResize& ev) {
     instance->viewport = SRect(0, 0, (float)ev.width, (float)ev.height);
     instance->bench->resized(instance->viewport);
+    if (instance->themeRuntime) instance->themeRuntime->markResponsiveDirty();
     if (instance->windowResizeCb) {
         instance->windowResizeCb(ev.width, ev.height, instance->windowResizeCbUserData);
     }
@@ -990,6 +1033,9 @@ int UICornerstone_ProcessEvents(UIInstance instance) {
 void UICornerstone_Update(UIInstance instance, double deltaTime) {
     (void)deltaTime;
     if (!instance || !instance->initialized || instance->destroying) return;
+    if (instance->themeRuntime && instance->themeRuntime->consumeResponsiveDirty()) {
+        applyThemeAllRoots(instance);
+    }
     if (instance->bench) {
         instance->bench->eventLoopEntry();
         instance->bench->update();
@@ -1562,6 +1608,129 @@ int UICornerstone_Debug_ClearMousePosition(UIInstance instance) {
 #endif
 }
 
+int UICornerstone_SetContentPadding(UIInstance instance, UIControlHandle ctl, float left, float top, float right, float bottom) {
+    if (!instance || !ctl) return 0;
+    Control* c = validateControl(instance, ctl);
+    auto* impl = dynamic_cast<ControlImpl*>(c);
+    if (!impl) return 0;
+    impl->setContentPadding(Margin{left, top, right, bottom});
+    if (instance->themeRuntime) instance->themeRuntime->recordExplicitString(c, PropertyNames::kContentPadding,
+        (std::to_string(left)+" "+std::to_string(top)+" "+std::to_string(right)+" "+std::to_string(bottom)).c_str());
+    return 1;
+}
+
+int UICornerstone_GetContentPadding(UIInstance instance, UIControlHandle ctl, float* left, float* top, float* right, float* bottom) {
+    if (!instance || !ctl) return 0;
+    Control* c = validateControl(instance, ctl);
+    auto* impl = dynamic_cast<ControlImpl*>(c);
+    if (!impl) return 0;
+    Margin m = impl->getContentPadding();
+    if (left) *left = m.left; if (top) *top = m.top;
+    if (right) *right = m.right; if (bottom) *bottom = m.bottom;
+    return 1;
+}
+
+// ============================================================
+// CR20261102001/003：CSS-like 主题 / 响应式
+// ============================================================
+static void applyThemeAllRoots(UIInstance instance) {
+    if (!instance || !instance->themeRuntime || !instance->bench) return;
+    auto* rt = instance->themeRuntime.get();
+    if (!rt->hasThemableData()) return;
+    const float w = (float)instance->viewport.width;
+    const float h = (float)instance->viewport.height;
+    const float scale = instance->bench->getScaleXX();
+    if (!rt->hasResponsiveData()) {
+        ThemeRuntime::ActiveConditions none;
+        rt->setBenchActive(none);
+        rt->applyAll(instance->bench, none);
+        for (auto& pop : instance->popupPool) rt->applyAll(pop.get(), none);
+        for (auto& mb : instance->menuPool) rt->applyAll(mb.get(), none);
+        return;
+    }
+    auto benchCond = rt->evaluateConditions(instance->bench, w, h, scale);
+    rt->setBenchActive(benchCond);
+    rt->applyAll(instance->bench, benchCond);
+    for (auto& pop : instance->popupPool) {
+        auto c = rt->evaluateConditions(pop.get(), w, h, scale);
+        rt->applyAll(pop.get(), c);
+    }
+    for (auto& mb : instance->menuPool) {
+        auto c = rt->evaluateConditions(mb.get(), w, h, scale);
+        rt->applyAll(mb.get(), c);
+    }
+}
+
+static void applyThemeControlInRoot(UIInstance instance, Control* ctl) {
+    if (!instance || !instance->themeRuntime || !ctl || !instance->bench) return;
+    auto* rt = instance->themeRuntime.get();
+    if (!rt->hasThemableData()) return;
+    Control* root = ctl;
+    while (root->getParent()) root = root->getParent();
+    ThemeRuntime::ActiveConditions cond;
+    if (rt->hasResponsiveData()) {
+        cond = rt->evaluateConditions(root, (float)instance->viewport.width,
+            (float)instance->viewport.height, instance->bench->getScaleXX());
+    }
+    rt->applyControl(ctl, cond);
+}
+
+int UICornerstone_ApplyTheme(UIInstance instance, const char* themeJson) {
+    if (!instance || !themeJson || instance->destroying) return 0;
+    try {
+        json j = json::parse(themeJson);
+        if (!j.is_object()) return 0;
+        // B2：有效数据为空时 no-op；必须在 setTheme 前判定，避免清空旧主题/显式状态。
+        if (!ThemeRuntime::jsonHasThemableData(j)) return 1;
+        if (!instance->themeRuntime) instance->themeRuntime = std::make_shared<ThemeRuntime>();
+        instance->themeRuntime->setTheme(j);
+        instance->themeRawJson = themeJson;
+        applyThemeAllRoots(instance);
+        return 1;
+    } catch (...) { return 0; }
+}
+
+int UICornerstone_SetThemeVariant(UIInstance instance, const char* name) {
+    if (!instance || !instance->themeRuntime) return 0;
+    instance->themeRuntime->setVariant(instance->bench, name ? name : "");
+    applyThemeAllRoots(instance);
+    return 1;
+}
+
+int UICornerstone_GetThemeVariant(UIInstance instance, char* out, int cap, int* outLen) {
+    if (!instance || !instance->themeRuntime) return 0;
+    const std::string& v = instance->themeRuntime->getVariant();
+    if (out && cap > 0) { int n = (int)v.size(); if (n >= cap) n = cap - 1; memcpy(out, v.c_str(), n); out[n] = 0; }
+    if (outLen) *outLen = (int)v.size();
+    return 1;
+}
+
+int UICornerstone_ClearThemeOverrides(UIInstance instance, UIControlHandle ctl) {
+    if (!instance || !instance->themeRuntime) return 0;
+    if (!ctl) { applyThemeAllRoots(instance); return 1; }
+    Control* c = validateControl(instance, ctl);
+    if (!c) return 0;
+    instance->themeRuntime->clearOverrides(c);
+    applyThemeAllRoots(instance);
+    return 1;
+}
+
+int UICornerstone_RefreshResponsiveTheme(UIInstance instance, float viewportWidth, float viewportHeight) {
+    if (!instance || !instance->themeRuntime) return 0;
+    if (viewportWidth > 0) instance->viewport.width = viewportWidth;
+    if (viewportHeight > 0) instance->viewport.height = viewportHeight;
+    applyThemeAllRoots(instance);
+    return 1;
+}
+
+int UICornerstone_GetActiveMedia(UIInstance instance, char* out, int cap, int* outLen) {
+    if (!instance || !instance->themeRuntime) return 0;
+    std::string v = instance->themeRuntime->getActiveMedia();
+    if (out && cap > 0) { int n = (int)v.size(); if (n >= cap) n = cap - 1; memcpy(out, v.c_str(), n); out[n] = 0; }
+    if (outLen) *outLen = (int)v.size();
+    return 1;
+}
+
 // ============================================================
 // 布局系统
 // ============================================================
@@ -1585,8 +1754,10 @@ int UICornerstone_LoadLayout(UIInstance instance, const char* jsonContent) {
         } catch (...) { /* 布局语法错误由 parseLayout 报告 */ }
     }
 
+    if (!instance->themeRuntime) instance->themeRuntime = std::make_shared<ThemeRuntime>();
     LayoutParser parser(instance->dataContext);
     parser.setViewportTarget(instance);
+    parser.setThemeRuntime(instance->themeRuntime.get());
 
     // 注册所有 actions 到 LayoutParser
     for (auto& [name, pair] : instance->actions) {
@@ -1645,6 +1816,11 @@ int UICornerstone_LoadLayout(UIInstance instance, const char* jsonContent) {
         }
     };
     prepareLayoutAnis(instance->bench);
+
+    // CR20261102001/002/003：旧主题→CSS-like→显式覆盖已由 parser 完成；此处仅在有效主题时应用一次。
+    if (instance->themeRuntime && instance->themeRuntime->hasThemableData()) {
+        applyThemeAllRoots(instance);
+    }
 
     UI_LOGI(instance, "LoadLayout OK (%zu control ids, %zu menu bars, %zu dialogs)",
         parser.getAllControlIds().size(),
@@ -3508,41 +3684,64 @@ int UICornerstone_SetColor(UIInstance instance, UIControlHandle ctl, const char*
     if (!instance || !ctl || !prop) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setColorProperty(prop, SColor(value.r, value.g, value.b, value.a));
+    int r = c->setColorProperty(prop, SColor(value.r, value.g, value.b, value.a));
+    if (r && instance->themeRuntime) instance->themeRuntime->recordExplicitColor(c, prop, SColor(value.r, value.g, value.b, value.a));
+    return r;
 }
 
 int UICornerstone_SetStateColor(UIInstance instance, UIControlHandle ctl, const char* prop, UIStateColor value) {
     if (!instance || !ctl || !prop) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setStateColorProperty(prop,
+    int r = c->setStateColorProperty(prop,
         StateColor(
             SColor(value.normal.r, value.normal.g, value.normal.b, value.normal.a),
             SColor(value.hover.r, value.hover.g, value.hover.b, value.hover.a),
             SColor(value.pressed.r, value.pressed.g, value.pressed.b, value.pressed.a),
             SColor(value.disabled.r, value.disabled.g, value.disabled.b, value.disabled.a)
         ));
+    if (r && instance->themeRuntime) {
+        instance->themeRuntime->recordExplicitColor(c, prop, SColor(value.normal.r, value.normal.g, value.normal.b, value.normal.a));
+        std::string base = prop;
+        instance->themeRuntime->recordExplicitColor(c, (base + ".hover").c_str(), SColor(value.hover.r, value.hover.g, value.hover.b, value.hover.a));
+        instance->themeRuntime->recordExplicitColor(c, (base + ".pressed").c_str(), SColor(value.pressed.r, value.pressed.g, value.pressed.b, value.pressed.a));
+        instance->themeRuntime->recordExplicitColor(c, (base + ".disabled").c_str(), SColor(value.disabled.r, value.disabled.g, value.disabled.b, value.disabled.a));
+    }
+    return r;
 }
 
 int UICornerstone_SetInt(UIInstance instance, UIControlHandle ctl, const char* prop, int value) {
     if (!instance || !ctl || !prop) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setIntProperty(prop, value);
+    int r = c->setIntProperty(prop, value);
+    if (r && instance->themeRuntime && (strcmp(prop, PropertyNames::kFontSize) == 0)) instance->themeRuntime->recordExplicitNumber(c, prop, value);
+    return r;
 }
 
 int UICornerstone_SetFloat(UIInstance instance, UIControlHandle ctl, const char* prop, float value) {
     if (!instance || !ctl || !prop) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setFloatProperty(prop, value);
+    int r = c->setFloatProperty(prop, value);
+    if (r && instance->themeRuntime) instance->themeRuntime->recordExplicitNumber(c, prop, value);
+    return r;
 }
 
 int UICornerstone_SetString(UIInstance instance, UIControlHandle ctl, const char* prop, const char* value) {
     if (!instance || !ctl || !prop) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setStringProperty(prop, value);
+    int r = c->setStringProperty(prop, value);
+    if (r && instance->themeRuntime && strcmp(prop, PropertyNames::kClasses) != 0 &&
+        strcmp(prop, PropertyNames::kThemeRole) != 0 && strcmp(prop, PropertyNames::kThemeEligible) != 0) {
+        instance->themeRuntime->recordExplicitString(c, prop, value ? value : "");
+        if (strcmp(prop, PropertyNames::kContentPadding) == 0) { /* explicit padding recorded */ }
+    }
+    if (r && instance->themeRuntime &&
+        (strcmp(prop, PropertyNames::kClasses) == 0 || strcmp(prop, PropertyNames::kThemeRole) == 0))
+        applyThemeControlInRoot(instance, c);
+    return r;
 }
 
 int UICornerstone_SetBool(UIInstance instance, UIControlHandle ctl, const char* prop, int value) {
@@ -3556,7 +3755,10 @@ int UICornerstone_SetEnum(UIInstance instance, UIControlHandle ctl, const char* 
     if (!instance || !ctl || !prop || !value) return 0;
     Control* c = validateControl(instance, ctl);
     if (!c) return 0;
-    return c->setEnumProperty(prop, value);
+    int r = c->setEnumProperty(prop, value);
+    if (r && instance->themeRuntime && strcmp(prop, PropertyNames::kFont) == 0)
+        instance->themeRuntime->recordExplicitString(c, prop, value);
+    return r;
 }
 
 int UICornerstone_SetPtr(UIInstance instance, UIControlHandle ctl, const char* prop, void* value) {

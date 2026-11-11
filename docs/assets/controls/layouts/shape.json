@@ -1,0 +1,112 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.19 Shape",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Circle, round-rect, rect and ellipse",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 50,
+            "y": 130,
+            "w": 120,
+            "h": 120
+          },
+          "shape": "circle",
+          "fill": "#2D7FF9",
+          "stroke": "#93C5FD",
+          "line-width": 3
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 210,
+            "y": 130,
+            "w": 140,
+            "h": 120
+          },
+          "shape": "round-rect",
+          "fill": "#22C55E",
+          "stroke": "#86EFAC",
+          "line-width": 3,
+          "radius": 24
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 390,
+            "y": 130,
+            "w": 120,
+            "h": 120
+          },
+          "shape": "rect",
+          "fill": "#F59E0B",
+          "stroke": "#FCD34D",
+          "line-width": 3
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 550,
+            "y": 150,
+            "w": 120,
+            "h": 80
+          },
+          "shape": "ellipse",
+          "fill": "#EF4444",
+          "stroke": "#FCA5A5",
+          "line-width": 3
+        }
+      ]
+    }
+  ]
+}

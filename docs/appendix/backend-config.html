@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>10 后端差异及后端配置 - UICornerstone v1.1.0 用户手册</title>
+<title>10 后端差异及后端配置 - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="appendix/backend-config.html"></script>
 </head>
@@ -62,7 +62,7 @@ UICornerstone_GetBackendConfig(g_inst, "renderer-name", name, sizeof(name));</co
 <tr><th>字段</th><th>默认</th><th>说明</th></tr>
 <tr><td><code>debugLabel</code></td><td>"Instance_&lt;id&gt;"</td><td>多实例日志区分</td></tr>
 <tr><td><code>resourceRoot</code></td><td>默认</td><td>资源根目录（图片 / 字体 / 动画相对路径基准）</td></tr>
-<tr><td><code>windowFlags</code></td><td>0</td><td><code>0x00000020</code> 可调大小；<code>0x00002000</code> 高 DPI（SDL3 生效，其余透传）</td></tr>
+<tr><td><code>windowFlags</code></td><td>0</td><td><code>0x00000020</code> 可调大小；<code>0x00002000</code> 高 DPI；<code>0x00020000</code> Utility（SDL3；SFML/raylib 忽略）</td></tr>
 <tr><td><code>windowTitle</code></td><td>"UICornerstone"</td><td>窗口标题</td></tr>
 <tr><td><code>windowWidth/Height</code></td><td>1024 / 768</td><td>0 → 默认</td></tr>
 </table>

@@ -1,0 +1,116 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.11 Label",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Default appearance and font-size / text-color / shadow comparison",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "l0",
+          "rect": {
+            "x": 40,
+            "y": 90,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "Default label: 16px, normal color",
+          "font": {
+            "size": 16
+          },
+          "colors": {
+            "text": {
+              "normal": "#DCE6FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "l1",
+          "rect": {
+            "x": 40,
+            "y": 140,
+            "w": 620,
+            "h": 40
+          },
+          "caption": "Modified: 28px, amber, with shadow",
+          "font": {
+            "size": 28
+          },
+          "colors": {
+            "text": {
+              "normal": "#F59E0B"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "l2",
+          "rect": {
+            "x": 40,
+            "y": 210,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "Longer text shows wrapping and alignment behavior.",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

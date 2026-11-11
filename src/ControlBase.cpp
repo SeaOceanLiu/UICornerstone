@@ -1,4 +1,18 @@
 ﻿#include "ControlBase.h"
+namespace {
+std::unordered_set<const Control*>& liveControls() {
+    static auto* s = new std::unordered_set<const Control*>();
+    return *s;
+}
+}
+bool ControlImpl::isLive(const Control* ctl) {
+    return ctl && liveControls().count(ctl) != 0;
+}
+
+namespace { thread_local int s_deferRecreateDepth = 0; }
+void ControlImpl::beginDeferredRecreate() { ++s_deferRecreateDepth; }
+void ControlImpl::endDeferredRecreate() { if (s_deferRecreateDepth > 0) --s_deferRecreateDepth; }
+bool ControlImpl::isDeferredRecreate() { return s_deferRecreateDepth > 0; }
 #include "DragDrop.h"
 #include "ContextMenu.h"
 #include "UICornerstoneAPI.h"
@@ -37,6 +51,7 @@ ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     m_rect({0, 0, 0, 0}),
     m_mouseInside(false)
 {
+    liveControls().insert(this);
     // 构造时从父控件继承实例上下文：浮层控件（Dialog/Popup 等）以 parent 构造但
     // 不在父的 children 中，无 setContext 传播路径，必须在此继承，否则 open() 时
     // BENCH/GET_CONTEXT 为 null
@@ -73,6 +88,7 @@ ControlImpl::ControlImpl(const ControlImpl &other):
     m_rect(other.m_rect),
     m_mouseInside(other.m_mouseInside)
 {
+    liveControls().insert(this);
     m_eventQueueInstance = other.m_eventQueueInstance;
 
     for(const auto& child : other.m_children){
@@ -251,8 +267,21 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
                 bgColor = m_bgColor.getNormal();
                 break;
         }
-        getRenderDevice()->setDrawColor(bgColor);
-        getRenderDevice()->fillRect(drawRect);
+        if (m_boxShadowColor.alpha() > 0.0f) {
+            SRect sr = drawRect;
+            sr.left += m_boxShadowOffsetX - m_boxShadowSpread;
+            sr.top += m_boxShadowOffsetY - m_boxShadowSpread;
+            sr.width += m_boxShadowSpread * 2.0f;
+            sr.height += m_boxShadowSpread * 2.0f;
+            float rr = m_cornerRadius + m_boxShadowSpread + m_boxShadowRadius * 0.5f;
+            getRenderDevice()->drawRoundRect(sr, rr, m_boxShadowColor, SColor(0,0,0,0), 0.0f);
+        }
+        if (m_cornerRadius > 0.0f) {
+            getRenderDevice()->drawRoundRect(drawRect, m_cornerRadius, bgColor, SColor(0,0,0,0), 0.0f);
+        } else {
+            getRenderDevice()->setDrawColor(bgColor);
+            getRenderDevice()->fillRect(drawRect);
+        }
     }
 }
 
@@ -282,8 +311,12 @@ void ControlImpl::drawBorder(const SRect *pDrawRect){
                 borderColor = m_borderColor.getNormal();
                 break;
         }
-        getRenderDevice()->setDrawColor(borderColor);
-        getRenderDevice()->drawRect(drawRect);
+        if (m_cornerRadius > 0.0f) {
+            getRenderDevice()->drawRoundRect(drawRect, m_cornerRadius, SColor(0,0,0,0), borderColor, 1.0f);
+        } else {
+            getRenderDevice()->setDrawColor(borderColor);
+            getRenderDevice()->drawRect(drawRect);
+        }
     }
 }
 
@@ -302,11 +335,65 @@ void ControlImpl::clearMouseCapture(bool resetState) {
     m_capturedChild = nullptr;
 }
 
+bool ControlImpl::isContextMenuHit(float x, float y) {
+    SRect dr = getDrawRect();
+    if (dr.width <= 0.0f || dr.height <= 0.0f) return false;
+    return dr.contains(x, y);
+}
+
+// CR20261110003：右键 context-menu 统一尝试。返回 true 表示已打开/已显示并消费。
+bool ControlImpl::tryOpenContextMenu(const shared_ptr<Event>& event) {
+    if (!m_contextMenu || !event) return false;
+    if (event->m_type != EventType::MouseDown || event->mouseButton.button != MouseButton::Right)
+        return false;
+    if (!getVisible() || !getEnable()) return false;
+    float mx = event->mouseButton.x, my = event->mouseButton.y;
+    if (!isContextMenuHit(mx, my)) return false;
+    if (m_contextMenu->isPopupVisible()) return true;   // 已显示：消费但不重复 show/close
+    m_contextMenu->show(mx, my);
+    return true;
+}
+
+// 只尝试子控件菜单，不调用子控件完整 handleEvent；遮挡/逆序与 dispatchToChild 一致。
+bool ControlImpl::tryDispatchContextMenuToChild(const shared_ptr<Event>& event) {
+    if (!event || !getVisible() || !getEnable()) return false;
+    if (event->m_type != EventType::MouseDown || event->mouseButton.button != MouseButton::Right)
+        return false;
+
+    const float mx = event->mouseButton.x, my = event->mouseButton.y;
+    auto childrenCopy = m_children;
+    for (auto it = childrenCopy.rbegin(); it != childrenCopy.rend(); ++it) {
+        if (!(*it)->getVisible() || !(*it)->getEnable()) continue;
+        bool covered = false;
+        for (auto coverIt = childrenCopy.rbegin(); coverIt != it; ++coverIt) {
+            if ((*coverIt)->getVisible() && (*coverIt)->getEnable() && (*coverIt)->isContainsPoint(mx, my)) {
+                covered = true;
+                break;
+            }
+        }
+        if (covered) continue;
+        if (auto* impl = dynamic_cast<ControlImpl*>(it->get())) {
+            // 孙控件菜单优先于当前子控件自身菜单（真正的“子控件优先”）。
+            if (impl->tryDispatchContextMenuToChild(event)) return true;
+            if (impl->tryOpenContextMenu(event)) return true;
+        }
+    }
+    return false;
+}
+
 // P0-114/CR004：逆序派发子控件；MouseDown 消费时记录 captured；Up/Move 优先派发 captured。
 bool ControlImpl::dispatchToChild(shared_ptr<Event> event, Control** consumedChild) {
     if (consumedChild) *consumedChild = nullptr;
     if (!event) return false;
     if (!getVisible() || !getEnable()) return false;
+
+    // CR20261110003：右键先尝试子控件菜单（覆盖直接调用 dispatchToChild 的派生控件）
+    if (event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Right) {
+        if (tryDispatchContextMenuToChild(event)) {
+            if (consumedChild) *consumedChild = nullptr;
+            return true;
+        }
+    }
 
     const EventType et = event->m_type;
     const bool isDown = (et == EventType::MouseDown || et == EventType::FingerDown);
@@ -368,14 +455,10 @@ bool ControlImpl::dispatchToChild(shared_ptr<Event> event, Control** consumedChi
 
 //事件处理，返回值表示是否处理了该事件，true表示处理了，false表示未处理
 bool ControlImpl::handleEvent(shared_ptr<Event> event){
-    // 右键上下文菜单（决策点 2-B）：命中本控件且菜单未显示 → 弹出
-    if (m_contextMenu && event->m_type == EventType::MouseDown &&
-        event->mouseButton.button == MouseButton::Right && getVisible() && getEnable()) {
-        float mx = event->mouseButton.x, my = event->mouseButton.y;
-        if (isContainsPoint(mx, my) && !m_contextMenu->isPopupVisible()) {
-            m_contextMenu->show(mx, my);
-            return true;
-        }
+    // CR20261110003：右键按“子控件菜单优先、父菜单兜底”统一处理。
+    if (event && event->m_type == EventType::MouseDown && event->mouseButton.button == MouseButton::Right) {
+        if (tryDispatchContextMenuToChild(event)) return true;
+        if (tryOpenContextMenu(event)) return true;
     }
     // 检查当前控件是否可见且启用
     if (getVisible() && getEnable()){
@@ -546,13 +629,40 @@ void ControlImpl::setMargin(Margin margin){
 Margin ControlImpl::getMargin(void) const{
     return m_margin;
 }
+void ControlImpl::setContentPadding(Margin padding) {
+    m_contentPadding.left = padding.left > 0.0f ? padding.left : 0.0f;
+    m_contentPadding.top = padding.top > 0.0f ? padding.top : 0.0f;
+    m_contentPadding.right = padding.right > 0.0f ? padding.right : 0.0f;
+    m_contentPadding.bottom = padding.bottom > 0.0f ? padding.bottom : 0.0f;
+}
+
+SRect ControlImpl::getContentRect(void) {
+    SRect r = getRect();
+    float w = r.width - m_contentPadding.left - m_contentPadding.right;
+    float h = r.height - m_contentPadding.top - m_contentPadding.bottom;
+    if (w < 0.0f) w = 0.0f;
+    if (h < 0.0f) h = 0.0f;
+    return SRect{ r.left + m_contentPadding.left, r.top + m_contentPadding.top, w, h };
+}
+
+SRect ControlImpl::getContentDrawRect(void) {
+    SRect r = getDrawRect();
+    float sx = getScaleXX(), sy = getScaleYY();
+    float l = m_contentPadding.left * sx, tp = m_contentPadding.top * sy;
+    float rr = m_contentPadding.right * sx, b = m_contentPadding.bottom * sy;
+    float w = r.width - l - rr, h = r.height - tp - b;
+    if (w < 0.0f) w = 0.0f;
+    if (h < 0.0f) h = 0.0f;
+    return SRect{ r.left + l, r.top + tp, w, h };
+}
+
 SRect ControlImpl::getMarginedRect(void) {
     Margin margin = getMargin();
     SRect marginRect = {
-        margin.left,
-        margin.top,
-        getRect().width - margin.left - margin.right,
-        getRect().height - margin.top - margin.bottom
+        margin.left + m_contentPadding.left,
+        margin.top + m_contentPadding.top,
+        getRect().width - margin.left - margin.right - m_contentPadding.left - m_contentPadding.right,
+        getRect().height - margin.top - margin.bottom - m_contentPadding.top - m_contentPadding.bottom
     };
     return marginRect.normalize();
 }
@@ -850,6 +960,7 @@ void ControlImpl::triggerEvent(shared_ptr<Event> event){
 }
 
 ControlImpl::~ControlImpl() {
+    liveControls().erase(this);
     // 静态/全局残留控件在进程退出阶段析构时 m_context 可能已随
     // DestroyInstance 释放（悬垂），必须经 isActive 确认实例存活后再访问。
     if (m_focusable && UIContext::isActive(m_context)) {
@@ -986,6 +1097,7 @@ void ControlImpl::inheritRenderer(void) {
 // ── Property system ──
 int ControlImpl::setColorProperty(const char* prop, SColor color) {
     // P0-94：拖拽视觉主题色
+    if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0)       { m_boxShadowColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { m_dragGhostBg = color;   return 1; }
     if (strcmp(prop, PropertyNames::kDragGhostText) == 0)       { m_dragGhostText = color; return 1; }
     if (strcmp(prop, PropertyNames::kDragIndicatorColor) == 0)  { m_dragIndicator = color; return 1; }
@@ -1023,6 +1135,13 @@ int ControlImpl::setIntProperty(const char* prop, int value) {
 }
 
 int ControlImpl::setFloatProperty(const char* prop, float value) {
+    if (strcmp(prop, PropertyNames::kContentPadding) == 0) { setContentPadding(Margin{value, value, value, value}); return 1; }
+    if (strcmp(prop, PropertyNames::kPadding) == 0) { setContentPadding(Margin{value, value, value, value}); return 1; }
+    if (strcmp(prop, PropertyNames::kCornerRadius) == 0) { setCornerRadius(value); return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0) { m_boxShadowOffsetX = value; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0) { m_boxShadowOffsetY = value; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowRadius) == 0) { m_boxShadowRadius = value; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) { m_boxShadowSpread = value; return 1; }
     if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { m_dragThreshold = (value > 0.0f) ? value : 4.0f; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { Margin m = getMargin(); m.left = value; setMargin(m); return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { Margin m = getMargin(); m.top = value; setMargin(m); return 1; }
@@ -1035,11 +1154,29 @@ int ControlImpl::setStringProperty(const char* prop, const char* value) {
     if (strcmp(prop, PropertyNames::kFont) == 0) {   // P0-46：font 字体名 string 通道 → Enum 通道别名（全控件受益）
         return setEnumProperty(prop, value);
     }
+    if (strcmp(prop, PropertyNames::kContentPadding) == 0 || strcmp(prop, PropertyNames::kPadding) == 0) {
+        float v[4] = {0,0,0,0}; int n = 0; const char* p = value;
+        while (*p && n < 4) { while (*p == ' ' || *p == ',') ++p; if (!*p) break;
+            char* end = nullptr; float f = strtof(p, &end); if (end == p) return 0;
+            v[n++] = f > 0.0f ? f : 0.0f; p = end; }
+        if (n == 1) setContentPadding(Margin{v[0],v[0],v[0],v[0]});
+        else if (n == 2) setContentPadding(Margin{v[1],v[0],v[1],v[0]});
+        else if (n == 4) setContentPadding(Margin{v[3],v[0],v[1],v[2]});
+        else return 0;
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kClasses) == 0 || strcmp(prop, PropertyNames::kThemeRole) == 0) {
+        std::vector<std::string> out; std::string s(value ? value : ""), cur;
+        for (char c : s) { if (c == ' ' || c == ',' || c == '	') { if (!cur.empty()) { out.push_back(cur); cur.clear(); } } else cur += c; }
+        if (!cur.empty()) out.push_back(cur);
+        m_themeClasses = out; return 1;
+    }
     return 0;
 }
 
 int ControlImpl::setBoolProperty(const char* prop, int value) {
     bool b = value != 0;
+    if (strcmp(prop, PropertyNames::kThemeEligible) == 0) { m_themeEligible = b; return 1; }
     // P0-94：拖拽标志
     if (strcmp(prop, PropertyNames::kDraggable) == 0)       { m_draggable = b;    return 1; }
     if (strcmp(prop, PropertyNames::kDroppable) == 0)       { m_droppable = b;    return 1; }
@@ -1138,6 +1275,7 @@ void ControlImpl::fireCCallback(const char* eventName, CCallbackData data, const
 }
 
 int ControlImpl::getColorProperty(const char* prop, SColor& out) {
+    if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0) { out = m_boxShadowColor; return 1; }
     // P0-94：拖拽视觉主题色
     if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { out = m_dragGhostBg;   return 1; }
     if (strcmp(prop, PropertyNames::kDragGhostText) == 0)       { out = m_dragGhostText; return 1; }
@@ -1176,6 +1314,7 @@ int ControlImpl::getStateColorProperty(const char* prop, StateColor& out) {
 }
 
 int ControlImpl::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kThemeEligible) == 0) { out = m_themeEligible ? 1 : 0; return 1; }
     if (strcmp(prop, PropertyNames::kDraggable) == 0)   { out = m_draggable ? 1 : 0;   return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kDroppable) == 0)   { out = m_droppable ? 1 : 0;   return 1; }
     if (strcmp(prop, PropertyNames::kReorderable) == 0) { out = m_reorderable ? 1 : 0; return 1; }
@@ -1199,6 +1338,12 @@ int ControlImpl::getIntProperty(const char* prop, int& out) {
 }
 
 int ControlImpl::getFloatProperty(const char* prop, float& out) {
+    if (strcmp(prop, PropertyNames::kContentPadding) == 0 || strcmp(prop, PropertyNames::kPadding) == 0) { out = m_contentPadding.left; return 1; }
+    if (strcmp(prop, PropertyNames::kCornerRadius) == 0) { out = m_cornerRadius; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0) { out = m_boxShadowOffsetX; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0) { out = m_boxShadowOffsetY; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowRadius) == 0) { out = m_boxShadowRadius; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) { out = m_boxShadowSpread; return 1; }
     if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { out = m_dragThreshold; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { out = getMargin().left; return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { out = getMargin().top; return 1; }
@@ -1212,6 +1357,17 @@ int ControlImpl::getStringProperty(const char* prop, const char*& out) {
         const char* s = nullptr;
         if (getEnumProperty(prop, s)) { out = s; return 1; }
         return 0;
+    }
+    if (strcmp(prop, PropertyNames::kContentPadding) == 0) {
+        static thread_local std::string s;
+        char buf[128]; snprintf(buf, sizeof(buf), "%g %g %g %g", m_contentPadding.left, m_contentPadding.top, m_contentPadding.right, m_contentPadding.bottom);
+        s = buf; out = s.c_str(); return 1;
+    }
+    if (strcmp(prop, PropertyNames::kId) == 0) { out = m_jsonId.c_str(); return 1; }
+    if (strcmp(prop, PropertyNames::kClasses) == 0) {
+        static thread_local std::string s;
+        s.clear(); for (size_t i = 0; i < m_themeClasses.size(); ++i) { if (i) s += ' '; s += m_themeClasses[i]; }
+        out = s.c_str(); return 1;
     }
     if (strcmp(prop, PropertyNames::kControlType) == 0) {
         switch (getControlType()) {

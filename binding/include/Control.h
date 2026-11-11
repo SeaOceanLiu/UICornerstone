@@ -33,6 +33,9 @@ public:
     void SetInt(const char* prop, int value);
     void SetFloat(const char* prop, float value);
     void SetString(const char* prop, const std::string& value);
+    // CR20261102002：通用内容内边距（content-padding）
+    void SetContentPadding(float left, float top, float right, float bottom);
+    bool GetContentPadding(float& left, float& top, float& right, float& bottom) const;
     void SetEnum(const char* prop, const std::string& value);
     void SetPtr(const char* prop, void* value);
 

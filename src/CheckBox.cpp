@@ -126,7 +126,7 @@ void CheckBox::createCaption(void){
             adjustBoxVerticalAlign();
         })
         .build();
-    if (m_caption) m_caption->setState(getState());   // (重)建时同步当前状态
+    if (m_caption) { m_caption->setThemeEligible(false); m_caption->setState(getState()); }
 }
 
 shared_ptr<Label> CheckBox::getCaption(void) const {

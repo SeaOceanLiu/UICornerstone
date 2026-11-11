@@ -45,6 +45,13 @@ void Control::SetFloat(const char* prop, float value) {
 void Control::SetString(const char* prop, const std::string& value) {
     if (IsValid()) UICornerstone::Dyn::API().fnSetString(m_state->instance, m_state->handle, prop, value.c_str());
 }
+void Control::SetContentPadding(float left, float top, float right, float bottom) {
+    if (IsValid()) UICornerstone::Dyn::API().fnSetContentPadding(m_state->instance, m_state->handle, left, top, right, bottom);
+}
+bool Control::GetContentPadding(float& left, float& top, float& right, float& bottom) const {
+    if (!IsValid()) return false;
+    return UICornerstone::Dyn::API().fnGetContentPadding(m_state->instance, m_state->handle, &left, &top, &right, &bottom) != 0;
+}
 void Control::SetEnum(const char* prop, const std::string& value) {
     if (IsValid()) UICornerstone::Dyn::API().fnSetEnum(m_state->instance, m_state->handle, prop, value.c_str());
 }

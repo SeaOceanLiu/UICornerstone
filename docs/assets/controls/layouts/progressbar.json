@@ -1,0 +1,142 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.17 ProgressBar",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Value, progress color and text-mode comparison",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "p0",
+          "rect": {
+            "x": 40,
+            "y": 100,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "30% / custom progress color",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "progress-bar",
+          "id": "p0b",
+          "rect": {
+            "x": 40,
+            "y": 128,
+            "w": 620,
+            "h": 30
+          },
+          "value": 30,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "style": "horizontal",
+          "text-mode": "percent",
+          "colors": {
+            "progress": "#2D7FF9",
+            "background": "#303A4D"
+          },
+          "animation-speed": 1.0
+        },
+        {
+          "type": "label",
+          "id": "p1",
+          "rect": {
+            "x": 40,
+            "y": 190,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "75% / custom text and background",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "progress-bar",
+          "id": "p1b",
+          "rect": {
+            "x": 40,
+            "y": 218,
+            "w": 620,
+            "h": 30
+          },
+          "value": 75,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "style": "horizontal",
+          "text-mode": "custom",
+          "custom-text": "75% complete",
+          "colors": {
+            "progress": "#22C55E",
+            "background": "#303A4D"
+          },
+          "animation-speed": 1.0
+        }
+      ]
+    }
+  ]
+}

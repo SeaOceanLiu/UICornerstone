@@ -30,7 +30,7 @@ static Window* sdl3CreateWindow(const char* title, int w, int h, uint32_t flags)
 }
 static bool sdl3Init() {
     if (g_reuseWindow && g_reuseRenderer) return true;
-    SDL_SetAppMetadata("UICornerstone", "1.0.0", "com.uicornerstone.app");
+    SDL_SetAppMetadata("UICornerstone", "1.2.0", "com.uicornerstone.app");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         printf("SDL_Init failed: %s\n", SDL_GetError());
         return false;
@@ -138,7 +138,7 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
         sdl3SetCurrentCursor(static_cast<Cursor*>(cursor));
     };
 
-    cb.version = 1;
+    cb.version = 2;
     cb.capabilities = UICORN_BACKEND_CAP_MULTI_WINDOW | UICORN_BACKEND_CAP_RENDER_TARGET
                     | UICORN_BACKEND_CAP_CLIP_RECT | UICORN_BACKEND_CAP_READBACK
                     | UICORN_BACKEND_CAP_WINDOW_SET_SIZE;
@@ -157,6 +157,21 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     cb.setWindowTitle       = bridge_setWindowTitle;
     cb.setWindowSize        = bridge_setWindowSize;
     cb.getMousePosition     = bridge_getMousePosition;
+    cb.setWindowVisible      = [](UIWindowHandle h, int visible) -> int {
+        return h ? (static_cast<Window*>(h)->setVisible(visible != 0) ? 1 : 0) : 0;
+    };
+    cb.getWindowVisible      = [](UIWindowHandle h) -> int {
+        return h ? (static_cast<Window*>(h)->isVisible() ? 1 : 0) : -1;
+    };
+    cb.setWindowAlwaysOnTop  = [](UIWindowHandle h, int onTop) -> int {
+        return h ? (static_cast<Window*>(h)->setAlwaysOnTop(onTop != 0) ? 1 : 0) : 0;
+    };
+    cb.getWindowAlwaysOnTop  = [](UIWindowHandle h) -> int {
+        return h ? (static_cast<Window*>(h)->isAlwaysOnTop() ? 1 : 0) : -1;
+    };
+    cb.setWindowForeground   = [](UIWindowHandle h) -> int {
+        return h ? (static_cast<Window*>(h)->setForeground() ? 1 : 0) : 0;
+    };
 
     // RenderDevice
     cb.createRenderDevice   = plugin_createRenderDevice;

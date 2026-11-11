@@ -1,5 +1,5 @@
 ﻿cmake_minimum_required(VERSION 3.16)
-project(UICornerstone VERSION 1.0.0 LANGUAGES CXX)
+project(UICornerstone VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -79,6 +79,7 @@ set(CORE_SOURCES
     src/Surface.cpp
     src/TextArea.cpp
     src/Theme.cpp
+    src/ThemeStyle.cpp
     src/UIContext.cpp
     src/UICornerstoneAPI.cpp
 )

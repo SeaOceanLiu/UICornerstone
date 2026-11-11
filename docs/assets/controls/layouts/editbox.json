@@ -1,0 +1,156 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.9 EditBox",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Placeholder, content-padding, font and text-color changes",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "e0",
+          "rect": {
+            "x": 40,
+            "y": 92,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "placeholder (empty)",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "edit-box",
+          "id": "e0b",
+          "rect": {
+            "x": 40,
+            "y": 116,
+            "w": 620,
+            "h": 42
+          },
+          "placeholder": "Type your name..."
+        },
+        {
+          "type": "label",
+          "id": "e1",
+          "rect": {
+            "x": 40,
+            "y": 178,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "text + content-padding: \"10 12\"",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "edit-box",
+          "id": "e1b",
+          "rect": {
+            "x": 40,
+            "y": 202,
+            "w": 620,
+            "h": 42
+          },
+          "text": "name@example.com",
+          "content-padding": "10 12"
+        },
+        {
+          "type": "label",
+          "id": "e2",
+          "rect": {
+            "x": 40,
+            "y": 264,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "font-size: 20 / text-color: amber",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "edit-box",
+          "id": "e2b",
+          "rect": {
+            "x": 40,
+            "y": 288,
+            "w": 620,
+            "h": 42
+          },
+          "text": "Larger text",
+          "font-size": 20,
+          "colors": {
+            "text": {
+              "normal": "#F59E0B"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

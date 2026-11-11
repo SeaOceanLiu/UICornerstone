@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.15 NumericUpDown - UICornerstone v1.1.0 用户手册</title>
+<title>4.15 NumericUpDown - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/numericupdown.html"></script>
 </head>
@@ -18,6 +18,11 @@
 <p>NumericUpDown 是数值输入控件：编辑框 + 上下箭头按钮，支持范围钳位、步长/页步长、小数精度、只读模式与长按自动步进。继承链：<code>NumericUpDown → EditBox → ControlImpl → Control</code>。</p>
 
 <div class="note">缩放联动：编辑文本继承 EditBox 字体链路，置于缩放画布（fit / stretch，见 <a href="../advanced/canvas-scale.html">5.6 视口画布缩放</a>）时字号随复合缩放系数重建。</div>
+
+<figure>
+  <img src="../assets/controls/numericupdown-overview.png" alt="NumericUpDown 整数、小数与只读" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>整数、两位小数和只读/占位状态对比。</figcaption>
+</figure>
 
 <h2>4.15.1 控件的创建</h2>
 

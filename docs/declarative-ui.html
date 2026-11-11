@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3.4 声明式 UI - UICornerstone v1.1.0 用户手册</title>
+<title>3.4 声明式 UI - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="css/style.css">
 <script id="nav-data" src="assets/nav.js" data-prefix="" data-current="declarative-ui.html"></script>
 </head>
@@ -195,6 +195,7 @@ parser.parseLayoutFile("layouts/main.json");</code></pre>
 <h2>3.4.5 主题样式</h2>
 
 <p>顶层 <code>theme</code> 键提供全局默认样式，控件节点上的显式键优先。应用顺序：主题默认 → 公共 colors → 控件专用颜色 → 控件专用字体。</p>
+<p>CSS-like 主题（<code>styles/variables/variants/media/containerQueries/classes</code>）与通用 <code>content-padding</code> 见 <a href="theme.html">5.8 主题样式（CSS-like Theme）</a>；以下为旧 <code>colors/fonts</code> 语法，继续兼容。</p>
 
 <pre><code>"theme": {
   "colors": {

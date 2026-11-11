@@ -59,6 +59,16 @@ public:
             width > 0 ? (unsigned)width : 0u,
             height > 0 ? (unsigned)height : 0u));
     }
+    bool setVisible(bool visible) override {
+        if (!m_window) return false;
+        m_window->setVisible(visible);
+        m_visible = visible;
+        return true;
+    }
+    bool isVisible() const override { return m_visible; }
+    bool setAlwaysOnTop(bool) override { return false; }
+    bool isAlwaysOnTop() const override { return false; }
+    bool setForeground() override { if (!m_window) return false; m_window->requestFocus(); return true; }
 
     void* nativeHandle() override { return m_window; }
 
@@ -85,13 +95,21 @@ private:
     RenderDevice* m_renderDevice;
     float m_displayWidth = 0;
     float m_displayHeight = 0;
+    bool m_visible = true;
 };
 
 Window* CreateSFMLWindow(const char* title, int width, int height, uint32_t flags) {
+    if (flags & UIWindowFlags::NoShadow)
+        printf("SFML NoShadow unsupported (ignored)\n");
+    if (flags & UIWindowFlags::Utility)
+        printf("SFML Utility unsupported (ignored)\n");
+    flags &= ~(UIWindowFlags::NoShadow | UIWindowFlags::Utility);   // 应用层位不得传给 SFML
     // 跨后端统一窗口标志（UIWindowFlags）：显式组合样式，
     // 无 Resizable 标志时不带可调边框（sf::Style::Default 恒含 Resize）
-    std::uint32_t style = sf::Style::Titlebar | sf::Style::Close;
-    if (flags & UIWindowFlags::Resizable) style |= sf::Style::Resize;
+    std::uint32_t style = (flags & UIWindowFlags::Borderless)
+        ? sf::Style::None
+        : (sf::Style::Titlebar | sf::Style::Close);
+    if (!(flags & UIWindowFlags::Borderless) && (flags & UIWindowFlags::Resizable)) style |= sf::Style::Resize;
     sf::State winState = sf::State::Windowed;
     if (flags & UIWindowFlags::Fullscreen) winState = sf::State::Fullscreen;
 
@@ -106,5 +124,7 @@ Window* CreateSFMLWindow(const char* title, int width, int height, uint32_t flag
     );
     window->setVerticalSyncEnabled(false);
     window->setActive(true);  // Keep OpenGL context active for this thread
-    return new SFMLWindow(window);
+    auto* result = new SFMLWindow(window);
+    if (flags & UIWindowFlags::Hidden) result->setVisible(false);   // SFML 无创建期 style：构造后立即隐藏
+    return result;
 }

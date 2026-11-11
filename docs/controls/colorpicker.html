@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.5 ColorPicker - UICornerstone v1.1.0 用户手册</title>
+<title>4.5 ColorPicker - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/colorpicker.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.5 ColorPicker（颜色选择器）</h1>
 
 <p>ColorPicker 是弹窗式取色器：闭合态显示色块 + Hex 文本，点击展开弹窗（预设色网格 + RGB 滑块 + Hex 输入），确定或按 Enter 提交颜色。Hex 输入框支持 <code>#RRGGBB</code> / <code>#RRGGBBAA</code>，按 <strong>Enter</strong> 或点击弹窗「确定」后生效（便于粘贴完整值）。继承链：<code>ColorPicker → Panel → ControlImpl → Control</code>。</p>
+
+<figure>
+  <img src="../assets/controls/colorpicker-overview.png" alt="ColorPicker 闭合态色块与文本" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>两个颜色值及不同 closed-swatch-size 的闭合态。</figcaption>
+</figure>
 
 <div class="img-frame img-frame-s">
   <img src="../assets/ColorPicker_Popup.svg" alt="ColorPicker 弹窗">

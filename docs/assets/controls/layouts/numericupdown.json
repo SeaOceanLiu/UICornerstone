@@ -1,0 +1,167 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.15 NumericUpDown",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Integer, decimal and read-only states",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "n0",
+          "rect": {
+            "x": 40,
+            "y": 95,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "integer / value 50 / step 1",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "numeric-up-down",
+          "id": "n0b",
+          "rect": {
+            "x": 40,
+            "y": 120,
+            "w": 260,
+            "h": 36
+          },
+          "value": 50,
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "step": 1,
+          "page-step": 10,
+          "decimals": 0,
+          "button-width": 28
+        },
+        {
+          "type": "label",
+          "id": "n1",
+          "rect": {
+            "x": 340,
+            "y": 95,
+            "w": 320,
+            "h": 24
+          },
+          "caption": "decimal / value 3.14 / step 0.1",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "numeric-up-down",
+          "id": "n1b",
+          "rect": {
+            "x": 340,
+            "y": 120,
+            "w": 260,
+            "h": 36
+          },
+          "value": 3.14,
+          "range": {
+            "min": 0,
+            "max": 10
+          },
+          "step": 0.1,
+          "page-step": 1,
+          "decimals": 2,
+          "button-width": 28
+        },
+        {
+          "type": "label",
+          "id": "n2",
+          "rect": {
+            "x": 40,
+            "y": 195,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "placeholder / read-only",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "numeric-up-down",
+          "id": "n2b",
+          "rect": {
+            "x": 40,
+            "y": 220,
+            "w": 260,
+            "h": 36
+          },
+          "placeholder": "0",
+          "decimals": 0,
+          "read-only": true
+        }
+      ]
+    }
+  ]
+}

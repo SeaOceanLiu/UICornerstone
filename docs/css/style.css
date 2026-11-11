@@ -1,4 +1,4 @@
-/* UICornerstone 用户手册样式 */
+﻿/* UICornerstone 用户手册样式 */
 :root {
   --bg: #1e1f24;
   --bg-side: #17181c;
@@ -122,7 +122,11 @@ details.methods table { margin-top: 8px; }
 .img-frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 14px 0; background: #111; }
 .img-frame img { display: block; width: 100%; }
 .img-frame-s { width: min(62%, 640px); }
-.img-frame-s { width: min(62%, 640px); }
+
+/* 控件截图：统一外观与说明 */
+figure { margin: 16px 0; }
+figure img { display: block; max-width: 100%; border: 1px solid var(--border); border-radius: 8px; }
+figcaption { color: var(--text-dim); font-size: 13px; margin-top: 6px; }
 .img-caption { text-align: center; color: var(--text-dim); font-size: 13px; padding: 6px 0 10px; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

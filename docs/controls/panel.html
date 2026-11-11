@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.16 Panel - UICornerstone v1.1.0 用户手册</title>
+<title>4.16 Panel - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/panel.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.16 Panel（容器）</h1>
 
 <p>Panel 是最基本的容器控件：管理子控件、分发事件、绘制背景/边框，并可挂载<strong>布局引擎</strong>（流式 / 锚点 / 网格）。所有容器（Bench、WinFrame、Dialog 等）都继承自它。继承链：<code>Panel → ControlImpl → Control</code>。</p>
+
+<figure>
+  <img src="../assets/controls/panel-overview.png" alt="Panel 背景、边框、圆角与内边距" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>默认容器与开启边框/圆角/content-padding 的容器对比。</figcaption>
+</figure>
 
 <h2>4.16.1 控件的创建</h2>
 

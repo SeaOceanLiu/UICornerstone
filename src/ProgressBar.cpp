@@ -214,6 +214,7 @@ void ProgressBar::createTextLabel() {
         .setClickable(false)                          // P0-38：内部标签非交互，状态由控件统一驱动
         .build();
 
+    m_textLabel->setThemeEligible(false);
     m_textLabel->setState(getState());   // P0-35②：状态同步
     addControl(m_textLabel);
 }

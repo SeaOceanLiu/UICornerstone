@@ -1,0 +1,122 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.14 Menu",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "MenuBar with File / Edit / Help menus",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "menu-bar",
+          "id": "menubar",
+          "rect": {
+            "x": 40,
+            "y": 100,
+            "w": 640,
+            "h": 34
+          },
+          "font": {
+            "size": 15
+          },
+          "bar-height": 34,
+          "menus": [
+            {
+              "caption": "File",
+              "items": [
+                {
+                  "id": "mNew",
+                  "caption": "New",
+                  "shortcut": "Ctrl+N"
+                },
+                {
+                  "type": "separator"
+                },
+                {
+                  "id": "mExit",
+                  "caption": "Exit"
+                }
+              ]
+            },
+            {
+              "caption": "Edit",
+              "items": [
+                {
+                  "id": "mCopy",
+                  "caption": "Copy",
+                  "shortcut": "Ctrl+C"
+                },
+                {
+                  "id": "mPaste",
+                  "caption": "Paste",
+                  "shortcut": "Ctrl+V"
+                }
+              ]
+            },
+            {
+              "caption": "Help",
+              "items": [
+                {
+                  "id": "mAbout",
+                  "caption": "About"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "_clicks": [
+    {
+      "x": 70,
+      "y": 117
+    }
+  ]
+}

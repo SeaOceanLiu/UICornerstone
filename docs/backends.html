@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>5.8 使用其它后端 - UICornerstone v1.1.0 用户手册</title>
+<title>5.10 使用其它后端 - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="css/style.css">
 <script id="nav-data" src="assets/nav.js" data-prefix="" data-current="backends.html"></script>
 </head>
@@ -13,11 +13,11 @@
 <div id="sidebar"></div>
 <div id="content">
 
-<h1>5.8 使用其它后端（SFML / raylib）</h1>
+<h1>5.10 使用其它后端（SFML / raylib）</h1>
 
 <p>UICornerstone 的界面代码<strong>与后端无关</strong>：同一份业务代码，仅编译开关 / 实例创建参数不同即可切换后端。</p>
 
-<h2>5.8.1 三后端对比</h2>
+<h2>5.10.1 三后端对比</h2>
 
 <table>
 <tr><th></th><th>SDL3（推荐）</th><th>SFML</th><th>raylib</th></tr>
@@ -30,7 +30,7 @@
 <tr><td>vsync 配置</td><td><code>vsync</code> + <code>swap-ratio</code></td><td><code>vsync</code></td><td><code>vsync</code>（创建期全局）</td></tr>
 </table>
 
-<h2>5.8.2 编译时选择后端</h2>
+<h2>5.10.2 编译时选择后端</h2>
 
 <pre><code>:: Windows
 build_scripts\build.bat sdl3        :: SDL3 后端
@@ -41,7 +41,7 @@ build_scripts\build.bat raylib      :: Raylib 后端
 cmake -B build -DUICORNERSTONE_BACKEND=SFML -DCMAKE_BUILD_TYPE=Debug
 cmake -B build -DUICORNERSTONE_BACKEND=RAYLIB -DCMAKE_BUILD_TYPE=Debug</code></pre>
 
-<h2>5.8.3 运行时选择后端</h2>
+<h2>5.10.3 运行时选择后端</h2>
 
 <pre><code>// C ABI：从插件名创建实例（同一 DLL 内含全部后端？否——按构建时后端）
 UICornerstone_CreateInstanceFromPlugin("sfml", NULL);
@@ -56,7 +56,7 @@ sample_cpp_hosted.exe backend=sfml auto=4</code></pre>
 
 <div class="note">「运行时选择」指插件加载路径的写法统一；实际可用的后端取决于编译时构建的 DLL/库。Binding 的 <code>Config</code> 通过 <code>backendSearchPath</code> / <code>coreLibraryDir</code> 指定动态库搜索位置，样例可内置多后端 DLL 按参数加载。</div>
 
-<h2>5.8.4 后端能力位与条件化</h2>
+<h2>5.10.4 后端能力位与条件化</h2>
 
 <pre><code>uint32_t caps = UICornerstone_GetBackendCapabilities(g_inst);
 bool multiWindow = (caps &amp; UICORN_BACKEND_CAP_MULTI_WINDOW) != 0;
@@ -65,7 +65,7 @@ else { /* headless 降级：Window::isHeadless()，跳过渲染 */ }</code></pre
 
 <p>详见 <a href="advanced.html">5.2 多视口与多窗口</a> 与 <a href="appendix/backend-config.html">10 后端差异及后端配置</a>。</p>
 
-<h2>5.8.5 后端配置键（运行时）</h2>
+<h2>5.10.5 后端配置键（运行时）</h2>
 
 <pre><code>// C ABI：SetBackendConfig / SetBackendConfigInt / SetBackendConfigBool
 // inst == NULL 时为创建期全局默认（raylib 的 vsync 必须这样设置）
@@ -84,8 +84,8 @@ UICornerstone_GetBackendConfig(g_inst, "renderer-name", name, sizeof(name));</co
 </table>
 
 <div class="chapter-nav">
-  <a href="advanced/canvas-scale.html">← 5.6 视口画布缩放（Canvas Scale）</a>
-  <a href="integration.html">下一节：5.9 嵌入到你的逻辑回路中 →</a>
+  <a href="advanced/components.html">← 5.9 组件系统（Components）</a>
+  <a href="integration.html">下一节：5.11 嵌入到你的逻辑回路中 →</a>
 </div>
 
 </div>

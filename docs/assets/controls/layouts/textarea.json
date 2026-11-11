@@ -1,0 +1,121 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 420
+      },
+      "colors": {
+        "background": {
+          "normal": "#10141C"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 20,
+            "w": 650,
+            "h": 34
+          },
+          "caption": "4.24 TextArea",
+          "font": {
+            "size": 24
+          },
+          "colors": {
+            "text": {
+              "normal": "#F5F8FF"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 58,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "Placeholder, word wrap and content-padding",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "t0",
+          "rect": {
+            "x": 40,
+            "y": 95,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "placeholder / word-wrap: true",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "text-area",
+          "id": "t0b",
+          "rect": {
+            "x": 40,
+            "y": 120,
+            "w": 620,
+            "h": 100
+          },
+          "placeholder": "Multi-line notes...",
+          "word-wrap": true
+        },
+        {
+          "type": "label",
+          "id": "t1",
+          "rect": {
+            "x": 40,
+            "y": 238,
+            "w": 620,
+            "h": 24
+          },
+          "caption": "filled text + content-padding: 16",
+          "font": {
+            "size": 14
+          },
+          "colors": {
+            "text": {
+              "normal": "#94A3B8"
+            }
+          }
+        },
+        {
+          "type": "text-area",
+          "id": "t1b",
+          "rect": {
+            "x": 40,
+            "y": 262,
+            "w": 620,
+            "h": 100
+          },
+          "text": "Line one\nLine two\nLine three",
+          "content-padding": 16
+        }
+      ]
+    }
+  ]
+}

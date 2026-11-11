@@ -27,6 +27,7 @@ class FocusManager;
 class Popup;
 class BackendManager;
 class Control;
+class ThemeRuntime;
 
 // 实例上下文：聚合一个 UI 实例（窗口或视口）的全部状态。
 // UIInstance = UIContext*（见 UICornerstoneAPI.h）。
@@ -72,6 +73,10 @@ struct UIContext {
     MainWindow* mainWindow = nullptr;
     EventQueue* eventQueue = nullptr;
     DataContext* dataContext = nullptr;
+
+    // ── CR20261102001/003：CSS-like 主题运行时（实例级；懒创建） ──
+    std::shared_ptr<ThemeRuntime> themeRuntime;
+    std::string themeRawJson;
 
     // ── 动作与控件查找 ──
     std::unordered_map<std::string, std::pair<UIActionCallback, void*>> actions;

@@ -48,6 +48,27 @@ bool CallbackWindow::getMousePosition(float& x, float& y) {
     return m_cbs->getMousePosition ? m_cbs->getMousePosition(m_handle, &x, &y) : false;
 }
 
+bool CallbackWindow::setVisible(bool visible) {
+    return (m_cbs && m_cbs->setWindowVisible) ? m_cbs->setWindowVisible(m_handle, visible ? 1 : 0) != 0 : false;
+}
+bool CallbackWindow::isVisible() const {
+    if (!m_cbs || !m_cbs->getWindowVisible) return false;
+    return m_cbs->getWindowVisible(m_handle) == 1;
+}
+
+bool CallbackWindow::setAlwaysOnTop(bool onTop) {
+    if (!m_cbs || m_cbs->version < 2 || !m_cbs->setWindowAlwaysOnTop) return false;
+    return m_cbs->setWindowAlwaysOnTop(m_handle, onTop ? 1 : 0) != 0;
+}
+bool CallbackWindow::isAlwaysOnTop() const {
+    if (!m_cbs || m_cbs->version < 2 || !m_cbs->getWindowAlwaysOnTop) return false;
+    return m_cbs->getWindowAlwaysOnTop(m_handle) == 1;
+}
+bool CallbackWindow::setForeground() {
+    if (!m_cbs || m_cbs->version < 2 || !m_cbs->setWindowForeground) return false;
+    return m_cbs->setWindowForeground(m_handle) != 0;
+}
+
 // ============================================================
 // CallbackTexture
 // ============================================================

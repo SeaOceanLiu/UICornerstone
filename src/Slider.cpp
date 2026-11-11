@@ -72,6 +72,7 @@ void Slider::create(void)
         m_valueLabel = make_shared<Label>(this, SRect());
         m_valueLabel->setFont(m_labelFont);
         m_valueLabel->setFontSize(m_labelFontSize);
+        m_valueLabel->setThemeEligible(false);
         m_valueLabel->setTextNormalStateColor(m_labelColor);
         m_valueLabel->setEnableExpand(false);
         m_valueLabel->setClickable(false);            // P0-39②：内部标签非交互，状态由滑块统一驱动
@@ -366,6 +367,7 @@ void Slider::setShowValueLabel(bool show)
         m_valueLabel = make_shared<Label>(this, SRect());
         m_valueLabel->setFont(m_labelFont);
         m_valueLabel->setFontSize(m_labelFontSize);
+        m_valueLabel->setThemeEligible(false);
         m_valueLabel->setTextNormalStateColor(m_labelColor);
         m_valueLabel->setEnableExpand(false);
         m_valueLabel->setClickable(false);            // P0-39②：内部标签非交互，状态由滑块统一驱动

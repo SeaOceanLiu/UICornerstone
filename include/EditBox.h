@@ -40,6 +40,13 @@ protected:
     shared_ptr<vector<char>> m_fontData;
     int m_fontSize;
     FontName m_fontName;
+    // CR20261110001：文本偏移签名与字体延迟加载闸门
+    float m_offsetFontHeight = -1.0f;
+    float m_offsetDrawWidth = -1.0f;
+    float m_offsetDrawHeight = -1.0f;
+    Font* m_offsetFont = nullptr;
+    bool m_fontLoadPending = false;
+    bool m_fontRetryBlocked = false;
 
     OnTextChangedHandler m_onTextChanged;
     OnEnterHandler m_onEnter;
@@ -55,6 +62,7 @@ protected:
     float getCursorX(int cursorPos);
     std::string getUtf8Substr(const std::string& str, int start, int length) const;
     void updateTextOffset();
+    void ensureTextOffset();
     virtual void insertText(const std::string& text);
     static int getUtf8CharLength(unsigned char c);
 
@@ -113,6 +121,7 @@ public:
     bool isFocused() const { return getFocused(); }
 
     void setMargin(const Margin& margin);
+    void setContentPadding(Margin padding) override;
     Margin getMargin() const { return m_margin; }
 
     // ── Property system overrides ──

@@ -992,6 +992,10 @@ int ComboBox::setStringProperty(const char* prop, const char* value) {
         if (value) setText(value);
         return 1;
     }
+    if (strcmp(prop, PropertyNames::kPlaceholder) == 0) {
+        if (value) setPlaceholder(value);
+        return 1;
+    }
     return ControlImpl::setStringProperty(prop, value);
 }
 
@@ -1046,6 +1050,10 @@ int ComboBox::getStringProperty(const char* prop, const char*& out) {
     // text：编辑框当前内容（输入中的文字 / 无匹配时保留的输入 / 选中后的项 label）
     if (strcmp(prop, PropertyNames::kTextContent) == 0) {
         out = m_text.c_str();
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kPlaceholder) == 0) {
+        out = m_placeholder.c_str();
         return 1;
     }
     return ControlImpl::getStringProperty(prop, out);

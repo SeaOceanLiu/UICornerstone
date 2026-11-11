@@ -10,7 +10,12 @@
 
 - **四层后端抽象**：RenderDevice（绘制原语）、Texture（纹理）、TextRenderer（文本）、InputBackend（输入）——换后端零业务代码改动。
 - **声明式 UI**：JSON 布局文件描述控件树、布局引擎（流式/锚点/网格）、事件绑定与主题样式，支持热加载。
-- **20+ 控件**：Button、CheckBox（三态）、ComboBox、ContextMenu、EditBox、ListView（含单列 ListBox 模式）、NumericUpDown、Panel、ProgressBar、ScrollBar、Shape（七种图元+多图元组合）、Slider、StatusBar（VSCode 风格）、TabControl（四方向页签）、TextArea、TreeView、WinFrame、Dialog/Popup、HandleControl 等。
+- **CSS-like 主题**：`theme.styles/variables/variants/classes` + `media/containerQueries` 响应式条件；支持通用 `content-padding`、圆角、盒阴影、组件主题角色；旧 `colors/fonts` 主题保持兼容。
+- **26 种声明式控件**：Label、Button、Image/Actor、Animation、EditBox、ComboBox、TextArea、CheckBox、ProgressBar、Slider、ScrollBar、Panel、WinFrame、ColorPicker、Popup、ConfirmPopup、Dialog、MenuBar、NumericUpDown、Splitter、TreeView、ContextMenu、ListView（含单列 ListBox）、StatusBar、TabControl、Shape（图元+组合）；另有 HandleControl 手柄覆盖层。
+- **菜单 / 右键 / 状态栏事件**：MenuBar 菜单项支持 `events.onClick`；独立 ContextMenu 支持声明式 `items[]`；StatusBar 支持 `items[].events.onClick`；任意控件可通过 `context-menu` 键或 `SetPtr("context-menu")` 绑定右键菜单（子控件优先、父兜底）。
+- **窗口控制**：创建期 `Hidden`/`Borderless`/`NoShadow`/`Utility`，运行期显示隐藏、AlwaysOnTop、Foreground；跨后端能力按矩阵降级（NoShadow/Utility 仅 SDL3，Utility Windows 任务栏隐藏）。
+- **纯显示控件右键目标**：LuotiAni/Actor 绑定 `context-menu` 后按 `getDrawRect()` 矩形命中，普通事件仍不参与命中；HandleControl V1 不支持右键菜单。
+- **Splitter 光标 owner 仲裁**：进入/离开/禁用/隐藏/拖拽释放均正确恢复或保持 resize 光标，不覆盖其它自定义光标控件。
 - **LuotiAni 动画引擎**：基于 JSON 关键帧描述（translate/scale/rotate/opacity/visible + 缓动与轨迹），支持多实例共享烘焙帧数据。
 - **Actor 图片系统**：控件可绑定多状态图片（normal/hover/pressed/disabled），支持缩放模式/锚点/透明度/匹配父矩形；LuotiAni 每帧动画即为一个帧 Actor。
 - **三种集成方式**：C ABI 动态库（纯 C 调用）、C++ Binding（现代 C++ 封装）、核心 + 后端源码混合编译。
@@ -31,7 +36,7 @@
 
 ![UICornerstone 分层架构图](docs/assets/architecture.svg)
 
-支持 **SDL3 / SFML / Raylib** 三种渲染后端，提供 C ABI 接口可被纯 C / C++ / 动态加载等多种集成方式调用；另附 **C++ Binding**（`binding/`，纯动态加载封装）与 4 个可直接修改的样例程序。
+支持 **SDL3 / SFML / Raylib** 三种渲染后端，提供 C ABI 接口可被纯 C / C++ / 动态加载等多种集成方式调用；另附 **C++ Binding**（`binding/`，纯动态加载封装）与 6 个可直接修改的 C++ Binding 样例程序。
 
 ## 环境要求
 
@@ -110,7 +115,7 @@ build_scripts\build.bat raylib
 cmake --build build\binding --config Debug
 ```
 
-输出：`build\binding\Debug\`（`UICornerstoneBinding.lib` + 4 个样例 exe + 运行所需核心/后端 DLL）。
+输出：`build\binding\Debug\`（`UICornerstoneBinding.lib` + 6 个样例 exe + 运行所需核心/后端 DLL）。
 
 ## 首个应用：5 分钟快速上手
 
@@ -141,6 +146,7 @@ build\sdl3_dll --config Debug --target sample_fromsource
 | `sample_cpp_multiview` | 单窗口两个子视口（Bench A/B），弹窗展示本视口输入 |
 | `sample_cpp_multiinstance` | 双窗口独立实例双向通信（A 按钮 → B 标签），多窗口事件泵 + 能力位条件化渲染 |
 | `sample_scale` | 缩放对照组：1x/2x 按钮/图片按钮/动画按钮 rect 断言 |
+| `sample_viewport_scale` | 子视口缩放与坐标路由样例 |
 
 构建/运行（`build\binding\Debug\` 下）：
 
@@ -200,7 +206,12 @@ fromsource 测试使用单源文件 + 编译定义区分后端，后端源码作
 | test_multiinstance_visual_cabi | 多实例视觉状态（hover/焦点环跨窗口隔离、跨窗口内容传递、逆序销毁；raylib 渲染冒烟按能力位 SKIP） |
 | test_multiviewport_visual_cabi | 多视口视觉状态（hover 隔离、弹窗视口内居中、右下视口 Popup 回归） |
 
-所有测试均支持 `auto=<秒>` 无人值守参数（任意顺序）；三后端全量回归 exit=0。
+所有测试均支持 `auto=<秒>` 无人值守参数（任意顺序）。近期新增的回归包括：
+
+- `test_cr_theme`：CSS-like/响应式主题；
+- `test_cr_menu_item_events`、`test_cr_statusbar_runtime`、`test_cr_contextmenu_dispatch`：MenuBar/StatusBar/ContextMenu item action 与全控件右键派发；
+- `test_editbox_offset`：EditBox 首帧 placeholder/padding 偏移；
+- `test_window_visibility`：窗口 Hidden/Visible、AlwaysOnTop/Foreground、NoShadow/Utility。
 
 ## 项目结构
 
@@ -210,10 +221,10 @@ UICornerstone/
 │   ├── *.cpp                #   控件实现 + 基础设施
 │   └── backend/             #   后端实现（sdl3/ sfml/ raylib/）
 ├── include/                 # 头文件（含公有 C ABI 头 UICornerstoneAPI.h）
-├── binding/                 # C++ Binding（纯动态加载封装 + 4 个样例）
+├── binding/                 # C++ Binding（纯动态加载封装 + 6 个样例）
 │   ├── src/                 #   DynamicApi 层 + 主类/Control/Event 封装
 │   ├── include/             #   UICornerstone.h / PropertyNames.h 等
-│   └── samples/             #   sample_cpp_{hosted,embed,multiview,multiinstance}
+│   └── samples/             #   sample_cpp_{hosted,embed,multiview,multiinstance} / scale / viewport_scale
 ├── test/                    # 测试用例（test_*.cpp）
 ├── samples/                 # 4 种集成模式示例
 │   ├── hello_uicornerstone/ #   声明式 UI（JSON 布局）
@@ -251,6 +262,8 @@ UICornerstone/
 | 文档 | 说明 |
 |------|------|
 | [docs/index.html](docs/index.html) | **用户手册（网站形式）** — 介绍 / 快速起步 / 基础入门 / 深入控件（每控件含创建、方法、属性、回调、JSON 语法、C++ Binding 样例）/ 进阶主题 / 附录 / FAQ |
+| [docs/theme.html](docs/theme.html) | CSS-like 主题、变体/classes、响应式 media/containerQueries、content-padding 与旧主题迁移 |
+| [docs/advanced/components.html](docs/advanced/components.html) | 组件系统：components 模板、props/占位符、实例 id 前缀、_comp_ 事件映射与诊断 |
 | [Tutorial.md](design/Tutorial.md) | **用户开发教程（推荐首先阅读）** — 从零开始构建 UICornerstone 应用 |
 | [Build_Guide.md](design/Build_Guide.md) | 编译指南 |
 | [Sample_Design.md](design/Sample_Design.md) | 4 种集成模式的架构设计 |

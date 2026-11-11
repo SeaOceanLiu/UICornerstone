@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="../assets/UICornerstone_Logo.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="../assets/UICornerstone_Logo_256.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4.19 Shape（形状） - UICornerstone v1.1.0 用户手册</title>
+<title>4.19 Shape（形状） - UICornerstone v1.2.0 用户手册</title>
 <link rel="stylesheet" href="../css/style.css">
 <script id="nav-data" src="../assets/nav.js" data-prefix="../" data-current="controls/shape.html"></script>
 </head>
@@ -16,6 +16,11 @@
 <h1>4.19 Shape（形状）</h1>
 
 <p>Shape 纯绘制控件：七种图元（rect/<code>kShapeFilledRect</code>/round-rect/<code>kShapeCircle</code>/ellipse/<code>kShapePolyline</code>/polygon，空心与环带），支持<strong>多图元组合</strong>（单控件拼合复杂图形）与背景色。无事件/无子控件。继承链：<code>Shape → ControlImpl → Control</code>。设计文档见 <code>design/Shape_Design.md</code>。</p>
+
+<figure>
+  <img src="../assets/controls/shape-overview.png" alt="Shape 常用形状与填充/描边" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>circle、round-rect、rect、ellipse 四种形状。</figcaption>
+</figure>
 
 <h2>4.19.1 控件的创建</h2>
 

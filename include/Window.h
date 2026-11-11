@@ -12,6 +12,10 @@ class RenderDevice;
 namespace UIWindowFlags {
     constexpr uint32_t None       = UICORN_WINDOW_FLAG_NONE;
     constexpr uint32_t Fullscreen = UICORN_WINDOW_FLAG_FULLSCREEN;
+    constexpr uint32_t Hidden     = UICORN_WINDOW_FLAG_HIDDEN;
+    constexpr uint32_t Borderless = UICORN_WINDOW_FLAG_BORDERLESS;
+    constexpr uint32_t Utility    = UICORN_WINDOW_FLAG_UTILITY;
+    constexpr uint32_t NoShadow   = UICORN_WINDOW_FLAG_NO_SHADOW;
     constexpr uint32_t Resizable  = UICORN_WINDOW_FLAG_RESIZABLE;
     constexpr uint32_t Vsync      = UICORN_WINDOW_FLAG_VSYNC;
 }   // 值引用 UICornerstoneAPI.h 宏（单一事实来源）
@@ -36,6 +40,11 @@ public:
     // 回流 WindowResize 见 §21（运行期窗口 API）。
     virtual void setSize(int width, int height) { (void)width; (void)height; }
     virtual void onResized(int width, int height) {}
+    virtual bool setVisible(bool visible) { (void)visible; return false; } // 默认失败；各后端显式覆盖
+    virtual bool isVisible() const { return !isHeadless(); }
+    virtual bool setAlwaysOnTop(bool onTop) { (void)onTop; return false; }
+    virtual bool isAlwaysOnTop() const { return false; }
+    virtual bool setForeground() { return false; }
     // 无原生窗口（headless）查询：单窗口架构后端（raylib）的多实例中，
     // 非首个实例不创建真实窗口（防止覆盖全局窗口状态），据此跳过
     // 渲染/输入等窗口相关操作。默认有窗口；原生 GPU 后端（GLFW 等）
