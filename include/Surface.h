@@ -21,6 +21,15 @@ public:
 
     virtual uint32_t getPixel(int x, int y) const = 0;
     virtual void setPixel(int x, int y, uint32_t pixel) = 0;
+    // CR20261112001：跨后端 RGBA 写入（避免各后端 Surface 内存序差异）。
+    // 默认按项目 RGBA8888 约定 (R<<24)|(G<<16)|(B<<8)|A 调 setPixel；
+    // SFML/raylib 的 Surface 使用 RGBA 字节序，需 override。
+    virtual void setPixelRGBA(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+        setPixel(x, y, (static_cast<uint32_t>(r) << 24) |
+                       (static_cast<uint32_t>(g) << 16) |
+                       (static_cast<uint32_t>(b) << 8) |
+                       static_cast<uint32_t>(a));
+    }
 
     virtual void setBlendMode(BlendMode mode) = 0;
     virtual void setAlphaMod(uint8_t alpha) = 0;

@@ -1,6 +1,7 @@
 ﻿#include "UICornerstoneAPI.h"
 #include "DragDrop.h"
 #include "UIContext.h"
+#include "ShadowRenderer.h"
 #include "SColor.h"
 #include "CallbackAdapters.h"
 #include "BackendPlugin.h"
@@ -436,7 +437,7 @@ UIInstance UICornerstone_CreateInstance(
     const UIInstanceConfig* config)
 {
     // CR20261105004：接受 v1/v2 回调表；v1 不读取新增字段。
-    if (!callbacks || (callbacks->version != 1 && callbacks->version != 2)) return nullptr;
+    if (!callbacks || (callbacks->version != 1 && callbacks->version != 2 && callbacks->version != 3)) return nullptr;
 
     auto* ctx = new UIContext();
     ctx->callbacks = callbacks;
@@ -1040,6 +1041,8 @@ void UICornerstone_Update(UIInstance instance, double deltaTime) {
         instance->bench->eventLoopEntry();
         instance->bench->update();
     }
+    // CR20261112001：渲染帧之外集中烘焙文字柔光，避免帧中切换 RenderTarget
+    if (instance->shadowCache) instance->shadowCache->processPending();
 }
 
 void UICornerstone_Render(UIInstance instance) {
@@ -2456,6 +2459,24 @@ int UICornerstone_ContextMenuClose(UIInstance instance, UIControlHandle menu) {
     auto* v = contextMenuOf(instance, menu);
     if (!v) return 0;
     v->close();
+    return 1;
+}
+
+int UICornerstone_ContextMenuSyncSize(UIInstance instance, UIControlHandle menu) {
+    auto* v = contextMenuOf(instance, menu);
+    if (!v) return 0;
+    return v->syncSize() ? 1 : 0;
+}
+
+int UICornerstone_ContextMenuGetMenuPanelRect(UIInstance instance, UIControlHandle menu,
+                                              float* x, float* y, float* w, float* h) {
+    auto* v = contextMenuOf(instance, menu);
+    if (!v) return 0;
+    SRect r = v->getMenuPanelRect();
+    if (x) *x = r.left;
+    if (y) *y = r.top;
+    if (w) *w = r.width;
+    if (h) *h = r.height;
     return 1;
 }
 

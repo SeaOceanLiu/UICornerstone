@@ -3,6 +3,9 @@
 #include "Utility.h"
 #include "PlatformUtils.h"
 #include "TextDraw.h"
+#include "ShadowRenderer.h"
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 
 Label::Label(Control *parent, SRect rect, float xScale, float yScale):
@@ -374,10 +377,51 @@ void Label::draw(void){
         SPoint drawPoint = mapToDrawPoint(m_lineOffsets[i]);
         SPoint shadowDrawPoint = mapToDrawPoint(m_lineOffsets[i] + m_shadowOffset);
 
-        TextDraw::withShadowCached(renderer, m_cachedTexts[i],
-                                   drawPoint.x, drawPoint.y,
-                                   shadowDrawPoint.x, shadowDrawPoint.y,
-                                   textColor, m_shadowEnabled, shadowColor);
+        if (m_shadowEnabled && shadowColor.alpha() > 0.0f) {
+            bool shadowDrawn = false;
+            if (m_textShadowBlur > 0.0f) {
+                // CR20261112001：逐行字形柔光（预烘焙纹理）；失败时有限层回退。
+                ShadowRenderer::ShadowCache* cache = ShadowRenderer::getCache(m_context);
+                if (cache != nullptr) {
+                    uint64_t contentKey = static_cast<uint64_t>(std::hash<std::string>()(m_lines[i]));
+                    contentKey ^= reinterpret_cast<uintptr_t>(m_font.get()) * 0x9e3779b97f4a7c15ull;
+                    contentKey ^= static_cast<uint64_t>(m_fontSize) << 32;
+                    contentKey ^= static_cast<uint64_t>(m_fontStyle) << 48;
+                    shadowDrawn = cache->drawTextShadow(GET_RENDERDEVICE, renderer, m_font,
+                                                        m_lines[i], m_fontStyle,
+                                                        contentKey, drawPoint.x, drawPoint.y,
+                                                        getScaleXX(), getScaleYY(),
+                                                        shadowColor, m_textShadowBlur,
+                                                        m_shadowOffset.x, m_shadowOffset.y);
+                }
+                if (!shadowDrawn) {
+                    // callback/无 RenderTarget 后端：8 层字形偏移回退（质量低于纹理路径）。
+                    static bool logged = false;
+                    if (!logged) {
+                        Platform::Log("Label: text-shadow-blur texture unavailable, using 8-layer glyph fallback");
+                        logged = true;
+                    }
+                    constexpr int kLayers = 8;
+                    float sx = getScaleXX(), sy = getScaleYY();
+                    float radius = m_textShadowBlur * std::max(sx, sy) * 0.6f;
+                    SColor layerColor(shadowColor.red(), shadowColor.green(), shadowColor.blue(),
+                                      shadowColor.alpha() / static_cast<float>(kLayers));
+                    for (int layer = 0; layer < kLayers; ++layer) {
+                        float angle = 6.28318530718f * static_cast<float>(layer) / static_cast<float>(kLayers);
+                        renderer->drawText(m_cachedTexts[i],
+                                           shadowDrawPoint.x + std::cos(angle) * radius,
+                                           shadowDrawPoint.y + std::sin(angle) * radius,
+                                           layerColor);
+                    }
+                    shadowDrawn = true;
+                }
+            }
+            if (!shadowDrawn) {
+                renderer->drawText(m_cachedTexts[i], shadowDrawPoint.x, shadowDrawPoint.y, shadowColor);
+            }
+        }
+
+        renderer->drawText(m_cachedTexts[i], drawPoint.x, drawPoint.y, textColor);
     }
 
     ControlImpl::draw();
@@ -615,6 +659,11 @@ int Label::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kLineSpacingRatio) == 0) { setLineSpacingRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { SPoint o = m_shadowOffset; o.x = value; setShadowOffset(o); return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { SPoint o = m_shadowOffset; o.y = value; setShadowOffset(o); return 1; }
+    // CR20261112001：字形柔光半径（0=旧硬阴影；钳制 0~64）
+    if (strcmp(prop, PropertyNames::kTextShadowBlur) == 0) {
+        m_textShadowBlur = std::max(0.0f, std::min(64.0f, value));
+        return 1;
+    }
     return ControlImpl::setFloatProperty(prop, value);
 }
 int Label::setStringProperty(const char* prop, const char* value) {
@@ -688,6 +737,7 @@ int Label::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kLineSpacingRatio) == 0) { out = m_defaultLineSpacingRatio; return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0)    { out = m_shadowOffset.x;  return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0)    { out = m_shadowOffset.y; return 1; }
+    if (strcmp(prop, PropertyNames::kTextShadowBlur) == 0)   { out = m_textShadowBlur; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 int Label::getStringProperty(const char* prop, const char*& out) {

@@ -1,0 +1,14 @@
+{
+  "controls": [
+    {
+      "type": "context-menu",
+      "id": "cmSync",
+      "rect": { "x": 640, "y": 260, "w": 140, "h": 80 },
+      "items": [
+        { "caption": "Open", "shortcut": "Ctrl+O" },
+        { "type": "separator" },
+        { "caption": "Exit", "shortcut": "Alt+F4" }
+      ]
+    }
+  ]
+}

@@ -49,6 +49,7 @@ private:
     Cursor *m_defaultCursor;
 
     SPoint m_shadowOffset;
+    float m_textShadowBlur = 0.0f;   // CR20261112001：字形柔光（0=旧硬阴影）
     AlignmentMode m_AlignmentMode;
     int m_fontSize;
     string m_caption;

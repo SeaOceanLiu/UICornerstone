@@ -11,11 +11,18 @@
   "$defs": {
     "shadow": {
       "type": "object",
-      "description": "阴影 {enabled, offset:{x,y}}",
+      "description": "文字阴影 {enabled, offset:{x,y}, blur}（blur=0 硬阴影；CR20261112001）",
       "properties": {
         "enabled": {
           "type": "boolean",
           "x-default": "false"
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64,
+          "x-default": "0",
+          "description": "CR20261112001：Label 字形柔光半径（逻辑像素）"
         },
         "offset": {
           "type": "object",
@@ -30,6 +37,31 @@
             }
           },
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "box-shadow-state": {
+      "type": "object",
+      "description": "CR20261116002：box-shadow 状态覆盖（hover/pressed/disabled）；字段缺省继承 normal，color 显式 alpha=0 关闭该状态阴影",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "offset-x": {
+          "type": "number"
+        },
+        "offset-y": {
+          "type": "number"
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "spread": {
+          "type": "number",
+          "minimum": 0
         }
       },
       "additionalProperties": false
@@ -500,13 +532,16 @@
         },
         "box-shadow": {
           "type": "object",
-          "description": "CR20261102001：通用盒阴影 {color,offset-x,offset-y,blur,spread}",
+          "description": "CR20261112001：通用盒阴影 {color,offset-x,offset-y,blur,spread}（预烘焙柔光；blur=0 硬边）；CR20261116002：hover/pressed/disabled 为部分覆盖",
           "properties": {
             "color": { "type": "string" },
             "offset-x": { "type": "number" },
             "offset-y": { "type": "number" },
-            "blur": { "type": "number" },
-            "spread": { "type": "number" }
+            "blur": { "type": "number", "minimum": 0, "maximum": 64 },
+            "spread": { "type": "number", "minimum": 0 },
+            "hover": { "$ref": "#/$defs/box-shadow-state" },
+            "pressed": { "$ref": "#/$defs/box-shadow-state" },
+            "disabled": { "$ref": "#/$defs/box-shadow-state" }
           },
           "additionalProperties": false
         },
@@ -1080,6 +1115,13 @@
         "shadow": {
           "$ref": "#/$defs/shadow"
         },
+        "text-shadow-blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64,
+          "x-default": "0",
+          "description": "CR20261112001：Label 字形柔光半径（仅 Label；0=旧硬阴影）"
+        },
         "size": {
           "type": "integer",
           "x-default": "16"
@@ -1446,9 +1488,13 @@
           "$ref": "#/$defs/common"
         }
       ],
+      "description": "独立右键菜单。CR20261112002：外框 w/h 随 items 内容自动同步，x/y 保持不变；rect 选填用于位置/空菜单初始尺寸持久化。CR20261113001：写 rect 后为绝对定位，visible=1 / 重复显隐 / items 增删均不被视口居中重置；未写 rect 保留旧默认居中。",
       "properties": {
         "type": {
           "const": "context-menu"
+        },
+        "rect": {
+          "$ref": "#/$defs/rect"
         },
         "close-on-click-outside": {
           "type": "boolean",

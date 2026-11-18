@@ -34,6 +34,7 @@ HandleControlBuilder().setTarget(target).setHandleSize(8.0f).build();
 UIControlHandle h = UICornerstone_CreateHandleControl(g_inst, targetHandle, 80, 60, 200, 80, 1.0f, 1.0f);</code></pre>
 
 <div class="note">JSON 布局不支持 HandleControl（LayoutParser 未注册该类型）。目标销毁时经 weak_ptr 监控自动隐藏手柄。</div>
+<div class="note">CR20261112001：HandleControl 的通用 <code>box-shadow</code> <b>不纳入 V1</b>（自绘手柄层，避免手柄/拖拽语义回归）；设置后不绘制阴影。</div>
 
 
 <h2>4.10.2 控件的属性</h2>

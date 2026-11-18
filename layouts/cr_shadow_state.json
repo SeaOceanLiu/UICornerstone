@@ -1,0 +1,42 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "shadow-json",
+      "rect": { "x": 20, "y": 20, "w": 180, "h": 80 },
+      "box-shadow": {
+        "color": "#00000033",
+        "offset-x": 2,
+        "offset-y": 4,
+        "blur": 12,
+        "spread": 1,
+        "hover": { "color": "#00000055", "offset-y": 8 },
+        "pressed": { "blur": 20 },
+        "disabled": { "color": "#00000000" }
+      }
+    },
+    {
+      "type": "panel",
+      "id": "shadow-partial",
+      "rect": { "x": 220, "y": 20, "w": 180, "h": 80 },
+      "box-shadow": {
+        "color": "#11223344",
+        "offset-x": 1,
+        "offset-y": 2,
+        "blur": 6,
+        "spread": 0,
+        "hover": { "blur": 16 }
+      }
+    },
+    {
+      "type": "panel",
+      "id": "shadow-force",
+      "rect": { "x": 420, "y": 20, "w": 180, "h": 80 },
+      "box-shadow": {
+        "color": "#FF0000FF",
+        "blur": 8,
+        "hover": { "color": "#FF0000FF" }
+      }
+    }
+  ]
+}

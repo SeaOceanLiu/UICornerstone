@@ -112,6 +112,9 @@ set(UI_TEST_EXECUTABLES
     test_cr_menu_item_events
     test_cr_statusbar_runtime
     test_cr_contextmenu_dispatch
+    test_cr_contextmenu_sync
+    test_cr_contextmenu_position
+    test_cr_shadow_state
     test_window_visibility
     test_slider
     test_shape
@@ -122,6 +125,7 @@ set(UI_TEST_EXECUTABLES
     test_numericupdown
     test_splitter
     test_treeview
+    test_soft_shadow
     test_layout
     test_layout_advanced
     test_winframe
@@ -189,7 +193,10 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
                         "${CMAKE_SOURCE_DIR}/test/assets"
                         $<TARGET_FILE_DIR:${test_name}>/assets)
             endif()
-            if(${test_name} STREQUAL "test_layout" OR ${test_name} STREQUAL "test_layout_advanced")
+            if(${test_name} STREQUAL "test_layout" OR ${test_name} STREQUAL "test_layout_advanced" OR
+               ${test_name} STREQUAL "test_cr_contextmenu_sync" OR
+               ${test_name} STREQUAL "test_cr_contextmenu_position" OR
+               ${test_name} STREQUAL "test_cr_shadow_state")
                 add_custom_command(TARGET ${test_name} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
                         "${CMAKE_SOURCE_DIR}/layouts"
@@ -198,6 +205,38 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
         endif()
     endif()
 endforeach()
+
+# ============================================================
+# 用户手册控件截图生成器（testing_scripts/manual_shots.cpp）
+# ============================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../testing_scripts/manual_shots.cpp")
+    add_executable(manual_shots ${CMAKE_CURRENT_SOURCE_DIR}/../testing_scripts/manual_shots.cpp)
+    target_include_directories(manual_shots PRIVATE ${TEST_INCLUDES})
+    if(TARGET UICornerstone_dll)
+        # 截图工具必须与插件共用同一个核心 DLL，否则 Surface 工厂注册到
+        # 另一个核心实例，box-shadow 会退化为程序化硬层（截图不真实）。
+        target_link_libraries(manual_shots PRIVATE UICornerstone_dll)
+        add_dependencies(manual_shots UICornerstone_dll UIBackend_${_BACKEND_LOWER})
+        add_custom_command(TARGET manual_shots POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:UICornerstone_dll>"
+                "$<TARGET_FILE_DIR:manual_shots>")
+    else()
+        target_link_libraries(manual_shots PRIVATE ${TEST_LIBS})
+    endif()
+    target_compile_definitions(manual_shots PRIVATE
+        UICORNERSTONE_BACKEND_NAME="${_BACKEND_LOWER}")
+    if(WIN32)
+        foreach(dll ${TEST_DLLS})
+            add_custom_command(TARGET manual_shots POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${dll}" $<TARGET_FILE_DIR:manual_shots>)
+        endforeach()
+        add_custom_command(TARGET manual_shots POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${ASSETS_DIR}" $<TARGET_FILE_DIR:manual_shots>/assets)
+    endif()
+endif()
 
 # ============================================================
 # Scale visual tests (C ABI 集成测试) — 仅在 DLL 模式构建树编译，

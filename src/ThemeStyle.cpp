@@ -4,11 +4,13 @@
 // CR20261102001/002/003：CSS-like 主题 + 通用 content-padding + 响应式主题实现
 #include "ThemeStyle.h"
 #include "Theme.h"
+#include "ShadowRenderer.h"
 #include "ControlBase.h"
 #include "Label.h"
 #include "Button.h"
 #include "EditBox.h"
 #include "UIContext.h"
+#include "PlatformUtils.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
@@ -85,6 +87,95 @@ string stateSuffix(const string& st) {
     if (st == "pressed" || st == "selected") return ".pressed";
     if (st == "disabled") return ".disabled";
     return "";
+}
+
+// CR20261116002：阴影键识别与状态映射
+bool isBoxShadowDeclKey(const string& k) {
+    return k == PropertyNames::kBoxShadow ||
+           k == PropertyNames::kBoxShadowColor ||
+           k == PropertyNames::kBoxShadowOffsetX ||
+           k == PropertyNames::kBoxShadowOffsetY ||
+           k == PropertyNames::kBoxShadowRadius ||
+           k == PropertyNames::kBoxShadowSpread;
+}
+
+// 0=hover / 1=pressed / 2=disabled；非状态对象键返回 -1
+int boxShadowObjectState(const string& k) {
+    if (k == PropertyNames::kBoxShadowHover)    return 0;
+    if (k == PropertyNames::kBoxShadowPressed)  return 1;
+    if (k == PropertyNames::kBoxShadowDisabled) return 2;
+    return -1;
+}
+
+// CR20261116002 Q7：text-shadow 非颜色键（blur/offset）不参与状态；
+// 状态规则中出现时忽略并诊断，避免静默改 normal。
+bool isTextShadowNonColorKey(const string& k) {
+    return k == PropertyNames::kTextShadowBlur ||
+           k == PropertyNames::kShadowOffsetX ||
+           k == PropertyNames::kShadowOffsetY;
+}
+
+// 主题应用顺序：0 普通 → 1 box-shadow 对象 → 2 普通拆散键 → 3 状态对象 → 4 状态拆散键
+int boxShadowApplyRank(const string& k) {
+    if (k == PropertyNames::kBoxShadow) return 1;
+    int si = -1, fi = -1;
+    if (ControlImpl::parseBoxShadowStateKey(k.c_str(), si, fi)) return 4;
+    if (k == PropertyNames::kBoxShadowColor ||
+        k == PropertyNames::kBoxShadowOffsetX ||
+        k == PropertyNames::kBoxShadowOffsetY ||
+        k == PropertyNames::kBoxShadowRadius ||
+        k == PropertyNames::kBoxShadowSpread) return 2;
+    if (boxShadowObjectState(k) >= 0) return 3;
+    return 0;
+}
+
+// 将主题 box-shadow 对象写入控件；stateIdx<0 表示 normal（允许内嵌状态），>=0 表示状态覆盖
+void applyThemeShadowObject(Control* ctl, const json& sh, int stateIdx, bool allowNested) {
+    if (!ctl || !sh.is_object()) return;
+    auto* impl = dynamic_cast<ControlImpl*>(ctl);
+    auto setColor = [&](int st, const json& v) {
+        if (!v.is_string()) return;
+        SColor c;
+        if (!parseColorValue(v.get<string>(), c)) return;
+        ctl->setColorProperty(st < 0 ? PropertyNames::kBoxShadowColor :
+            (st == 0 ? PropertyNames::kBoxShadowColorHover : st == 1 ? PropertyNames::kBoxShadowColorPressed : PropertyNames::kBoxShadowColorDisabled), c);
+        if (st >= 0 && impl) impl->markBoxShadowThemeState(ControlImpl::boxShadowStateBit(st, 0));
+    };
+    auto setFloat = [&](int st, int field, const json& v) {
+        if (!v.is_number()) return;
+        const char* key = nullptr;
+        if (st < 0) {
+            key = field == 1 ? PropertyNames::kBoxShadowOffsetX :
+                  field == 2 ? PropertyNames::kBoxShadowOffsetY :
+                  field == 3 ? PropertyNames::kBoxShadowRadius : PropertyNames::kBoxShadowSpread;
+        } else {
+            if (field == 1) key = st == 0 ? PropertyNames::kBoxShadowOffsetXHover : st == 1 ? PropertyNames::kBoxShadowOffsetXPressed : PropertyNames::kBoxShadowOffsetXDisabled;
+            else if (field == 2) key = st == 0 ? PropertyNames::kBoxShadowOffsetYHover : st == 1 ? PropertyNames::kBoxShadowOffsetYPressed : PropertyNames::kBoxShadowOffsetYDisabled;
+            else if (field == 3) key = st == 0 ? PropertyNames::kBoxShadowRadiusHover : st == 1 ? PropertyNames::kBoxShadowRadiusPressed : PropertyNames::kBoxShadowRadiusDisabled;
+            else key = st == 0 ? PropertyNames::kBoxShadowSpreadHover : st == 1 ? PropertyNames::kBoxShadowSpreadPressed : PropertyNames::kBoxShadowSpreadDisabled;
+        }
+        ctl->setFloatProperty(key, v.get<float>());
+        if (st >= 0 && impl) impl->markBoxShadowThemeState(ControlImpl::boxShadowStateBit(st, field));
+    };
+
+    if (sh.contains(PropertyNames::kColor)) setColor(stateIdx, sh[PropertyNames::kColor]);
+    if (sh.contains(PropertyNames::kBoxShadowOffsetXKey)) setFloat(stateIdx, 1, sh[PropertyNames::kBoxShadowOffsetXKey]);
+    if (sh.contains(PropertyNames::kBoxShadowOffsetYKey)) setFloat(stateIdx, 2, sh[PropertyNames::kBoxShadowOffsetYKey]);
+    if (sh.contains(PropertyNames::kBoxShadowBlur)) setFloat(stateIdx, 3, sh[PropertyNames::kBoxShadowBlur]);
+    if (sh.contains(PropertyNames::kBoxShadowSpreadKey)) setFloat(stateIdx, 4, sh[PropertyNames::kBoxShadowSpreadKey]);
+
+    if (!allowNested) {
+        if (sh.contains("hover") || sh.contains("pressed") || sh.contains("disabled")) {
+            static bool logged = false;
+            if (!logged) { Platform::Log("Theme: nested box-shadow state inside :hover/:pressed/:disabled is ignored"); logged = true; }
+        }
+        return;
+    }
+    if (stateIdx < 0) {
+        if (sh.contains("hover") && sh["hover"].is_object())    applyThemeShadowObject(ctl, sh["hover"], 0, false);
+        if (sh.contains("pressed") && sh["pressed"].is_object()) applyThemeShadowObject(ctl, sh["pressed"], 1, false);
+        if (sh.contains("disabled") && sh["disabled"].is_object()) applyThemeShadowObject(ctl, sh["disabled"], 2, false);
+    }
 }
 
 void applyFontToControl(Control* ctl, const string& name, int size) {
@@ -326,6 +417,7 @@ std::string ThemeRuntime::resolveActive(const std::string& v) const {
 // ==================== ThemeRuntime ====================
 
 void ThemeRuntime::setTheme(const json& themeJson) {
+    ShadowRenderer::ShadowCache::bumpGeneration();
     m_raw = themeJson;
     m_legacy = std::make_shared<Theme>();
     if (themeJson.is_object()) m_legacy->parse(themeJson);
@@ -335,6 +427,7 @@ void ThemeRuntime::setTheme(const json& themeJson) {
 }
 
 void ThemeRuntime::clear() {
+    ShadowRenderer::ShadowCache::bumpGeneration();
     m_raw = json(); m_legacy.reset(); m_sheet = ThemeStyleSheet();
     m_variant.clear(); m_activeMedia.clear();
     // 不清理 m_explicit：LayoutParser 无 theme 时调用 clear()，已有控件的
@@ -428,10 +521,24 @@ void ThemeRuntime::applyAll(Control* root) {
 
 void ThemeRuntime::applyAll(Control* root, const ActiveConditions& active) {
     if (!root || !hasThemableData()) return;
+    clearThemeShadowStates(root);   // CR20261116002：先清主题写入的状态槽，再整体重算
     m_cssFontName.clear(); m_cssFontSize.clear(); m_cssTextNormal.clear();
     applySet(root, m_sheet.base(), true, active);
     if (auto* v = m_sheet.variant(m_variant)) applySet(root, v, true, active);
     inheritPass(root, false, {}, false, SColor());
+}
+
+// CR20261116002：主题状态生命周期——只清主题写过的槽，normal/显式由 replay 处理
+void ThemeRuntime::clearThemeShadowStates(Control* root) {
+    std::function<void(Control*)> walk = [&](Control* c) {
+        if (!c) return;
+        auto* impl = dynamic_cast<ControlImpl*>(c);
+        if (!impl) return;
+        uint32_t mask = impl->takeBoxShadowThemeMask();
+        if (mask) impl->clearThemeBoxShadowStates(mask);
+        for (auto& ch : impl->getChildren()) walk(ch.get());
+    };
+    walk(root);
 }
 
 void ThemeRuntime::applySet(Control* root, const ThemeStyleSheet::StyleSet* set, bool includeResponsive, const ActiveConditions& active) {
@@ -467,7 +574,15 @@ void ThemeRuntime::applyOne(Control* ctl, const ThemeStyleSheet::StyleSet* set, 
             bool mr = matchRule(r, ctl, type, classes, id);
             if (!mr) continue;
             for (auto d : r.decls) {
-                if (!r.state.empty() && isColorKey(d.key)) d.key = propForColorKey(d.key) + stateSuffix(r.state);
+                if (!r.state.empty()) {
+                    if (isTextShadowNonColorKey(d.key)) {
+                        static bool logged = false;
+                        if (!logged) { Platform::Log("Theme: text-shadow blur/offset is not state-aware; declaration ignored"); logged = true; }
+                        continue;
+                    }
+                    if (isColorKey(d.key)) d.key = propForColorKey(d.key) + stateSuffix(r.state);
+                    else if (isBoxShadowDeclKey(d.key)) d.key += stateSuffix(r.state);   // CR20261116002：主题状态 → 状态槽
+                }
                 auto it = merged.find(d.key);
                 if (it == merged.end() || d.specificity > it->second.specificity ||
                     (d.specificity == it->second.specificity && d.order >= it->second.order)) merged[d.key] = d;
@@ -505,7 +620,12 @@ void ThemeRuntime::applyOne(Control* ctl, const ThemeStyleSheet::StyleSet* set, 
         for (const auto& q : set->containers) if (active.containerIds.find(q.id) != string::npos)
             for (auto& vv : q.vars) m_controlVars[vv.first] = vv.second;
     }
-    for (auto& kv : merged) { applyValue(ctl, kv.first, resolveActive(kv.second.value)); mergedList.push_back(kv.second); }
+    // CR20261116002：固定应用顺序，状态选择器胜出、拆散键优先于对象
+    std::vector<std::pair<std::string, ThemeStyleSheet::Decl>> ordered(merged.begin(), merged.end());
+    std::stable_sort(ordered.begin(), ordered.end(), [](const auto& a, const auto& b) {
+        return boxShadowApplyRank(a.first) < boxShadowApplyRank(b.first);
+    });
+    for (auto& kv : ordered) { applyValue(ctl, kv.first, resolveActive(kv.second.value)); mergedList.push_back(kv.second); }
     collectKeys(ctl, mergedList);
     replayExplicit(ctl);
 }
@@ -524,17 +644,35 @@ void ThemeRuntime::applyValue(Control* ctl, const std::string& rawKey, const std
     if (key == "box-shadow") {
         try {
             json sh = json::parse(value);
-            if (sh.is_object()) {
-                SColor c;
-                std::string cs = sh.value("color", "");
-                if (!cs.empty() && parseColorValue(cs, c)) ctl->setColorProperty(PropertyNames::kBoxShadowColor, c);
-                if (sh.contains("offset-x")) ctl->setFloatProperty(PropertyNames::kBoxShadowOffsetX, sh["offset-x"].get<float>());
-                if (sh.contains("offset-y")) ctl->setFloatProperty(PropertyNames::kBoxShadowOffsetY, sh["offset-y"].get<float>());
-                if (sh.contains("blur")) ctl->setFloatProperty(PropertyNames::kBoxShadowRadius, sh["blur"].get<float>());
-                if (sh.contains("spread")) ctl->setFloatProperty(PropertyNames::kBoxShadowSpread, sh["spread"].get<float>());
-            }
+            if (sh.is_object()) applyThemeShadowObject(ctl, sh, -1, true);
         } catch (...) {}
         return;
+    }
+    // CR20261116002：主题状态对象（:hover/:pressed/:disabled 的 box-shadow）
+    {
+        int st = boxShadowObjectState(key);
+        if (st >= 0) {
+            try {
+                json sh = json::parse(value);
+                if (sh.is_object()) applyThemeShadowObject(ctl, sh, st, false);
+            } catch (...) {}
+            return;
+        }
+    }
+    // CR20261116002：状态拆散键（优先于下面的通用 .hover 颜色分支）
+    {
+        int si = -1, fi = -1;
+        if (ControlImpl::parseBoxShadowStateKey(key.c_str(), si, fi)) {
+            if (fi == 0) {
+                SColor c;
+                if (parseColorValue(value, c)) ctl->setColorProperty(key.c_str(), c);
+            } else {
+                ctl->setFloatProperty(key.c_str(), (float)atof(value.c_str()));
+            }
+            if (auto* impl = dynamic_cast<ControlImpl*>(ctl))
+                impl->markBoxShadowThemeState(ControlImpl::boxShadowStateBit(si, fi));
+            return;
+        }
     }
     if (key == PropertyNames::kBackground || key == PropertyNames::kBorder ||
         key == PropertyNames::kText || key == PropertyNames::kTextShadow ||
@@ -619,6 +757,7 @@ void ThemeRuntime::applyControl(Control* ctl) {
 
 void ThemeRuntime::applyControl(Control* ctl, const ActiveConditions& active) {
     if (!ctl || !hasThemableData()) return;
+    clearThemeShadowStates(ctl);   // CR20261116002
     if (auto* set = m_sheet.base()) applyOne(ctl, set, true, {}, active);
     if (auto* v = m_sheet.variant(m_variant)) applyOne(ctl, v, true, {}, active);
     replayExplicit(ctl);
@@ -676,6 +815,26 @@ void ThemeRuntime::captureExplicitFromJson(Control* ctl, const json& j) {
         }
     }
     if (j.contains(PropertyNames::kCornerRadius) && j[PropertyNames::kCornerRadius].is_number()) e[PropertyNames::kCornerRadius] = to_string(j[PropertyNames::kCornerRadius].get<float>());
+    // CR20261116002：box-shadow normal + 状态显式采集（颜色存 hex 字符串，数值存 number）
+    if (j.contains(PropertyNames::kBoxShadow) && j[PropertyNames::kBoxShadow].is_object()) {
+        auto capShadow = [&](const json& sh, const char* suffix) {
+            if (!sh.is_object()) return;
+            auto key = [&](const char* base) { return string(base) + suffix; };
+            if (sh.contains(PropertyNames::kColor) && sh[PropertyNames::kColor].is_string()) {
+                SColor c;
+                if (parseColorValue(sh[PropertyNames::kColor].get<string>(), c)) e[key(PropertyNames::kBoxShadowColor)] = colorToStr(c);
+            }
+            if (sh.contains(PropertyNames::kBoxShadowOffsetXKey) && sh[PropertyNames::kBoxShadowOffsetXKey].is_number()) e[key(PropertyNames::kBoxShadowOffsetX)] = sh[PropertyNames::kBoxShadowOffsetXKey].get<float>();
+            if (sh.contains(PropertyNames::kBoxShadowOffsetYKey) && sh[PropertyNames::kBoxShadowOffsetYKey].is_number()) e[key(PropertyNames::kBoxShadowOffsetY)] = sh[PropertyNames::kBoxShadowOffsetYKey].get<float>();
+            if (sh.contains(PropertyNames::kBoxShadowBlur) && sh[PropertyNames::kBoxShadowBlur].is_number()) e[key(PropertyNames::kBoxShadowRadius)] = sh[PropertyNames::kBoxShadowBlur].get<float>();
+            if (sh.contains(PropertyNames::kBoxShadowSpreadKey) && sh[PropertyNames::kBoxShadowSpreadKey].is_number()) e[key(PropertyNames::kBoxShadowSpread)] = sh[PropertyNames::kBoxShadowSpreadKey].get<float>();
+        };
+        const json& sh = j[PropertyNames::kBoxShadow];
+        capShadow(sh, "");
+        capShadow(sh.value("hover", json::object()), ".hover");
+        capShadow(sh.value("pressed", json::object()), ".pressed");
+        capShadow(sh.value("disabled", json::object()), ".disabled");
+    }
     if (j.contains("shadow") && j["shadow"].is_object()) {
         const json& sh = j["shadow"];
         if (sh.contains("offset") && sh["offset"].is_object()) {
@@ -704,6 +863,10 @@ void ThemeRuntime::clearOverrides(Control* ctl) {
     auto* impl = dynamic_cast<ControlImpl*>(ctl);
     if (impl) {
         m_explicit.erase(ctl);
+        // CR20261116002：显式覆盖清除后，状态槽回到“仅主题值”；
+        // 清全部状态槽 + 掩码，后续 applyAll 会按当前主题重算。
+        impl->takeBoxShadowThemeMask();
+        impl->clearThemeBoxShadowStates(0x7FFFu);
         for (auto& ch : impl->getChildren()) clearOverrides(ch.get());
     }
 }
@@ -715,7 +878,16 @@ static bool sameColor(const SColor& a, const SColor& b) {
 }
 
 bool ThemeRuntime::explicitValueMatches(Control* ctl, const std::string& key, const json& v) {
-    if (!ctl || !v.is_string()) return false;
+    if (!ctl) return false;
+    // CR20261116002/B5：状态阴影键必须检查槽位显式标记；未设置视为不匹配以强制 replay
+    {
+        int si = -1, fi = -1;
+        if (ControlImpl::parseBoxShadowStateKey(key.c_str(), si, fi)) {
+            auto* impl = dynamic_cast<ControlImpl*>(ctl);
+            if (!impl || !impl->isBoxShadowStateSet(si, fi)) return false;
+        }
+    }
+    if (!v.is_string()) return false;
     const std::string value = v.get<std::string>();
     if (key == PropertyNames::kFont) {
         const char* cur = nullptr;

@@ -75,6 +75,17 @@ public:
     virtual void resetRenderTarget() = 0;
     virtual void readPixels(void* buffer, const SRect& rect) = 0;
 
+    // === CR20261112001：文字阴影离屏烘焙辅助（内部接口，默认不支持） ===
+    // 是否支持“渲染到纹理 + 读回 RGBA”用于 Label 字形柔光；不支持时走有限层回退。
+    virtual bool supportsTextShadowTexture() const { return false; }
+    // 读回整张渲染纹理（RGBA 字节序，top-down）。成功返回 true。
+    virtual bool readTexturePixels(Texture* texture, void* buffer, int width, int height) {
+        (void)texture; (void)buffer; (void)width; (void)height; return false;
+    }
+    // 离屏烘焙期间临时保存并禁用裁剪，结束后恢复（含嵌套裁剪栈）。
+    virtual void suspendClipRect() {}
+    virtual void resumeClipRect() {}
+
     // === 帧操作 ===
     virtual void clear() = 0;
     virtual void present() = 0;

@@ -101,6 +101,8 @@ public:
     // ── Property system overrides ──
     int setBoolProperty(const char* prop, int value) override;
     int setStringProperty(const char* prop, const char* value) override;
+    int setColorProperty(const char* prop, SColor color) override;
+    int setFloatProperty(const char* prop, float value) override;
     int getBoolProperty(const char* prop, int& out) override;
     int getStringProperty(const char* prop, const char*& out) override;
     int setCallbackProperty(const char* event, void (*cb)(void*, const void*, void*), void* userData) override;
@@ -174,6 +176,10 @@ public:
 
     // 重新计算尺寸
     void recalculateSize();
+
+    // CR20261112002：尺寸变化通知（仅非空 items 且尺寸实际变化时触发）
+    using SizeChangedHandler = std::function<void(const SRect&)>;
+    void setOnSizeChanged(SizeChangedHandler handler) { m_onSizeChanged = std::move(handler); }
 
     // 命中测试：输入绘制（像素）坐标，返回条目索引（未命中 -1）
     int hitTest(float x, float y);
@@ -269,12 +275,24 @@ private:
     bool   m_shadowEnabled = false;
     SPoint m_shadowOffset{1, 1};
     float m_shadowRadius;
+    // CR20261112001：面板柔光阴影（统一 ShadowCache；legacy shadow-radius 兼容）
+    SColor m_shadowColor{0, 0, 0, 102};
+    float m_shadowSpread = 0.0f;
+    bool m_legacyShadowRadiusExplicit = false;
+    bool m_legacyShadowColorExplicit = false;
+    bool m_legacyShadowSpreadExplicit = false;
+    SizeChangedHandler m_onSizeChanged;   // CR20261112002：ContextMenu 外框同步
 
     void ensureFont();
     void updateItemsFont();
     void layoutItems();
     void drawShadow();
     string m_itemTargetId;  // CABI "item-id" 定位：item 级属性的作用目标
+public:
+    // CR20261112001：MenuBar 传播面板阴影参数时区分“默认值”与“用户显式设置”
+    void setLegacyShadowRadius(float radius, bool explicitFlag);
+    void setLegacyShadowColor(const SColor& color, bool explicitFlag);
+    void setLegacyShadowSpread(float spread, bool explicitFlag);
 };
 
 // ==================== MenuBar 菜单栏 ====================
@@ -378,6 +396,11 @@ private:
 
     float m_itemHeightRatio;
     float m_panelShadowRadius = 8.0f;   // P0-72①③：下拉面板阴影半径（MenuColors::PANEL_SHADOW_BLUR 缺省）
+    SColor m_panelShadowColor{0, 0, 0, 102};
+    float m_panelShadowSpread = 0.0f;
+    bool m_panelShadowRadiusExplicit = false;
+    bool m_panelShadowColorExplicit = false;
+    bool m_panelShadowSpreadExplicit = false;
     float m_menuTextSize;
     SharedFont m_font;
     FontName m_fontName;

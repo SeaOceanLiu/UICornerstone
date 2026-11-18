@@ -10,9 +10,9 @@
 
 - **四层后端抽象**：RenderDevice（绘制原语）、Texture（纹理）、TextRenderer（文本）、InputBackend（输入）——换后端零业务代码改动。
 - **声明式 UI**：JSON 布局文件描述控件树、布局引擎（流式/锚点/网格）、事件绑定与主题样式，支持热加载。
-- **CSS-like 主题**：`theme.styles/variables/variants/classes` + `media/containerQueries` 响应式条件；支持通用 `content-padding`、圆角、盒阴影、组件主题角色；旧 `colors/fonts` 主题保持兼容。
+- **CSS-like 主题**：`theme.styles/variables/variants/classes` + `media/containerQueries` 响应式条件；支持通用 `content-padding`、圆角、盒阴影（含 hover/pressed/disabled 状态规格与 `:hover`/`:pressed`/`:disabled` 状态选择器）、组件主题角色；旧 `colors/fonts` 主题保持兼容。
 - **26 种声明式控件**：Label、Button、Image/Actor、Animation、EditBox、ComboBox、TextArea、CheckBox、ProgressBar、Slider、ScrollBar、Panel、WinFrame、ColorPicker、Popup、ConfirmPopup、Dialog、MenuBar、NumericUpDown、Splitter、TreeView、ContextMenu、ListView（含单列 ListBox）、StatusBar、TabControl、Shape（图元+组合）；另有 HandleControl 手柄覆盖层。
-- **菜单 / 右键 / 状态栏事件**：MenuBar 菜单项支持 `events.onClick`；独立 ContextMenu 支持声明式 `items[]`；StatusBar 支持 `items[].events.onClick`；任意控件可通过 `context-menu` 键或 `SetPtr("context-menu")` 绑定右键菜单（子控件优先、父兜底）。
+- **菜单 / 右键 / 状态栏事件**：MenuBar 菜单项支持 `events.onClick`；独立 ContextMenu 支持声明式 `items[]`，外框随内容自动同步且 `rect` 持久化位置——显式 `rect`/`SetRect` 后为绝对定位，设计态 `visible=1` 与重复显隐均不会被视口居中重置，`show(x,y)` 才做视口钳制；StatusBar 支持 `items[].events.onClick`；任意控件可通过 `context-menu` 键或 `SetPtr("context-menu")` 绑定右键菜单（子控件优先、父兜底）。
 - **窗口控制**：创建期 `Hidden`/`Borderless`/`NoShadow`/`Utility`，运行期显示隐藏、AlwaysOnTop、Foreground；跨后端能力按矩阵降级（NoShadow/Utility 仅 SDL3，Utility Windows 任务栏隐藏）。
 - **纯显示控件右键目标**：LuotiAni/Actor 绑定 `context-menu` 后按 `getDrawRect()` 矩形命中，普通事件仍不参与命中；HandleControl V1 不支持右键菜单。
 - **Splitter 光标 owner 仲裁**：进入/离开/禁用/隐藏/拖拽释放均正确恢复或保持 resize 光标，不覆盖其它自定义光标控件。
@@ -210,6 +210,8 @@ fromsource 测试使用单源文件 + 编译定义区分后端，后端源码作
 
 - `test_cr_theme`：CSS-like/响应式主题；
 - `test_cr_menu_item_events`、`test_cr_statusbar_runtime`、`test_cr_contextmenu_dispatch`：MenuBar/StatusBar/ContextMenu item action 与全控件右键派发；
+- `test_cr_contextmenu_position`：ContextMenu 显式位置保持（CR20261113001，三后端 44/44）；
+- `test_cr_shadow_state`：box-shadow 四态、主题状态选择器、优先级、缓存与状态清理（CR20261116002，三后端 77/77）；
 - `test_editbox_offset`：EditBox 首帧 placeholder/padding 偏移；
 - `test_window_visibility`：窗口 Hidden/Visible、AlwaysOnTop/Foreground、NoShadow/Utility。
 

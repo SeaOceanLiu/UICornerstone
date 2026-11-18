@@ -523,7 +523,11 @@
 | CR20261109002 | StatusBar item 点击 action | `items[].events.onClick` / `items[].onClick` | — | — | — | ✅（无新增 API） |
 | CR20261109003 | ContextMenu 声明式 items | `items[]` / `items[].events.onClick` | — | — | — | ✅（独立 context-menu；V1 不支持嵌套） |
 | CR20261110001 | EditBox offset 刷新 | — | — | — | — | ✅（内部修复） |
+| CR20261112001 | 通用 box-shadow 柔光 + Label 字形柔光 | `box-shadow`（blur 0~64/spread>=0）/ `shadow.blur` / `text-shadow-blur` / 菜单 `shadow-color` / `shadow-spread` | `kBoxShadow*` / `kTextShadowBlur` / `kShadowColor` / `kShadowSpread` | 通用 Set/Get（无新增函数） | 通用 `Set*/Get*` | ✅（预烘焙 + 9-slice + 32MB 共享 LRU；MenuItem/HandleControl 不支持；Shape V1 bbox） |
 | CR20261110002 | 无控件 sender 的 action | — | — | — | — | ✅（Binding 允许 invalid Control） |
 | CR20261110003 | 全控件右键 context-menu | `context-menu` / `SetPtr("context-menu")` | — | — | — | ✅（派发层统一；子先父兜底） |
 | CR20261110004 | 纯显示控件右键菜单 | `context-menu` / `SetPtr("context-menu")` | — | — | — | ✅（LuotiAni/Actor；HandleControl 不支持） |
 | CR20261111001 | Splitter 光标 owner | — | — | — | — | ✅（内部修复） |
+| CR20261112002 | ContextMenu 外框随内容同步 | `context-menu.rect`（选填） | — | `ContextMenuSyncSize` / `ContextMenuGetMenuPanelRect` | `ContextMenuSyncSize` / `ContextMenuGetMenuPanelRect` | ✅（自动同步 + 显式兜底；空菜单保持 rect） |
+| CR20261113001 | ContextMenu 显式位置不被 Centered 重置 | `context-menu.rect`（复用） | — | 复用 `SetRect` / `GetRect` / `SetBool("visible")`；`SetEnum("centered")` 对 ContextMenu 不生效 | 复用 `Control::SetRect` / `GetRect` | ✅（无新增 API；C++ `Popup` vtable 变化需同批重编译） |
+| CR20261116002 | box-shadow 声明式状态 + 主题 :hover | `box-shadow.hover/.pressed/.disabled`（及各状态内五字段） | — | 复用 `SetColor/SetFloat/GetColor/GetFloat` 状态键（15 个） | 复用 `Set*/Get*` | ✅（无新增 C ABI/Binding；`ControlImpl` 类布局变化需同批重编译） |

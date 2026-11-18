@@ -1210,3 +1210,708 @@ t.SetPtr("context-menu", m.Handle());
 #### 引擎：closed（2026-11-11 联调通过；Release 94bf92b9...）
 - 分析/设计：`design/CR20261111001_SplitterCursor_Design.md`（已关闭；设计器联调通过）。
 - 实施（2026-11-11）：hover/owner 清理 + endDrag 最终坐标；test_cr_splitter_cursor；回归 61 OK + 4 预存失败；Release `94bf92b9...` 已同步。
+
+## CR20261112001 通用 box-shadow rect 柔光阴影（预烘焙缓存 / Label 文字阴影 / Shape 边界）
+
+### 现状
+
+CR20261102001 已为通用控件引入 `box-shadow` 字段，并已接通 JSON、主题与基础属性：
+
+- JSON：`box-shadow: { color, offset-x, offset-y, blur, spread }`；
+- 主题键：`box-shadow`（同时保留 `box-shadow-color` / `box-shadow-offset-x/y` / `box-shadow-radius` / `box-shadow-spread`）；
+- 数据：`ControlImpl` 保存 `m_boxShadowColor` / `m_boxShadowOffsetX` / `m_boxShadowOffsetY` / `m_boxShadowRadius` / `m_boxShadowSpread`；
+- 渲染：`ControlImpl::drawBackground()` 当前仅按偏移/扩散绘制**一层半透明圆角矩形**，`blur` 只参与圆角半径扩展，没有真正的高斯柔化，边缘是硬边；
+- 菜单面板另走 `MenuPanel::drawShadow()` / `GraphTool::drawShadow()` 的独立近似路径，未与通用控件共享纹理或缓存；
+- Label 的 `shadow` / `text-shadow` 当前是按偏移重绘一遍字形（硬阴影），没有文字轮廓柔光；
+- Shape 没有独立的轮廓阴影入口；若套用通用 `box-shadow`，只能按控件包围盒近似，无法表达轮廓发光。
+
+用户要求的是控件外围的**柔光阴影**，不是加粗的实体圆角矩形。现有实现还存在每个控件每帧重复绘制、无共享缓存的问题。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-12 初次提交CR
+
+**关联**：CR20261102001 已提供 `box-shadow` 字段、主题解析和基础属性；本 CR 不改变已有字段名，升级其渲染语义，补齐 Label/Shape 的边界和菜单共享缓存。旧布局/旧主题未声明阴影时行为不变。
+
+**目标**：
+
+- 通用控件、菜单/弹层：控件矩形外围的柔光阴影（outer glow），支持偏移、模糊、扩散、圆角和透明色；
+- 阴影必须在背景外侧绘制，不覆盖控件内容，不影响命中测试；
+- 使用预烘焙纹理缓存与 9-slice/共享复用，禁止每帧重复做模糊；
+- Label 的文字阴影必须基于字形覆盖，不能用矩形阴影冒充文字轮廓；
+- Shape V1 只支持包围盒矩形阴影；轮廓发光作为 V2 独立 opt-in，V1 不默认启用。
+
+**一、通用控件与菜单：rect 柔光阴影**
+
+**JSON/属性接口（兼容现有键）**：
+
+```json
+{
+  "box-shadow": {
+    "color": "#00000066",
+    "offset-x": 0,
+    "offset-y": 8,
+    "blur": 24,
+    "spread": 0
+  }
+}
+```
+
+- `blur`：真实柔化半径；`0` 表示硬边（保留明确可控的硬阴影）；建议使用高斯近似，边缘 alpha 从阴影主体向外平滑衰减；
+- `spread`：模糊前向外扩张的实体范围；负值是否支持请引擎明确；若不支持负值，schema 限制为 `>= 0`；
+- `offset-x/y`：阴影整体偏移，阴影包围盒允许超出控件矩形；
+- 颜色 alpha=0 等价关闭；阴影不参与事件命中、布局和内容裁剪；
+- 现有 `box-shadow-color` / `box-shadow-offset-x/y` / `box-shadow-radius` / `box-shadow-spread` 保持可读写；`box-shadow` 对象与拆散键的优先级沿用现有 CR20261102001 规则；
+- 圆角跟随 `corner-radius`；非矩形 Shape 的 V1 行为见第三节，不在通用路径中猜测轮廓。
+
+**缓存与 9-slice**：
+
+1. 将阴影预烘焙为 RGBA 纹理；每帧只做一次带偏移的纹理绘制，不按 `blur` 层数循环 `drawRoundRect`。
+2. 缓存键至少包含：逻辑尺寸/设备像素尺寸、`corner-radius`、`blur`、`spread`、颜色（含 alpha）、状态/主题版本、渲染缩放/DPI、渲染器/纹理格式。偏移建议在绘制阶段应用，不进入纹理键；若实现把偏移烘进纹理，则键必须包含偏移。
+3. 对矩形阴影使用 9-slice：角区尺寸应覆盖 `corner-radius + blur + spread` 的扩展范围；中心/边拉伸，避免为每个控件尺寸生成整张大纹理。尺寸小于 9-slice 角区总和时回退精确尺寸缓存。
+4. 同一渲染上下文内共享缓存：相同键返回同一纹理（引用计数或 LRU），不同控件不重复烘焙；跨窗口按各自 `RenderDevice` 隔离。
+5. 缓存失效至少覆盖：
+   - 控件尺寸、圆角、`blur`、`spread`、颜色/alpha、显式阴影属性变化；
+   - 主题应用/切换、CSS 类/角色/变体变化导致阴影声明变化；
+   - DPI/窗口缩放、渲染器重建、纹理设备丢失；
+   - 菜单/弹层的面板尺寸或主题阴影参数变化。
+6. 设定缓存内存上限（实现可按实例/窗口配置，建议先以 32 MB 为上限并 LRU 淘汰）；超限或纹理尺寸超过后端上限时回退到较小的 9-slice 或逐帧程序化路径，不得崩溃。
+7. 菜单/弹层：保留 `MenuPanel` 的阴影参数语义，但优先复用同一柔光缓存/9-slice 实现；不得因菜单自绘单独保留一套重复的每帧阴影循环。菜单阴影的遮罩/裁剪、弹出动画和点击外部关闭不受影响。
+
+**绘制顺序/边界**：
+
+- 阴影在背景之前绘制，位于控件矩形外围；父容器已有 clip 语义时仍受父级裁剪；
+- 不扩大控件布局 rect，不改变 `getDrawRect()` 的命中范围；
+- 半透明、圆角、相邻控件重叠时按正常 alpha 合成；不绘制到控件内容之上；
+- 阴影纹理的留白必须足够覆盖 `max(|offset|) + blur + spread`，避免边缘被裁断。
+
+**二、Label：text-shadow 文字柔光**
+
+Label 的文字阴影必须基于字形覆盖，不得用 `box-shadow` 或背景矩形模拟文字轮廓：
+
+- 保留现有 `text-shadow`（颜色）与 `shadow-offset-x/y` 兼容语义；新增文字柔化参数（建议 `text-shadow-blur`，可选 `text-shadow-spread`），或在不破坏兼容性的前提下支持对象形式；具体字段名请在实现设计阶段确认；
+- `blur=0` 时保持现有硬偏移文字阴影；`blur>0` 时先按字形 alpha mask 做柔化，再绘制正文，避免出现矩形光晕；
+- 支持多行、换行、对齐、省略/裁切后的可见字形；阴影不应越过 Label 的内容裁剪边界（除非明确 opt-in）；
+- 文字阴影缓存键至少包含：文本内容、字体/字号、字形覆盖、文字色/阴影色、偏移、模糊/扩散、状态、DPI/缩放；文本、字体或主题变化必须失效；
+- 相同文本/样式的 Label 可共享预烘焙字形阴影纹理；动态文本修改后不得复用旧纹理；
+- Label 上显式声明的 `box-shadow` 仍然只表示矩形外阴影，不能替代 `text-shadow`；两者同时存在时分别绘制，顺序为矩形阴影 → 文字柔光 → 正文。
+
+**三、Shape：V1 包围盒，V2 轮廓独立 opt-in**
+
+- **V1（本 CR 必须支持）**：Shape 的 `box-shadow` 以 Shape 的包围盒 rect 为准绘制外围柔光；可使用同一通用阴影缓存；不尝试沿点集/轮廓生成发光，避免 V1 语义不清。
+- **V2（独立 opt-in，后续实现）**：如提供轮廓发光，使用独立键（建议 `shape-glow` / `contour-glow`，含 `enabled`、`color`、`width`、`blur` 等），默认关闭；不得让 V1 的 `box-shadow` 自动变成轮廓发光。V2 的轮廓 alpha mask、点集变化/尺寸变化回退、缓存键和性能另立 CR/设计评审。
+- Shape 的 V1 阴影不得被误认为轮廓阴影；文档/schema 明确“V1 bbox only”。
+
+**四、兼容性、接口与文档**
+
+- 旧布局/旧主题：未声明 `box-shadow` 的控件视觉不变；未声明 `text-shadow-blur` 的 Label 保持硬阴影；未声明 `shape-glow` 的 Shape 不产生轮廓发光；
+- `box-shadow` 现有字段继续可用；schema 补充新增字段、类型和范围，C ABI/Binding 属性名/读写保持同步；
+- 主题：`box-shadow`、`text-shadow-blur` 等新声明应参与现有主题匹配和状态优先级；主题切换后缓存必须清空/重建；
+- 版本策略沿用现有“DLL/Binding/宿主同批配套”，不引入新的版本门禁；未知字段忽略并诊断，不崩溃；
+- 更新引擎文档（属性、主题、schema）和设计器后续接入说明；设计器 schema/属性面板在引擎交付后同步。
+
+**测试/验收**：
+
+1. 通用控件：`blur=0` 硬边、`blur>0` 边缘 alpha 平滑衰减；偏移、spread、圆角、半透明色正确；阴影不覆盖内容、不扩大命中区域；
+2. 缓存：相同 key 命中共享纹理；尺寸/圆角/颜色/blur/spread/主题/DPI 变化后新纹理正确；LRU 上限不崩溃；同一帧内无重复烘焙；
+3. 9-slice：大尺寸矩形无接缝/角部断裂；小于角区总和的控件回退正确；菜单/弹层阴影无回归；
+4. Label：文字柔光只跟随字形，无矩形光晕；多行/对齐/裁切/空文本/动态改文本正确；`blur=0` 保持旧硬阴影；
+5. Shape：V1 只显示 bbox 阴影；未启用 V2 时无轮廓发光；V2 键即使被解析也不得在 V1 改变外观（如暂不支持则诊断）；
+6. 旧布局/旧主题回归；C ABI/Binding/schema/文档同步；设计器侧接入后 `auto=2`、`auto=3`、strict 通过；
+7. 性能：大量控件/滚动/动画播放时无每帧模糊分配和明显卡顿；缓存命中时阴影绘制成本与普通纹理绘制同量级。
+
+**待引擎确认**：
+
+- Q1：`text-shadow-blur` 采用独立键还是兼容对象形式；
+- Q2：`blur` 的精确核/近似方式与最大半径限制；
+- Q3：缓存上限、纹理格式、9-slice 角区尺寸的计算口径；
+- Q4：MenuPanel 是否直接复用通用 ShadowCache，还是保留专用入口但共享底层实现；
+- Q5：V2 `shape-glow` 的字段名与是否单独立 CR。
+
+#### 2026-11-17 设计器最终视觉验证（closed）
+
+- 验证范围：通用 `box-shadow` 柔光（预烘焙/9-slice）、Label `text-shadow-blur` 字形柔光、Shape V1 包围盒阴影、浅色背景截图与文档复核。
+- 结论：通过，无回归；设计器项维持 closed（2026-11-13），补记本次最终视觉验证。
+- 设计器/引擎两项均 closed，满足归档门禁。
+
+### CR状态
+#### 设计器：closed（2026-11-13；2026-11-17 最终视觉验证）
+#### 引擎：closed
+- 分析/设计：`design/CR20261112001_SoftShadow_Design.md`（v2 已通过并实施；代码/测试/文档/Release 已同步）。
+- 实施记录：见设计文档 §11；`test_soft_shadow`（SDL3/SFML/raylib 13/13）；SDL3 全量回归无新增失败；Release DLL SHA256 `267fbe8fe10e793a22af8620bb71096c84b53e99d9fc03cf38065cf57a066a89`。
+
+## CR20261112002 ContextMenu 外框尺寸随 MenuPanel 自动同步（设计态）
+
+### 现状
+
+设计器在画布上放置 ContextMenu 后填写两条 items，初始外框为 `140×80`；引擎内部 `MenuPanel::recalculateSize()` 会按菜单项内容重算为实际尺寸（实测约 `170×85`），但 `ContextMenu` 的外框 `m_rect` 仍保持 `140×80`。
+
+结果是：
+
+- 设计器选择手柄/外框按 `140×80` 绘制，而可见菜单背景按 `170×85` 绘制；
+- 鼠标选中、取消选中、再次选中时，表现为菜单“变宽/变窄”；
+- 设计器侧只能用临时 MenuPanel 测量或调用运行时 `ContextMenuShow` 做 workaround，既绕开引擎不变量，也存在移动后重建回旧坐标的风险（现已用临时测量规避）。
+
+根因属于引擎内部状态不一致：ContextMenu 的内容面板尺寸变化后，外框 rect 没有同步；`ContextMenuShow()` 虽然会在运行时重新计算并设置外框，但它带有弹出/定位/生命周期副作用，不适合设计态测量或普通 items 变更。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-12 初次提交CR
+
+**建议引擎能力**：
+
+1. 在 ContextMenu 内部维护“外框 = MenuPanel 内容尺寸”的不变量。items 增删、separator、字体/字号、主题、缩放等导致 MenuPanel `recalculateSize()` 后，自动同步 ContextMenu 外框宽高。
+2. 同步只更新 `width/height`，**保持当前 `x/y` 不变**；不得调用 `show()`，不得改变可见性、焦点、watcher、锚定模式或位置钳制。
+3. 提供最小可观测/可控入口（名称可引擎决定）：
+   - C++：`ContextMenu::syncSize()` / `getMenuPanelRect()`；
+   - C ABI：可选 `UICornerstone_ContextMenuSyncSize(inst, menu)` 或只做自动同步+读取外框；
+   - Binding：若引擎只自动同步，设计器无需新增调用。
+4. 设计态（未 show、visible 由宿主控制）和运行态均生效；旧布局未声明 items 时外框保持现有 `rect`，不出现 0 尺寸。
+5. LayoutParser 解析 `type:"context-menu"` 的 items 后也同步外框，保证打开工程/导出/预览尺寸一致。
+6. 设计器接入后移除临时 `measureContextMenuPanel` 与 `ContextMenuShow` 测量 workaround；items 重建前仍应从引擎当前外框回写模型位置，避免宿主模型滞后。
+
+**验收**：
+
+- 创建 `ContextMenu(500,500,140,80)` → 添加两条 items（含/不含 shortcut）→ 外框 w/h 等于 MenuPanel 实际尺寸，x/y 仍为 500,500；
+- 选中/取消选中/重新选中时尺寸不变，无“变宽/变窄”；
+- 移动菜单到新 x/y → 添加/删除 item → 位置保持，不被重置；
+- separator、字体/字号、主题/DPI 变化后尺寸正确；
+- 隐藏 context menu 与 visible 设计态均可用，不触发 `show`/watcher/焦点；
+- C ABI/Binding/schema/文档同步；旧布局回归；
+- 设计器侧 items 编辑、保存/打开、预览、`auto=2`/`auto=3`/strict 通过。
+
+**相关设计器现状**：
+
+- `src/CanvasPane.cpp` 当前用临时 MenuPanel 测量内容尺寸，并在 `syncContextMenuItems()` 销毁重建前从引擎当前外框回写模型；
+- 该 workaround 仅用于稳定设计态选择框，非最终归属；引擎交付后应删除测量实现。
+
+#### 2026-11-12 设计评审：有条件通过
+- 评审对象：`design/CR20261112002_Design.md`；意见见 `Temp/CR20261112002_Design_评审意见.md`。
+- 回调同步/静默更新/空 items 保持 rect/API 矩阵方向正确；须闭合 B1~B4：
+- B1：`parseContextMenu` 不解析 rect，加载/保存后 x/y 可能丢失，与“x/y 永不改变/保存打开验收”冲突；
+- B2：MenuPanel 回调裸 `this` 生命周期、析构解绑、回调重入及直接改 `m_rect` 绕过 Panel/resized 的语义未定义；
+- B3：`syncSize()` 在 `create()` 前调用无法解决字体首遍兜底估算，需明确 create 后同步/回调时序；
+- B4：空 items、首次添加、删除全部、再次添加、手动 setRect 的状态矩阵与 `syncSize` 空菜单语义未闭合。
+- 非阻塞项：局部坐标/返回值/旧 DLL 安全失败/MenuBar 回归/手册位置语义；待引擎修订 v1 后复核，CR 保持 open。
+
+#### 2026-11-12 修订版 v2 复核：有条件通过
+- 复核对象：`design/CR20261112002_Design.md` v2；意见见 `Temp/CR20261112002_Design_复核意见_v2.md`。
+- B1/B3/B4 及 N1~N6 已闭合：rect 持久化+schema、create 后 syncSize、S1~S9 状态矩阵、局部坐标/返回值/旧 DLL/MenuBar/手册语义。
+- 仍阻塞 B2-1：`ContextMenu` 构造函数中不能通过 `getThis()` 建立 weak_ptr 回调（shared 所有者尚未建立）；`CreateContextMenu` 或 `addItem` 早于 create 时自动路径也会失效。
+- 需明确 `ensureSizeCallback()` 懒注册或工厂/创建路径后置注册，并补“make_shared 后立即 addItem、不经过 create”测试；修订后即可实施。
+- CR 保持 open。
+
+#### 2026-11-12 修订版 v3 复核：通过（设计阶段）
+- 复核对象：`design/CR20261112002_Design.md` v3；意见见 `Temp/CR20261112002_Design_复核意见_v3.md`。
+- B2-1 已闭合：构造期不注册，`ensureSizeCallback()` 懒注册覆盖 addItem/addSeparator/show/syncSize/create/setRect；weak 生命周期、析构解绑、受控 `ControlImpl::resized`、S1~S9、B1 rect、B3 create 后 sync、N1~N6 全部闭合。
+- 设计层面通过，可进入实现；实施后设计器移除临时 MenuPanel 测量 workaround，并按 §6/§11 联调。CR 状态保持 open。
+
+### CR状态
+#### 设计器：open
+#### 引擎：closed
+- 分析/设计：`design/CR20261112002_Design.md`（v3 通过，已实施）。
+- 实施/验证：`design/CR20261112002_Design.md` §13；`test_cr_contextmenu_sync` 三后端 48/48；SDL3 全量回归无新增失败；Release DLL SHA256 `100a59967720aff7588d33482bca764c8ae71cfc79e45601a08f1c90b1e717bb`；已同步设计器 `subModules/UICornerstone`。
+
+## CR20261113001 ContextMenu 设计态坐标被 Popup 默认 Centered 重置
+
+### 现状
+
+CR20261112002 已让 ContextMenu 外框随 MenuPanel 内容尺寸自动同步，但联调发现位置仍会回退：
+
+- `ContextMenu` 继承 `Popup`，而 `Popup` 的默认 `m_anchorMode = AnchorMode::Centered`（`Dialog.h:38`）；
+- `ContextMenu::setRect()` 仅调用 `Panel::setRect()`（`ContextMenu.cpp:135-142`），没有像 `Popup::setRect()` 那样把锚定模式改为 Absolute；
+- 设计器创建/重建 ContextMenu 后设置 `visible=1`，触发 `Popup::open()` → `computeTargetRect()` 按 Centered 计算，覆盖设计态 x/y（例如从 `509,407.5` 回到视口居中位置）；
+- 设计器侧已在 ContextMenu 创建/items 重建后再次 `SetRect` 恢复模型 x/y 作为临时兜底，但引擎初始化语义仍不正确。
+
+该问题与 CR20261112002 的尺寸同步不是同一问题：尺寸同步只改 w/h，位置回退来自 Popup 打开模式。
+
+### CR类型：bug
+
+### 修订记录
+
+#### 2026-11-13 初次提交CR
+
+**建议修复**：
+
+1. `ContextMenu` 的定位语义明确为 **Absolute**：构造/创建时设置 `m_anchorMode = AnchorMode::Absolute`，或让 `ContextMenu::setRect()` 采用 `Popup::setRect()` 的绝对语义（同时保持 `MenuPanel` 尺寸传播/CR12002 同步）。
+2. 设计态 `setVisible(true)` 不应按视口居中重写 ContextMenu 的 x/y；运行时 `show(x,y)` 仍按原逻辑做视口钳制（钳制只影响 show 计算，不回写设计态位置）。
+3. 旧布局/旧调用行为保持：没有显式位置时仍使用默认/SetRect 值；不要改变 `show()` 的弹出定位。
+4. 设计器 workaround 可在引擎修复后移除；当前不能仅依赖 `SetRect` 创建，因为 visible=1 的 Popup::open 会再次覆盖。
+
+**测试/验收**：
+
+- 创建 ContextMenu 并 `setVisible(true)`：x/y 等于 setRect 值，不发生视口居中；
+- 移动 ContextMenu → items 增删/重建 → 取消/重新选择/切页：x/y 保持；
+- `show(x,y)` 的视口钳制仍正确；`close`/再次 `show` 正常；
+- C ABI/Binding、设计器保存/打开、auto=2/auto=3/strict 回归；
+- 现有 CR20261112002 尺寸同步测试不回归。
+
+**设计器现状**：
+
+- 已在 `createViewportControl` 与 `syncContextMenuItems` 的可见/重建路径后按模型 x/y 调用 `SetRect` 临时恢复；
+- 该兜底依赖调用顺序，建议引擎交付后删除并回归。
+
+#### 2026-11-16 引擎实施完成
+
+- v3 设计通过设计器复核（V1-1~V1-6 / V2-1~V2-5 全部关闭）。
+- 实现：`Popup` 新增 `protected virtual applyOpenRect()`，`open()` 改走它；`setCentered/setAnchored` 改 virtual。
+- `ContextMenu`：`m_hasExplicitRect` 区分外部显式位置；`setRect` 走 `Popup::setRect` 建立 Absolute；`applyOpenRect` 覆盖为“显式 rect 正常传播 / 无 rect 只应用位置不改模式，先测内容尺寸再重新居中，空菜单保持外框”；`setCentered/setAnchored` no-op + `Platform::Log` 一次性诊断。
+- 验证：`test_cr_contextmenu_position` 三后端 44/44；`test_cr_contextmenu_sync` 48/48；`test_contextmenu` 19/19；SDL3 全量回归仅 4 项历史失败；`validate_layout --strict` 通过。
+- 交付：Release DLL SHA256 `2207367d1b51df5a5d14aab98fd890289dcc9979bec0a750e49927f96bc426d3`，已同步 `subModules/UICornerstone`；C++ ABI 变化需同批重编译（DLL + 头文件 + C++ 使用方），C ABI/Binding 无签名变化。
+
+### CR状态
+#### 设计器：closed（2026-11-16 引擎交付后移除临时 SetRect，视觉验证通过）
+#### 引擎：closed
+
+- 状态归属：引擎项由引擎维护并关闭，设计器不代改。
+- 分析/设计：`design/CR20261113001_ContextMenu_Position_Design.md`（v3 通过，已实施）。
+- 实施/验证：同上 + 设计文档 §10；`test_cr_contextmenu_position` 三后端 44/44。
+- 设计器待办：已完成（2026-11-16 移除临时 `SetRect` 兜底，视觉验证通过）。
+- 归档门禁：设计器/引擎两项均 closed，本 CR 相关文档可归档。
+
+## CR20261116001 通用内嵌控件 Schema 指引与递归属性行
+
+### 现状
+
+设计器属性面板目前只对顶层标量属性做 Schema 驱动生成；对象/数组多为定制行。Button、CheckBox 等宿主控件内部还有 Label 等子控件，运行时可通过 `GetPtr("caption-label")` 取得，但 schema 没有描述“这个属性指向哪种内嵌控件”，导致：
+
+- Button 的 `caption-label` 只是空对象，无法递归出子字段；
+- CheckBox 未声明 `caption-label`，strict validator 不接受该导出键；
+- Button/CheckBox 的 Label 专有字段（`shadow.blur`、`line-height`、`line-spacing-ratio`）没有稳定的持久化/转发契约；
+- 设计器无法用同一套机制支持未来其他宿主的内嵌控件，只能继续写特例。
+
+本 CR 同时确认设计器侧“通用对象递归行 + 首批内嵌控件”实施边界；引擎侧只补 schema 注解、parser/持久化与契约，不改变控件运行时语义。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-16 引擎评审并补全为正式 CR
+
+- 设计器设计文档 v0.3 + CR 草案已评审；引擎确认 Q1~Q8。
+- 正式编号：`CR20261116001`。
+- 首批 V1 内嵌控件：Button / CheckBox 的 `caption-label` → `label`；WinFrame `title-label` 暂缓到 V1.5。
+- 引擎工作：schema 注解 + Button/CheckBox caption-label parser/持久化 + 测试；无新增 C ABI/Binding。
+
+### 1. 目标
+
+1. 设计器属性面板按 schema 递归生成简单 object（`box-shadow`、`margin`）对象组 + 标量子行；`box-shadow` 删除专用 5 行代码；
+2. 为宿主属性引入通用内嵌控件指引 `x-embedded-control`，设计器按目标 `$defs` 懒加载递归生成行；
+3. 首批打通 Button / CheckBox 的 `caption-label` → `label` 的编辑、持久化、保存/打开/导出回放；
+4. 保持 `items`/`columns`/`rows`/`tabs`/`menus`/`points`/`colors`/`events`/`children` 等专用 adapter 零回归；
+5. 不改变控件运行时语义，不新增 C ABI/Binding；`GetPtr`/`FromHandle` 复用现有接口。
+
+### 2. 引擎评审结论（Q1~Q8）
+
+#### Q1 元数据归属
+
+- **接受 Designer 侧 metadata overlay** 用于纯 UI 的组名/标签、对象字段到运行时键的映射；overlay 不进入 strict 契约，失效时只影响属性行 UI，不影响保存/导出。
+- **`x-embedded-control` 必须放在引擎 schema**：它定义内嵌控件的持久化/类型契约，不只是 UI 元数据。
+- `x-*` 是 JSON Schema annotation，`validate_layout` 不把它当布局实例键；`caption-label` 等属性已在 `properties` 中声明，strict validator 不受影响。
+- 暂不要求引擎提供 `x-designer-*` 注解；未来可作为 overlay 的高优先级覆盖另行提出。
+
+#### Q2 box-shadow 运行时映射
+
+确认如下**唯一**映射（不存在 `box-shadow.color` 等运行时键，也不新增点号分发契约）：
+
+| schema 字段 | 运行时键 |
+|---|---|
+| `color` | `box-shadow-color` |
+| `offset-x` | `box-shadow-offset-x` |
+| `offset-y` | `box-shadow-offset-y` |
+| `blur` | `box-shadow-radius` |
+| `spread` | `box-shadow-spread` |
+
+`box-shadow.color` / `box-shadow.offset-x` 只是设计器模型/显示路径；`Control::SetColor/SetFloat` 分键写入后，下一帧绘制即生效，无需额外刷新 API。
+
+#### Q3 可自动行对象
+
+- `box-shadow`：通用标量行，无 adapter；
+- `margin`：通用标量行，映射 `margin-left/top/right/bottom`；`setMargin` 的 recreate 语义沿用现有属性通道；
+- `shadow`：可生成 UI 行，但 apply 走 `shadow` adapter；独立 Label 的 `shadow.enabled/offset` 与 `shadow.blur` → `text-shadow-blur` 由 adapter 处理；
+- `anchorOffset`：可生成 UI 行，但 apply 走 `anchor` adapter，写父容器 `SetFloat("anchor-offset-x/y")`（配合 `child-id`），不是当前控件自身。
+- 其它对象/数组按 §5 adapter 边界处理。
+
+#### Q4 schema 展开
+
+- 引擎 schema 只保证**局部** `$ref` / `allOf`；设计器可自行展开，V1 不处理跨文件引用。
+- 不需要引擎提供展开后的 schema 查询 API；深度上限 8、循环 `$ref` 访问栈由设计器保护。
+- 若未来需要引擎提供展开服务，另立 CR。
+
+#### Q5 adapter 边界
+
+V1 明确保留专用 editor/adapter，不递归：
+
+`items`、`columns`、`rows`、`tabs`、`menus`、`points`、`colors`、`events`、`children`、`rect`、`scale`、`layout`、`anchor`、`anchorOffset`、`font`、`context-menu`、`actors`、`cells`、`cellControls`、资源/图片路径类、`padding`/`content-padding` 以及所有数组元素。
+
+`box-shadow`、`margin` 允许通用对象行；`shadow`/`anchorOffset` 允许 UI 通用但 apply 走 adapter；`caption-label`/`title-label` 走内嵌控件，不按普通 object 递归。
+
+#### Q6 发布与失效
+
+- `docs/schema/declarative-ui.schema.json` 随 Release 的 `docs` 与 `tools/schema` 同批发布；不由 Binding 单独提供。
+- overlay 路径失效/缺失只影响属性行 UI；模型 `extended`、保存/导出/预览不受影响。
+- 引擎不要求设计器与 DLL 做额外同步握手；schema 版本随 Release 文档交付。
+
+#### Q7 `x-embedded-control` 契约与首批清单
+
+采用**属性级** `x-embedded-control`（与 `properties`/`additionalProperties:false` 的键检查一致）。最终结构：
+
+```json
+"caption-label": {
+  "type": "object",
+  "x-embedded-control": {
+    "schema": "label",
+    "handle": "caption-label",
+    "persist": "caption-label",
+    "group": "内嵌文本",
+    "hostForwarded": [
+      "caption", "font", "font-size", "colors",
+      "shadow.enabled", "shadow.offset.x", "shadow.offset.y"
+    ],
+    "include": [],
+    "exclude": ["text-shadow-blur"],
+    "propertyMap": {
+      "alignment": "align",
+      "shadow.blur": "text-shadow-blur"
+    },
+    "lazy": true,
+    "owned": true,
+    "serializable": true
+  }
+}
+```
+
+字段语义：
+
+| 字段 | 必填 | 语义 |
+|---|---|---|
+| `schema` | 是 | 目标 `$defs` 类型（如 `label`） |
+| `handle` | 否 | `GetPtr` 键；缺省 = 属性名 |
+| `persist` | 否 | 持久化路径，`false` = 仅设计态；缺省 = 属性名 |
+| `group` | 否 | 属性面板组标题建议 |
+| `hostForwarded` | 否 | 已由宿主键负责的**模型路径**（支持点号，如 `shadow.offset.x`），设计器去重 |
+| `include`/`exclude` | 否 | 字段白名单/黑名单（支持点号路径）；缺省用安全过滤 |
+| `propertyMap` | 否 | schema/模型路径 → 运行时键；支持点号源路径 |
+| `lazy` | 否 | 展开时才解析目标 schema；默认 true |
+| `owned` | 否 | 宿主拥有；引用型句柄必须 false；默认 true |
+| `serializable` | 否 | 可导出/重开回放；默认 true；false 时不得作为普通编辑组暴露 |
+
+约束：
+
+- `persist:false` 必须同时满足 `serializable:false`，设计器不得导出；
+- `schema` 必须解析到本地 `$defs`；未知/循环/类型不匹配时禁用组并诊断；
+- 不缓存裸 `Control*`，每次读写重新 `GetPtr(handle)`；
+- 多选仅当所有宿主 `(handle, schema)` 一致时显示该组。
+
+**首批 owned + serializable 清单（V1）**：
+
+| 宿主 | 属性/句柄 | 目标 schema | owned | serializable | 结论 |
+|---|---|---|---|---|---|
+| Button | `caption-label` | `label` | true | true | V1 |
+| CheckBox | `caption-label` | `label` | true | true | V1（补 schema + parser） |
+| WinFrame | `title-label` | `label` | true | 暂缓（无 schema/parser） | V1.5 |
+| Dialog / ConfirmPopup | `confirm-button` / `cancel-button` | `button` | true | false（parser 仅 text/rect/visible） | 不纳入 V1 |
+| ComboBox | `list-panel` / `list-scroll-bar` | `panel`/`scroll-bar` | true | false（内部件） | 不纳入 V1 |
+| TreeView | `scroll-bar` / `h-scroll-bar` | `scroll-bar` | true | false（内部件） | 不纳入 V1 |
+| Splitter | `first-linked` / `second-linked` | — | false（外部引用） | false | 排除 |
+| MenuItem / cellControls / leadingControl | 动态引用 | — | false | false | 排除 |
+
+`WinFrame title-label` 的 schema/parser 补齐后另开 V1.5 增量，不在本 CR 阻塞。
+
+#### Q8 持久化、转发与规范键
+
+- `persist:false` 允许，但必须 `serializable:false`；设计器只写 live 内嵌控件，不导出。
+- `hostForwarded` 采用 **路径级**（点号）语义；Button/CheckBox 的稳定转发集合为：
+  `caption`、`font`、`font-size`、`colors`、`shadow.enabled`、`shadow.offset.x`、`shadow.offset.y`。
+  其中 `shadow` 的 `enabled/offset` 已由宿主转发到内嵌 Label；`shadow.blur` **不转发**，由内嵌行写入。
+- Label 专有字段 `line-height`、`line-spacing-ratio`、`shadow.blur` 由内嵌句柄写入并持久化在 `caption-label` 对象内；宿主不转发。
+- **规范键**：`caption-label` 内文字柔光使用 **`shadow.blur`**（与 Label 的 `shadow` 对象一致）；
+  - 运行时写入 `text-shadow-blur`；`propertyMap["shadow.blur"] = "text-shadow-blur"`；
+  - `text-shadow-blur` 作为 standalone Label 的顶层兼容别名保留，`exclude` 从内嵌组隐藏，避免双入口。
+- `propertyMap` 足以表达 `alignment → align` 及 `shadow.blur → text-shadow-blur`；无需把引擎 schema 改成运行时 kebab 键。
+
+### 3. 引擎改动
+
+#### 3.1 Schema
+
+- Button `caption-label`：增加 `x-embedded-control`（见 §2 Q7），保留 `type:"object"`；
+- CheckBox：`properties` 增加 `caption-label`（`type:"object"` + 同一注解）；
+- 不新增顶层运行时属性；`caption-label` 内部字段由目标 Label schema + 注解/parser 约束；
+- `x-*` annotation 不参与布局实例键校验；`caption-label` 已是声明属性，strict 可接受；
+- 暂不修改 WinFrame/Dialog/ComboBox/TreeView 的注解。
+
+#### 3.2 Parser / 持久化
+
+- 抽取 `parseEmbeddedLabel(...)` 公共 helper（Button/CheckBox 共用），在 `caption-label` 解析：
+  - 现有 `caption`、`font`、`alignment`、`colors`、`shadow.enabled/offset`；
+  - 新增 `line-height`、`line-spacing-ratio`、`shadow.blur`（优先）与 `text-shadow-blur`（兼容别名）；
+  - `shadow.blur` → `Label::setFloatProperty("text-shadow-blur")`；
+- CheckBox 的 `caption-label` 解析接入同一 helper；Button 现有逐字段代码改为 helper（避免两套漂移）；
+- 保存/导出保持 `caption-label` 对象；`persist:false` 不导出；
+- `x-embedded-control` 不在运行期解析，仅供设计器/schema 消费。
+
+#### 3.3 API
+
+- **无新增 C ABI / Binding 函数**；复用 `GetPtr("caption-label")` / `FromHandle`。
+- `Control::Set*` 通用属性继续负责内嵌 Label 的运行时写入。
+- 不改变 `show()`、布局、主题、控件渲染语义。
+
+#### 3.4 设计器侧（非引擎改动，验收依赖）
+
+- 删除 `box-shadow` 专用 5 行代码，改由 schema/overlay 生成；
+- 通用对象递归行 + `box-shadow` 试点；
+- 实现 `x-embedded-control` 折叠组、懒加载 `SchemaRowPlan`、行池缓存、`hostForwarded` 去重、`GetPtr` 动态绑定；
+- `owned=false` / `serializable=false` 不生成普通编辑组；
+- 不缓存裸 `Control*`；句柄缺失/类型不符禁用组并诊断。
+
+### 4. 测试/验收
+
+1. **Schema/strict**：Button/CheckBox `caption-label` 含 `x-embedded-control`，`validate_layout --strict` 通过；`caption-label` 内 `line-height`/`line-spacing-ratio`/`shadow.blur` 可解析。
+2. **Button**：`caption-label` 的 `caption`/`font`/`alignment`/`line-height`/`line-spacing-ratio`/`shadow.blur`/`colors` 修改即时生效；保存/打开/导出回放一致；`text-shadow-blur` 兼容别名与 `shadow.blur` 不产生双行。
+3. **CheckBox**：新增 `caption-label` schema/parser 后，strict 接受；上述字段同样生效；不再报“控件级未知键”。
+4. **设计器通用对象行**：`box-shadow` 5 字段由 schema/overlay 生成；模型 `extended["box-shadow"]`、引擎分键、撤销、保存/打开/导出一致；`margin` 试点；`shadow`/`anchorOffset` 走 adapter。
+5. **内嵌控件生命周期**：折叠组懒加载、展开缓存、收起/再展开、选择切换、控件重建、主题/缩放、句柄缺失/类型不匹配、多选同/异类型。
+6. **去重**：`hostForwarded` 字段不重复生成；`shadow.blur` 与 `text-shadow-blur` 只保留规范入口。
+7. **排除边界**：WinFrame title-label、Dialog 按钮、ComboBox/TreeView 内部件、Splitter linked、MenuItem leadingControl 不生成普通编辑组。
+8. **回归**：现有 `items`/`columns`/`rows`/`tabs`/`menus`/`points`/`colors`/`events`/`children` adapter 零回归；`auto=2/3`、strict、设计器联调。
+9. **无 API 回归**：未新增 C ABI/Binding 符号；旧 DLL 不因本 CR 失配。
+
+### 5. 风险与回退
+
+| 风险 | 处理 |
+|---|---|
+| schema 注解/字段漂移 | schema 与 parser 同批评审；设计器 overlay 失败只影响 UI |
+| Button/CheckBox 两套 parser 漂移 | 抽取公共 `parseEmbeddedLabel` helper |
+| `shadow.blur` 与 `text-shadow-blur` 双入口 | 规范键 `shadow.blur`；`exclude` 顶层别名；测试去重 |
+| `hostForwarded` 粒度粗导致漏行/重复 | 路径级 hostForwarded；Button/CheckBox 固定转发集合；测试 |
+| 内嵌句柄生命周期 | 每次 `GetPtr`，不缓存裸指针；禁用组诊断 |
+| 旧布局/旧调用 | 注解为可选；无注解控件行为不变；`caption-label` 旧字段保持 |
+| 非 serializable 内部件误暴露 | `owned/serializable` 过滤；首批清单白名单 |
+
+### 6. 交付与状态
+
+- 设计器：按本 CR 实施通用对象行 + V1 内嵌控件；`WinFrame title-label`、Dialog/ComboBox/TreeView 内部件、TreeView trailingControl/rowControl 后续另议。
+- 引擎：schema + Button/CheckBox parser/持久化 + 测试；**本 CR 实施前不修改引擎文件**。
+- CR 状态：设计器 `open` / 引擎 `open`；评审通过并实施后分别置 `closed`。
+- 验收前置：设计器与引擎在按钮/复选框内嵌 Label 的规范键、转发集合、schema 注解上保持一致；`validate_layout --strict` 通过。
+
+### CR状态
+#### 设计器：open
+#### 引擎：open
+
+## 请引擎补充/确认
+
+本 CR 已按 2026-11-16 引擎评审补全。后续实施中如需新增 API（目前判断不需要），应先修订本 CR 并重新评审。
+
+- 分析/设计：`D:/GitSpace/CornerstoneDesigner/design/11_级构型JSON属性动态行设计.md`（设计器 v0.3，引擎评审通过）。
+
+## CR20261116002 柔光阴影声明式状态与主题 :hover 原生支持
+
+### 现状
+
+`box-shadow` 目前是静态属性：JSON/主题只提供 normal 规格（`color`/`offset-x`/`offset-y`/`blur`/`spread`），没有内建的 `box-shadow.hover` / `box-shadow.pressed` 状态。应用层只能在 `onMouseEnter/onMouseLeave` 等事件里手动改 `box-shadow-color`/`box-shadow-radius`；引擎测试里的 `HoverShadowPanel` 就是这种 workaround。
+
+主题系统虽然支持 `:hover`/`:pressed`/`:disabled` 选择器，但 `box-shadow` 对象没有状态通道；主题 `:hover` 里的 `box-shadow` 不会按状态生效。设计器也无法在属性面板中直接编辑 hover/pressed 阴影。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-16 初次提交CR
+
+**目标**：
+
+1. 为 `box-shadow` 增加声明式状态规格，至少支持 normal / hover / pressed / disabled；
+2. 主题 `:hover` / `:pressed` / `:disabled` 选择器可以直接覆盖 `box-shadow`；
+3. 保持现有静态 `box-shadow` 和拆散键（`box-shadow-color` 等）完全兼容；
+4. 状态阴影不改变布局、命中、内容裁剪和现有绘制顺序；
+5. 状态变化触发重绘，阴影缓存键包含生效状态规格；
+6. 设计器后续可按 schema 生成 `box-shadow.hover.*` 等嵌套行，不需要新 C ABI。
+
+**建议 JSON 语法（方案 A，推荐）**：
+
+```json
+"box-shadow": {
+  "color": "#00000033",
+  "offset-x": 0,
+  "offset-y": 6,
+  "blur": 12,
+  "spread": 0,
+  "hover": {
+    "color": "#00000055",
+    "offset-y": 10,
+    "blur": 20
+  },
+  "pressed": {
+    "color": "#00000066",
+    "blur": 24
+  },
+  "disabled": {
+    "color": "#00000022",
+    "blur": 6
+  }
+}
+```
+
+规则：
+
+- 顶层字段 = normal 规格；`hover`/`pressed`/`disabled` 是部分覆盖，缺省字段继承 normal；
+- 状态对象中出现 `color` 且 alpha=0 表示该状态明确关闭阴影（不能简单当作“未设置”而回退 normal）；
+- 空状态对象等价于全部继承 normal；
+- 状态对象只接受 base 五字段；未知键在 strict 模式下报错/诊断；
+- `blur` 0~64、`spread>=0`、offset 可为负，沿用 CR20261112001 边界；
+- 方案 B（备选）：独立 `hover-box-shadow` / `pressed-box-shadow` / `disabled-box-shadow` 对象键；不如方案 A 紧凑，且主题状态映射更分散，建议仅在属性系统无法承载嵌套对象时采用。
+
+**主题语法**：
+
+```json
+{
+  "selector": "button.primary:hover",
+  "declarations": {
+    "box-shadow": {
+      "color": "#00000055",
+      "offset-y": 10,
+      "blur": 20
+    }
+  }
+}
+```
+
+- 主题规则的状态（`:hover` / `:pressed` / `:disabled`；`:selected` 建议沿用现有 selected→pressed 映射）应把 `box-shadow` 声明写入对应状态，而不是 normal；
+- 主题状态对象同样按“出现字段覆盖、缺省继承 normal”处理；
+- 正常选择器中的 `box-shadow` 仍可包含嵌套状态键，与 JSON 语义一致；
+- 状态选择器里的对象若再出现嵌套 `hover` 等键，V1 建议忽略或诊断，避免“状态套状态”歧义；
+- 主题 `:hover` 的 `box-shadow` 与显式 JSON 状态冲突时，优先级沿用现有 explicit/theme 规则：显式 JSON 状态 > 主题状态 > 显式 JSON normal > 主题 normal；请引擎按现有 `colors/text` 的 explicit 机制确认并实现，不得让 normal 覆盖 current state。
+
+**运行时属性/接口（建议）**：
+
+- 现有普通键继续表示 normal：`box-shadow-color`、`box-shadow-offset-x`、`box-shadow-offset-y`、`box-shadow-radius`、`box-shadow-spread`；
+- 状态键建议沿用现有颜色状态后缀风格：
+  - `box-shadow-color.hover` / `.pressed` / `.disabled`
+  - `box-shadow-offset-x.hover` / `.pressed` / `.disabled`
+  - `box-shadow-offset-y.hover` / `.pressed` / `.disabled`
+  - `box-shadow-radius.hover` / `.pressed` / `.disabled`
+  - `box-shadow-spread.hover` / `.pressed` / `.disabled`
+- `Get*` 对状态键返回“生效状态值”（未设置时回退 normal），或在文档中明确返回显式/生效语义；
+- `Set*` 状态键只写该状态，不改变 normal；alpha=0 保留显式关闭语义；
+- 不新增 C ABI / Binding 函数；若属性系统无法直接承载 `.hover` 状态键，可由引擎选择 `box-shadow.hover` 对象字符串通道，但需在 CR 中明确。
+
+**状态选择与渲染**：
+
+- 当前 `ControlState` 为 normal/hover/pressed/disabled；选择规则：disabled > pressed > hover > normal；
+- 使用对应状态规格；状态规格缺省字段回退 normal；normal 也缺省时行为同旧版（无阴影/alpha=0 不绘制）；
+- 状态切换只触发重绘，不改变 rect、命中、布局、内容裁剪；
+- 绘制顺序保持 CR20261112001：阴影在背景外/内容下，不覆盖正文；
+- 阴影缓存键至少包含生效状态的 color/offset/blur/spread、corner-radius、尺寸/DPI/主题版本；offset 若在绘制阶段应用可不入纹理键，但状态名/生效规格必须参与缓存失效；
+- 主题切换、`:hover` 状态切换、显式状态属性变化必须使相关缓存失效。
+
+**兼容性**：
+
+- 未声明状态键的布局/主题视觉不变；
+- 现有 `box-shadow` 普通对象和拆散键继续表示 normal；
+- 现有应用在 hover 事件里手动改 normal 属性的做法仍可用；若同时声明状态规格，状态规格优先（避免两套机制互相覆盖，需在文档说明）；
+- 旧主题 `:hover` 中的 `box-shadow` 之前不生效；升级后开始生效，属于新增能力，不视为破坏；
+- `text-shadow` 状态不在本 CR 范围，另行评估。
+
+**设计器配合（后续）**：
+
+- schema 增加状态字段后，属性面板按 `box-shadow.hover.*` / `.pressed.*` / `.disabled.*` 生成嵌套行；默认折叠；
+- 主题编辑器/主题预览能显示状态阴影；
+- 设计器不需要新增 C ABI；沿用现有属性读写和阴影组动态行。
+
+**测试/验收**：
+
+1. JSON normal 静态阴影与旧版完全一致；`hover`/`pressed`/`disabled` 切换后颜色/偏移/blur/spread 正确；
+2. 状态对象部分字段继承 normal；仅写 `hover.blur` 时颜色/偏移仍来自 normal；
+3. 状态 `color` alpha=0 明确关闭该状态阴影；normal alpha=0 但 hover 有值时 hover 可见；
+4. 主题 normal、`:hover`、`:pressed`、`:disabled` 的 `box-shadow` 正确落到对应状态；`:selected` 映射符合现有规则；
+5. 显式 JSON 状态与主题状态优先级符合约定；normal 不会覆盖当前状态；
+6. 状态切换只重绘，不改变布局/命中；缓存按状态失效，无错误复用；
+7. 主题切换/DPI/尺寸/圆角变化后阴影正确重建；CR20261112001 的柔光/9-slice/Shape/Label 行为不回归；
+8. C ABI/Binding 通过现有 Set*/Get* 读写状态键；schema strict 通过；
+9. 设计器 `auto=2/3`、strict 回归；旧布局/旧主题视觉不变。
+
+**待引擎确认**：
+
+- Q1：采用方案 A（嵌套 hover/pressed/disabled）还是方案 B（独立 `hover-box-shadow` 键）？
+- Q2：V1 状态集合是否只做 hover/pressed/disabled；focus/selected 是否纳入？
+- Q3：状态对象“部分继承 normal”与 alpha=0 显式关闭语义是否接受？
+- Q4：主题 `:hover` 的 `box-shadow` 采用“选择器状态 → 对应状态”还是要求主题显式写 `box-shadow.hover`？
+- Q5：运行时状态键采用 `.hover` 后缀，还是 `box-shadow.hover` 对象字符串；Get 返回显式值还是生效值？
+- Q6：缓存键是否需要包含状态名/完整生效规格；主题状态切换的失效入口放在 ThemeRuntime 还是 ControlImpl？
+- Q7：`text-shadow` 是否同步纳入状态扩展，还是另立 CR？
+
+#### 2026-11-16 引擎分析/设计提交评审
+
+- 引擎设计：`design/CR20261116002_Shadow_State_Design.md`（v1，待评审；未实施）。
+- Q1：方案 A（嵌套 hover/pressed/disabled）。
+- Q2：V1 状态集合 = hover/pressed/disabled；`:selected` 沿用 pressed；不新增 focus。
+- Q3：接受部分继承 + 状态 color alpha=0 显式关闭。
+- Q4：主题选择器状态直接落对应状态；状态规则内嵌套状态键忽略 + 诊断。
+- Q5：运行时键采用 `.hover/.pressed/.disabled` 后缀（`box-shadow-color.hover` 等 15 个）；`Get*` 返回生效值（未设置回退 normal）。
+- Q6：缓存键不需要状态名（生效 color/blur/spread/corner/scale + generation 已足够）；主题映射入口 `ThemeRuntime`，状态生效解析 `ControlImpl`；状态切换只重绘。
+- Q7：`text-shadow` 状态不纳入本 CR，另立 CR。
+- 影响：`ControlImpl` 增加私有状态成员 → C++ 类布局变化，DLL/头文件/C++ 使用方需同批重编译；C ABI/Binding 无新增函数。
+
+#### 2026-11-16 引擎按复核 B1~B8 修订（设计 v2）
+
+- 设计：`design/CR20261116002_Shadow_State_Design.md` v2（待复核）。
+- B1：`ThemeRuntime` 记录主题写入位掩码；`applyAll/applyControl` 先清理主题写过的状态槽，再应用主题，最后 `replayExplicit` 恢复显式；无线可应用时同样清理 + 重放。
+- B2/B3：固定 5 级声明应用顺序——普通声明 → `box-shadow` 对象 → 普通拆散键 → 状态对象 → 状态拆散键；状态选择器胜出、拆散键优先于对象。
+- B4：新增控件支持矩阵；统一 `resolveBoxShadowSpec`，MenuBar 四态、MenuPanel normal（自身无状态切换）、MenuItem/HandleControl 不支持且一次性诊断。
+- B5：`explicitValueMatches` 对状态键先检查 `*Set`，未设置直接 false（强制 replay）。
+- B6：`Get*` 只返回生效值，无法查询“是否显式”；设计器读模型 JSON 判断，不新增 API。
+- B7：缓存测试补“同规格复用 / 不同规格不复用”两类（hit/miss 计数）。
+- B8：`:selected` 是主题伪类别名 → `.pressed`，运行时无 selected 状态；与 `:pressed` 按 specificity/order 合并。
+- 测试计划新增 S13~S19 覆盖 B1~B5/B7/B8。
+
+#### 2026-11-16 引擎按复核 B9/B1a/B4a/B10/B11~B13 修订（设计 v3）
+
+- 设计：`design/CR20261116002_Shadow_State_Design.md` v3（待复核）。
+- B9：normal 阴影沿用既有主题**属性累积**语义，不纳入清理；主题 B 未声明的 normal 字段保留 A 的值，需移除时显式 alpha=0 或完整覆盖。状态槽是“按主题重算的派生状态”，必须清理。
+- B1a：掩码改放 `ControlImpl`（生命周期随控件，销毁/移除自动消失）；清理遍历与应用遍历分离、不按 eligibility 跳过；`clearOverrides` 不清掩码；空/无线数据主题在 `UICornerstone_ApplyTheme` 已提前返回（既有 no-op 契约），不触发清理。
+- B4a：矩阵补 Popup/ConfirmPopup/Dialog（支持四态）与 ContextMenu（不支持，视觉归 MenuPanel，状态键一次性诊断）；S19 覆盖。
+- B10：掩码移入 `ControlImpl` 后 `ThemeRuntime` **不新增成员、布局不变**；仅 `ControlImpl` 类布局变化，仍需同批重编译。
+- B11：S13 增加“主题 B 只有部分 normal 字段”场景。
+- B12：掩码只跟踪 3×5 状态位，normal 不跟踪。
+- B13：五级排序只决定类别间先后；同类别同键仍按 specificity/order 合并，新增 S20。
+
+#### 2026-11-16 设计复核通过（v4 文档收口）
+
+- 设计：`design/CR20261116002_Shadow_State_Design.md` v4（设计通过，待实施）。
+- 空主题 no-op：`ApplyTheme("{}")`/仅变量主题不清状态槽、不回到“无阴影”；需清空/覆盖时用有数据主题或显式 alpha=0；文档 §4.9.4 + S13a。
+- normal 语义：B 无 normal 时 hover 回退 A 的 normal；B 部分 normal 只覆盖声明字段；整体移除用 alpha=0/完整覆盖；S13 明确。
+- S13b 显式 alpha=0 清空、S13c `ClearThemeOverrides` 后掩码不清。
+- 去掉支持矩阵 Dialog 重复行与 §5 重复 C++ 行；ContextMenu normal/状态键均一次性诊断；掩码最终放 `ControlImpl`，`ThemeRuntime` 不新增成员。
+
+#### 2026-11-16 引擎实施完成
+
+- 设计：`design/CR20261116002_Shadow_State_Design.md` v5（设计通过并实施）。
+- 实现：`ControlImpl` 三状态槽 + 主题写入掩码；状态键 15 个；`resolveBoxShadowSpec` 统一生效解析；LayoutParser 解析嵌套状态；ThemeRuntime 状态后缀、五级应用顺序、主题清理、显式采集与 B5 强制 replay；MenuPanel/MenuBar/MenuItem/HandleControl/ContextMenu 支持矩阵与诊断。
+- 验证：`test_cr_shadow_state` 三后端 56/56（S1~S20）；`test_soft_shadow` 13/13；`test_cr_theme` OK；CR12002 48/48；CR13001 44/44；SDL3 全量回归仅 4 项历史失败；`validate_layout --strict` 通过。
+- 交付：Release DLL SHA256 `951084b8d99f12bf99ae635e72893c86f8ac2e9c7b28801517bcf63d7a1c4597`；已同步 `subModules/UICornerstone`；C++ 类布局变化需同批重编译，C ABI/Binding 无新增函数。
+- 文档：declarative-syntax/properties/theme/label/menu/contextmenu/README/API 映射；截图 `docs/assets/controls/box-shadow-states.png`。
+
+#### 2026-11-16 代码检视 CR1/CR2 修复
+
+- CR1：`MenuPanel::drawShadow()` 改为只按 normal 字段判定 legacy/generic（`hasExplicitNormalBoxShadowField()`）；状态键不再影响 normal 外观，状态键写入给一次性诊断；新增 CR1 测试（主题 `:hover` 只写状态 → normal 标记不变）。
+- CR2：`clearOverrides` 定案为“清显式 + 全部状态槽/掩码，随后按当前主题重算”；设计 §4.9.2/§4.9.4 与 S13c 同步更新；新增三种来源组合测试（主题+显式、仅主题、无主题状态）。
+- 验证：`test_cr_shadow_state` 三后端 65/65；SDL3 全量回归仍仅 4 项历史失败；`validate_layout --strict` 通过。
+- 交付：Release DLL SHA256 `d047d755283d890fd32c8240d99ab775f030d0f5fc5dc9863d0e4dd3ce8d2798`；已重新同步 `subModules/UICornerstone`。
+
+#### 2026-11-17 设计器视觉验证通过（CR closed）
+
+- 验证范围：normal/hover/pressed/disabled 四态阴影；状态字段部分覆盖/继承；状态 `color` alpha=0 显式关闭；主题 `:hover`/`:pressed`/`:disabled`/`:selected`；支持矩阵（MenuPanel normal、MenuItem/HandleControl/ContextMenu 诊断）；截图与文档复核。
+- Label/Shape 检查：均走 `ControlImpl::beforeDraw → drawBoxShadowForRect → resolveBoxShadowSpec`，四态状态阴影生效、主题切换回退 normal；未发现 MenuPanel 式子路径绕过；Shape 的 bbox box-shadow 与 Label 的通用 box-shadow 复用统一缓存/状态解析。
+- Q7 边界：状态规则中的 `text-shadow-blur` / `shadow-offset-x/y` 忽略 + 一次性诊断；`text-shadow` 颜色仍支持四态。
+- 测试：`test_cr_shadow_state` 三后端 77/77；文档：theme/label/shape 与浅色背景截图。
+- 交付：Release DLL SHA256 `d047d755283d890fd32c8240d99ab775f030d0f5fc5dc9863d0e4dd3ce8d2798`；已同步 `subModules/UICornerstone`。
+- 设计器：closed（2026-11-17 视觉验证通过）；引擎：closed；满足归档门禁。
+
+### CR状态
+#### 设计器：closed（2026-11-17 视觉验证通过）
+#### 引擎：closed

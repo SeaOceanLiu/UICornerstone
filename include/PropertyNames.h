@@ -19,6 +19,7 @@ PROP_CONSTEXPR const char* kBackground          = "background";
 PROP_CONSTEXPR const char* kBorder              = "border";
 PROP_CONSTEXPR const char* kText                = "text";
 PROP_CONSTEXPR const char* kTextShadow          = "text-shadow";
+PROP_CONSTEXPR const char* kTextShadowBlur      = "text-shadow-blur";      // CR20261112001：Label 字形柔光
 
 // StateColor 子键
 PROP_CONSTEXPR const char* kStateHover          = "background.hover";
@@ -216,6 +217,25 @@ PROP_CONSTEXPR const char* kBoxShadowOffsetX    = "box-shadow-offset-x";
 PROP_CONSTEXPR const char* kBoxShadowOffsetY    = "box-shadow-offset-y";
 PROP_CONSTEXPR const char* kBoxShadowRadius     = "box-shadow-radius";
 PROP_CONSTEXPR const char* kBoxShadowSpread     = "box-shadow-spread";
+// CR20261116002：柔光阴影声明式状态（运行时键；normal 仍用上方无后缀键）
+PROP_CONSTEXPR const char* kBoxShadowColorHover      = "box-shadow-color.hover";
+PROP_CONSTEXPR const char* kBoxShadowColorPressed    = "box-shadow-color.pressed";
+PROP_CONSTEXPR const char* kBoxShadowColorDisabled   = "box-shadow-color.disabled";
+PROP_CONSTEXPR const char* kBoxShadowOffsetXHover    = "box-shadow-offset-x.hover";
+PROP_CONSTEXPR const char* kBoxShadowOffsetXPressed  = "box-shadow-offset-x.pressed";
+PROP_CONSTEXPR const char* kBoxShadowOffsetXDisabled = "box-shadow-offset-x.disabled";
+PROP_CONSTEXPR const char* kBoxShadowOffsetYHover    = "box-shadow-offset-y.hover";
+PROP_CONSTEXPR const char* kBoxShadowOffsetYPressed  = "box-shadow-offset-y.pressed";
+PROP_CONSTEXPR const char* kBoxShadowOffsetYDisabled = "box-shadow-offset-y.disabled";
+PROP_CONSTEXPR const char* kBoxShadowRadiusHover     = "box-shadow-radius.hover";
+PROP_CONSTEXPR const char* kBoxShadowRadiusPressed   = "box-shadow-radius.pressed";
+PROP_CONSTEXPR const char* kBoxShadowRadiusDisabled  = "box-shadow-radius.disabled";
+PROP_CONSTEXPR const char* kBoxShadowSpreadHover     = "box-shadow-spread.hover";
+PROP_CONSTEXPR const char* kBoxShadowSpreadPressed   = "box-shadow-spread.pressed";
+PROP_CONSTEXPR const char* kBoxShadowSpreadDisabled  = "box-shadow-spread.disabled";
+PROP_CONSTEXPR const char* kBoxShadowHover           = "box-shadow.hover";
+PROP_CONSTEXPR const char* kBoxShadowPressed         = "box-shadow.pressed";
+PROP_CONSTEXPR const char* kBoxShadowDisabled        = "box-shadow.disabled";
 PROP_CONSTEXPR const char* kIndentWidth         = "indent-width";
 PROP_CONSTEXPR const char* kRowHeight           = "row-height";
 PROP_CONSTEXPR const char* kLineSpacing         = "line-spacing";
@@ -231,6 +251,8 @@ PROP_CONSTEXPR const char* kMarginBottom        = "margin-bottom";
 PROP_CONSTEXPR const char* kShadowOffsetX       = "shadow-offset-x";
 PROP_CONSTEXPR const char* kShadowRadius        = "shadow-radius";         // P0-72①：菜单面板阴影半径
 PROP_CONSTEXPR const char* kShadowOffsetY       = "shadow-offset-y";
+PROP_CONSTEXPR const char* kShadowColor         = "shadow-color";          // CR20261112001：菜单面板阴影颜色
+PROP_CONSTEXPR const char* kShadowSpread        = "shadow-spread";         // CR20261112001：菜单面板阴影扩散
 
 // Splitter
 PROP_CONSTEXPR const char* kFirstMin            = "first-min";

@@ -184,6 +184,8 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(ContextMenuAddSeparator);
     RESOLVE(ContextMenuShow);
     RESOLVE(ContextMenuClose);
+    RESOLVE(ContextMenuSyncSize);
+    RESOLVE(ContextMenuGetMenuPanelRect);
     RESOLVE(TabAddPage);
     RESOLVE(TabRemovePage);
     RESOLVE(TabMovePage);

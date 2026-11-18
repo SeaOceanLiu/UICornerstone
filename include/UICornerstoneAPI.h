@@ -138,7 +138,7 @@ typedef struct {
 #define UICORN_BACKEND_CAP_WINDOW_SET_SIZE (1u << 4)
 
 typedef struct {
-    int version;  // 必须设为 1
+    int version;  // 必须设为 3（3=新增离屏渲染目标可选回调；1/2 兼容）
 
     // --- Window (可选，只为 NULL) ---
     UIWindowHandle  (*createWindow)(const char* title, int w, int h, uint32_t flags);
@@ -242,6 +242,16 @@ typedef struct {
     int (*setWindowAlwaysOnTop)(UIWindowHandle, int onTop);
     int (*getWindowAlwaysOnTop)(UIWindowHandle);
     int (*setWindowForeground)(UIWindowHandle);
+
+    // --- CR20261112001：离屏渲染目标（可选，可为 NULL；version>=2 后端提供） ---
+    // 用于 Label 字形柔光：渲染文字 mask → 读回 RGBA → CPU 柔化 → 纹理缓存。
+    // 任一函数为 NULL 时该后端回退为有限层字形绘制。
+    UITextureHandle (*createRenderTexture)(UIRenderDeviceHandle, int width, int height);
+    void (*setRenderTarget)(UIRenderDeviceHandle, UITextureHandle);
+    void (*resetRenderTarget)(UIRenderDeviceHandle);
+    int  (*readTexturePixels)(UIRenderDeviceHandle, UITextureHandle, void* buffer, int width, int height);
+    void (*suspendClipRect)(UIRenderDeviceHandle);
+    void (*resumeClipRect)(UIRenderDeviceHandle);
 } UIBackendCallbacks;
 
 /* ============ 实例生命周期 ============ */
@@ -767,6 +777,11 @@ UICORNERSTONE_API UIControlHandle UICornerstone_ContextMenuAddItemEx(UIInstance 
 UICORNERSTONE_API int UICornerstone_ContextMenuAddSeparator(UIInstance instance, UIControlHandle menu);
 UICORNERSTONE_API int UICornerstone_ContextMenuShow(UIInstance instance, UIControlHandle menu, float x, float y);
 UICORNERSTONE_API int UICornerstone_ContextMenuClose(UIInstance instance, UIControlHandle menu);
+// CR20261112002：外框尺寸与 MenuPanel 内容同步（1=已同步；0=空菜单/无效句柄，外框保持）
+UICORNERSTONE_API int UICornerstone_ContextMenuSyncSize(UIInstance instance, UIControlHandle menu);
+// CR20261112002：读取 MenuPanel 局部坐标（正常 0,0,w,h；空菜单 0,0,0,0）；1=成功
+UICORNERSTONE_API int UICornerstone_ContextMenuGetMenuPanelRect(UIInstance instance, UIControlHandle menu,
+    float* x, float* y, float* w, float* h);
 
 /* ============ TabControl 选项卡控件 ============ */
 // 控件级属性走通用 setter:SetEnum("position")=top/bottom/left/right、

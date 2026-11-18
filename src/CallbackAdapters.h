@@ -64,6 +64,11 @@ class CallbackRenderDevice : public RenderDevice {
     UIRenderDeviceHandle m_handle;
     const UIBackendCallbacks* m_cbs;
     std::vector<SRect> m_clipStack;
+    bool m_clipActive = false;
+    SRect m_currentClip;
+    bool m_clipSuspended = false;
+    bool m_suspendedClipEnabled = false;
+    SRect m_suspendedClipRect;
 public:
     CallbackRenderDevice(const UIBackendCallbacks* cbs, UIRenderDeviceHandle handle);
     ~CallbackRenderDevice() override;
@@ -91,6 +96,10 @@ public:
     void setRenderTarget(Texture* texture) override;
     void resetRenderTarget() override;
     void readPixels(void* buffer, const SRect& rect) override;
+    bool supportsTextShadowTexture() const override;
+    bool readTexturePixels(Texture* texture, void* buffer, int width, int height) override;
+    void suspendClipRect() override;
+    void resumeClipRect() override;
     void clear() override;
     void present() override;
     void flush() override;

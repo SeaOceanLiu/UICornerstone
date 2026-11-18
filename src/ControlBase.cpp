@@ -20,6 +20,7 @@ bool ControlImpl::isDeferredRecreate() { return s_deferRecreateDepth > 0; }
 #include "MainWindow.h"
 #include "PropertyNames.h"
 #include "Bench.h"
+#include "ShadowRenderer.h"
 #include <cstring>
 ControlImpl::ControlImpl(Control *parent, float xScale, float yScale):
     // m_weakThis(this),
@@ -243,13 +244,17 @@ void ControlImpl::afterDraw() {
 void ControlImpl::drawBackground(const SRect *pDrawRect){
     SRect drawRect;
 
-    if(!getTransparent()) {
-        if (pDrawRect == nullptr){
-            drawRect = getDrawRect();
-        } else {
-            drawRect = *pDrawRect;
-        }
+    if (pDrawRect == nullptr){
+        drawRect = getDrawRect();
+    } else {
+        drawRect = *pDrawRect;
+    }
 
+    // CR20261112001：阴影在背景外侧绘制——透明控件（Label/Shape/ListView 等）
+    // 显式声明 box-shadow 时同样生效；不改变布局/命中。
+    drawBoxShadowForRect(drawRect);
+
+    if(!getTransparent()) {
         // 背景色
         SColor bgColor;
         switch (m_state){
@@ -267,15 +272,6 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
                 bgColor = m_bgColor.getNormal();
                 break;
         }
-        if (m_boxShadowColor.alpha() > 0.0f) {
-            SRect sr = drawRect;
-            sr.left += m_boxShadowOffsetX - m_boxShadowSpread;
-            sr.top += m_boxShadowOffsetY - m_boxShadowSpread;
-            sr.width += m_boxShadowSpread * 2.0f;
-            sr.height += m_boxShadowSpread * 2.0f;
-            float rr = m_cornerRadius + m_boxShadowSpread + m_boxShadowRadius * 0.5f;
-            getRenderDevice()->drawRoundRect(sr, rr, m_boxShadowColor, SColor(0,0,0,0), 0.0f);
-        }
         if (m_cornerRadius > 0.0f) {
             getRenderDevice()->drawRoundRect(drawRect, m_cornerRadius, bgColor, SColor(0,0,0,0), 0.0f);
         } else {
@@ -283,6 +279,114 @@ void ControlImpl::drawBackground(const SRect *pDrawRect){
             getRenderDevice()->fillRect(drawRect);
         }
     }
+}
+
+// CR20261116002：状态键解析（box-shadow-*.state）
+int ControlImpl::boxShadowStateIndex(ControlState state) {
+    switch (state) {
+        case ControlState::Hover:    return 0;
+        case ControlState::Pressed:  return 1;
+        case ControlState::Disabled: return 2;
+        default:                     return -1;
+    }
+}
+
+bool ControlImpl::parseBoxShadowStateKey(const char* prop, int& stateIdx, int& fieldIdx) {
+    if (!prop) return false;
+    static const char* kColor[3]    = {PropertyNames::kBoxShadowColorHover, PropertyNames::kBoxShadowColorPressed, PropertyNames::kBoxShadowColorDisabled};
+    static const char* kOffsetX[3]  = {PropertyNames::kBoxShadowOffsetXHover, PropertyNames::kBoxShadowOffsetXPressed, PropertyNames::kBoxShadowOffsetXDisabled};
+    static const char* kOffsetY[3]  = {PropertyNames::kBoxShadowOffsetYHover, PropertyNames::kBoxShadowOffsetYPressed, PropertyNames::kBoxShadowOffsetYDisabled};
+    static const char* kRadius[3]   = {PropertyNames::kBoxShadowRadiusHover, PropertyNames::kBoxShadowRadiusPressed, PropertyNames::kBoxShadowRadiusDisabled};
+    static const char* kSpread[3]   = {PropertyNames::kBoxShadowSpreadHover, PropertyNames::kBoxShadowSpreadPressed, PropertyNames::kBoxShadowSpreadDisabled};
+    for (int s = 0; s < 3; ++s) {
+        if (strcmp(prop, kColor[s]) == 0)   { stateIdx = s; fieldIdx = 0; return true; }
+        if (strcmp(prop, kOffsetX[s]) == 0) { stateIdx = s; fieldIdx = 1; return true; }
+        if (strcmp(prop, kOffsetY[s]) == 0) { stateIdx = s; fieldIdx = 2; return true; }
+        if (strcmp(prop, kRadius[s]) == 0)  { stateIdx = s; fieldIdx = 3; return true; }
+        if (strcmp(prop, kSpread[s]) == 0)  { stateIdx = s; fieldIdx = 4; return true; }
+    }
+    return false;
+}
+
+bool ControlImpl::isBoxShadowStateSet(int stateIdx, int fieldIdx) const {
+    if (stateIdx < 0 || stateIdx > 2 || fieldIdx < 0 || fieldIdx > 4) return false;
+    return (m_boxShadowState[stateIdx].setMask & (1u << fieldIdx)) != 0;
+}
+
+bool ControlImpl::hasExplicitNormalBoxShadowField() const {
+    return m_boxShadowColorSet || m_boxShadowOffsetXSet || m_boxShadowOffsetYSet ||
+           m_boxShadowRadiusSet || m_boxShadowSpreadSet;
+}
+
+bool ControlImpl::hasAnyBoxShadowField() const {
+    if (m_boxShadowColorSet || m_boxShadowOffsetXSet || m_boxShadowOffsetYSet ||
+        m_boxShadowRadiusSet || m_boxShadowSpreadSet) return true;
+    for (int i = 0; i < 3; ++i) if (m_boxShadowState[i].setMask != 0) return true;
+    return false;
+}
+
+SColor ControlImpl::getEffectiveBoxShadowColor(int stateIdx) const {
+    if (stateIdx >= 0 && stateIdx <= 2 && isBoxShadowStateSet(stateIdx, 0)) return m_boxShadowState[stateIdx].color;
+    return m_boxShadowColor;
+}
+
+float ControlImpl::getEffectiveBoxShadowFloat(int stateIdx, int fieldIdx) const {
+    if (stateIdx >= 0 && stateIdx <= 2 && isBoxShadowStateSet(stateIdx, fieldIdx)) {
+        const BoxShadowStateValues& s = m_boxShadowState[stateIdx];
+        switch (fieldIdx) {
+            case 1: return s.offsetX;
+            case 2: return s.offsetY;
+            case 3: return s.radius;
+            case 4: return s.spread;
+            default: break;
+        }
+    }
+    switch (fieldIdx) {
+        case 1: return m_boxShadowOffsetX;
+        case 2: return m_boxShadowOffsetY;
+        case 3: return m_boxShadowRadius;
+        case 4: return m_boxShadowSpread;
+        default: return 0.0f;
+    }
+}
+
+void ControlImpl::clearThemeBoxShadowStates(uint32_t bits) {
+    for (int s = 0; s < 3; ++s) {
+        for (int f = 0; f < 5; ++f) {
+            uint32_t bit = boxShadowStateBit(s, f);
+            if ((bits & bit) == 0) continue;
+            m_boxShadowState[s].setMask &= (unsigned char)~(1u << f);
+            if (f == 0) m_boxShadowState[s].color = SColor(0,0,0,0);
+            else if (f == 1) m_boxShadowState[s].offsetX = 0.0f;
+            else if (f == 2) m_boxShadowState[s].offsetY = 0.0f;
+            else if (f == 3) m_boxShadowState[s].radius = 0.0f;
+            else if (f == 4) m_boxShadowState[s].spread = 0.0f;
+        }
+    }
+}
+
+void ControlImpl::resolveBoxShadowSpec(ShadowRenderer::ShadowSpec& spec) const {
+    const int idx = boxShadowStateIndex(m_state);
+    spec.enabled = true;
+    spec.color = getEffectiveBoxShadowColor(idx);
+    spec.offsetX = getEffectiveBoxShadowFloat(idx, 1);
+    spec.offsetY = getEffectiveBoxShadowFloat(idx, 2);
+    spec.blur = getEffectiveBoxShadowFloat(idx, 3);
+    spec.spread = getEffectiveBoxShadowFloat(idx, 4);
+    // 与既有 drawRoundRect 半径口径一致（设备像素）。
+    spec.cornerRadius = m_cornerRadius;
+}
+
+void ControlImpl::drawBoxShadowForRect(const SRect& drawRect) {
+    if (drawRect.width <= 0.0f || drawRect.height <= 0.0f) return;
+    ShadowRenderer::ShadowSpec spec;
+    resolveBoxShadowSpec(spec);
+    if (spec.color.alpha() <= 0.0f) return;
+    RenderDevice* device = getRenderDevice();
+    if (device == nullptr) return;
+    ShadowRenderer::ShadowCache* cache = ShadowRenderer::getCache(m_context);
+    if (cache == nullptr) return;
+    cache->drawRectShadow(device, spec, drawRect, getScaleXX(), getScaleYY());
 }
 
 void ControlImpl::drawBorder(const SRect *pDrawRect){
@@ -1096,8 +1200,14 @@ void ControlImpl::inheritRenderer(void) {
 
 // ── Property system ──
 int ControlImpl::setColorProperty(const char* prop, SColor color) {
+    // CR20261116002：状态阴影颜色（生效值读取仍回退 normal）
+    { int si = -1, fi = -1; if (parseBoxShadowStateKey(prop, si, fi) && fi == 0) {
+        m_boxShadowState[si].color = color;
+        m_boxShadowState[si].setMask |= 1u;
+        return 1;
+    } }
     // P0-94：拖拽视觉主题色
-    if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0)       { m_boxShadowColor = color; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0)       { m_boxShadowColor = color; m_boxShadowColorSet = true; return 1; }
     if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { m_dragGhostBg = color;   return 1; }
     if (strcmp(prop, PropertyNames::kDragGhostText) == 0)       { m_dragGhostText = color; return 1; }
     if (strcmp(prop, PropertyNames::kDragIndicatorColor) == 0)  { m_dragIndicator = color; return 1; }
@@ -1138,10 +1248,23 @@ int ControlImpl::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kContentPadding) == 0) { setContentPadding(Margin{value, value, value, value}); return 1; }
     if (strcmp(prop, PropertyNames::kPadding) == 0) { setContentPadding(Margin{value, value, value, value}); return 1; }
     if (strcmp(prop, PropertyNames::kCornerRadius) == 0) { setCornerRadius(value); return 1; }
-    if (strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0) { m_boxShadowOffsetX = value; return 1; }
-    if (strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0) { m_boxShadowOffsetY = value; return 1; }
-    if (strcmp(prop, PropertyNames::kBoxShadowRadius) == 0) { m_boxShadowRadius = value; return 1; }
-    if (strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) { m_boxShadowSpread = value; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0) { m_boxShadowOffsetX = value; m_boxShadowOffsetXSet = true; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0) { m_boxShadowOffsetY = value; m_boxShadowOffsetYSet = true; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowRadius) == 0) { m_boxShadowRadius = value; m_boxShadowRadiusSet = true; return 1; }
+    if (strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) { m_boxShadowSpread = value; m_boxShadowSpreadSet = true; return 1; }
+    // CR20261116002：状态阴影 offset/blur/spread
+    { int si = -1, fi = -1; if (parseBoxShadowStateKey(prop, si, fi) && fi >= 1) {
+        BoxShadowStateValues& s = m_boxShadowState[si];
+        switch (fi) {
+            case 1: s.offsetX = value; break;
+            case 2: s.offsetY = value; break;
+            case 3: s.radius = value; break;
+            case 4: s.spread = value; break;
+            default: return 0;
+        }
+        s.setMask |= (unsigned char)(1u << fi);
+        return 1;
+    } }
     if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { m_dragThreshold = (value > 0.0f) ? value : 4.0f; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { Margin m = getMargin(); m.left = value; setMargin(m); return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { Margin m = getMargin(); m.top = value; setMargin(m); return 1; }
@@ -1275,6 +1398,8 @@ void ControlImpl::fireCCallback(const char* eventName, CCallbackData data, const
 }
 
 int ControlImpl::getColorProperty(const char* prop, SColor& out) {
+    // CR20261116002：状态键返回生效值（未设置回退 normal）
+    { int si = -1, fi = -1; if (parseBoxShadowStateKey(prop, si, fi) && fi == 0) { out = getEffectiveBoxShadowColor(si); return 1; } }
     if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0) { out = m_boxShadowColor; return 1; }
     // P0-94：拖拽视觉主题色
     if (strcmp(prop, PropertyNames::kDragGhostBackground) == 0) { out = m_dragGhostBg;   return 1; }
@@ -1344,6 +1469,8 @@ int ControlImpl::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0) { out = m_boxShadowOffsetY; return 1; }
     if (strcmp(prop, PropertyNames::kBoxShadowRadius) == 0) { out = m_boxShadowRadius; return 1; }
     if (strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) { out = m_boxShadowSpread; return 1; }
+    // CR20261116002：状态键返回生效值（未设置回退 normal）
+    { int si = -1, fi = -1; if (parseBoxShadowStateKey(prop, si, fi) && fi >= 1) { out = getEffectiveBoxShadowFloat(si, fi); return 1; } }
     if (strcmp(prop, PropertyNames::kDragThreshold) == 0) { out = m_dragThreshold; return 1; }   // P0-94
     if (strcmp(prop, PropertyNames::kMarginLeft) == 0)   { out = getMargin().left; return 1; }
     if (strcmp(prop, PropertyNames::kMarginTop) == 0)    { out = getMargin().top; return 1; }

@@ -5,6 +5,7 @@
 #include "RaylibCompat.h"
 #include "rlgl.h"
 #include "PropertyNames.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -107,6 +108,13 @@ public:
         c.g = static_cast<unsigned char>((pixel >> 8) & 0xFF);
         c.b = static_cast<unsigned char>((pixel >> 16) & 0xFF);
         c.a = static_cast<unsigned char>((pixel >> 24) & 0xFF);
+        ImageDrawPixel(&m_image, x, y, c);
+    }
+
+    void setPixelRGBA(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) override {
+        if (!m_image.data || x < 0 || x >= m_image.width || y < 0 || y >= m_image.height)
+            return;
+        Color c = {r, g, b, a};
         ImageDrawPixel(&m_image, x, y, c);
     }
 
@@ -392,6 +400,7 @@ public:
 
     void setClipRect(const SRect& rect) override {
         m_clipStack.clear();
+        m_lastClipRect = rect;
         if (m_scissorActive) EndScissorMode();
         BeginScissorMode(
             static_cast<int>(rect.left),
@@ -413,6 +422,7 @@ public:
         // 嵌套裁剪：与栈顶相交（空相交 = 0 尺寸 scissor，天然无绘制）
         SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
         m_clipStack.push_back(r);
+        m_lastClipRect = r;
         if (m_scissorActive) EndScissorMode();
         BeginScissorMode(
             static_cast<int>(r.left),
@@ -431,6 +441,7 @@ public:
             m_scissorActive = false;
         } else {
             const SRect& r = m_clipStack.back();
+            m_lastClipRect = r;
             BeginScissorMode(
                 static_cast<int>(r.left),
                 static_cast<int>(r.top),
@@ -691,6 +702,52 @@ public:
         UnloadImage(img);
     }
 
+    // === CR20261112001：Label 字形柔光离屏烘焙 ===
+    bool supportsTextShadowTexture() const override { return true; }
+
+    bool readTexturePixels(Texture* texture, void* buffer, int width, int height) override {
+        if (!texture || !buffer || width <= 0 || height <= 0) return false;
+        auto* rlTex = static_cast<RaylibTexture*>(texture);
+        if (!rlTex->isRenderTexture()) return false;
+        Image img = LoadImageFromTexture(rlTex->renderTexture().texture);
+        if (!img.data) return false;
+        ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        int copyW = std::min(width, img.width);
+        int copyH = std::min(height, img.height);
+        // raylib RenderTexture 纹理在显存中上下翻转：读回时翻转行序。
+        for (int y = 0; y < copyH; ++y) {
+            int srcRow = img.height - 1 - y;
+            const uint8_t* src = static_cast<const uint8_t*>(img.data) +
+                                 static_cast<size_t>(srcRow) * img.width * 4;
+            uint8_t* dst = static_cast<uint8_t*>(buffer) + static_cast<size_t>(y) * width * 4;
+            std::memcpy(dst, src, static_cast<size_t>(copyW) * 4);
+        }
+        UnloadImage(img);
+        return true;
+    }
+
+    void suspendClipRect() override {
+        m_suspendedClipEnabled = m_scissorActive;
+        m_suspendedClipRect = m_lastClipRect;
+        if (m_scissorActive) {
+            EndScissorMode();
+            m_scissorActive = false;
+        }
+        m_clipSuspended = true;
+    }
+
+    void resumeClipRect() override {
+        if (!m_clipSuspended) return;
+        m_clipSuspended = false;
+        if (m_suspendedClipEnabled) {
+            BeginScissorMode(static_cast<int>(m_suspendedClipRect.left),
+                             static_cast<int>(m_suspendedClipRect.top),
+                             static_cast<int>(m_suspendedClipRect.width),
+                             static_cast<int>(m_suspendedClipRect.height));
+            m_scissorActive = true;
+        }
+    }
+
     void flush() override {
         rlDrawRenderBatchActive();
     }
@@ -749,6 +806,10 @@ private:
     bool m_frameActive;
     bool m_targetActive;
     bool m_scissorActive = false;
+    bool m_clipSuspended = false;
+    bool m_suspendedClipEnabled = false;
+    SRect m_lastClipRect;
+    SRect m_suspendedClipRect;
     std::vector<SRect> m_clipStack;
     double m_lastPresentTime = 0.0;
 };

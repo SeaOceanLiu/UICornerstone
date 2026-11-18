@@ -94,8 +94,8 @@ bool BackendManager::initialize(const UIBackendCallbacks* callbacks,
                                 const char* title, int width, int height,
                                 uint32_t flags) {
     if (m_initialized) return true;
-    // CR20261105004：回调表 v1/v2 均接受；新增字段仅在 version>=2 读取。
-    if (!callbacks || (callbacks->version != 1 && callbacks->version != 2)) {
+    // CR20261105004/CR20261112001：回调表 v1/v2/v3 均接受；新增字段按 version 门控读取。
+    if (!callbacks || (callbacks->version != 1 && callbacks->version != 2 && callbacks->version != 3)) {
         printf("BackendManager: invalid callback table\n");
         return false;
     }

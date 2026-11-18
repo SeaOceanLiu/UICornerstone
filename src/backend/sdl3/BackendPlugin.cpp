@@ -138,7 +138,7 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
         sdl3SetCurrentCursor(static_cast<Cursor*>(cursor));
     };
 
-    cb.version = 2;
+    cb.version = 3;
     cb.capabilities = UICORN_BACKEND_CAP_MULTI_WINDOW | UICORN_BACKEND_CAP_RENDER_TARGET
                     | UICORN_BACKEND_CAP_CLIP_RECT | UICORN_BACKEND_CAP_READBACK
                     | UICORN_BACKEND_CAP_WINDOW_SET_SIZE;
@@ -196,6 +196,13 @@ extern "C" BACKEND_PLUGIN_EXPORT UIBackendCallbacks* GetUIBackendCallbacks(void)
     cb.destroyTexture       = bridge_destroyTexture;
     cb.drawTexture          = bridge_drawTexture;
     cb.getTextureSize       = bridge_getTextureSize;
+    // CR20261112001：离屏渲染目标（Label 字形柔光）
+    cb.createRenderTexture  = bridge_createRenderTexture;
+    cb.setRenderTarget      = bridge_setRenderTarget;
+    cb.resetRenderTarget    = bridge_resetRenderTarget;
+    cb.readTexturePixels    = bridge_readTexturePixels;
+    cb.suspendClipRect      = bridge_suspendClipRect;
+    cb.resumeClipRect       = bridge_resumeClipRect;
 
     // InputBackend
     cb.createInputBackend   = plugin_createInputBackend;

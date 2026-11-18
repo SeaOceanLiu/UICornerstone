@@ -144,7 +144,7 @@
   "declarations": { "border-radius": 8 } }</code></pre>
 
 <h3>box-shadow（通用盒阴影）</h3>
-<p>对象形式：<code>{ "color", "offset-x", "offset-y", "blur", "spread" }</code>。当前实现为无高斯模糊的扩展近似：按偏移/扩散绘制一层半透明圆角矩形；<code>blur</code> 作为圆角扩展量参与近似。</p>
+<p>对象形式：<code>{ "color", "offset-x", "offset-y", "blur", "spread" }</code>。CR20261112001 起为<b>预烘焙柔光阴影</b>：按规格生成 RGBA 纹理，9-slice 拉伸并跨控件共享；<code>blur=0</code> 保持硬边，<code>blur</code> 范围 0~64，<code>spread&gt;=0</code>。阴影只绘制在控件矩形外侧，不覆盖内容、不改变布局/命中；透明控件（Label/Shape 等）显式声明时同样生效。命令式字段 <code>box-shadow-radius</code> 对应 <code>blur</code>。</p>
 <pre><code>{ "selector": "panel.card",
   "declarations": {
     "box-shadow": {
@@ -152,6 +152,16 @@
       "blur": 24, "spread": 0
     }
   } }</code></pre>
+<p><b>CR20261116002 状态阴影</b>：状态选择器（<code>:hover</code> / <code>:pressed</code> / <code>:disabled</code>；<code>:selected</code> 等同 pressed）里的 <code>box-shadow</code> 会写入对应状态，而不是 normal：</p>
+<p style="text-align:center"><img src="assets/controls/box-shadow-states.png" alt="box-shadow normal / hover / pressed / disabled 四态对比（同一主题与尺寸，仅状态不同）" style="max-width:100%"></p>
+<pre><code>{ "selector": "button.primary:hover",
+  "declarations": { "box-shadow": { "color": "#00000055", "offset-y": 10, "blur": 20 } } }
+{ "selector": "button.primary",
+  "declarations": { "box-shadow": {
+      "color": "#00000033", "offset-y": 6, "blur": 12,
+      "pressed": { "color": "#00000066", "blur": 24 } } } }</code></pre>
+<p>规则：状态对象按字段继承 normal；状态 <code>color</code> alpha=0 表示该状态明确关闭阴影。优先级：<b>显式 JSON 状态 &gt; 主题状态 &gt; 显式 JSON normal &gt; 主题 normal</b>；同一状态同时出现对象与拆散键时拆散键优先；状态选择器内的 <code>box-shadow</code> 里再嵌套状态键会被忽略并诊断；<code>text-shadow</code> 的颜色可按状态生效，但 <code>text-shadow-blur</code> / <code>shadow-offset-x/y</code> 不支持状态，写在状态规则中会被忽略并诊断（避免改到 normal 文字阴影）。主题切换会重算状态槽（旧主题的状态阴影不残留）；<code>ApplyTheme("{}")</code>/仅变量主题是 no-op，不清阴影。normal 阴影沿用主题属性累积语义：新主题未声明的 normal 字段保留旧值，整体移除需显式 alpha=0 或完整覆盖。</p>
+<div class="note"><b>视觉升级</b>：旧版 <code>blur</code> 只扩展圆角、边缘为硬边；新版为真实柔光，旧主题的 <code>blur&gt;0</code> 外观会变化。未声明阴影的布局不受影响。Shape 的通用 box-shadow 仅按包围盒（V1），轮廓发光留待 V2。</div>
 
 <h3>padding → content-padding（通用内容内边距）</h3>
 <p>CSS 声明名保持 <code>padding</code>，内部映射到通用属性 <code>content-padding</code>；写法：数字（四边）、<code>"v h"</code>、<code>"t r b l"</code>。控件内容（文本、输入区、容器子控件、Tab 页内容）在 contentRect 内排布；外框、状态命中范围保持不变。</p>

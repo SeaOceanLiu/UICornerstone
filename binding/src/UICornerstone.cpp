@@ -566,6 +566,17 @@ bool UICornerstone::ContextMenuClose(Control& menu) {
     return Dyn::API().fnContextMenuClose(m_impl->instance, menu.Handle()) != 0;
 }
 
+bool UICornerstone::ContextMenuSyncSize(Control& menu) {
+    if (!m_impl->instance || !menu.Handle() || !Dyn::API().fnContextMenuSyncSize) return false;
+    return Dyn::API().fnContextMenuSyncSize(m_impl->instance, menu.Handle()) != 0;
+}
+
+bool UICornerstone::ContextMenuGetMenuPanelRect(Control& menu, float& x, float& y, float& w, float& h) {
+    if (!m_impl->instance || !menu.Handle() || !Dyn::API().fnContextMenuGetMenuPanelRect) return false;
+    return Dyn::API().fnContextMenuGetMenuPanelRect(
+        m_impl->instance, menu.Handle(), &x, &y, &w, &h) != 0;
+}
+
 // ── TabControl 页操作 ──
 int UICornerstone::TabMovePage(Control& tab, int from, int to) {
     if (!m_impl || !m_impl->instance || !Dyn::API().fnTabMovePage) return 0;

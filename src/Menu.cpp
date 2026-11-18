@@ -7,6 +7,8 @@
 #include "TextDraw.h"
 #include "PropertyNames.h"
 #include "Bench.h"
+#include "ShadowRenderer.h"
+#include "PlatformUtils.h"
 
 // ==================== VSCode Dark主题颜色 ====================
 namespace MenuColors {
@@ -44,7 +46,7 @@ namespace MenuColors {
     constexpr float SEPARATOR_HEIGHT    = 1.0f;
     constexpr float SEPARATOR_MARGIN    = 10.0f;
     constexpr float PANEL_RADIUS        = 5.0f;
-    constexpr float PANEL_SHADOW_OFFSET = 3.0f;
+    constexpr float PANEL_SHADOW_OFFSET = 0.0f;   // 居中柔光，避免菜单下方出现独立矩形阴影
     constexpr float PANEL_SHADOW_BLUR   = 8.0f;
     constexpr FontName MENU_FONT        = FontName::MapleMono_NF_CN_Regular;
 }
@@ -437,6 +439,7 @@ void MenuPanel::setFontName(FontName fontName) {
     if (m_isCreated) {
         ensureFont();
         updateItemsFont();
+        recalculateSize();   // CR20261112002：字体名影响字宽，创建后须重算
     }
 }
 
@@ -504,6 +507,9 @@ void MenuPanel::recalculateSize() {
         return;
     }
 
+    const float oldWidth = getRect().width;
+    const float oldHeight = getRect().height;
+
     // 计算最大宽度（需要容纳最长的标题+快捷键+箭头）
     float maxCaptionWidth = 0;
     float maxShortcutWidth = 0;
@@ -556,6 +562,11 @@ void MenuPanel::recalculateSize() {
 
     setRect(SRect(getRect().left, getRect().top, panelWidth, panelHeight));
     layoutItems();
+
+    // CR20261112002：尺寸稳定后通知（仅非空 items + 尺寸实际变化）
+    if ((oldWidth != panelWidth || oldHeight != panelHeight) && m_onSizeChanged) {
+        m_onSizeChanged(getRect());
+    }
 }
 
 void MenuPanel::layoutItems() {
@@ -742,6 +753,8 @@ int MenuPanel::setColorProperty(const char* prop, SColor color) {   // P0-26：�
     if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { m_textShadowColor.setNormal(color); return 1; }
+    // CR20261112001：面板柔光阴影颜色（legacy 键）
+    if (strcmp(prop, PropertyNames::kShadowColor) == 0) { m_shadowColor = color; m_legacyShadowColorExplicit = true; return 1; }
     // P0-72④：item 级颜色（item-id 定向；item-text 单态=normal）
     if (strcmp(prop, PropertyNames::kItemText) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -763,7 +776,15 @@ int MenuPanel::setColorProperty(const char* prop, SColor color) {   // P0-26：�
         item->setHoverBackgroundColor(color);
         return 1;
     }
-    return ControlImpl::setColorProperty(prop, color);
+    int ok = ControlImpl::setColorProperty(prop, color);
+    if (ok) {
+        int si = -1, fi = -1;
+        if (ControlImpl::parseBoxShadowStateKey(prop, si, fi)) {
+            static bool logged = false;
+            if (!logged) { Platform::Log("MenuPanel: box-shadow state keys are ignored (visual follows normal only)"); logged = true; }
+        }
+    }
+    return ok;
 }
 
 int MenuPanel::setStateColorProperty(const char* prop, StateColor stateColor) {   // P0-72④：item 定向四态
@@ -794,7 +815,8 @@ int MenuPanel::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)   { out = m_textShadowColor.getHover();    return 1; }
     if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0) { out = m_textShadowColor.getPressed();  return 1; }
     if (strcmp(prop, PropertyNames::kTextShadowDisabled) == 0){ out = m_textShadowColor.getDisabled(); return 1; }
-    // P0-72④：item 级颜色读回（item-id 定向）
+    // CR20261112001：面板柔光阴影颜色
+    if (strcmp(prop, PropertyNames::kShadowColor) == 0) { out = m_shadowColor; return 1; }
     if (strcmp(prop, PropertyNames::kItemText) == 0) {
         auto item = getItemById(m_itemTargetId);
         if (!item) return 0;
@@ -829,7 +851,8 @@ int MenuPanel::getBoolProperty(const char* prop, int& out) {
 int MenuPanel::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { m_shadowOffset.x = value; return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { m_shadowOffset.y = value; return 1; }
-    if (strcmp(prop, PropertyNames::kShadowRadius) == 0)  { if (value >= 0.0f) m_shadowRadius = value; return 1; }   // P0-72①
+    if (strcmp(prop, PropertyNames::kShadowRadius) == 0)  { if (value >= 0.0f) { m_shadowRadius = value; m_legacyShadowRadiusExplicit = true; } return 1; }   // P0-72① / B2
+    if (strcmp(prop, PropertyNames::kShadowSpread) == 0)  { m_shadowSpread = (value >= 0.0f) ? value : 0.0f; m_legacyShadowSpreadExplicit = true; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { setItemHeightRatio(value); return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -838,13 +861,22 @@ int MenuPanel::setFloatProperty(const char* prop, float value) {
         recalculateSize();
         return 1;
     }
-    return ControlImpl::setFloatProperty(prop, value);
+    int ok = ControlImpl::setFloatProperty(prop, value);
+    if (ok) {
+        int si = -1, fi = -1;
+        if (ControlImpl::parseBoxShadowStateKey(prop, si, fi)) {
+            static bool logged = false;
+            if (!logged) { Platform::Log("MenuPanel: box-shadow state keys are ignored (visual follows normal only)"); logged = true; }
+        }
+    }
+    return ok;
 }
 
 int MenuPanel::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kShadowOffsetX) == 0) { out = m_shadowOffset.x; return 1; }
     if (strcmp(prop, PropertyNames::kShadowOffsetY) == 0) { out = m_shadowOffset.y; return 1; }
     if (strcmp(prop, PropertyNames::kShadowRadius) == 0)  { out = m_shadowRadius; return 1; }   // P0-72①
+    if (strcmp(prop, PropertyNames::kShadowSpread) == 0)  { out = m_shadowSpread; return 1; }
     if (strcmp(prop, PropertyNames::kItemHeightRatio) == 0) { out = m_heightRatio; return 1; }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto item = getItemById(m_itemTargetId);
@@ -926,26 +958,52 @@ void MenuPanel::closeWithChildren() {
 }
 
 void MenuPanel::drawShadow() {
-    if (m_shadowRadius <= 0.0f) return;   // P0-77①：r#0 = 禁用面板投影
-    SRect drawRect = getDrawRect();
+    // CR20261116002：MenuPanel 只按 normal 字段决定 legacy/generic；状态字段忽略（自身无常驻状态切换）
+    bool anyBoxShadowField = hasExplicitNormalBoxShadowField();
 
-    // 使用GraphTool绘制阴影
-    GraphTool::DrawingContext dc(getRenderDevice());
-    dc.setFillColor(GraphTool::SColor(
-        MenuColors::PANEL_SHADOW.red(),
-        MenuColors::PANEL_SHADOW.green(),
-        MenuColors::PANEL_SHADOW.blue(),
-        MenuColors::PANEL_SHADOW.alpha()));
+    ShadowRenderer::ShadowSpec spec;
+    spec.cornerRadius = MenuColors::PANEL_RADIUS;
+    if (anyBoxShadowField) {
+        // CR20261112001：通用 box-shadow 与 legacy shadow-radius 互斥。
+        // 只要声明了任意 box-shadow 字段，就完全使用通用字段（缺失字段取默认），
+        // 不再叠加/回退 legacy 菜单阴影。
+        spec.color = m_boxShadowColorSet ? m_boxShadowColor : MenuColors::PANEL_SHADOW;
+        spec.offsetX = m_boxShadowOffsetXSet ? m_boxShadowOffsetX : MenuColors::PANEL_SHADOW_OFFSET;
+        spec.offsetY = m_boxShadowOffsetYSet ? m_boxShadowOffsetY : MenuColors::PANEL_SHADOW_OFFSET;
+        spec.blur = m_boxShadowRadiusSet ? m_boxShadowRadius : MenuColors::PANEL_SHADOW_BLUR;
+        spec.spread = m_boxShadowSpreadSet ? m_boxShadowSpread : 0.0f;
+        spec.enabled = spec.color.alpha() > 0.0f;
+    } else {
+        // legacy 路径：shadow-radius 显式 0 关闭（P0-77①/B2）。
+        if (m_legacyShadowRadiusExplicit && m_shadowRadius <= 0.0f) return;
+        spec.color = m_shadowColor;
+        spec.offsetX = MenuColors::PANEL_SHADOW_OFFSET;
+        spec.offsetY = MenuColors::PANEL_SHADOW_OFFSET;
+        spec.blur = m_shadowRadius;
+        spec.spread = m_shadowSpread;
+        spec.enabled = m_shadowRadius > 0.0f && spec.color.alpha() > 0.0f;
+    }
+    if (!spec.enabled) return;
 
-    // 绘制阴影矩形（偏移+模糊区域）
-    float offset = MenuColors::PANEL_SHADOW_OFFSET;
-    float blur = m_shadowRadius;   // P0-72①：阴影半径可配（缺省 = PANEL_SHADOW_BLUR）
-    dc.drawRoundedRect(
-        ::SRect(drawRect.left + offset - blur/2,
-                        drawRect.top + offset - blur/2,
-                        drawRect.width + blur,
-                        drawRect.height + blur),
-        MenuColors::PANEL_RADIUS + blur/2, true);
+    ShadowRenderer::ShadowCache* cache = ShadowRenderer::getCache(m_context);
+    RenderDevice* device = getRenderDevice();
+    if (cache == nullptr || device == nullptr) return;
+    cache->drawRectShadow(device, spec, getDrawRect(), getScaleXX(), getScaleYY());
+}
+
+void MenuPanel::setLegacyShadowRadius(float radius, bool explicitFlag) {
+    m_shadowRadius = (radius >= 0.0f) ? radius : m_shadowRadius;
+    m_legacyShadowRadiusExplicit = explicitFlag;
+}
+
+void MenuPanel::setLegacyShadowColor(const SColor& color, bool explicitFlag) {
+    m_shadowColor = color;
+    m_legacyShadowColorExplicit = explicitFlag;
+}
+
+void MenuPanel::setLegacyShadowSpread(float spread, bool explicitFlag) {
+    m_shadowSpread = (spread >= 0.0f) ? spread : 0.0f;
+    m_legacyShadowSpreadExplicit = explicitFlag;
 }
 
 void MenuPanel::draw() {
@@ -966,19 +1024,7 @@ void MenuPanel::draw() {
             drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, true);
     }
 
-    // 3. 绘制边框（P0-26：border-visible 门控；P0-33③：三态）
-    if (getBorderVisible()) {
-        const SColor bc = (getState() == ControlState::Disabled) ? m_disabledBorderColor
-                        : (getState() == ControlState::Hover)    ? m_hoverBorderColor
-                                                                 : m_borderColor;
-        GraphTool::DrawingContext dc(getRenderDevice());
-        dc.setPen(GraphTool::SPen(
-            GraphTool::SColor(bc.red(), bc.green(), bc.blue(), bc.alpha()), 1.0f));
-        dc.drawRoundedRect(::SRect(drawRect.left, drawRect.top,
-            drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, false);
-    }
-
-    // 4. 绘制菜单项和分隔线（hover 背景统一由面板管理）
+    // 3. 绘制菜单项和分隔线（hover 背景统一由面板管理）
     for (size_t i = 0; i < m_items.size(); ++i) {
         auto& item = m_items[i];
         if (item->getType() == MenuItemType::Separator) {
@@ -1006,6 +1052,18 @@ void MenuPanel::draw() {
             }
             item->draw();
         }
+    }
+
+    // 4. 绘制边框（最后绘制：item hover/显式背景不得覆盖左边框）
+    if (getBorderVisible()) {
+        const SColor bc = (getState() == ControlState::Disabled) ? m_disabledBorderColor
+                        : (getState() == ControlState::Hover)    ? m_hoverBorderColor
+                                                                 : m_borderColor;
+        GraphTool::DrawingContext dc(getRenderDevice());
+        dc.setPen(GraphTool::SPen(
+            GraphTool::SColor(bc.red(), bc.green(), bc.blue(), bc.alpha()), 1.0f));
+        dc.drawRoundedRect(::SRect(drawRect.left, drawRect.top,
+            drawRect.width, drawRect.height), MenuColors::PANEL_RADIUS, false);
     }
 
     // 5. 绘制打开的子菜单
@@ -1228,7 +1286,15 @@ void MenuBar::applyStateToPanel(const shared_ptr<MenuPanel>& panel) {
     panel->setBoolProperty(PropertyNames::kShadow, m_shadowEnabled ? 1 : 0);
     panel->setFloatProperty(PropertyNames::kShadowOffsetX, m_shadowOffset.x);
     panel->setFloatProperty(PropertyNames::kShadowOffsetY, m_shadowOffset.y);
-    panel->setFloatProperty(PropertyNames::kShadowRadius,  m_panelShadowRadius);
+    panel->setLegacyShadowRadius(m_panelShadowRadius, m_panelShadowRadiusExplicit);
+    panel->setLegacyShadowColor(m_panelShadowColor, m_panelShadowColorExplicit);
+    panel->setLegacyShadowSpread(m_panelShadowSpread, m_panelShadowSpreadExplicit);
+    // 通用 box-shadow：逐字段传播，保持与 MenuBar 自身一致
+    if (m_boxShadowColorSet) panel->setColorProperty(PropertyNames::kBoxShadowColor, m_boxShadowColor);
+    if (m_boxShadowOffsetXSet) panel->setFloatProperty(PropertyNames::kBoxShadowOffsetX, m_boxShadowOffsetX);
+    if (m_boxShadowOffsetYSet) panel->setFloatProperty(PropertyNames::kBoxShadowOffsetY, m_boxShadowOffsetY);
+    if (m_boxShadowRadiusSet) panel->setFloatProperty(PropertyNames::kBoxShadowRadius, m_boxShadowRadius);
+    if (m_boxShadowSpreadSet) panel->setFloatProperty(PropertyNames::kBoxShadowSpread, m_boxShadowSpread);
 }
 
 shared_ptr<MenuPanel> MenuBar::getMenuPanel(int index) const {
@@ -1486,10 +1552,21 @@ int MenuBar::setColorProperty(const char* prop, SColor color) {
     else if (strcmp(prop, PropertyNames::kTextHover) == 0)   { m_hoverTextColor = color; ok = true; }
     else if (strcmp(prop, PropertyNames::kTextDisabled) == 0){ m_disabledTextColor = color; ok = true; }
     else if (strcmp(prop, PropertyNames::kTextShadow) == 0)  { m_textShadowColor.setNormal(color); ok = true; }
+    else if (strcmp(prop, PropertyNames::kShadowColor) == 0) { m_panelShadowColor = color; m_panelShadowColorExplicit = true; ok = true; }
     if (ok) {
         for (auto& entry : m_entries) {
-            if (entry.panel) entry.panel->setColorProperty(prop, color);
+            if (entry.panel) {
+                if (strcmp(prop, PropertyNames::kShadowColor) == 0)
+                    entry.panel->setLegacyShadowColor(color, true);
+                else
+                    entry.panel->setColorProperty(prop, color);
+            }
         }
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kBoxShadowColor) == 0) {
+        ControlImpl::setColorProperty(prop, color);
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setColorProperty(prop, color);
         return 1;
     }
     return ControlImpl::setColorProperty(prop, color);
@@ -1507,6 +1584,7 @@ int MenuBar::getColorProperty(const char* prop, SColor& out) {
     if (strcmp(prop, PropertyNames::kTextHover) == 0)    { out = m_hoverTextColor;     return 1; }
     if (strcmp(prop, PropertyNames::kTextDisabled) == 0) { out = m_disabledTextColor;  return 1; }
     if (strcmp(prop, PropertyNames::kTextShadow) == 0)   { out = m_textShadowColor.getNormal(); return 1; }
+    if (strcmp(prop, PropertyNames::kShadowColor) == 0)  { out = m_panelShadowColor; return 1; }
     // P0-74④：合并读回补齐（shadow 四态）
     if (strcmp(prop, PropertyNames::kTextShadowHover) == 0)   { out = m_textShadowColor.getHover();    return 1; }
     if (strcmp(prop, PropertyNames::kTextShadowPressed) == 0) { out = m_textShadowColor.getPressed();  return 1; }
@@ -1540,8 +1618,23 @@ int MenuBar::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kShadowRadius) == 0) {   // P0-72①③：面板阴影半径（bar 存值 + 传播）
         if (value < 0.0f) return 0;
         m_panelShadowRadius = value;
-        for (auto& entry : m_entries) if (entry.panel) entry.panel->setFloatProperty(prop, value);
+        m_panelShadowRadiusExplicit = true;
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setLegacyShadowRadius(value, true);
         return 1;
+    }
+    if (strcmp(prop, PropertyNames::kShadowSpread) == 0) {   // CR20261112001
+        m_panelShadowSpread = (value >= 0.0f) ? value : 0.0f;
+        m_panelShadowSpreadExplicit = true;
+        for (auto& entry : m_entries) if (entry.panel) entry.panel->setLegacyShadowSpread(m_panelShadowSpread, true);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0 ||
+        strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0 ||
+        strcmp(prop, PropertyNames::kBoxShadowRadius) == 0 ||
+        strcmp(prop, PropertyNames::kBoxShadowSpread) == 0) {
+        int ok = ControlImpl::setFloatProperty(prop, value);
+        if (ok) for (auto& entry : m_entries) if (entry.panel) entry.panel->setFloatProperty(prop, value);
+        return ok;
     }
     return ControlImpl::setFloatProperty(prop, value);
 }
@@ -1585,6 +1678,8 @@ int MenuBar::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kValue) == 0)           { out = m_menuTextSize;    return 1; }
     if (strcmp(prop, PropertyNames::kFontSize) == 0)        { out = m_menuTextSize;    return 1; }   // P0-72：font-size 读回
     if (strcmp(prop, PropertyNames::kBarHeight) == 0)       { out = m_barHeight;       return 1; }
+    if (strcmp(prop, PropertyNames::kShadowRadius) == 0)    { out = m_panelShadowRadius; return 1; }
+    if (strcmp(prop, PropertyNames::kShadowSpread) == 0)    { out = m_panelShadowSpread; return 1; }
     return ControlImpl::getFloatProperty(prop, out);
 }
 
@@ -1603,6 +1698,9 @@ void MenuBar::draw() {
     if (!getVisible()) return;
 
     SRect drawRect = getDrawRect();
+
+    // CR20261112001：MenuBar 自定义 draw 不经过 beforeDraw，显式接入统一阴影。
+    drawBoxShadowForRect(drawRect);
 
     // 1. 绘制菜单栏背景（P0-44：disabled/hover 态解析；悬停菜单项时保持 normal，避免与 item hover 底色叠加）
     SColor barBg = m_bgColor;
@@ -1739,6 +1837,31 @@ bool MenuBar::isContainsPoint(float x, float y) {
 }
 
 // ── MenuItem property system ──
+int MenuItem::setColorProperty(const char* prop, SColor color) {
+    int ok = ControlImpl::setColorProperty(prop, color);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowColor) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi == 0);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("MenuItem: box-shadow is not supported in V1 (value stored, not drawn)"); logged = true; }
+    }
+    return ok;
+}
+int MenuItem::setFloatProperty(const char* prop, float value) {
+    int ok = ControlImpl::setFloatProperty(prop, value);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowRadius) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowSpread) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi >= 1);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("MenuItem: box-shadow is not supported in V1 (value stored, not drawn)"); logged = true; }
+    }
+    return ok;
+}
 int MenuItem::setBoolProperty(const char* prop, int value) {
     if (strcmp(prop, PropertyNames::kChecked) == 0) { setChecked(value != 0); return 1; }
     return ControlImpl::setBoolProperty(prop, value);

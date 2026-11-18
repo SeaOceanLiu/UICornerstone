@@ -1,4 +1,5 @@
 ﻿#include "MainWindow.h"
+#include "ShadowRenderer.h"
 #include "Bench.h"
 #include "AppCallbacks.h"
 #include "BackendPlugin.h"
@@ -165,6 +166,8 @@ void MainWindow::update(AppCallbacks* app) {
         m_pendingResizeH = -1;
     }
     app->onUpdate();
+    // CR20261112001：在渲染帧之外集中烘焙文字柔光，避免帧中切换 RenderTarget
+    if (m_context && m_context->shadowCache) m_context->shadowCache->processPending();
 }
 
 void MainWindow::render(AppCallbacks* app) {

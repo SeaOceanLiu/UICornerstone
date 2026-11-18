@@ -142,7 +142,7 @@ void Popup::open() {
     // setParent 继承复合后 computeTargetRect 才能得到正确的复合与反查基准
     BENCH->addControl(self);
     SRect target = computeTargetRect();
-    setRect(target);
+    applyOpenRect(target);
     layoutContent();
     setVisible(true);
     registerWatcher();
@@ -209,6 +209,10 @@ void Popup::setAnchored(Control* anchor, const SRect& offset) {
 void Popup::setAbsolute(const SRect& rect) {
     m_anchorMode = AnchorMode::Absolute;
     setRect(rect);
+}
+
+void Popup::applyOpenRect(const SRect& target) {
+    setRect(target);
 }
 
 // ==================== Popup Event Handlers ====================

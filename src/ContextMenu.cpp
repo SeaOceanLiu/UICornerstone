@@ -4,6 +4,15 @@
 #include "ContextMenu.h"
 #include "MainWindow.h"
 #include "Bench.h"   // P0-71①：BENCH 宏类型完整（getDrawRect/getScaleXX 换算）
+#include "PlatformUtils.h"
+
+static void logPositionModeIgnored(const char* api) {
+    static bool logged = false;
+    if (!logged) {
+        Platform::Log("ContextMenu: %s ignored; use setRect/show", api);
+        logged = true;
+    }
+}
 
 // 视口兜底（context 未就绪时的假想视口，仅参与钳制）
 static const SRect kFallbackViewport(0, 0, 1024, 768);   // SRect 构造非 constexpr
@@ -30,12 +39,70 @@ void ContextMenu::applyChromeSuppression() {
     setShowFocusRing(false);
 }
 
+ContextMenu::~ContextMenu() {
+    if (m_menuPanel) m_menuPanel->setOnSizeChanged(nullptr);
+}
+
+void ContextMenu::ensureSizeCallback() {
+    if (m_sizeCallbackRegistered || !m_menuPanel) return;
+    // 构造期间 make_shared 尚未完成，getThis() 为空 → 静默跳过；
+    // 首次公开入口（addItem/show/create/syncSize/setRect）时再懒注册。
+    auto self = dynamic_pointer_cast<ContextMenu>(getThis());
+    if (!self) return;
+    m_menuPanel->setOnSizeChanged([weak = weak_ptr<ContextMenu>(self)](const SRect& r) {
+        if (auto cm = weak.lock()) cm->applySyncedSize(r.width, r.height);
+    });
+    m_sizeCallbackRegistered = true;
+}
+
+void ContextMenu::applySyncedSize(float w, float h) {
+    if (w <= 0.0f || h <= 0.0f) return;
+    if (m_rect.width == w && m_rect.height == h) return;
+    // 受控路径：只更新外框宽高，避开 Panel::resized 的布局链/重入。
+    ControlImpl::resized(SRect(m_rect.left, m_rect.top, w, h));
+}
+
+bool ContextMenu::syncSize() {
+    ensureSizeCallback();
+    if (!m_menuPanel) return false;
+    m_menuPanel->recalculateSize();
+    if (m_menuPanel->getItems().empty()) return false;
+    applySyncedSize(m_menuPanel->getRect().width, m_menuPanel->getRect().height);
+    return true;
+}
+
+SRect ContextMenu::getMenuPanelRect() const {
+    if (!m_menuPanel || m_menuPanel->getItems().empty()) return SRect(0, 0, 0, 0);
+    return m_menuPanel->getRect();
+}
+
 void ContextMenu::create() {
+    ensureSizeCallback();
     Popup::create();
     applyChromeSuppression();   // Popup::create 重置了 chrome，恢复抑制
+    ensureSizeCallback();
+}
+
+void ContextMenu::beforeDraw() {
+    if (!getVisible()) return;
+    // CR20261112001：ContextMenu 的视觉（圆角/边框/阴影）全部由内部 MenuPanel
+    // 负责；Popup 自身不得再画矩形 box-shadow，否则会出现“底层矩形”。
+    m_frameDrawRect = getDrawRect();
+    m_frameDrawRectValid = true;
+}
+
+void ContextMenu::draw() {
+    if (!getVisible()) return;
+    // Panel::draw 内部是限定调用 ControlImpl::beforeDraw()，不会走本类 override；
+    // 这里显式跳过 Popup 背景/阴影，只绘制内容（MenuPanel）。
+    m_frameDrawRect = getDrawRect();
+    m_frameDrawRectValid = true;
+    ControlImpl::draw();
+    afterDraw();
 }
 
 void ContextMenu::show(float x, float y) {
+    ensureSizeCallback();
     // 确保上下文就绪（未挂树的浮层借最近实例）
     if (GET_CONTEXT == nullptr) {
         UIContext* ctx = UIContext::getLastInstance();
@@ -75,11 +142,81 @@ void ContextMenu::show(float x, float y) {
 }
 
 void ContextMenu::setRect(SRect rect) {
-    Panel::setRect(rect);
+    ensureSizeCallback();
+    m_hasExplicitRect = true;
+    Popup::setRect(rect);
     if (m_menuPanel) {
         m_menuPanel->setRect(SRect(0, 0, rect.width, rect.height));
         m_menuPanel->recalculateSize();
     }
+}
+
+void ContextMenu::setCentered() {
+    logPositionModeIgnored("setCentered");
+}
+
+int ContextMenu::setColorProperty(const char* prop, SColor color) {
+    int ok = Popup::setColorProperty(prop, color);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowColor) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi == 0);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("ContextMenu: box-shadow is not drawn (visual owned by MenuPanel)"); logged = true; }
+    }
+    return ok;
+}
+
+int ContextMenu::setFloatProperty(const char* prop, float value) {
+    int ok = Popup::setFloatProperty(prop, value);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowRadius) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowSpread) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi >= 1);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("ContextMenu: box-shadow is not drawn (visual owned by MenuPanel)"); logged = true; }
+    }
+    return ok;
+}
+
+void ContextMenu::setAnchored(Control* anchor, const SRect& offset) {
+    (void)anchor;
+    (void)offset;
+    logPositionModeIgnored("setAnchored");
+}
+
+void ContextMenu::applyOpenRect(const SRect& target) {
+    ensureSizeCallback();
+    if (!m_menuPanel) return;
+    if (!m_menuPanel->isCreated() && GET_CONTEXT) {
+        m_menuPanel->create();   // open 已挂树：补 create 后字体/行高才可测（幂等）
+    }
+    if (m_hasExplicitRect) {
+        setRect(target);
+        return;
+    }
+
+    if (m_menuPanel->getItems().empty()) {
+        // 空菜单保持当前外框尺寸（默认 10×10），仅按 Centered/Anchored 应用位置。
+        SRect pos = computeTargetRect();
+        Panel::setRect(pos);
+        m_menuPanel->setRect(SRect(0, 0, pos.width, pos.height));
+        return;
+    }
+
+    // 无显式位置：先按内容测出最终尺寸，再重新计算居中/锚定目标，
+    // 避免 Popup::open() 用旧的 10×10 尺寸算完 target 后内容才变大。
+    m_menuPanel->recalculateSize();
+    float finalW = m_menuPanel->getRect().width;
+    float finalH = m_menuPanel->getRect().height;
+    Panel::setRect(SRect(m_rect.left, m_rect.top, finalW, finalH));
+    SRect pos = computeTargetRect();
+    Panel::setRect(pos);   // 不改变 m_anchorMode
+    m_menuPanel->setRect(SRect(0, 0, pos.width, pos.height));
+    m_menuPanel->recalculateSize();   // 幂等；确保回调/布局稳定
 }
 
 void ContextMenu::close(DialogResult result) {
@@ -88,6 +225,7 @@ void ContextMenu::close(DialogResult result) {
 }
 
 void ContextMenu::addItem(shared_ptr<MenuItem> item) {
+    ensureSizeCallback();
     if (!item || !m_menuPanel) return;
     auto orig = item->getOnClick();
     // P0-103：菜单点击回调延迟一帧执行——捕获 weak（菜单可能先于回调析构；同步时代裸 this 安全，延迟后悬垂）
@@ -100,6 +238,7 @@ void ContextMenu::addItem(shared_ptr<MenuItem> item) {
 }
 
 void ContextMenu::addItem(const string& caption, ItemClickHandler onClick) {
+    ensureSizeCallback();
     auto item = make_shared<MenuItem>(m_menuPanel.get(), MenuItemType::Normal, 1.f, 1.f);
     item->setCaption(caption);
     weak_ptr<ContextMenu> self = dynamic_pointer_cast<ContextMenu>(getThis());   // P0-103：同上
@@ -115,6 +254,7 @@ void ContextMenu::addItem(const string& caption, ItemClickHandler onClick) {
 }
 
 void ContextMenu::addSeparator() {
+    ensureSizeCallback();
     if (m_menuPanel) m_menuPanel->addSeparator();
 }
 

@@ -29,9 +29,13 @@ int main(int argc, char** argv) {
     json selects = doc.value("_select", json::array());
     json expands = doc.value("_expandAll", json::array());
     json contextMenus = doc.value("_contextMenus", json::array());
-    doc.erase("_states"); doc.erase("_visible"); doc.erase("_select"); doc.erase("_expandAll"); doc.erase("_contextMenus");
+    json clicks = doc.value("_clicks", json::array());
+    doc.erase("_states"); doc.erase("_visible"); doc.erase("_select"); doc.erase("_expandAll"); doc.erase("_contextMenus"); doc.erase("_clicks");
     int w = atoi(argv[3]), h = atoi(argv[4]);
-    UIInstance g = UICornerstone_CreateInstanceFromPlugin("sdl3", nullptr);
+#ifndef UICORNERSTONE_BACKEND_NAME
+#define UICORNERSTONE_BACKEND_NAME "sdl3"
+#endif
+    UIInstance g = UICornerstone_CreateInstanceFromPlugin(UICORNERSTONE_BACKEND_NAME, nullptr);
     if (!g) { printf("instance failed\n"); return 1; }
     UICornerstone_SetViewport(g, 0, 0, (float)w, (float)h);
     if (!UICornerstone_LoadLayout(g, doc.dump().c_str())) { printf("layout failed\n"); return 1; }
@@ -59,6 +63,31 @@ int main(int argc, char** argv) {
         if (!s.is_object()) continue;
         UIControlHandle c = UICornerstone_FindControl(g, s.value("id", "").c_str());
         if (c) UICornerstone_ContextMenuShow(g, c, s.value("x", 100.0f), s.value("y", 100.0f));
+    }
+    for (const auto& c : clicks) {
+        if (!c.is_object()) continue;
+        const float x = c.value("x", 0.0f);
+        const float y = c.value("y", 0.0f);
+        UIEvent move;
+        std::memset(&move, 0, sizeof(move));
+        move.type = UI_EVENT_MOUSE_MOVE;
+        *reinterpret_cast<float*>(move.data) = x;
+        *reinterpret_cast<float*>(move.data + 4) = y;
+        UICornerstone_PushUIEvent(g, &move);
+        UICornerstone_ProcessEvents(g);
+
+        UIEvent down;
+        std::memset(&down, 0, sizeof(down));
+        down.type = UI_EVENT_MOUSE_DOWN;
+        *reinterpret_cast<float*>(down.data) = x;
+        *reinterpret_cast<float*>(down.data + 4) = y;
+        *reinterpret_cast<int*>(down.data + 8) = 1;
+        UICornerstone_PushUIEvent(g, &down);
+        UICornerstone_ProcessEvents(g);
+        UIEvent up = down;
+        up.type = UI_EVENT_MOUSE_UP;
+        UICornerstone_PushUIEvent(g, &up);
+        UICornerstone_ProcessEvents(g);
     }
     for (int i = 0; i < 6; ++i) {
         UICornerstone_ProcessEvents(g);

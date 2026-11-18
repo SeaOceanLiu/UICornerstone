@@ -115,6 +115,7 @@ private:
     bool matchContainerSelector(const std::string& sel, Control* ctl) const;
     void applyValue(Control* ctl, const std::string& key, const std::string& value);
     void replayExplicit(Control* ctl);
+    void clearThemeShadowStates(Control* root);   // CR20261116002：清主题写入的阴影状态槽
     bool explicitValueMatches(Control* ctl, const std::string& key, const json& value);
     void inheritPass(Control* ctl, bool parentEligible,
                      const std::unordered_map<std::string, std::string>& parentFont,

@@ -222,6 +222,9 @@ public:
     bool ContextMenuAddSeparator(Control& menu);
     bool ContextMenuShow(Control& menu, float x, float y);
     bool ContextMenuClose(Control& menu);
+    // CR20261112002：外框随内容同步 + 读取面板局部尺寸（空菜单 0,0,0,0）
+    bool ContextMenuSyncSize(Control& menu);
+    bool ContextMenuGetMenuPanelRect(Control& menu, float& x, float& y, float& w, float& h);
 
     // ── TabControl 页操作 ──
     int  TabAddPage(Control& tab, const std::string& title);

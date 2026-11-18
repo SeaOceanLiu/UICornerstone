@@ -123,6 +123,22 @@ UICornerstone_ShapeSetPrimitiveFloat(g_inst, s, p, "radius", 10.0f);</code></pre
 
 
 
+<h2>4.19.8 柔光阴影（box-shadow）</h2>
+<p>Shape 复用通用 <code>box-shadow</code>：预烘焙柔光、9-slice 缓存，只绘制在控件矩形外侧，不覆盖图元/描边，不改变布局与命中。V1 按<b>控件包围盒（bbox）</b>生成阴影，不跟随圆/椭圆/多边形轮廓；需要轮廓发光时按图元拆分为多个 Shape 或后续 V2 opt-in。</p>
+<figure>
+  <img src="../assets/controls/shape-shadow.png" alt="Shape box-shadow 对比：无阴影 vs 柔光阴影（round-rect 与 circle；circle 阴影按 bbox 绘制）" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>左：无阴影；右：<code>box-shadow</code>（round-rect 与 circle）。circle 的阴影为包围盒矩形，属于 V1 已知边界。</figcaption>
+</figure>
+<pre><code>{ "type": "shape", "rect": { "x": 380, "y": 116, "w": 120, "h": 100 },
+  "shape": "round-rect", "radius": 16,
+  "fill": "#FFFFFF", "stroke": "#CBD5E1", "line-width": 1,
+  "box-shadow": {
+    "color": "#00000030", "offset-x": 0, "offset-y": 0, "blur": 20, "spread": 0,
+    "hover": { "color": "#00000055", "blur": 30 }
+  } }</code></pre>
+<div class="note">示例截图为对称阴影（<code>offset-y=0</code>），便于观察柔光范围与 bbox 边界。当前 9-slice 实现中 <code>offset&gt;0</code> 会整体平移阴影纹理（含透明中心），视觉上阴影与控件底边会出现与 offset 等宽的间隔；这是既有实现行为，不属于本 CR 的 Shape 特例。</div>
+<div class="note">CR20261116002：状态键 <code>hover/pressed/disabled</code> 可用（部分继承 normal，状态 <code>color</code> alpha=0 关闭该状态）；Shape 为纯绘制控件、无事件，通常保持 normal，状态阴影主要由宿主程序或主题状态切换驱动。运行时状态键见<a href="../appendix/properties.html">属性速查表</a>。CR20261112001：<code>blur=0</code> 为硬边。</div>
+
 <div class="chapter-nav">
   <a href="scrollbar.html">← 4.18 ScrollBar</a>
   <a href="slider.html">下一节：4.20 Slider →</a>

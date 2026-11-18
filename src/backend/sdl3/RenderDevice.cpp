@@ -6,6 +6,7 @@
 #include "BackendPlugin.h"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+#include <algorithm>
 #include <cstring>
 #include <vector>
 #include <unordered_map>
@@ -317,6 +318,56 @@ public:
         SDL_DestroySurface(surface);
     }
 
+    // === CR20261112001：Label 字形柔光离屏烘焙 ===
+    bool supportsTextShadowTexture() const override { return true; }
+
+    bool readTexturePixels(Texture* texture, void* buffer, int width, int height) override {
+        if (!m_renderer || !texture || !buffer || width <= 0 || height <= 0) return false;
+        SDL_Texture* tex = static_cast<SDL3Texture*>(texture)->native();
+        if (!tex) return false;
+        SDL_Texture* prev = SDL_GetRenderTarget(m_renderer);
+        if (!SDL_SetRenderTarget(m_renderer, tex)) return false;
+        SDL_Surface* surface = SDL_RenderReadPixels(m_renderer, nullptr);
+        bool ok = false;
+        if (surface) {
+            SDL_Surface* rgba = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ABGR8888);
+            if (rgba) {
+                int copyW = std::min(width, rgba->w);
+                int copyH = std::min(height, rgba->h);
+                for (int y = 0; y < copyH; ++y) {
+                    std::memcpy(static_cast<uint8_t*>(buffer) + static_cast<size_t>(y) * width * 4,
+                                static_cast<const uint8_t*>(rgba->pixels) +
+                                    static_cast<size_t>(y) * rgba->pitch,
+                                static_cast<size_t>(copyW) * 4);
+                }
+                SDL_DestroySurface(rgba);
+                ok = true;
+            }
+            SDL_DestroySurface(surface);
+        }
+        SDL_SetRenderTarget(m_renderer, prev);
+        return ok;
+    }
+
+    void suspendClipRect() override {
+        SDL_Rect clip{};
+        m_suspendedClipEnabled = SDL_GetRenderClipRect(m_renderer, &clip);
+        m_suspendedClipRect = SRect(static_cast<float>(clip.x), static_cast<float>(clip.y),
+                                    static_cast<float>(clip.w), static_cast<float>(clip.h));
+        m_clipSuspended = true;
+        SDL_SetRenderClipRect(m_renderer, nullptr);
+    }
+
+    void resumeClipRect() override {
+        if (!m_clipSuspended) return;
+        m_clipSuspended = false;
+        if (m_suspendedClipEnabled) {
+            applyClipRect(m_suspendedClipRect);
+        } else {
+            SDL_SetRenderClipRect(m_renderer, nullptr);
+        }
+    }
+
     // === Frame operations ===
     void clear() override {
         SDL_RenderClear(m_renderer);
@@ -380,6 +431,9 @@ private:
 
     SDL_Renderer* m_renderer;
     std::vector<SRect> m_clipStack;
+    bool m_clipSuspended = false;
+    bool m_suspendedClipEnabled = false;
+    SRect m_suspendedClipRect;
 };
 
 // ============================================================

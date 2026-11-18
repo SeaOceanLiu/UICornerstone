@@ -5,6 +5,7 @@
 #include "PropertyNames.h"
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
+#include <algorithm>
 #include <vector>
 #include <cstring>
 #include <cstdlib>
@@ -43,8 +44,13 @@ public:
     }
 
     ~SFMLTexture() override {
-        delete m_renderTexture;
-        delete m_texture;
+        if (m_renderTexture) {
+            delete m_renderTexture;   // 内部 texture 归 RenderTexture 所有，不能重复 delete
+            m_renderTexture = nullptr;
+            m_texture = nullptr;
+        } else {
+            delete m_texture;
+        }
     }
 
     int width() const override { return m_w; }
@@ -108,6 +114,13 @@ public:
                       static_cast<std::uint8_t>((pixel >> 8) & 0xFF),
                       static_cast<std::uint8_t>((pixel >> 16) & 0xFF),
                       static_cast<std::uint8_t>((pixel >> 24) & 0xFF)));
+    }
+
+    void setPixelRGBA(int x, int y, std::uint8_t r, std::uint8_t g,
+                      std::uint8_t b, std::uint8_t a) override {
+        if (x < 0 || x >= width() || y < 0 || y >= height()) return;
+        m_image->setPixel(sf::Vector2u(static_cast<unsigned>(x), static_cast<unsigned>(y)),
+                          sf::Color(r, g, b, a));
     }
 
     void setBlendMode(BlendMode) override {}
@@ -277,6 +290,10 @@ class SFMLRenderDevice : public RenderDevice {
     sf::RenderTarget* m_target;
     sf::Color m_currentColor;
     bool m_clipEnabled;
+    bool m_clipSuspended = false;
+    bool m_suspendedClipEnabled = false;
+    SRect m_clipRect;
+    SRect m_suspendedClipRect;
     std::vector<SRect> m_clipStack;
     sf::VertexArray m_fillBatch;
     sf::VertexArray m_lineBatch;
@@ -284,6 +301,7 @@ class SFMLRenderDevice : public RenderDevice {
     bool m_vsyncEnabled = false;
 
     void applyClipRect(const SRect& rect) {
+        m_clipRect = rect;
         int fbH = static_cast<int>(m_target->getSize().y);
         glScissor(static_cast<int>(rect.left), fbH - static_cast<int>(rect.top + rect.height),
                   static_cast<int>(rect.width), static_cast<int>(rect.height));
@@ -636,6 +654,50 @@ public:
                 std::uint8_t* dst = static_cast<std::uint8_t*>(buffer) + (y * bw + x) * 4;
                 dst[0] = c.r; dst[1] = c.g; dst[2] = c.b; dst[3] = c.a;
             }
+        }
+    }
+
+    // === CR20261112001：Label 字形柔光离屏烘焙 ===
+    bool supportsTextShadowTexture() const override { return true; }
+
+    bool readTexturePixels(Texture* texture, void* buffer, int width, int height) override {
+        flushBatches();
+        if (!texture || !buffer || width <= 0 || height <= 0) return false;
+        auto* sfmlTex = static_cast<SFMLTexture*>(texture);
+        sf::RenderTexture* rt = sfmlTex->renderTexture();
+        if (!rt) return false;
+        sf::Image img = rt->getTexture().copyToImage();
+        unsigned texW = img.getSize().x;
+        unsigned texH = img.getSize().y;
+        int copyW = std::min(static_cast<int>(texW), width);
+        int copyH = std::min(static_cast<int>(texH), height);
+        for (int y = 0; y < copyH; ++y) {
+            for (int x = 0; x < copyW; ++x) {
+                sf::Color c = img.getPixel(sf::Vector2u(static_cast<unsigned>(x), static_cast<unsigned>(y)));
+                std::uint8_t* dst = static_cast<std::uint8_t*>(buffer) +
+                                    (static_cast<size_t>(y) * width + x) * 4;
+                dst[0] = c.r; dst[1] = c.g; dst[2] = c.b; dst[3] = c.a;
+            }
+        }
+        return true;
+    }
+
+    void suspendClipRect() override {
+        flushBatches();
+        m_suspendedClipEnabled = m_clipEnabled;
+        m_suspendedClipRect = m_clipRect;
+        m_clipSuspended = true;
+        glDisable(GL_SCISSOR_TEST);
+    }
+
+    void resumeClipRect() override {
+        if (!m_clipSuspended) return;
+        m_clipSuspended = false;
+        if (m_suspendedClipEnabled) {
+            glEnable(GL_SCISSOR_TEST);
+            applyClipRect(m_suspendedClipRect);
+        } else {
+            glDisable(GL_SCISSOR_TEST);
         }
     }
 

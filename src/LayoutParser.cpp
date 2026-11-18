@@ -2841,6 +2841,12 @@ shared_ptr<ContextMenu> LayoutParser::parseContextMenu(const json& j, Control* p
     auto cm = make_shared<ContextMenu>(parent, xScale, yScale);
     m_theme.applyCommonColors(cm, PropertyNames::kThemeCatPopup);
     parseCommonProperties(cm, j);
+    // CR20261112002/B1：context-menu 位置/初始尺寸持久化（items 非空时 w/h 会被内容覆盖）
+    if (j.contains(PropertyNames::kJsonRect) && j[PropertyNames::kJsonRect].is_object()) {
+        pushJsonPath(PropertyNames::kJsonRect);
+        cm->setRect(parseRect(j[PropertyNames::kJsonRect]));
+        popJsonPath();
+    }
     cm->setVisible(false);   // 保持隐藏：右键菜单由 show() 弹出（items 由 CR20261109003 解析）
 
     if (j.contains(PropertyNames::kCloseOnEsc) && j[PropertyNames::kCloseOnEsc].is_boolean())
@@ -2923,6 +2929,7 @@ shared_ptr<ContextMenu> LayoutParser::parseContextMenu(const json& j, Control* p
         m_controlsById[j[PropertyNames::kId].get<string>()] = cm;
 
     cm->create();
+    cm->syncSize();   // CR20261112002/B3：create 后字体真实可用，强制重算并同步外框
     return cm;
 }
 
@@ -3051,6 +3058,29 @@ shared_ptr<Dialog> LayoutParser::parseDialog(const json& j, Control* parent) {
 
 // ==================== 通用属性解析 ====================
 
+// CR20261116002：box-shadow 对象解析（st<0=normal，0=hover/1=pressed/2=disabled）
+static void applyBoxShadowJson(const shared_ptr<ControlImpl>& ctl, const json& sh, int st) {
+    if (!ctl || !sh.is_object()) return;
+    const char* colorKey = st < 0 ? PropertyNames::kBoxShadowColor :
+        (st == 0 ? PropertyNames::kBoxShadowColorHover : st == 1 ? PropertyNames::kBoxShadowColorPressed : PropertyNames::kBoxShadowColorDisabled);
+    const char* offXKey = st < 0 ? PropertyNames::kBoxShadowOffsetX :
+        (st == 0 ? PropertyNames::kBoxShadowOffsetXHover : st == 1 ? PropertyNames::kBoxShadowOffsetXPressed : PropertyNames::kBoxShadowOffsetXDisabled);
+    const char* offYKey = st < 0 ? PropertyNames::kBoxShadowOffsetY :
+        (st == 0 ? PropertyNames::kBoxShadowOffsetYHover : st == 1 ? PropertyNames::kBoxShadowOffsetYPressed : PropertyNames::kBoxShadowOffsetYDisabled);
+    const char* radiusKey = st < 0 ? PropertyNames::kBoxShadowRadius :
+        (st == 0 ? PropertyNames::kBoxShadowRadiusHover : st == 1 ? PropertyNames::kBoxShadowRadiusPressed : PropertyNames::kBoxShadowRadiusDisabled);
+    const char* spreadKey = st < 0 ? PropertyNames::kBoxShadowSpread :
+        (st == 0 ? PropertyNames::kBoxShadowSpreadHover : st == 1 ? PropertyNames::kBoxShadowSpreadPressed : PropertyNames::kBoxShadowSpreadDisabled);
+
+    if (sh.contains(PropertyNames::kColor) && sh[PropertyNames::kColor].is_string()) {
+        SColor c; if (SColor::fromHex(sh[PropertyNames::kColor].get<string>(), c)) ctl->setColorProperty(colorKey, c);
+    }
+    if (sh.contains(PropertyNames::kBoxShadowOffsetXKey)) ctl->setFloatProperty(offXKey, sh[PropertyNames::kBoxShadowOffsetXKey].get<float>());
+    if (sh.contains(PropertyNames::kBoxShadowOffsetYKey)) ctl->setFloatProperty(offYKey, sh[PropertyNames::kBoxShadowOffsetYKey].get<float>());
+    if (sh.contains(PropertyNames::kBoxShadowBlur)) ctl->setFloatProperty(radiusKey, sh[PropertyNames::kBoxShadowBlur].get<float>());
+    if (sh.contains(PropertyNames::kBoxShadowSpreadKey)) ctl->setFloatProperty(spreadKey, sh[PropertyNames::kBoxShadowSpreadKey].get<float>());
+}
+
 void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const json& j) {
     if (!ctrl) return;
 
@@ -3135,13 +3165,10 @@ void LayoutParser::parseCommonProperties(shared_ptr<ControlImpl> ctrl, const jso
         ctrl->setCornerRadius(j[PropertyNames::kCornerRadius].get<float>());
     if (j.contains("box-shadow") && j["box-shadow"].is_object()) {
         const json& sh = j["box-shadow"];
-        if (sh.contains("color") && sh["color"].is_string()) {
-            SColor c; if (SColor::fromHex(sh["color"].get<string>(), c)) ctrl->setColorProperty(PropertyNames::kBoxShadowColor, c);
-        }
-        if (sh.contains("offset-x")) ctrl->setFloatProperty(PropertyNames::kBoxShadowOffsetX, sh["offset-x"].get<float>());
-        if (sh.contains("offset-y")) ctrl->setFloatProperty(PropertyNames::kBoxShadowOffsetY, sh["offset-y"].get<float>());
-        if (sh.contains("blur")) ctrl->setFloatProperty(PropertyNames::kBoxShadowRadius, sh["blur"].get<float>());
-        if (sh.contains("spread")) ctrl->setFloatProperty(PropertyNames::kBoxShadowSpread, sh["spread"].get<float>());
+        applyBoxShadowJson(ctrl, sh, -1);
+        if (sh.contains("hover") && sh["hover"].is_object())       applyBoxShadowJson(ctrl, sh["hover"], 0);
+        if (sh.contains("pressed") && sh["pressed"].is_object())   applyBoxShadowJson(ctrl, sh["pressed"], 1);
+        if (sh.contains("disabled") && sh["disabled"].is_object()) applyBoxShadowJson(ctrl, sh["disabled"], 2);
     }
     if (j.contains(PropertyNames::kThemeEligible) && j[PropertyNames::kThemeEligible].is_boolean())
         ctrl->setThemeEligible(j[PropertyNames::kThemeEligible].get<bool>());
@@ -3168,11 +3195,16 @@ void LayoutParser::adoptContext(const std::shared_ptr<Control>& ctrl) {
     }
 }
 
-// #12：通用 shadow 对象解析（{enabled, offset:{x,y}}；经属性系统转发内部 Label）
+// #12：通用 shadow 对象解析（{enabled, offset:{x,y}, blur}；经属性系统转发内部 Label）
 void LayoutParser::applyShadowDecl(std::shared_ptr<ControlImpl> ctl, const json& j) {
     if (!ctl) return;
+    // CR20261112001：Label 字形柔光（顶层 text-shadow-blur 或 shadow.blur）
+    if (j.contains(PropertyNames::kTextShadowBlur) && j[PropertyNames::kTextShadowBlur].is_number())
+        ctl->setFloatProperty(PropertyNames::kTextShadowBlur, j[PropertyNames::kTextShadowBlur].get<float>());
     if (!(j.contains(PropertyNames::kShadow) && j[PropertyNames::kShadow].is_object())) return;
     const json& sh = j[PropertyNames::kShadow];
+    if (sh.contains(PropertyNames::kBoxShadowBlur) && sh[PropertyNames::kBoxShadowBlur].is_number())
+        ctl->setFloatProperty(PropertyNames::kTextShadowBlur, sh[PropertyNames::kBoxShadowBlur].get<float>());
     if (sh.contains(PropertyNames::kEnabled) && sh[PropertyNames::kEnabled].is_boolean())
         ctl->setBoolProperty(PropertyNames::kShadow, sh[PropertyNames::kEnabled].get<bool>() ? 1 : 0);
     if (sh.contains(PropertyNames::kJsonOffset) && sh[PropertyNames::kJsonOffset].is_object()) {

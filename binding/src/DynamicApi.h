@@ -170,6 +170,8 @@ struct Api {
     int (*fnContextMenuAddSeparator)(UIInstance, UIControlHandle) = nullptr;
     int (*fnContextMenuShow)(UIInstance, UIControlHandle, float, float) = nullptr;
     int (*fnContextMenuClose)(UIInstance, UIControlHandle) = nullptr;
+    int (*fnContextMenuSyncSize)(UIInstance, UIControlHandle) = nullptr;   // CR20261112002
+    int (*fnContextMenuGetMenuPanelRect)(UIInstance, UIControlHandle, float*, float*, float*, float*) = nullptr;
     int (*fnTabAddPage)(UIInstance, UIControlHandle, const char*) = nullptr;
     int (*fnTabRemovePage)(UIInstance, UIControlHandle, int) = nullptr;   // P0-69
     int (*fnTabMovePage)(UIInstance, UIControlHandle, int, int) = nullptr;   // P0-91

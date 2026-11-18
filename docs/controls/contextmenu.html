@@ -49,7 +49,21 @@ UICornerstone_ContextMenuShow(g_inst, m, 140, 160);
 <tr><td><code>onClick</code></td><td><code>kEventKeyClick</code></td><td>点击菜单项（回调后自动关闭）</td><td>无</td></tr>
 </table>
 
-<div class="note">菜单视觉由 MenuPanel 全权负责（圆角边框+阴影）；弹出位置自动视口钳制；点击子菜单区域不误判为外部点击。</div>
+<div class="note">菜单视觉由 MenuPanel 全权负责（圆角边框+阴影），ContextMenu 外层 Popup 不绘制自身背景/边框/矩形阴影；弹出位置自动视口钳制；点击子菜单区域不误判为外部点击。CR20261112001：MenuPanel/MenuBar 支持通用 <code>box-shadow</code> 与预烘焙柔光缓存；<b>通用 <code>box-shadow</code> 与 legacy <code>shadow-radius</code> 互斥</b>——声明任意 <code>box-shadow</code> 字段后完全走通用阴影，不再叠加/回退 legacy；<b>MenuItem 不单独支持 box-shadow</b>（逐项阴影不在 V1 范围），设置后静默保留但不绘制。CR20261116002：ContextMenu 外层 Popup 的 <code>box-shadow</code>（含 hover/pressed/disabled 状态键）也不绘制，设置时一次性诊断；菜单视觉的普通阴影请配置 MenuPanel/MenuBar。</div>
+
+<h2>4.7.3.1 外框尺寸与位置（CR20261112002 / CR20261113001）</h2>
+<p>ContextMenu 内部维护不变量：<b>items 非空时，外框宽高 = MenuPanel 内容尺寸</b>。增删 item、separator、字体/行高/缩放变化后自动同步，<b>只改 w/h，x/y 永远保持</b>；不触发 show/焦点/watcher。</p>
+<ul>
+  <li><b>位置语义</b>：显式 <code>rect</code> / <code>SetRect</code> / C ABI <code>UICornerstone_SetRect</code> 后为 <b>Absolute</b>，设计态 <code>visible=1</code> 不再被视口居中覆盖；无显式位置（仅 C++ 直接构造或 JSON 未写 rect）保留 Popup 旧默认 Centered，重复 open/resize 仍重新居中。</li>
+  <li>空 items：外框保持当前 rect，不缩成 0；<code>syncSize()</code> 返回 <code>false</code>，<code>getMenuPanelRect()</code> 返回 <code>(0,0,0,0)</code>。</li>
+  <li>非空 items：<code>syncSize()</code> 强制重算并同步，返回 <code>true</code>；<code>getMenuPanelRect()</code> 返回面板局部坐标 <code>(0,0,w,h)</code>。</li>
+  <li><code>setCentered()</code> / <code>setAnchored()</code> 对 ContextMenu 不生效（no-op + 诊断），请使用 <code>rect</code> 或 <code>show(x,y)</code>；C ABI <code>SetEnum("centered", ...)</code> 同样不生效。</li>
+  <li><code>show(x,y)</code> 按视口钳制后写 live rect，不回写设计器模型/JSON 的 rect。</li>
+  <li>JSON <code>rect</code> 选填：用于位置持久化；items 非空时 w/h 以内容为准，空菜单保留 rect。</li>
+</ul>
+<pre><code>{ "type": "context-menu", "id": "cm", "rect": { "x": 640, "y": 260, "w": 140, "h": 80 },
+  "items": [ { "caption": "Open", "shortcut": "Ctrl+O" }, { "type": "separator" }, { "caption": "Exit" } ] }</code></pre>
+<p>C++：<code>syncSize()</code> / <code>getMenuPanelRect()</code>；C ABI：<code>UICornerstone_ContextMenuSyncSize</code>（1/0）/ <code>UICornerstone_ContextMenuGetMenuPanelRect</code>（1/0，局部坐标）；C++ Binding：<code>ContextMenuSyncSize</code> / <code>ContextMenuGetMenuPanelRect</code>（bool）。</p>
 
 
 
@@ -127,6 +141,8 @@ UICornerstone_SetPtr(g_inst, lbl, "context-menu", m);   // 右键绑定</code></
 <tr><td><code>addSeparator()</code></td><td>添加分隔线</td></tr>
 <tr><td><code>setContextMenu(menu)</code> / <code>getContextMenu()</code></td><td>控件级右键绑定（ControlBase 侧）</td></tr>
 <tr><td><code>getMenuPanel()</code></td><td>内容面板（MenuPanel）访问</td></tr>
+<tr><td><code>syncSize()</code></td><td>CR20261112002：强制按当前字体/内容重算并同步外框；空菜单返回 false（外框保持）</td></tr>
+<tr><td><code>getMenuPanelRect()</code></td><td>CR20261112002：MenuPanel 局部坐标；空菜单返回 (0,0,0,0)</td></tr>
 <tr><td><code>isContainsPoint(x, y)</code>（override）</td><td>命中：自身或 MenuPanel（含子菜单）区域</td></tr>
 <tr><td><code>setXxxProperty / getXxxProperty</code>（override）</td><td>属性分发</td></tr>
 </table>

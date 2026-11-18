@@ -72,6 +72,7 @@ set(CORE_SOURCES
     src/ScrollBar.cpp
     src/Shape.cpp
     src/RenderDevice.cpp
+    src/ShadowRenderer.cpp
     src/Slider.cpp
     src/StatusBar.cpp
     src/ContextMenu.cpp

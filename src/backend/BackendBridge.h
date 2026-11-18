@@ -129,6 +129,35 @@ inline void bridge_getTextureSize(UITextureHandle tex, int* w, int* h) {
     if (w) *w = (*sp)->width(); if (h) *h = (*sp)->height();
 }
 
+// ============ CR20261112001: offscreen render-target bridge ============
+inline UITextureHandle bridge_createRenderTexture(UIRenderDeviceHandle h, int width, int height) {
+    if (!h || width <= 0 || height <= 0) return nullptr;
+    auto tex = static_cast<RenderDevice*>(h)->createRenderTexture(width, height);
+    if (!tex) return nullptr;
+    auto* sp = new std::shared_ptr<Texture>(tex);
+    return reinterpret_cast<UITextureHandle>(sp);
+}
+inline void bridge_setRenderTarget(UIRenderDeviceHandle h, UITextureHandle tex) {
+    if (!h) return;
+    auto* sp = static_cast<std::shared_ptr<Texture>*>(tex);
+    static_cast<RenderDevice*>(h)->setRenderTarget(sp ? sp->get() : nullptr);
+}
+inline void bridge_resetRenderTarget(UIRenderDeviceHandle h) {
+    if (h) static_cast<RenderDevice*>(h)->resetRenderTarget();
+}
+inline int bridge_readTexturePixels(UIRenderDeviceHandle h, UITextureHandle tex,
+                                    void* buffer, int width, int height) {
+    if (!h || !tex || !buffer) return 0;
+    auto* sp = static_cast<std::shared_ptr<Texture>*>(tex);
+    return static_cast<RenderDevice*>(h)->readTexturePixels(sp->get(), buffer, width, height) ? 1 : 0;
+}
+inline void bridge_suspendClipRect(UIRenderDeviceHandle h) {
+    if (h) static_cast<RenderDevice*>(h)->suspendClipRect();
+}
+inline void bridge_resumeClipRect(UIRenderDeviceHandle h) {
+    if (h) static_cast<RenderDevice*>(h)->resumeClipRect();
+}
+
 // ============ InputBackend bridge ============
 
 inline void bridge_destroyInputBackend(UIInputBackendHandle h) {

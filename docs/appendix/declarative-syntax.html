@@ -50,7 +50,7 @@
 <tr><td><code>corner-radius</code></td><td>number</td><td>CR20261102001：通用圆角</td></tr>
 <tr><td><code>classes</code> / <code>theme-role</code></td><td>string / string[]</td><td>CSS-like 主题类名；<code>theme-role</code> 为兼容别名</td></tr>
 <tr><td><code>theme-eligible</code></td><td>bool</td><td>是否参与主题匹配（内部辅助控件默认 false）</td></tr>
-<tr><td><code>box-shadow</code></td><td>object</td><td><code>{color,offset-x,offset-y,blur,spread}</code>；无高斯模糊的扩展近似</td></tr>
+<tr><td><code>box-shadow</code></td><td>object</td><td><code>{color,offset-x,offset-y,blur,spread,hover,pressed,disabled}</code>；CR20261112001：预烘焙柔和阴影（9-slice 缓存），<code>blur=0</code> 为硬边；CR20261116002：<code>hover/pressed/disabled</code> 为部分覆盖（缺省继承 normal，状态 <code>color</code> alpha=0 关闭该状态阴影）；<code>blur</code> 0~64、<code>spread>=0</code></td></tr>
 <tr><td><code>rect</code></td><td>object</td><td><code>{"x","y","w","h"}</code>；支持百分比字符串 <code>"50%"</code></td></tr>
 <tr><td><code>scale</code></td><td>object</td><td><code>{"x":1.0,"y":1.0}</code>；内容按系数缩放，布局矩形不变</td></tr>
 <tr><td><code>type</code></td><td>string</td><td>必填。kebab 小写，全部 26 种：<code>label / button / image / animation / edit-box / combo-box / text-area / check-box / progress-bar / slider / scroll-bar / panel / win-frame / color-picker / popup / confirm-popup / dialog / menu-bar / numeric-up-down / splitter / tree-view / context-menu（控件级 context-menu 键，非独立控件）/ list-view / status-bar / tab-control / shape</code></td></tr>
@@ -113,7 +113,7 @@
   "context-menu": { "items": [
     { "caption":"Open", "shortcut":"Ctrl+O", "events":{"onClick":"onOpen"} },
     { "type":"separator" }, { "caption":"Delete", "onClick":"onDelete" } ] } }</code></pre>
-<p>控件级 <code>context-menu</code> 键：<code>items[]</code> 字段复用 MenuPanel 解析（caption / shortcut / type:separator / icon / leading 等）。独立 <code>type:"context-menu"</code> 自 CR20261109003 起支持 <code>items[]</code> 的 caption/shortcut/separator/onClick（events 优先）；嵌套子菜单 V1 不支持。</p>
+<p>控件级 <code>context-menu</code> 键：<code>items[]</code> 字段复用 MenuPanel 解析（caption / shortcut / type:separator / icon / leading 等）。独立 <code>type:"context-menu"</code> 自 CR20261109003 起支持 <code>items[]</code> 的 caption/shortcut/separator/onClick（events 优先）；嵌套子菜单 V1 不支持。CR20261112002：独立类型可选 <code>rect</code> 持久化位置，items 非空时外框 w/h 自动等于内容尺寸、x/y 保持；空菜单保留 rect。CR20261113001：写 <code>rect</code> 后为绝对定位，设计态 <code>visible=1</code> / 重复显隐 / items 增删都不会被视口居中重置；未写 <code>rect</code> 时保留旧默认居中。</p>
 
 <h3>edit-box</h3>
 <pre><code>{ "type":"edit-box", "id":"nameEdit",
@@ -322,7 +322,7 @@
 <tr><td>scroll-bar</td><td>四态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
 <tr><td>dialog / popup / confirm-popup / context-menu</td><td>两态</td><td>两态</td><td>⊘</td><td>⊘</td><td>⊘</td><td>⊘</td></tr>
 </table>
-<p class="note">说明：① 输入控件文字仅 normal（输入框文字态语义牵强）、无阴影；② list/tree 控件级无文字与阴影（表头亦走 item 样式）；<b>item 级键</b>（item-id 定位）：<code>item-background</code> / <code>item-border</code> / <code>item-text</code> / <code>item-text-shadow</code>（四态对象，text-shadow 兼容单色字符串）+ <code>item-shadow</code> / <code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code> / <code>item-border-visible</code> / <code>item-disabled</code>；样式优先级 cell &gt; item（行）&gt; 控件级；③ <code>page-background</code> 转发至所有页 panel（页显式自设 <code>colors.background</code> 优先）；④ win-frame 背景作用于内容区 ClientPanel，边框作用于整体窗框；⑤ pressed 态对非交互控件（image/animation）与三态/两态控件不适用；⑥ 运行时可用的额外态（如输入控件 pressed）保留兼容但不声明；⑦ splitter：<code>colors.background</code> 三态驱动把手线色，<code>line</code> / <code>line-hover</code> / <code>line-drag</code> 专用键优先（显式专用 &gt; 通用组）；⑧ scroll-bar：厚度经 <code>thickness</code>（垂直→width / 水平→height），轨道/滑块色键 <code>track</code> / <code>thumb</code> / <code>thumb-hover</code> / <code>thumb-pressed</code> 经属性通道；⑨ <code>font</code> 支持 string 通道（<code>SetString/GetString("font")</code>，Get 返回字体枚举名）。</p>
+<p class="note">说明：① 输入控件文字仅 normal（输入框文字态语义牵强）、无阴影；② list/tree 控件级无文字与阴影（表头亦走 item 样式）；<b>item 级键</b>（item-id 定位）：<code>item-background</code> / <code>item-border</code> / <code>item-text</code> / <code>item-text-shadow</code>（四态对象，text-shadow 兼容单色字符串）+ <code>item-shadow</code> / <code>item-shadow-offset-x</code> / <code>item-shadow-offset-y</code> / <code>item-border-visible</code> / <code>item-disabled</code>；样式优先级 cell &gt; item（行）&gt; 控件级；③ <code>page-background</code> 转发至所有页 panel（页显式自设 <code>colors.background</code> 优先）；④ win-frame 背景作用于内容区 ClientPanel，边框作用于整体窗框；⑤ pressed 态对非交互控件（image/animation）与三态/两态控件不适用；⑥ 运行时可用的额外态（如输入控件 pressed）保留兼容但不声明；⑦ splitter：<code>colors.background</code> 三态驱动把手线色，<code>line</code> / <code>line-hover</code> / <code>line-drag</code> 专用键优先（显式专用 &gt; 通用组）；⑧ scroll-bar：厚度经 <code>thickness</code>（垂直→width / 水平→height），轨道/滑块色键 <code>track</code> / <code>thumb</code> / <code>thumb-hover</code> / <code>thumb-pressed</code> 经属性通道；⑨ <code>font</code> 支持 string 通道（<code>SetString/GetString("font")</code>，Get 返回字体枚举名）；⑩ <b>CR20261112001</b>：通用 <code>box-shadow</code> 对所有经 <code>beforeDraw</code> 的控件生效（透明 Label/Shape 也可显式声明）；MenuPanel/MenuBar 显式接入统一柔光缓存；<b>MenuItem / HandleControl 不支持</b>（设置后不绘制）；Shape V1 仅按包围盒（bbox），轮廓发光为 V2 独立 opt-in。</p>
 <h2>6.4 颜色格式</h2>
 
 <pre><code>"#RGB" | "#RRGGBB" | "#RRGGBBAA" | { "r":255, "g":0, "b":0, "a":128 }</code></pre>

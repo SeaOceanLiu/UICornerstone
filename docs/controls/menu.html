@@ -60,7 +60,9 @@ UICornerstone_MenuBarAddMenu(g_inst, bar, "File", panel);</code></pre>
 <tr><td><code>bar-height</code></td><td><code>kBarHeight</code></td><td>Float</td><td>MenuBar 尺寸属性（setFloatProperty）</td></tr>
 <tr><td><code>item-height-ratio</code></td><td><code>kItemHeightRatio</code></td><td>Float</td><td>MenuBar 尺寸属性（setFloatProperty）</td></tr>
 <tr><td><code>font-size</code></td><td><code>kFontSize</code></td><td>Float</td><td>MenuBar 字号（P0-72：与 JSON/schema 同键直通）</td></tr>
-<tr><td><code>shadow-radius</code></td><td><code>kShadowRadius</code></td><td>Float</td><td>下拉面板阴影半径（P0-72①；缺省 8；MenuBar 设置自动传播到全部面板）</td></tr>
+<tr><td><code>shadow-radius</code></td><td><code>kShadowRadius</code></td><td>Float</td><td>下拉面板阴影半径/模糊（P0-72①；缺省 8；<code>&lt;=0</code> 显式关闭投影；MenuBar 设置自动传播到全部面板）。CR20261112001：统一走通用柔光缓存；声明任意通用 <code>box-shadow</code> 字段后与 legacy <code>shadow-radius</code> 互斥。CR20261116002：MenuBar 支持四态状态阴影；MenuPanel 仅 normal（自身无 hover/pressed 切换）；MenuItem 不绘制状态阴影（一次性诊断）</td></tr>
+<tr><td><code>shadow-color</code></td><td><code>kShadowColor</code></td><td>Color</td><td>CR20261112001：面板阴影颜色（缺省 <code>#00000066</code>；MenuBar 传播）</td></tr>
+<tr><td><code>shadow-spread</code></td><td><code>kShadowSpread</code></td><td>Float</td><td>CR20261112001：面板阴影扩散（缺省 0；MenuBar 传播）</td></tr>
 <tr><td><code>manual-position</code></td><td><code>kManualPosition</code></td><td>Bool</td><td>MenuBar 手动定位：跳过全宽布局，setRect 自由生效（同屏多 MenuBar / 缩放对比；<strong>挂入 v-flow 等布局引擎容器时自动置 true</strong>，无需显式设置）（Set/GetBool）</td></tr>
 <tr><td><code>hovered-index</code></td><td><code>kHoveredIndex</code></td><td>Int</td><td>MenuPanel 悬停项索引（Set/GetInt，读写）；MenuBar 同名键**只读**读回（P0-82，GetInt 可读、不暴露写回）</td></tr>
 <tr><td><code>active-index</code></td><td><code>kActiveIndex</code></td><td>Int</td><td>MenuBar 激活（展开中）菜单索引**只读**读回（P0-88；-1=无；GetInt 可读）</td></tr>

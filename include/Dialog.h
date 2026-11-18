@@ -43,6 +43,9 @@ protected:
 
 protected:
     virtual void layoutContent();
+    // CR20261113001：open() 内部应用目标矩形；默认等价 setRect，
+    // ContextMenu 可覆盖为“只应用位置、不改变定位模式”。
+    virtual void applyOpenRect(const SRect& target);
     virtual void onEscPressed();
     virtual void onOutsideClicked();
     void registerWatcher();
@@ -65,8 +68,8 @@ public:
     void setContent(shared_ptr<ControlImpl> content);
     shared_ptr<ControlImpl> getContent() const { return m_content; }
 
-    void setCentered();
-    void setAnchored(Control* anchor, const SRect& offset = {0, 0, 0, 0});
+    virtual void setCentered();
+    virtual void setAnchored(Control* anchor, const SRect& offset = {0, 0, 0, 0});
     void setAbsolute(const SRect& rect);
 
     void setCloseOnClickOutside(bool v) { m_closeOnClickOutside = v; }

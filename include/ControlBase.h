@@ -26,6 +26,8 @@ enum class ControlState {
     Hover,
     Pressed
 };
+// CR20261116002：box-shadow 状态规格（前向声明；完整定义在 ShadowRenderer.h）
+namespace ShadowRenderer { struct ShadowSpec; }
 class StateColor{
 protected:
     SColor normal;
@@ -349,6 +351,23 @@ protected:
     float m_boxShadowOffsetY = 0.0f;
     float m_boxShadowRadius = 0.0f;
     float m_boxShadowSpread = 0.0f;
+    // CR20261112001：字段级显式标志（Menu 优先级/主题覆盖判定）
+    bool m_boxShadowColorSet = false;
+    bool m_boxShadowOffsetXSet = false;
+    bool m_boxShadowOffsetYSet = false;
+    bool m_boxShadowRadiusSet = false;
+    bool m_boxShadowSpreadSet = false;
+    // CR20261116002：hover/pressed/disabled 状态规格（按字段部分覆盖 normal）
+    struct BoxShadowStateValues {
+        SColor color{0,0,0,0};
+        float offsetX = 0.0f;
+        float offsetY = 0.0f;
+        float radius = 0.0f;
+        float spread = 0.0f;
+        unsigned char setMask = 0;   // bit0=color / 1=offset-x / 2=offset-y / 3=radius / 4=spread
+    };
+    BoxShadowStateValues m_boxShadowState[3];   // Hover / Pressed / Disabled
+    uint32_t m_boxShadowThemeStateMask = 0;     // 主题写入位（3 状态 × 5 字段）
     std::vector<std::string> m_themeClasses;
     std::string m_themeCategory;
     std::string m_jsonId;
@@ -661,6 +680,23 @@ public:
 
     // 根据控件状态绘制背景
     void drawBackground(const SRect *pDrawRect);
+    // CR20261112001：按通用 box-shadow 字段绘制 rect 柔光阴影（透明控件同样生效）
+    void drawBoxShadowForRect(const SRect& drawRect);
+    // CR20261116002：按当前 ControlState 解析生效规格（状态字段回退 normal）
+    void resolveBoxShadowSpec(ShadowRenderer::ShadowSpec& out) const;
+    // CR20261116002：状态索引/位工具（0=hover,1=pressed,2=disabled；字段 0=color,1=x,2=y,3=radius,4=spread）
+    static int boxShadowStateIndex(ControlState state);
+    static uint32_t boxShadowStateBit(int stateIdx, int fieldIdx) { return 1u << (stateIdx * 5 + fieldIdx); }
+    static bool parseBoxShadowStateKey(const char* prop, int& stateIdx, int& fieldIdx);
+    bool hasAnyBoxShadowField() const;                       // normal/状态任一字段已设置
+    bool hasExplicitNormalBoxShadowField() const;            // 仅 normal 五字段（MenuPanel legacy/generic 判定）
+    bool isBoxShadowStateSet(int stateIdx, int fieldIdx) const;
+    SColor getEffectiveBoxShadowColor(int stateIdx) const;   // stateIdx<0 → normal
+    float getEffectiveBoxShadowFloat(int stateIdx, int fieldIdx) const;
+    // 主题状态掩码生命周期（内部；无 C ABI）
+    void markBoxShadowThemeState(uint32_t bits) { m_boxShadowThemeStateMask |= bits; }
+    uint32_t takeBoxShadowThemeMask() { uint32_t m = m_boxShadowThemeStateMask; m_boxShadowThemeStateMask = 0; return m; }
+    void clearThemeBoxShadowStates(uint32_t bits);
     // 根据控件状态绘制边框
     void drawBorder(const SRect *pDrawRect);
 

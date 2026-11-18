@@ -1,0 +1,88 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": { "x": 0, "y": 0, "w": 720, "h": 360 },
+      "colors": { "background": { "normal": "#F5F7FA" } },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": { "x": 36, "y": 20, "w": 650, "h": 30 },
+          "caption": "CR20261112001: text-shadow-blur (Label glyph soft shadow)",
+          "font": { "size": 20 },
+          "colors": { "text": { "normal": "#1F2937" } }
+        },
+        {
+          "type": "label",
+          "id": "hardCaption",
+          "rect": { "x": 36, "y": 72, "w": 650, "h": 20 },
+          "caption": "shadow.blur = 0 (legacy hard offset glyph shadow)",
+          "font": { "size": 14 },
+          "colors": { "text": { "normal": "#667085" } }
+        },
+        {
+          "type": "label",
+          "id": "hard",
+          "rect": { "x": 40, "y": 96, "w": 640, "h": 40 },
+          "caption": "Blur 0 — crisp text shadow",
+          "font": { "size": 30 },
+          "colors": {
+            "text": { "normal": "#111827" },
+            "text-shadow": { "normal": "#000000CC" }
+          },
+          "shadow": { "enabled": true, "offset": { "x": 2, "y": 2 }, "blur": 0 }
+        },
+        {
+          "type": "label",
+          "id": "softCaption",
+          "rect": { "x": 36, "y": 148, "w": 650, "h": 20 },
+          "caption": "shadow.blur = 8 (soft glyph shadow)",
+          "font": { "size": 14 },
+          "colors": { "text": { "normal": "#667085" } }
+        },
+        {
+          "type": "label",
+          "id": "soft",
+          "rect": { "x": 40, "y": 172, "w": 640, "h": 40 },
+          "caption": "Blur 8 — soft text shadow",
+          "font": { "size": 30 },
+          "colors": {
+            "text": { "normal": "#111827" },
+            "text-shadow": { "normal": "#000000CC" }
+          },
+          "shadow": { "enabled": true, "offset": { "x": 2, "y": 2 }, "blur": 8 }
+        },
+        {
+          "type": "label",
+          "id": "glowCaption",
+          "rect": { "x": 36, "y": 224, "w": 650, "h": 20 },
+          "caption": "shadow.blur = 12, offset 0/0, colored shadow (glow follows glyphs)",
+          "font": { "size": 14 },
+          "colors": { "text": { "normal": "#667085" } }
+        },
+        {
+          "type": "label",
+          "id": "glow",
+          "rect": { "x": 40, "y": 248, "w": 640, "h": 40 },
+          "caption": "Colored glyph glow",
+          "font": { "size": 30 },
+          "colors": {
+            "text": { "normal": "#111827" },
+            "text-shadow": { "normal": "#FF8A00CC" }
+          },
+          "shadow": { "enabled": true, "offset": { "x": 0, "y": 0 }, "blur": 12 }
+        },
+        {
+          "type": "label",
+          "id": "bboxNote",
+          "rect": { "x": 36, "y": 310, "w": 650, "h": 22 },
+          "caption": "Box-shadow is a control-rect shadow; Label text uses text-shadow-blur for glyphs.",
+          "font": { "size": 13 },
+          "colors": { "text": { "normal": "#667085" } }
+        }
+      ]
+    }
+  ]
+}

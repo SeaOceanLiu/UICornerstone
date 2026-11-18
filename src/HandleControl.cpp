@@ -1,5 +1,7 @@
 ﻿#include "HandleControl.h"
 #include "Cursor.h"
+#include "PropertyNames.h"
+#include "PlatformUtils.h"
 #include <algorithm>
 
 HandleControl::HandleControl()
@@ -43,9 +45,34 @@ void HandleControl::setTarget(shared_ptr<Control> target)
     }
 }
 
+int HandleControl::setColorProperty(const char* prop, SColor color) {
+    int ok = ControlImpl::setColorProperty(prop, color);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowColor) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi == 0);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("HandleControl: box-shadow is not supported in V1 (value stored, not drawn)"); logged = true; }
+    }
+    return ok;
+}
+int HandleControl::setFloatProperty(const char* prop, float value) {
+    int ok = ControlImpl::setFloatProperty(prop, value);
+    int si = -1, fi = -1;
+    bool shadowKey = strcmp(prop, PropertyNames::kBoxShadowOffsetX) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowOffsetY) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowRadius) == 0 ||
+                     strcmp(prop, PropertyNames::kBoxShadowSpread) == 0 ||
+                     (ControlImpl::parseBoxShadowStateKey(prop, si, fi) && fi >= 1);
+    if (ok && shadowKey) {
+        static bool logged = false;
+        if (!logged) { Platform::Log("HandleControl: box-shadow is not supported in V1 (value stored, not drawn)"); logged = true; }
+    }
+    return ok;
+}
+
 void HandleControl::setTarget(Control* target)
-{
-    if (!target) { detach(); return; }
+{    if (!target) { detach(); return; }
     if (m_target == target) return;   // 幂等：重复附加同一目标快速返回
     if (m_target) detach();
     m_target = target;

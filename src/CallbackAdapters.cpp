@@ -106,15 +106,21 @@ void CallbackRenderDevice::setBlendMode(BlendMode mode) {
     if (m_cbs->setBlendMode) m_cbs->setBlendMode(m_handle, static_cast<int>(mode));
 }
 void CallbackRenderDevice::setClipRect(const SRect& rect) {
+    m_clipStack.clear();
+    m_clipActive = true;
+    m_currentClip = rect;
     if (m_cbs->setClipRect) m_cbs->setClipRect(m_handle, rect.left, rect.top, rect.width, rect.height);
 }
 void CallbackRenderDevice::clearClipRect() {
     m_clipStack.clear();
+    m_clipActive = false;
     if (m_cbs->clearClipRect) m_cbs->clearClipRect(m_handle);
 }
 void CallbackRenderDevice::pushClipRect(const SRect& rect) {
     // 嵌套裁剪：与栈顶相交（此前为替换语义——见 ClipChildren_Nested_Design）
     SRect r = m_clipStack.empty() ? rect : m_clipStack.back().intersected(rect);
+    m_clipActive = true;
+    m_currentClip = r;
     if (m_cbs->setClipRect) m_cbs->setClipRect(m_handle, r.left, r.top, r.width, r.height);
     m_clipStack.push_back(r);
 }
@@ -122,9 +128,12 @@ void CallbackRenderDevice::popClipRect() {
     if (!m_clipStack.empty())
         m_clipStack.pop_back();
     if (m_clipStack.empty()) {
+        m_clipActive = false;
         if (m_cbs->clearClipRect) m_cbs->clearClipRect(m_handle);
     } else {
         const SRect& r = m_clipStack.back();
+        m_clipActive = true;
+        m_currentClip = r;
         if (m_cbs->setClipRect) m_cbs->setClipRect(m_handle, r.left, r.top, r.width, r.height);
     }
 }
@@ -183,7 +192,13 @@ SharedTexture CallbackRenderDevice::createTextureFromFile(const std::string& pat
     return std::make_shared<CallbackTexture>(m_cbs, m_handle, tex);
 }
 SharedTexture CallbackRenderDevice::createTextureFromSurface(Surface*) { return nullptr; }
-SharedTexture CallbackRenderDevice::createRenderTexture(int, int) { return nullptr; }
+SharedTexture CallbackRenderDevice::createRenderTexture(int width, int height) {
+    // CR20261112001：可选离屏渲染目标（version>=2 后端提供）
+    if (!m_cbs || m_cbs->version < 3 || !m_cbs->createRenderTexture) return nullptr;
+    UITextureHandle tex = m_cbs->createRenderTexture(m_handle, width, height);
+    if (!tex) return nullptr;
+    return std::make_shared<CallbackTexture>(m_cbs, m_handle, tex);
+}
 void CallbackRenderDevice::destroyTexture(Texture* texture) {
     auto* ct = dynamic_cast<CallbackTexture*>(texture);
     if (ct && ct->handle() && m_cbs->destroyTexture)
@@ -211,8 +226,42 @@ void CallbackRenderDevice::drawTexture(Texture* texture, const SRect* srcRect, c
 void CallbackRenderDevice::drawTextureRotated(Texture* texture, const SRect* srcRect, const SRect* dstRect, float) {
     drawTexture(texture, srcRect, dstRect);
 }
-void CallbackRenderDevice::setRenderTarget(Texture*) {}
-void CallbackRenderDevice::resetRenderTarget() {}
+void CallbackRenderDevice::setRenderTarget(Texture* texture) {
+    if (!m_cbs || m_cbs->version < 3 || !m_cbs->setRenderTarget) return;
+    auto* ct = dynamic_cast<CallbackTexture*>(texture);
+    m_cbs->setRenderTarget(m_handle, ct ? ct->handle() : nullptr);
+}
+void CallbackRenderDevice::resetRenderTarget() {
+    if (m_cbs && m_cbs->version >= 3 && m_cbs->resetRenderTarget)
+        m_cbs->resetRenderTarget(m_handle);
+}
+bool CallbackRenderDevice::supportsTextShadowTexture() const {
+    return m_cbs && m_cbs->version >= 3 && m_cbs->createRenderTexture &&
+           m_cbs->setRenderTarget && m_cbs->resetRenderTarget && m_cbs->readTexturePixels;
+}
+bool CallbackRenderDevice::readTexturePixels(Texture* texture, void* buffer, int width, int height) {
+    if (!supportsTextShadowTexture() || !texture || !buffer) return false;
+    auto* ct = dynamic_cast<CallbackTexture*>(texture);
+    if (!ct) return false;
+    return m_cbs->readTexturePixels(m_handle, ct->handle(), buffer, width, height) != 0;
+}
+void CallbackRenderDevice::suspendClipRect() {
+    m_suspendedClipEnabled = m_clipActive;
+    m_suspendedClipRect = m_currentClip;
+    m_clipSuspended = true;
+    if (m_cbs->clearClipRect) m_cbs->clearClipRect(m_handle);
+}
+void CallbackRenderDevice::resumeClipRect() {
+    if (!m_clipSuspended) return;
+    m_clipSuspended = false;
+    if (m_suspendedClipEnabled) {
+        if (m_cbs->setClipRect)
+            m_cbs->setClipRect(m_handle, m_suspendedClipRect.left, m_suspendedClipRect.top,
+                               m_suspendedClipRect.width, m_suspendedClipRect.height);
+    } else {
+        if (m_cbs->clearClipRect) m_cbs->clearClipRect(m_handle);
+    }
+}
 void CallbackRenderDevice::readPixels(void* buffer, const SRect& rect) {
     if (m_cbs->readPixels)
         m_cbs->readPixels(m_handle, buffer,

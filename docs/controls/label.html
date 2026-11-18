@@ -40,7 +40,15 @@ UIControlHandle label = UICornerstone_CreateLabel(g_inst, "Hello", 24.0f, 20, 20
   "alignment": "center",
   "font": { "name": "HarmonyOS_Sans_SC_Regular", "size": 28 },
   "colors": { "text": { "normal": "#FFFFFFFF" } },
-  "shadow": { "enabled": true, "offset": { "x": 2, "y": 2 } } }</code></pre>
+  "shadow": { "enabled": true, "offset": { "x": 2, "y": 2 }, "blur": 8 } }</code></pre>
+
+<div class="note"><b>CR20261116002</b>：Label 的通用 <code>box-shadow</code> 支持 <code>hover/pressed/disabled</code> 状态规格（部分继承 normal）；文字阴影的颜色可按状态生效，但 <code>text-shadow-blur</code> / <code>shadow-offset-x/y</code> 不参与状态（主题状态规则中写入会被忽略并诊断），文字阴影状态另立 CR。</div>
+<div class="note"><b>文字柔光</b>：<code>shadow.blur</code>（或顶层 <code>text-shadow-blur</code>）大于 0 时，阴影按字形轮廓柔化，只跟随文字外观，不会出现控件矩形光晕；与通用 <code>box-shadow</code> 可同时存在。物理/离屏读回可用的后端走预烘焙纹理，callback 等不支持离屏渲染的路径回退为有限层字形绘制，质量略低。</div>
+
+<figure>
+  <img src="../assets/controls/label-shadow-blur.png" alt="Label text-shadow-blur 0/8/12 对比：硬阴影、柔光、彩色字形光晕" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>text-shadow-blur 对比：<code>0</code> 为旧硬偏移阴影，<code>8</code> 为柔光，<code>12 + offset 0/0</code> 为彩色字形光晕。柔光只跟随字形轮廓，不是控件矩形阴影。</figcaption>
+</figure>
 
 
 <h2>4.11.2 控件的属性</h2>
@@ -62,7 +70,8 @@ UIControlHandle label = UICornerstone_CreateLabel(g_inst, "Hello", 24.0f, 20, 20
 <tr><td><code>font-strikethrough</code></td><td><code>kFontStrikethrough</code></td><td>Bool</td><td>false</td><td>字体样式分位开关（可组合，如 bold+italic 都设 true）——属性系统组合通道；粗体/斜体依赖后端字体引擎：SDL3 <code>TTF_SetFontStyle</code>、SFML <code>setStyle</code>；raylib 不支持样式，静默无效果</td></tr>
 <tr><td><code>line-height</code></td><td><code>kLineHeight</code></td><td>Int</td><td>字体默认行高</td><td>行高</td></tr>
 <tr><td><code>line-spacing-ratio</code></td><td><code>kLineSpacingRatio</code></td><td>Float</td><td>默认行距比例</td><td>行距比例</td></tr>
-<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Bool</td><td>false</td><td>阴影开关</td></tr>
+<tr><td><code>shadow</code></td><td><code>kShadow</code></td><td>Bool</td><td>false</td><td>文字阴影开关（<code>blur=0</code> 时按偏移重绘字形硬阴影）</td></tr>
+<tr><td><code>text-shadow-blur</code></td><td><code>kTextShadowBlur</code></td><td>Float</td><td>0</td><td>CR20261112001：字形柔光半径（0~64）；<code>0</code> 保持旧硬阴影。柔光按字形轮廓生成，不是控件矩形阴影；不支持离屏渲染的后端使用 8 层字形回退</td></tr>
 </table>
 <p class="note">枚举值与常量对应（如 <code>classic</code> ↔ <code>kStyleClassic</code>）见 <a href="../appendix/properties.html#7-3">7.3 枚举值速查</a>。</p>
 

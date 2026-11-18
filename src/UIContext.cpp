@@ -1,4 +1,5 @@
 ﻿#include "UIContext.h"
+#include "ShadowRenderer.h"
 #include "ThemeStyle.h"
 #include "BackendPlugin.h"
 #include "Bench.h"
@@ -108,6 +109,8 @@ rollback:
 
 void UIContext::destroy() {
     if (themeRuntime) { themeRuntime->clear(); themeRuntime.reset(); }
+    // CR20261112001：先释放柔光阴影纹理（仍持有 RenderDevice 引用），再关闭后端
+    ShadowRenderer::releaseCache(this);
     quit = true;
     popupPool.clear();
     menuPool.clear();
