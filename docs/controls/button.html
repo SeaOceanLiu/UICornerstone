@@ -156,7 +156,8 @@ cap.SetColor(PropertyNames::kText, color);
 cap.SetInt(PropertyNames::kFontSize, 18);
 </code></pre>
 
-<p class="note">各态色（<code>text.hover</code>/<code>.pressed</code>/<code>.disabled</code>、<code>text-shadow.*</code>）随 Button 状态自动生效（hover/按下/禁用时 caption 跟随取色）。句柄约定：<code>GetPtr</code> 返回控件句柄（可直接用于任一控件属性 API）；非 Button 控件无此键（返回 0）。JSON 布局键 <code>caption-label</code> 与运行时属性键同键（同常量 <code>kCaptionLabel</code>），<code>"caption-label": { caption, font, alignment }</code> 自定义配置随 LoadLayout 生效。</p>
+<p class="note">各态色（<code>text.hover</code>/<code>.pressed</code>/<code>.disabled</code>、<code>text-shadow.*</code>）随 Button 状态自动生效（hover/按下/禁用时 caption 跟随取色）。句柄约定：<code>GetPtr</code> 返回控件句柄（可直接用于任一控件属性 API）；非 Button 控件无此键（返回 0）。JSON 布局键 <code>caption-label</code> 与运行时属性键同键（同常量 <code>kCaptionLabel</code>）。</p>
+<p><b>CR20261116001 支持字段</b>：<code>caption</code>、<code>font{name,size,style}</code>、<code>alignment</code>、<code>colors{text,text-shadow}</code>、<code>shadow{enabled,offset,blur}</code>、<code>line-height</code>、<code>line-spacing-ratio</code>。其中 <code>shadow.blur</code> 是内嵌文字柔光规范键（运行时写 <code>text-shadow-blur</code>）；内嵌组不提供顶层 <code>text-shadow-blur</code> 别名。内嵌显式值优先于顶层同名字段（inner wins）；<code>shadow.blur&gt;0</code> 不自动启用阴影，仍需 <code>shadow.enabled=true</code>。</p>
 
 <div class="chapter-nav">
   <a href="bench.html">← 4.2 Bench（测试台/根）</a>

@@ -321,6 +321,13 @@ PROP_CONSTEXPR const char* kItemBackground         = "item-background";        /
 PROP_CONSTEXPR const char* kItemBorder             = "item-border";            // item 边框四态（P032）
 PROP_CONSTEXPR const char* kItemText               = "item-text";              // item 文本四态（P032）
 PROP_CONSTEXPR const char* kItemBorderVisible      = "item-border-visible";    // item 边框可见（P032）
+// CR20261117002：TreeView 行内编辑器 / 逐节点行高 / 标签文本列宽（逻辑 px）
+PROP_CONSTEXPR const char* kItemEditorControl      = "item-editor-control";
+PROP_CONSTEXPR const char* kItemEditorWidth        = "item-editor-width";
+PROP_CONSTEXPR const char* kItemEditorGap          = "item-editor-gap";
+PROP_CONSTEXPR const char* kItemEditorAlign        = "item-editor-align";
+PROP_CONSTEXPR const char* kItemRowHeight          = "item-row-height";
+PROP_CONSTEXPR const char* kLabelWidth             = "label-width";
 PROP_CONSTEXPR const char* kItemShadow             = "item-shadow";            // item 阴影开关（P032）
 PROP_CONSTEXPR const char* kTreeItemShadowOffsetX  = "item-shadow-offset-x";   // P0-26
 PROP_CONSTEXPR const char* kTreeItemShadowOffsetY  = "item-shadow-offset-y";   // P0-26
@@ -329,6 +336,9 @@ PROP_CONSTEXPR const char* kTreeItemLeadingControl = "item-leading-control";
 // -- Shape 形状控件 --
 PROP_CONSTEXPR const char* kShape                  = "shape";             // 枚举属性：形状类型
 PROP_CONSTEXPR const char* kPrimitives             = "primitives";        // Shape 多图元（组合图形）
+// CR20261117001：Shape 图元绘制裁剪（默认 true）。Shape 专用，与 Panel 的 clip-children 语义不同；
+// 未来若引入通用 clip 属性，需保留该键为兼容别名。
+PROP_CONSTEXPR const char* kClipShape              = "clip";
 PROP_CONSTEXPR const char* kFill                   = "fill";              // 颜色属性：填充色（缺省透明=空心）
 PROP_CONSTEXPR const char* kStroke                 = "stroke";            // 颜色属性：描边色（缺省黑）
 PROP_CONSTEXPR const char* kLineWidthProp          = "line-width";        // 浮点属性：描边宽 px

@@ -1,0 +1,188 @@
+{
+  "controls": [
+    {
+      "type": "panel",
+      "id": "root",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 720,
+        "h": 340
+      },
+      "colors": {
+        "background": {
+          "normal": "#F2F3F6"
+        }
+      },
+      "children": [
+        {
+          "type": "label",
+          "id": "shotTitle",
+          "rect": {
+            "x": 32,
+            "y": 18,
+            "w": 650,
+            "h": 32
+          },
+          "caption": "4.19 Shape · clip",
+          "font": {
+            "size": 22
+          },
+          "colors": {
+            "text": {
+              "normal": "#111827"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "shotSub",
+          "rect": {
+            "x": 32,
+            "y": 54,
+            "w": 650,
+            "h": 20
+          },
+          "caption": "primitive overflow: clip=true (default) vs clip=false",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#6B7280"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "lblClip",
+          "rect": {
+            "x": 70,
+            "y": 76,
+            "w": 160,
+            "h": 18
+          },
+          "caption": "clip: true（默认）",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#6B7280"
+            }
+          }
+        },
+        {
+          "type": "label",
+          "id": "lblNoClip",
+          "rect": {
+            "x": 310,
+            "y": 76,
+            "w": 160,
+            "h": 18
+          },
+          "caption": "clip: false",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#6B7280"
+            }
+          }
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 80,
+            "y": 130,
+            "w": 100,
+            "h": 100
+          },
+          "shape": "filled-rect",
+          "fill": "#FF000000",
+          "primitives": [
+            {
+              "shape": "filled-rect",
+              "rect": [
+                -30,
+                -30,
+                160,
+                160
+              ],
+              "fill": "#EF4444"
+            }
+          ]
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 320,
+            "y": 130,
+            "w": 100,
+            "h": 100
+          },
+          "clip": false,
+          "shape": "filled-rect",
+          "fill": "#FF000000",
+          "primitives": [
+            {
+              "shape": "filled-rect",
+              "rect": [
+                -30,
+                -30,
+                160,
+                160
+              ],
+              "fill": "#EF4444"
+            }
+          ]
+        },
+        {
+          "type": "shape",
+          "rect": {
+            "x": 540,
+            "y": 130,
+            "w": 100,
+            "h": 100
+          },
+          "shape": "polygon",
+          "fill": "#3B82F6",
+          "points": [
+            {
+              "x": -20,
+              "y": -20
+            },
+            {
+              "x": 120,
+              "y": 10
+            },
+            {
+              "x": 50,
+              "y": 130
+            }
+          ]
+        },
+        {
+          "type": "label",
+          "id": "lblPoly",
+          "rect": {
+            "x": 530,
+            "y": 272,
+            "w": 170,
+            "h": 18
+          },
+          "caption": "polygon points 越界（裁剪）",
+          "font": {
+            "size": 12
+          },
+          "colors": {
+            "text": {
+              "normal": "#6B7280"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

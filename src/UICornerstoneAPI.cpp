@@ -3563,6 +3563,51 @@ int UICornerstone_TreeViewSetNodeUserData(UIInstance instance, UIControlHandle t
     return tv->setNodeUserData(id, userData) ? 1 : 0;
 }
 
+int UICornerstone_TreeViewSetNodeEditorControl(UIInstance instance, UIControlHandle tree,
+    const char* id, UIControlHandle editor) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id) return 0;
+    Control* c = editor ? validateControl(instance, editor) : nullptr;
+    if (editor && !c) return 0;
+    return tv->setNodeEditorControl(id, c) ? 1 : 0;
+}
+int UICornerstone_TreeViewSetNodeEditorLayout(UIInstance instance, UIControlHandle tree,
+    const char* id, float width, float gap) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id) return 0;
+    return tv->setNodeEditorLayout(id, width, gap) ? 1 : 0;
+}
+int UICornerstone_TreeViewSetNodeEditorAlign(UIInstance instance, UIControlHandle tree,
+    const char* id, const char* align) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id || !align) return 0;
+    return tv->setNodeEditorAlign(id, align) ? 1 : 0;
+}
+int UICornerstone_TreeViewSetNodeRowHeight(UIInstance instance, UIControlHandle tree,
+    const char* id, float height) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv || !id) return 0;
+    return tv->setNodeRowHeight(id, height) ? 1 : 0;
+}
+int UICornerstone_TreeViewSetLabelWidth(UIInstance instance, UIControlHandle tree, float width) {
+    TreeView* tv = treeViewOf(instance, tree);
+    if (!tv) return 0;
+    tv->setLabelWidth(width);
+    return 1;
+}
+int UICornerstone_TreeViewGetNodeRect(UIInstance instance, UIControlHandle tree,
+    const char* id, float* x, float* y, float* w, float* h) {
+    TreeView* tv = treeViewOf(instance, tree);
+    SRect r;
+    bool ok = tv && id && tv->getNodeRect(id, r);
+    if (x) *x = ok ? r.left : 0.0f;
+    if (y) *y = ok ? r.top : 0.0f;
+    if (w) *w = ok ? r.width : 0.0f;
+    if (h) *h = ok ? r.height : 0.0f;
+    if (!x && !y && !w && !h) return 0;
+    return ok ? 1 : 0;
+}
+
 int UICornerstone_TreeViewSelectNode(UIInstance instance, UIControlHandle tree, const char* id) {
     TreeView* tv = treeViewOf(instance, tree);
     if (!tv || !id) return 0;

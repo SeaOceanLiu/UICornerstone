@@ -1,0 +1,47 @@
+{
+  "controls": [
+    {
+      "type": "button",
+      "id": "btnEmb",
+      "rect": { "x": 20, "y": 20, "w": 180, "h": 40 },
+      "caption": "TopBtn",
+      "caption-label": {
+        "caption": "InnerBtn",
+        "font": { "name": "maplemono-nf-cn-regular", "size": 20, "style": "bold" },
+        "alignment": "center",
+        "shadow": { "enabled": true, "offset": { "x": 3, "y": 4 }, "blur": 9 },
+        "colors": { "text": "#FF0000FF", "text-shadow": "#00FF00FF" },
+        "line-height": 24,
+        "line-spacing-ratio": 1.4
+      }
+    },
+    {
+      "type": "check-box",
+      "id": "cbEmb",
+      "rect": { "x": 220, "y": 20, "w": 220, "h": 40 },
+      "caption": "TopCb",
+      "caption-label": {
+        "caption": "InnerCb",
+        "font": { "name": "maplemono-nf-cn-regular", "size": 18, "style": "bold" },
+        "alignment": "center",
+        "shadow": { "enabled": true, "offset": { "x": 2, "y": 3 }, "blur": 8 },
+        "colors": { "text": "#0000FFFF", "text-shadow": "#FF00FFFF" },
+        "line-height": 22,
+        "line-spacing-ratio": 1.2
+      }
+    },
+    {
+      "type": "button",
+      "id": "btnPriority",
+      "rect": { "x": 20, "y": 80, "w": 180, "h": 40 },
+      "caption": "TopP",
+      "colors": { "text": "#112233FF" },
+      "shadow": { "enabled": false, "offset": { "x": 1, "y": 1 } },
+      "caption-label": {
+        "caption": "InnerP",
+        "colors": { "text": "#AABBCCFF" },
+        "shadow": { "enabled": true, "offset": { "x": 5, "y": 6 }, "blur": 7 }
+      }
+    }
+  ]
+}

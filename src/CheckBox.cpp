@@ -59,6 +59,18 @@ void CheckBox::captureCaptionState(void) {
     m_capColorsValid = true;
     m_enableTextShadow = m_caption->isShadowEnabled();
     m_shadowOffset = m_caption->getShadowOffset();
+    // CR20261116001：caption-label 字段回读（GetPtr 直写后 recreate 仍保留）
+    m_fontName = m_caption->getFontName();
+    m_captionFontStyle = m_caption->GetFontStyle();
+    m_captionFontStyleSet = true;
+    m_captionLineHeight = m_caption->getLineHeight();
+    m_captionLineSpacingRatio = m_caption->getLineSpacingRatio();
+    m_caption->getFloatProperty(PropertyNames::kTextShadowBlur, m_captionShadowBlur);
+    m_captionAlignment = m_caption->getAlignmentMode();
+    const AlignmentMode layoutDefault = (m_layout == CheckBoxLayout::TextLeft)
+        ? AlignmentMode::AM_MID_RIGHT : AlignmentMode::AM_MID_LEFT;
+    // 只有显式写入或与 layout 默认不同才视为 valid，避免 setRect/布局触发的 recreate 冻结默认对齐
+    if (m_captionAlignExplicit || m_captionAlignment != layoutDefault) m_captionAlignValid = true;
 }
 // P0-76：文本族转发（与 Button 同口径；caption label 缺失时仅基类）
 void CheckBox::setTextStateColor(StateColor stateColor) {
@@ -109,8 +121,8 @@ void CheckBox::createCaption(void){
 
     // 先以CheckBox的rect来创建Label，获得Label的文字尺寸，再刷新Label的rect
     m_caption = LabelBuilder(this, {0, 0, getRect().width, getRect().height})
-        .setFont(FontName::HarmonyOS_Sans_SC_Regular)
-        .setAlignmentMode(AlignmentMode::AM_MID_LEFT)
+        .setFont(m_fontName)
+        .setAlignmentMode(m_captionAlignValid ? m_captionAlignment : AlignmentMode::AM_MID_LEFT)
         .setFontSize((int)effectiveCaptionSize())
         .setCaption(m_captionText)                                   // #15：宿主文本（recreate 不丢）
         .setTextStateColor(m_capColorsValid ? m_capTextColor : m_textColor)
@@ -121,12 +133,22 @@ void CheckBox::createCaption(void){
         .setEnableExpand(false)
         // .setDebugDraw(true)
         .setOnPropertyChanged([this](shared_ptr<Label> label){  // Label的属性改变时，通过回调来触发CheckBox调整布局
+            syncCaptionAlignmentFromLabel();   // CR20261116001：直写 align 视为显式，避免被 layout 默认覆盖
             setBoxSize();
             adjustSpaceAssignment();
             adjustBoxVerticalAlign();
         })
         .build();
-    if (m_caption) { m_caption->setThemeEligible(false); m_caption->setState(getState()); }
+    if (m_caption) {
+        m_caption->setThemeEligible(false);
+        m_caption->setState(getState());
+        // CR20261116001：caption-label 宿主快照应用（create/recreate 稳定）
+        if (m_captionFontStyleSet) m_caption->SetFontStyle(m_captionFontStyle);
+        if (m_captionLineHeight > 0) m_caption->setLineHeight(m_captionLineHeight);
+        if (m_captionLineSpacingRatio >= 0.0f) m_caption->setLineSpacingRatio(m_captionLineSpacingRatio);
+        if (m_captionShadowBlur > 0.0f) m_caption->setFloatProperty(PropertyNames::kTextShadowBlur, m_captionShadowBlur);
+        if (m_captionAlignValid) m_caption->setAlignmentMode(m_captionAlignment);
+    }
 }
 
 shared_ptr<Label> CheckBox::getCaption(void) const {
@@ -146,7 +168,20 @@ void CheckBox::setBoxSize(void) {
 }
 
 // adjustSpaceAssignment必须在setBoxSize之后调用，因为adjustSpaceAssignment需要根据checkbox的大小来调整checkbox和caption的位置
+// CR20261116001：Label 直写 align（GetPtr/属性通道）后，若与 layout 默认不同则视为显式设置。
+void CheckBox::syncCaptionAlignmentFromLabel(void) {
+    if (!m_caption) return;
+    const AlignmentMode layoutDefault = (m_layout == CheckBoxLayout::TextLeft)
+        ? AlignmentMode::AM_MID_RIGHT : AlignmentMode::AM_MID_LEFT;
+    const AlignmentMode current = m_caption->getAlignmentMode();
+    m_captionAlignment = current;
+    if (m_captionAlignExplicit || current != layoutDefault) {
+        m_captionAlignValid = true;
+    }
+}
+
 void CheckBox::adjustSpaceAssignment(void) {
+    syncCaptionAlignmentFromLabel();
     SRect marginRect = getMarginedRect();
 
     switch(m_layout) {
@@ -155,14 +190,14 @@ void CheckBox::adjustSpaceAssignment(void) {
             m_boxRect.top = marginRect.top;
             m_caption->setRect({m_boxRect.right(), marginRect.top,
                     marginRect.width - m_boxRect.width, marginRect.height});
-            m_caption->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
+            if (!m_captionAlignValid) m_caption->setAlignmentMode(AlignmentMode::AM_MID_LEFT);
             break;
         case CheckBoxLayout::TextLeft:
             m_boxRect.left = marginRect.right() - m_boxRect.width;
             m_boxRect.top = marginRect.top;
             m_caption->setRect({marginRect.left, marginRect.top,
                     marginRect.width - m_boxRect.width, marginRect.height});
-            m_caption->setAlignmentMode(AlignmentMode::AM_MID_RIGHT);
+            if (!m_captionAlignValid) m_caption->setAlignmentMode(AlignmentMode::AM_MID_RIGHT);
             break;
     }
 }
@@ -785,6 +820,30 @@ int CheckBox::setIntProperty(const char* prop, int value) {
 void CheckBox::setFont(FontName font) {
     m_fontName = font;
     if (m_caption) m_caption->setFont(font);
+}
+
+void CheckBox::setCaptionAlignment(AlignmentMode align) {
+    m_captionAlignment = align;
+    m_captionAlignValid = true;
+    m_captionAlignExplicit = true;
+    if (m_caption) m_caption->setAlignmentMode(align);
+}
+void CheckBox::setCaptionFontStyle(int style) {
+    m_captionFontStyle = style;
+    m_captionFontStyleSet = true;
+    if (m_caption) m_caption->SetFontStyle(style);
+}
+void CheckBox::setCaptionLineHeight(int height) {
+    m_captionLineHeight = height;
+    if (m_caption) m_caption->setLineHeight(height);
+}
+void CheckBox::setCaptionLineSpacingRatio(float ratio) {
+    m_captionLineSpacingRatio = ratio;
+    if (m_caption) m_caption->setLineSpacingRatio(ratio);
+}
+void CheckBox::setCaptionTextShadowBlur(float blur) {
+    m_captionShadowBlur = blur;
+    if (m_caption) m_caption->setFloatProperty(PropertyNames::kTextShadowBlur, blur);
 }
 
 int CheckBox::setEnumProperty(const char* prop, const char* value) {

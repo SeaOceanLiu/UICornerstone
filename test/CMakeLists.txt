@@ -115,6 +115,9 @@ set(UI_TEST_EXECUTABLES
     test_cr_contextmenu_sync
     test_cr_contextmenu_position
     test_cr_shadow_state
+    test_cr_shape_clip
+    test_cr_embedded_label
+    test_cr_treeview_editor
     test_window_visibility
     test_slider
     test_shape
@@ -196,7 +199,10 @@ foreach(test_name ${UI_TEST_EXECUTABLES})
             if(${test_name} STREQUAL "test_layout" OR ${test_name} STREQUAL "test_layout_advanced" OR
                ${test_name} STREQUAL "test_cr_contextmenu_sync" OR
                ${test_name} STREQUAL "test_cr_contextmenu_position" OR
-               ${test_name} STREQUAL "test_cr_shadow_state")
+               ${test_name} STREQUAL "test_cr_shadow_state" OR
+               ${test_name} STREQUAL "test_cr_shape_clip" OR
+               ${test_name} STREQUAL "test_cr_embedded_label" OR
+               ${test_name} STREQUAL "test_cr_treeview_editor")
                 add_custom_command(TARGET ${test_name} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
                         "${CMAKE_SOURCE_DIR}/layouts"

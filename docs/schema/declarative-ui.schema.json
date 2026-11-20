@@ -133,7 +133,26 @@
         },
         "caption-label": {
           "type": "object",
-          "description": "自定义标题 Label 描述"
+          "description": "内嵌标题 Label（CR20261116001：属性级 x-embedded-control 指引）",
+          "x-embedded-control": {
+            "schema": "label",
+            "handle": "caption-label",
+            "persist": "caption-label",
+            "group": "内嵌文本",
+            "hostForwarded": [
+              "caption", "font", "font-size", "colors",
+              "shadow.enabled", "shadow.offset.x", "shadow.offset.y"
+            ],
+            "include": [],
+            "exclude": ["text-shadow-blur"],
+            "propertyMap": {
+              "alignment": "align",
+              "shadow.blur": "text-shadow-blur"
+            },
+            "lazy": true,
+            "owned": true,
+            "serializable": true
+          }
         },
         "shadow": {
           "$ref": "#/$defs/shadow"
@@ -237,6 +256,29 @@
         "caption": {
           "type": "string",
           "x-default": ""
+        },
+        "caption-label": {
+          "type": "object",
+          "description": "内嵌标题 Label（CR20261116001：与 Button 同契约）",
+          "x-embedded-control": {
+            "schema": "label",
+            "handle": "caption-label",
+            "persist": "caption-label",
+            "group": "内嵌文本",
+            "hostForwarded": [
+              "caption", "font", "font-size", "colors",
+              "shadow.enabled", "shadow.offset.x", "shadow.offset.y"
+            ],
+            "include": [],
+            "exclude": ["text-shadow-blur"],
+            "propertyMap": {
+              "alignment": "align",
+              "shadow.blur": "text-shadow-blur"
+            },
+            "lazy": true,
+            "owned": true,
+            "serializable": true
+          }
         },
         "check-color": {
           "$ref": "#/$defs/color"
@@ -1787,6 +1829,11 @@
         }
       ],
       "properties": {
+        "clip": {
+          "type": "boolean",
+          "x-default": "true",
+          "description": "CR20261117001：Shape 图元绘制裁剪到控件 rect（默认 true；Shape 专用，与 Panel 的 clip-children 不同；边界描边可能被裁切）"
+        },
         "type": {
           "const": "shape"
         },
@@ -2316,6 +2363,12 @@
           "type": "boolean",
           "x-default": "false",
           "description": "P0-112：开启节点标签双击就地编辑"
+        },
+        "label-width": {
+          "type": "number",
+          "minimum": 0,
+          "x-default": "0",
+          "description": "CR20261117002：标签文本列宽（逻辑 px）；0=逐行自适应；>0 时编辑器为全局列（maxLabelStart + labelWidth + gap）"
         },
         "read-only-ids": {
           "type": "string",

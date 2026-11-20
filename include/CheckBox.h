@@ -69,6 +69,15 @@ private:
     float m_sizeRatio;
     float m_captionSize;
     FontName m_fontName = FontName::HarmonyOS_Sans_SC_Regular;   // P032：标题字体名（读回）
+    // CR20261116001：caption-label 内嵌配置宿主快照（recreate 稳定）
+    bool m_captionAlignValid = false;
+    bool m_captionAlignExplicit = false;
+    AlignmentMode m_captionAlignment = AlignmentMode::AM_MID_LEFT;
+    bool m_captionFontStyleSet = false;
+    int  m_captionFontStyle = 0;
+    int  m_captionLineHeight = 0;
+    float m_captionLineSpacingRatio = -1.0f;
+    float m_captionShadowBlur = 0.0f;
     bool m_triStateEnabled;
 
     SRect m_boxRect;
@@ -144,6 +153,12 @@ public:
     int setFloatProperty(const char* prop, float value) override;
     int setStringProperty(const char* prop, const char* value) override;   // caption（#9）
     void setFont(FontName font);   // P032
+    // CR20261116001：caption-label 配置写入（宿主快照 + live Label）
+    void setCaptionAlignment(AlignmentMode align);
+    void setCaptionFontStyle(int style);
+    void setCaptionLineHeight(int height);
+    void setCaptionLineSpacingRatio(float ratio);
+    void setCaptionTextShadowBlur(float blur);
     int setEnumProperty(const char* prop, const char* value) override;
 
     int getColorProperty(const char* prop, SColor& out) override;
@@ -161,6 +176,7 @@ public:
 private:
     void setBoxSize(void);
     void adjustSpaceAssignment(void);
+    void syncCaptionAlignmentFromLabel(void);   // CR20261116001：GetPtr 直写 align 后识别为显式对齐
     void adjustBoxVerticalAlign(void);
     float effectiveCaptionSize() const;
 

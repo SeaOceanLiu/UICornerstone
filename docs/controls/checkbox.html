@@ -64,6 +64,13 @@ UIControlHandle cb = UICornerstone_CreateCheckBox(g_inst, "Accept", 50, 50, 100,
 <h2>4.4.3 控件的回调</h2>
 
 <p class="note">内部标题（caption）各态色经 <code>caption-label</code> 句柄设置（<code>GetPtr("caption-label")</code> → 直控 Label）；各态随 CheckBox 状态（hover/pressed/disabled）自动生效。</p>
+<p><b>CR20261116001</b>：<code>check-box</code> 新增 <code>caption-label</code> 对象（与 Button 同契约）：<code>caption</code>、<code>font{name,size,style}</code>、<code>alignment</code>、<code>colors{text,text-shadow}</code>、<code>shadow{enabled,offset,blur}</code>、<code>line-height</code>、<code>line-spacing-ratio</code>。内嵌显式值优先于顶层同名字段；<code>alignment</code> 显式设置后不被 layout 默认对齐覆盖；recreate（尺寸/布局变化）后字段保持。示例：</p>
+<pre><code>{ "type": "check-box", "caption": "Top", "rect": { "x": 20, "y": 20, "w": 200, "h": 36 },
+  "caption-label": {
+    "caption": "Inner", "alignment": "center",
+    "font": { "name": "maplemono-nf-cn-regular", "size": 18, "style": "bold" },
+    "shadow": { "enabled": true, "offset": { "x": 2, "y": 3 }, "blur": 8 },
+    "line-height": 22, "line-spacing-ratio": 1.2 } }</code></pre>
 
 <p class="note">CheckBox <strong>不派发</strong> <code>click</code> / <code>kEventClick</code>——点击（含键盘触发）统一由 <code>check-changed</code> 表达状态变化。需要点击逻辑时请使用 <code>check-changed</code>。</p>
 

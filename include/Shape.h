@@ -86,6 +86,8 @@ public:
     int getEnumProperty(const char* prop, const char*& out) override;
     int getFloatProperty(const char* prop, float& out) override;
     int getColorProperty(const char* prop, SColor& out) override;
+    int setBoolProperty(const char* prop, int value) override;           // CR20261117001："clip"
+    int getBoolProperty(const char* prop, int& out) override;
 
     // 背景色：复用 ControlBase 状态色体系；显式设置即取消透明（否则 Shape 缺省无底色）
     void setBackgroundStateColor(StateColor stateColor) override;
@@ -107,6 +109,7 @@ private:
     SRect m_baseRect;                           // setPoints 时的 rect（缩放基准）
     bool m_hasBaseRect = false;
     std::vector<ShapePrimitive> m_primitives;   // 多图元（非空时替代单图元渲染）
+    bool m_clipShape = true;                    // CR20261117001：图元绘制裁剪到 getDrawRect()（默认开）
 };
 
 // "rect"/"filled-rect"/... → ShapeType（CABI/JSON 共用；PropertyNames::kShape* 值域）

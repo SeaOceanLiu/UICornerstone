@@ -567,6 +567,10 @@ shared_ptr<Control> LayoutParser::parseShape(const json& j, Control* parent) {
     m_theme.applyCommonColors(shape, PropertyNames::kThemeCatPanel);
     parseCommonProperties(shape, j);
 
+    // CR20261117001：图元裁剪开关（默认 true）
+    if (j.contains(PropertyNames::kClipShape) && j[PropertyNames::kClipShape].is_boolean())
+        shape->setBoolProperty(PropertyNames::kClipShape, j[PropertyNames::kClipShape].get<bool>() ? 1 : 0);
+
     // 形状类型
     if (j.contains(PropertyNames::kShape) && j[PropertyNames::kShape].is_string()) {
         const std::string& st = j[PropertyNames::kShape].get<std::string>();
@@ -1021,6 +1025,10 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
         pushJsonPath(PropertyNames::kCaptionLabel);
 
         const json& cl = j[PropertyNames::kCaptionLabel];
+        if (cl.contains(PropertyNames::kTextShadowBlur)) {
+            static bool loggedAlias = false;
+            if (!loggedAlias) { Platform::Log("caption-label: text-shadow-blur is a standalone Label alias; use shadow.blur"); loggedAlias = true; }
+        }
 
         auto builder = LabelBuilder(btn.get(), SRect(0, 0, rect.width, rect.height));
 
@@ -1067,6 +1075,30 @@ shared_ptr<Button> LayoutParser::parseButton(const json& j, Control* parent) {
             const json& colors = cl[PropertyNames::kJsonColors];
             if (colors.contains(PropertyNames::kText))       applyColorGroupPerKey(btn.get(), colors[PropertyNames::kText], PropertyNames::kText);
             if (colors.contains(PropertyNames::kTextShadow)) applyColorGroupPerKey(btn.get(), colors[PropertyNames::kTextShadow], PropertyNames::kTextShadow);
+        }
+        // CR20261116001：内嵌 Label 专有字段 + 内嵌优先（inner wins）
+        if (label) {
+            if (cl.contains(PropertyNames::kLineHeight) && cl[PropertyNames::kLineHeight].is_number())
+                label->setLineHeight(cl[PropertyNames::kLineHeight].get<int>());
+            if (cl.contains(PropertyNames::kLineSpacingRatio) && cl[PropertyNames::kLineSpacingRatio].is_number())
+                label->setLineSpacingRatio(cl[PropertyNames::kLineSpacingRatio].get<float>());
+            if (cl.contains(PropertyNames::kShadow) && cl[PropertyNames::kShadow].is_object()) {
+                const json& shadow = cl[PropertyNames::kShadow];
+                if (shadow.contains(PropertyNames::kEnabled) && shadow[PropertyNames::kEnabled].is_boolean())
+                    btn->setBoolProperty(PropertyNames::kShadow, shadow[PropertyNames::kEnabled].get<bool>() ? 1 : 0);
+                if (shadow.contains(PropertyNames::kJsonOffset) && shadow[PropertyNames::kJsonOffset].is_object()) {
+                    const json& off = shadow[PropertyNames::kJsonOffset];
+                    if (off.contains(PropertyNames::kJsonX)) btn->setFloatProperty(PropertyNames::kShadowOffsetX, off[PropertyNames::kJsonX].get<float>());
+                    if (off.contains(PropertyNames::kJsonY)) btn->setFloatProperty(PropertyNames::kShadowOffsetY, off[PropertyNames::kJsonY].get<float>());
+                }
+                if (shadow.contains(PropertyNames::kBoxShadowBlur) && shadow[PropertyNames::kBoxShadowBlur].is_number())
+                    label->setFloatProperty(PropertyNames::kTextShadowBlur, shadow[PropertyNames::kBoxShadowBlur].get<float>());
+            }
+            if (cl.contains(PropertyNames::kFont) && cl[PropertyNames::kFont].is_object()) {
+                const json& font = cl[PropertyNames::kFont];
+                if (font.contains(PropertyNames::kJsonName) && font[PropertyNames::kJsonName].is_string())
+                    btn->setFont(parseFontName(font[PropertyNames::kJsonName].get<string>()));
+            }
         }
 
         popJsonPath();
@@ -2177,6 +2209,12 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
     int cbFontSize = m_theme.getFontSize(PropertyNames::kThemeCatCheckBox);
     checkBox->setCaptionSize((float)cbFontSize);   // #15：经宿主字段（recreate 不回落）
 
+    if (j.contains(PropertyNames::kFont) && j[PropertyNames::kFont].is_object()) {
+        const json& font = j[PropertyNames::kFont];
+        if (font.contains(PropertyNames::kJsonName) && font[PropertyNames::kJsonName].is_string())
+            checkBox->setFont(parseFontName(font[PropertyNames::kJsonName].get<string>()));
+    }
+
     if (j.contains(PropertyNames::kFontSize) && j[PropertyNames::kFontSize].is_number()) {
         checkBox->setCaptionSize(j[PropertyNames::kFontSize].get<float>());   // #15：经宿主字段
     }
@@ -2234,6 +2272,51 @@ shared_ptr<CheckBox> LayoutParser::parseCheckBox(const json& j, Control* parent)
         if (colors.contains(PropertyNames::kJsonBoxBorderColor)) {
             checkBox->setBoxBorderColor(parseColor(colors[PropertyNames::kJsonBoxBorderColor]));
         }
+    }
+
+    // CR20261116001：caption-label 内嵌 Label 配置（inner wins；宿主快照在 createCaption 应用）
+    if (j.contains(PropertyNames::kCaptionLabel) && j[PropertyNames::kCaptionLabel].is_object()) {
+        pushJsonPath(PropertyNames::kCaptionLabel);
+        const json& cl = j[PropertyNames::kCaptionLabel];
+        if (cl.contains(PropertyNames::kTextShadowBlur)) {
+            static bool loggedAlias = false;
+            if (!loggedAlias) { Platform::Log("caption-label: text-shadow-blur is a standalone Label alias; use shadow.blur"); loggedAlias = true; }
+        }
+        if (cl.contains(PropertyNames::kCaption) && cl[PropertyNames::kCaption].is_string())
+            checkBox->setStringProperty(PropertyNames::kCaption, cl[PropertyNames::kCaption].get<string>().c_str());
+        if (cl.contains(PropertyNames::kFont) && cl[PropertyNames::kFont].is_object()) {
+            const json& font = cl[PropertyNames::kFont];
+            if (font.contains(PropertyNames::kJsonName) && font[PropertyNames::kJsonName].is_string())
+                checkBox->setFont(parseFontName(font[PropertyNames::kJsonName].get<string>()));
+            if (font.contains(PropertyNames::kJsonSize) && font[PropertyNames::kJsonSize].is_number())
+                checkBox->setCaptionSize(font[PropertyNames::kJsonSize].get<float>());
+            if (font.contains(PropertyNames::kJsonStyle) && (font[PropertyNames::kJsonStyle].is_string() || font[PropertyNames::kJsonStyle].is_array()))
+                checkBox->setCaptionFontStyle(parseFontStyle(font[PropertyNames::kJsonStyle]));
+        }
+        if (cl.contains(PropertyNames::kJsonAlignment) && cl[PropertyNames::kJsonAlignment].is_string())
+            checkBox->setCaptionAlignment(parseAlignment(cl[PropertyNames::kJsonAlignment].get<string>()));
+        if (cl.contains(PropertyNames::kShadow) && cl[PropertyNames::kShadow].is_object()) {
+            const json& shadow = cl[PropertyNames::kShadow];
+            if (shadow.contains(PropertyNames::kEnabled) && shadow[PropertyNames::kEnabled].is_boolean())
+                checkBox->setBoolProperty(PropertyNames::kShadow, shadow[PropertyNames::kEnabled].get<bool>() ? 1 : 0);
+            if (shadow.contains(PropertyNames::kJsonOffset) && shadow[PropertyNames::kJsonOffset].is_object()) {
+                const json& off = shadow[PropertyNames::kJsonOffset];
+                if (off.contains(PropertyNames::kJsonX)) checkBox->setFloatProperty(PropertyNames::kShadowOffsetX, off[PropertyNames::kJsonX].get<float>());
+                if (off.contains(PropertyNames::kJsonY)) checkBox->setFloatProperty(PropertyNames::kShadowOffsetY, off[PropertyNames::kJsonY].get<float>());
+            }
+            if (shadow.contains(PropertyNames::kBoxShadowBlur) && shadow[PropertyNames::kBoxShadowBlur].is_number())
+                checkBox->setCaptionTextShadowBlur(shadow[PropertyNames::kBoxShadowBlur].get<float>());
+        }
+        if (cl.contains(PropertyNames::kLineHeight) && cl[PropertyNames::kLineHeight].is_number())
+            checkBox->setCaptionLineHeight(cl[PropertyNames::kLineHeight].get<int>());
+        if (cl.contains(PropertyNames::kLineSpacingRatio) && cl[PropertyNames::kLineSpacingRatio].is_number())
+            checkBox->setCaptionLineSpacingRatio(cl[PropertyNames::kLineSpacingRatio].get<float>());
+        if (cl.contains(PropertyNames::kJsonColors) && cl[PropertyNames::kJsonColors].is_object()) {
+            const json& colors = cl[PropertyNames::kJsonColors];
+            if (colors.contains(PropertyNames::kText))       applyColorGroupPerKey(checkBox.get(), colors[PropertyNames::kText], PropertyNames::kText);
+            if (colors.contains(PropertyNames::kTextShadow)) applyColorGroupPerKey(checkBox.get(), colors[PropertyNames::kTextShadow], PropertyNames::kTextShadow);
+        }
+        popJsonPath();
     }
 
     parseEvents(checkBox, j);
@@ -2580,6 +2663,8 @@ shared_ptr<TreeView> LayoutParser::parseTreeView(const json& j, Control* parent)
         tv->setIndentWidth(j[PropertyNames::kIndentWidth].get<float>());
     if (j.contains(PropertyNames::kRowHeight))
         tv->setRowHeight(j[PropertyNames::kRowHeight].get<float>());
+    if (j.contains(PropertyNames::kLabelWidth) && j[PropertyNames::kLabelWidth].is_number())
+        tv->setLabelWidth(j[PropertyNames::kLabelWidth].get<float>());
     if (j.contains(PropertyNames::kCycleNavigation))
         tv->setCycleNavigation(j[PropertyNames::kCycleNavigation].get<bool>());
     if (j.contains(PropertyNames::kDefaultExpand))
@@ -3990,6 +4075,13 @@ FontName LayoutParser::parseFontName(const string& name) {
         {"Muyao_Softbrush",             FontName::Muyao_Softbrush},
         {"Asul_Bold",                   FontName::Asul_Bold},
         {"Quando_Regular",              FontName::Quando_Regular},
+        // schema font-name 使用 kebab 值；caption-label/内嵌 parser 与 standalone 保持一致
+        {PropertyNames::kFontHarmonySansSCRegular, FontName::HarmonyOS_Sans_SC_Regular},
+        {PropertyNames::kFontHarmonySansSCThin,    FontName::HarmonyOS_Sans_SC_Thin},
+        {PropertyNames::kFontMapleMonoNFCNRegular, FontName::MapleMono_NF_CN_Regular},
+        {PropertyNames::kFontMuYaoSoftBrush,       FontName::Muyao_Softbrush},
+        {PropertyNames::kFontAsulBold,             FontName::Asul_Bold},
+        {PropertyNames::kFontQuandoRegular,        FontName::Quando_Regular},
     };
 
     auto it = nameMap.find(name);

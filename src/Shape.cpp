@@ -219,67 +219,79 @@ void Shape::drawPrimitiveAt(RenderDevice* dev, const ShapePrimitive& pr) {
 
 void Shape::draw(void) {
     if (!m_visible) return;   // 可见性守卫（beforeDraw 仅辅助，不能依赖）
-    ControlImpl::beforeDraw();   // 背景色（非透明时绘制）
+    ControlImpl::beforeDraw();   // 背景 + box-shadow：在裁剪之外（CR20261112001）
     RenderDevice* dev = getRenderDevice();
     if (!dev) return;
 
+    const SRect r = getDrawRect();   // 缩放后绘制区（xScale/yScale 生效）
+    // CR20261117001：仅裁剪图元绘制；背景/阴影/边框/子控件不受影响。
+    const bool doClip = m_clipShape && r.width > 0.0f && r.height > 0.0f;
+    if (doClip) dev->pushClipRect(r);
+
     if (!m_primitives.empty()) {
         for (const auto& pr : m_primitives) drawPrimitiveAt(dev, pr);
-        ControlImpl::draw();         // 子控件
-        ControlImpl::afterDraw();    // 边框 / 焦点环
-        return;
+    } else {
+        switch (m_shape) {
+        case ShapeType::Rect:
+            if (m_fillColor.alpha() > 0) { dev->setDrawColor(m_fillColor); dev->fillRect(r); }
+            // 四边描边（lineWidth<=1 走像素对齐 1px；>1 走宽线边带）
+            if (m_strokeColor.alpha() > 0 && m_lineWidth > 0.f) {
+                dev->drawLine(r.left, r.top, r.left + r.width - 1, r.top, m_lineWidth, m_strokeColor);
+                dev->drawLine(r.left, r.top + r.height - 1, r.left + r.width - 1, r.top + r.height - 1, m_lineWidth, m_strokeColor);
+                dev->drawLine(r.left, r.top, r.left, r.top + r.height - 1, m_lineWidth, m_strokeColor);
+                dev->drawLine(r.left + r.width - 1, r.top, r.left + r.width - 1, r.top + r.height - 1, m_lineWidth, m_strokeColor);
+            }
+            break;
+        case ShapeType::FilledRect:
+            if (m_fillColor.alpha() > 0) { dev->setDrawColor(m_fillColor); dev->fillRect(r); }
+            break;
+        case ShapeType::RoundRect:
+            dev->drawRoundRect(r, m_radius, m_fillColor, m_strokeColor, m_lineWidth);
+            break;
+        case ShapeType::Circle:
+        case ShapeType::Ellipse: {
+            const float rx = r.width * 0.5f, ry = r.height * 0.5f;
+            dev->drawEllipse(r.left + rx, r.top + ry, rx, ry,
+                             m_fillColor, m_strokeColor, m_lineWidth, m_ringWidth);
+            break;
+        }
+        case ShapeType::Polyline: {
+            auto local = getPoints();
+            if (local.size() < 2) break;
+            std::vector<SPoint> gpts;                          // 本地 → 全局（决策 3.3 映射）
+            gpts.reserve(local.size());
+            for (const auto& p : local) gpts.push_back(mapToDrawPoint(p.x, p.y));
+            dev->drawPolyline(gpts.data(), static_cast<int>(gpts.size()), m_strokeColor, m_lineWidth);
+            break;
+        }
+        case ShapeType::Polygon: {
+            auto local = getPoints();
+            if (local.size() < 3) break;
+            std::vector<SPoint> gpts;
+            gpts.reserve(local.size());
+            for (const auto& p : local) gpts.push_back(mapToDrawPoint(p.x, p.y));
+            dev->drawPolygon(gpts.data(), static_cast<int>(gpts.size()),
+                             m_fillColor, m_strokeColor, m_lineWidth);
+            break;
+        }
+        }
     }
 
-    const SRect r = getDrawRect();   // 缩放后绘制区（xScale/yScale 生效）
-    switch (m_shape) {
-    case ShapeType::Rect:
-        if (m_fillColor.alpha() > 0) { dev->setDrawColor(m_fillColor); dev->fillRect(r); }
-        // 四边描边（lineWidth<=1 走像素对齐 1px；>1 走宽线边带）
-        if (m_strokeColor.alpha() > 0 && m_lineWidth > 0.f) {
-            dev->drawLine(r.left, r.top, r.left + r.width - 1, r.top, m_lineWidth, m_strokeColor);
-            dev->drawLine(r.left, r.top + r.height - 1, r.left + r.width - 1, r.top + r.height - 1, m_lineWidth, m_strokeColor);
-            dev->drawLine(r.left, r.top, r.left, r.top + r.height - 1, m_lineWidth, m_strokeColor);
-            dev->drawLine(r.left + r.width - 1, r.top, r.left + r.width - 1, r.top + r.height - 1, m_lineWidth, m_strokeColor);
-        }
-        break;
-    case ShapeType::FilledRect:
-        if (m_fillColor.alpha() > 0) { dev->setDrawColor(m_fillColor); dev->fillRect(r); }
-        break;
-    case ShapeType::RoundRect:
-        dev->drawRoundRect(r, m_radius, m_fillColor, m_strokeColor, m_lineWidth);
-        break;
-    case ShapeType::Circle:
-    case ShapeType::Ellipse: {
-        const float rx = r.width * 0.5f, ry = r.height * 0.5f;
-        dev->drawEllipse(r.left + rx, r.top + ry, rx, ry,
-                         m_fillColor, m_strokeColor, m_lineWidth, m_ringWidth);
-        break;
-    }
-    case ShapeType::Polyline: {
-        auto local = getPoints();
-        if (local.size() < 2) break;
-        std::vector<SPoint> gpts;                          // 本地 → 全局（决策 3.3 映射）
-        gpts.reserve(local.size());
-        for (const auto& p : local) gpts.push_back(mapToDrawPoint(p.x, p.y));
-        dev->drawPolyline(gpts.data(), static_cast<int>(gpts.size()), m_strokeColor, m_lineWidth);
-        break;
-    }
-    case ShapeType::Polygon: {
-        auto local = getPoints();
-        if (local.size() < 3) break;
-        std::vector<SPoint> gpts;
-        gpts.reserve(local.size());
-        for (const auto& p : local) gpts.push_back(mapToDrawPoint(p.x, p.y));
-        dev->drawPolygon(gpts.data(), static_cast<int>(gpts.size()),
-                         m_fillColor, m_strokeColor, m_lineWidth);
-        break;
-    }
-    }
-    ControlImpl::draw();         // 子控件
-    ControlImpl::afterDraw();    // 边框 / 焦点环
+    if (doClip) dev->popClipRect();
+    ControlImpl::draw();         // 子控件（不受 Shape 图元裁剪影响）
+    ControlImpl::afterDraw();    // 边框 / 焦点环（不裁剪）
 }
 
 // ── 属性系统 override ──
+
+int Shape::setBoolProperty(const char* prop, int value) {
+    if (strcmp(prop, PropertyNames::kClipShape) == 0) { m_clipShape = (value != 0); return 1; }
+    return ControlImpl::setBoolProperty(prop, value);
+}
+int Shape::getBoolProperty(const char* prop, int& out) {
+    if (strcmp(prop, PropertyNames::kClipShape) == 0) { out = m_clipShape ? 1 : 0; return 1; }
+    return ControlImpl::getBoolProperty(prop, out);
+}
 
 int Shape::setEnumProperty(const char* prop, const char* value) {
     if (strcmp(prop, PropertyNames::kShape) == 0 && value) {

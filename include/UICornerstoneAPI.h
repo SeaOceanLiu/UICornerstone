@@ -498,6 +498,21 @@ UICORNERSTONE_API int UICornerstone_TreeViewSetNodeLabel(UIInstance instance,
     UIControlHandle tree, const char* id, const char* label);
 UICORNERSTONE_API int UICornerstone_TreeViewSetNodeUserData(UIInstance instance,
     UIControlHandle tree, const char* id, void* userData);
+
+// CR20261117002：TreeView 行内编辑器 / 逐节点行高 / 标签文本列宽
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeEditorControl(UIInstance instance,
+    UIControlHandle tree, const char* id, UIControlHandle editor);
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeEditorLayout(UIInstance instance,
+    UIControlHandle tree, const char* id, float width, float gap);
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeEditorAlign(UIInstance instance,
+    UIControlHandle tree, const char* id, const char* align);
+UICORNERSTONE_API int UICornerstone_TreeViewSetNodeRowHeight(UIInstance instance,
+    UIControlHandle tree, const char* id, float height);
+UICORNERSTONE_API int UICornerstone_TreeViewSetLabelWidth(UIInstance instance,
+    UIControlHandle tree, float width);
+UICORNERSTONE_API int UICornerstone_TreeViewGetNodeRect(UIInstance instance,
+    UIControlHandle tree, const char* id, float* x, float* y, float* w, float* h);
+
 // P0-112：节点标签就地编辑（GetEditingId 采用 P107 缓冲语义：返回完整长度；out=NULL/cap=0 仅查长度）
 UICORNERSTONE_API int UICornerstone_TreeViewBeginEditNode(UIInstance instance,
     UIControlHandle tree, const char* id);

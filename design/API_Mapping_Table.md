@@ -531,3 +531,6 @@
 | CR20261112002 | ContextMenu 外框随内容同步 | `context-menu.rect`（选填） | — | `ContextMenuSyncSize` / `ContextMenuGetMenuPanelRect` | `ContextMenuSyncSize` / `ContextMenuGetMenuPanelRect` | ✅（自动同步 + 显式兜底；空菜单保持 rect） |
 | CR20261113001 | ContextMenu 显式位置不被 Centered 重置 | `context-menu.rect`（复用） | — | 复用 `SetRect` / `GetRect` / `SetBool("visible")`；`SetEnum("centered")` 对 ContextMenu 不生效 | 复用 `Control::SetRect` / `GetRect` | ✅（无新增 API；C++ `Popup` vtable 变化需同批重编译） |
 | CR20261116002 | box-shadow 声明式状态 + 主题 :hover | `box-shadow.hover/.pressed/.disabled`（及各状态内五字段） | — | 复用 `SetColor/SetFloat/GetColor/GetFloat` 状态键（15 个） | 复用 `Set*/Get*` | ✅（无新增 C ABI/Binding；`ControlImpl` 类布局变化需同批重编译） |
+| CR20261117001 | Shape 图元绘制裁剪 | `shape.clip`（默认 true） | `kClipShape` | 复用 `SetBool/GetBool` | 复用 `SetBool/GetBool` | ✅（无新增 C ABI/Binding；Shape 类布局/vtable 变化需同批重编译） |
+| CR20261116001 | 内嵌控件 Schema 指引与递归属性行 | `button/check-box.caption-label`（内嵌 Label） | — | — | — | ✅（schema 注解 + parser/持久化；无新增 C ABI/Binding；CheckBox 类布局/vtable 变化需同批重编译） |
+| CR20261117002 | TreeView 行内编辑器控件 | `tree-view.label-width` | `kLabelWidth` / `kItemEditor*` / `kItemRowHeight` | `TreeViewSetNodeEditorControl/Layout/Align` / `SetNodeRowHeight` / `SetLabelWidth` / `GetNodeRect` | 同名封装 | ✅（新增 6 个 C ABI + Binding；TreeNode/TreeView 布局变化需同批重编译） |

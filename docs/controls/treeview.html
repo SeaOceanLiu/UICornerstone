@@ -261,6 +261,26 @@ tv.SetCallback(PropertyNames::kEventNodeEdited, [](const Event& e) {
 ui->TreeViewBeginEditNode(tv, "leaf1");
 ui->TreeViewGetEditingId(tv, id, &readOnly);</code></pre>
 
+<h2>4.25.8 行内编辑器与逐节点行高（CR20261117002）</h2>
+<figure>
+  <img src="../assets/controls/treeview-inline-editor.png" alt="TreeView 行内编辑器：跨层级编辑列对齐、TextArea 行使用逐节点行高" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>行内编辑器跨层级对齐；TextArea 行使用逐节点行高（70）。</figcaption>
+</figure>
+<p>TreeNode 支持 <code>editorControl</code>（行内编辑控件，借用语义、树不拥有）与 <code>rowHeight</code>（0=继承树级）。TreeView 级 <code>label-width</code> 为标签文本列宽（逻辑 px，0=逐行自适应）：固定列时所有行共用同一编辑列，最深行仍有完整标签空间。</p>
+<pre><code>{ "type": "tree-view", "id": "tv", "rect": { "x": 20, "y": 20, "w": 320, "h": 300 },
+  "row-height": 26, "indent-width": 16, "label-width": 120, "items": [ ... ] }</code></pre>
+<pre><code>// C ABI：挂接编辑器 + 布局
+UICornerstone_TreeViewSetNodeEditorControl(g_inst, tv, "field", editor);
+UICornerstone_TreeViewSetNodeEditorLayout(g_inst, tv, "field", 120.0f, 6.0f);
+UICornerstone_TreeViewSetNodeEditorAlign(g_inst, tv, "field", "right");
+UICornerstone_TreeViewSetNodeRowHeight(g_inst, tv, "textarea", 70.0f);
+float x,y,w,h; UICornerstone_TreeViewGetNodeRect(g_inst, tv, "field", &amp;x,&amp;y,&amp;w,&amp;h);</code></pre>
+<ul>
+<li>编辑器位于标签右侧、垂直居中，受树内容区裁剪；点击编辑器不选中行/不展开/不进入双击编辑。</li>
+<li>折叠/隐藏时摘除编辑器（不销毁），展开恢复；滚出视口仅裁剪，不摘除。</li>
+<li>逐节点行高参与绘制、命中、滚动与 <code>ensureSelectedVisible</code>。</li>
+<li>属性别名：<code>item-editor-control/width/gap/align</code>、<code>item-row-height</code>、<code>label-width</code>（运行时键，不进入声明式持久化）。</li>
+</ul>
 <div class="chapter-nav">
   <a href="textarea.html">← 4.24 TextArea</a>
   <a href="winframe.html">下一节：4.26 WinFrame →</a>

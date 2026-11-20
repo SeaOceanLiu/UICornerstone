@@ -212,6 +212,9 @@ fromsource 测试使用单源文件 + 编译定义区分后端，后端源码作
 - `test_cr_menu_item_events`、`test_cr_statusbar_runtime`、`test_cr_contextmenu_dispatch`：MenuBar/StatusBar/ContextMenu item action 与全控件右键派发；
 - `test_cr_contextmenu_position`：ContextMenu 显式位置保持（CR20261113001，三后端 44/44）；
 - `test_cr_shadow_state`：box-shadow 四态、主题状态选择器、优先级、缓存与状态清理（CR20261116002，三后端 77/77）；
+- `test_cr_shape_clip`：Shape 图元裁剪（默认 clip=true，box-shadow/父裁剪/缩放/多边形越界；CR20261117001，三后端 19/19）；
+- `test_cr_embedded_label`：Button/CheckBox `caption-label` 内嵌 Label（字段、inner wins、CheckBox recreate、阴影/对齐；CR20261116001，三后端 50/50）；
+- `test_cr_treeview_editor`：TreeView 行内编辑器、逐节点行高、label-width、GetNodeRect（CR20261117002，三后端 29/29）；
 - `test_editbox_offset`：EditBox 首帧 placeholder/padding 偏移；
 - `test_window_visibility`：窗口 Hidden/Visible、AlwaysOnTop/Foreground、NoShadow/Utility。
 

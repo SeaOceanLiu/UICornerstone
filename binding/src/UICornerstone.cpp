@@ -743,6 +743,35 @@ bool UICornerstone::TreeViewSetNodeUserData(Control& tree, const std::string& id
             id.c_str(), userData) != 0;
     return false;
 }
+bool UICornerstone::TreeViewSetNodeEditorControl(Control& tree, const std::string& id, Control* editor) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewSetNodeEditorControl) return false;
+    return Dyn::API().fnTreeViewSetNodeEditorControl(m_impl->instance, tree.Handle(), id.c_str(),
+        editor ? editor->Handle() : nullptr) != 0;
+}
+bool UICornerstone::TreeViewSetNodeEditorLayout(Control& tree, const std::string& id, float width, float gap) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewSetNodeEditorLayout) return false;
+    return Dyn::API().fnTreeViewSetNodeEditorLayout(m_impl->instance, tree.Handle(), id.c_str(), width, gap) != 0;
+}
+bool UICornerstone::TreeViewSetNodeEditorAlign(Control& tree, const std::string& id, const std::string& align) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewSetNodeEditorAlign) return false;
+    return Dyn::API().fnTreeViewSetNodeEditorAlign(m_impl->instance, tree.Handle(), id.c_str(), align.c_str()) != 0;
+}
+bool UICornerstone::TreeViewSetNodeRowHeight(Control& tree, const std::string& id, float height) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewSetNodeRowHeight) return false;
+    return Dyn::API().fnTreeViewSetNodeRowHeight(m_impl->instance, tree.Handle(), id.c_str(), height) != 0;
+}
+bool UICornerstone::TreeViewSetLabelWidth(Control& tree, float width) {
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewSetLabelWidth) return false;
+    return Dyn::API().fnTreeViewSetLabelWidth(m_impl->instance, tree.Handle(), width) != 0;
+}
+bool UICornerstone::TreeViewGetNodeRect(Control& tree, const std::string& id,
+                                        float& x, float& y, float& w, float& h) {
+    x = y = w = h = 0.0f;
+    if (!m_impl->instance || !tree.Handle() || !Dyn::API().fnTreeViewGetNodeRect) return false;
+    return Dyn::API().fnTreeViewGetNodeRect(m_impl->instance, tree.Handle(), id.c_str(),
+        &x, &y, &w, &h) != 0;
+}
+
 bool UICornerstone::TreeViewBeginEditNode(Control& tree, const std::string& id) {
     if (!tree.IsValid() || !Dyn::API().fnTreeViewBeginEditNode) return false;
     return Dyn::API().fnTreeViewBeginEditNode(m_impl->instance, tree.Handle(), id.c_str()) != 0;

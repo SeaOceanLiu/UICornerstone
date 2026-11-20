@@ -208,6 +208,12 @@ struct Api {
     void (*fnTreeViewClearItems)(UIInstance, UIControlHandle) = nullptr;
     int  (*fnTreeViewGetSelectedId)(UIInstance, UIControlHandle, char*, int) = nullptr;
     int  (*fnTreeViewGetNodeAt)(UIInstance, UIControlHandle, float, float, char*, int) = nullptr;   // P0-107
+    int  (*fnTreeViewSetNodeEditorControl)(UIInstance, UIControlHandle, const char*, UIControlHandle) = nullptr;
+    int  (*fnTreeViewSetNodeEditorLayout)(UIInstance, UIControlHandle, const char*, float, float) = nullptr;
+    int  (*fnTreeViewSetNodeEditorAlign)(UIInstance, UIControlHandle, const char*, const char*) = nullptr;
+    int  (*fnTreeViewSetNodeRowHeight)(UIInstance, UIControlHandle, const char*, float) = nullptr;
+    int  (*fnTreeViewSetLabelWidth)(UIInstance, UIControlHandle, float) = nullptr;
+    int  (*fnTreeViewGetNodeRect)(UIInstance, UIControlHandle, const char*, float*, float*, float*, float*) = nullptr;
 
     // EditBox / TextArea 文本操作
     int  (*fnEditBoxSelectAll)(UIInstance, UIControlHandle) = nullptr;

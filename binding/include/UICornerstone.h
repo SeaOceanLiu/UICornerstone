@@ -253,6 +253,14 @@ public:
     bool TreeViewMoveNode(Control& tree, const std::string& id, const std::string& newParentId, int index);   // P0-94
     bool TreeViewSetNodeLabel(Control& tree, const std::string& id, const std::string& label);
     bool TreeViewSetNodeUserData(Control& tree, const std::string& id, void* userData);
+    // CR20261117002：行内编辑器 / 逐节点行高 / 标签文本列宽
+    bool TreeViewSetNodeEditorControl(Control& tree, const std::string& id, Control* editor);
+    bool TreeViewSetNodeEditorLayout(Control& tree, const std::string& id, float width, float gap);
+    bool TreeViewSetNodeEditorAlign(Control& tree, const std::string& id, const std::string& align);
+    bool TreeViewSetNodeRowHeight(Control& tree, const std::string& id, float height);
+    bool TreeViewSetLabelWidth(Control& tree, float width);
+    bool TreeViewGetNodeRect(Control& tree, const std::string& id,
+                             float& x, float& y, float& w, float& h);
     bool TreeViewSelectNode(Control& tree, const std::string& id);
     // P0-112：节点标签就地编辑
     bool TreeViewBeginEditNode(Control& tree, const std::string& id);

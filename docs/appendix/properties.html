@@ -235,6 +235,8 @@
 <tr><td><code>multi-select</code></td><td><code>kMultiSelect</code></td><td>Bool</td><td>true</td></tr>
 <tr><td><code>selected-index</code></td><td><code>kSelectedIndex</code></td><td>Int</td><td>-1</td></tr>
 <tr><td><code>row-height</code></td><td><code>kRowHeight</code></td><td>Float</td><td>24 / 28</td></tr>
+<tr><td><code>label-width</code></td><td><code>kLabelWidth</code></td><td>Float</td><td>CR20261117002：标签文本列宽（逻辑 px；0=逐行自适应；>0 固定编辑列）</td></tr>
+<tr><td><code>item-editor-control</code> / <code>item-editor-width</code> / <code>item-editor-gap</code> / <code>item-editor-align</code> / <code>item-row-height</code></td><td>同名</td><td>Ptr / Float / Enum</td><td>CR20261117002：TreeView 行内编辑器槽与逐节点行高（运行时别名，不进入声明式 schema）</td></tr>
 <tr><td><code>header-height</code></td><td><code>kHeaderHeight</code></td><td>Float</td><td>24 / 28</td></tr>
 <tr><td><code>gridlines</code></td><td><code>kGridlines</code></td><td>Bool</td><td>true / false</td></tr>
 <tr><td><code>horizontal-gridlines</code></td><td><code>kHorizontalGridlines</code></td><td>Bool</td><td>true / false</td></tr>
@@ -355,6 +357,7 @@
 <tr><td><code>radius</code></td><td><code>kRadius</code></td><td>Float</td><td>1 / 0 / 0</td></tr>
 <tr><td><code>ring-width</code></td><td><code>kRingWidth</code></td><td>Float</td><td>1 / 0 / 0</td></tr>
 <tr><td><code>background</code></td><td><code>kBackground</code></td><td>Color</td><td>透明（设后取消透明）</td></tr>
+<tr><td><code>clip</code></td><td><code>kClipShape</code></td><td>Bool</td><td>true（CR20261117001：图元绘制裁剪到 rect；false 保留溢出；与 <code>clip-children</code> 不同）</td></tr>
 </table>
 <p>多图元走 JSON <code>primitives[]</code> / C ABI <code>ShapeAddPrimitive</code> 等；顶点走 <code>ShapeSetPoints</code>（见 8.3.1）。</p>
 <h3>Slider（类型 <code>slider</code>）</h3>

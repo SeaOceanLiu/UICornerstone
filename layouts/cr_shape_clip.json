@@ -1,0 +1,25 @@
+{
+  "controls": [
+    {
+      "type": "shape",
+      "id": "clipDefault",
+      "rect": { "x": 40, "y": 620, "w": 100, "h": 100 },
+      "shape": "filled-rect",
+      "fill": "#FF0000FF",
+      "primitives": [
+        { "shape": "filled-rect", "rect": [-40, -40, 180, 180], "fill": "#FF0000FF" }
+      ]
+    },
+    {
+      "type": "shape",
+      "id": "clipOff",
+      "rect": { "x": 200, "y": 620, "w": 100, "h": 100 },
+      "clip": false,
+      "shape": "filled-rect",
+      "fill": "#FF0000FF",
+      "primitives": [
+        { "shape": "filled-rect", "rect": [-40, -40, 180, 180], "fill": "#FF0000FF" }
+      ]
+    }
+  ]
+}

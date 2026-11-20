@@ -28,6 +28,12 @@ struct TreeNode {
     std::shared_ptr<Control> leadingControl;  // 前置控件（CheckBox/Actor/Image 等）；高度自适应行高
     float leadingGap = 6.0f;                  // 控件与文字之间的空隙（局部 px，可调）
     AlignmentMode leadingAlign = AlignmentMode::AM_MID_LEFT;  // 槽位对齐（复用 Label 9 宫格；水平分量忽略，槽位贴文本起点）
+    // CR20261117002：行内编辑器控件槽（借用，树不拥有；cloneNode 不复制）
+    std::shared_ptr<Control> editorControl;
+    float editorWidth = 0.0f;                 // 0=占满剩余宽；>0=固定宽（逻辑 px）
+    float editorGap = 6.0f;                   // 标签列与编辑器之间（逻辑 px）
+    AlignmentMode editorAlign = AlignmentMode::AM_MID_LEFT;  // 仅水平分量：left/center/right
+    float rowHeight = 0.0f;                   // 0=继承 TreeView row-height
     FontName fontName = FontName::HarmonyOS_Sans_SC_Regular;  // 与 TreeView 默认一致；仅 fontSize>0 时生效
     int fontSize = 0;                         // 0 = 继承 TreeView 级字号
     StateColor textShadowColor{StateColor::Type::TextShadow};   // P032：item 文本阴影四态
@@ -125,6 +131,12 @@ private:
     float m_rowHeight;
     float m_lineSpacing = 0;
     float m_arrowGap;
+    // CR20261117002：逐行几何缓存（逻辑坐标）
+    float m_labelWidth = 0.0f;
+    std::vector<float> m_rowTops;
+    std::vector<float> m_rowHeights;
+    float m_contentHeight = 0.0f;
+    float m_maxLabelStart = 0.0f;
     bool m_cycleNavigation = true;
     bool m_defaultExpand = false;
 
@@ -166,13 +178,21 @@ private:
     OnClearNodeHandler m_onClearNode;
 
     void ensureFont();
+    void rebuildRowMetrics();                                       // CR20261117002：逐行 top/height/maxLabelStart
+    float effectiveRowHeight(const std::shared_ptr<TreeNode>& node) const;
+    float rowSlotHeight(int row) const;
+    int firstVisibleRow(float scrollOffset) const;
+    int rowAtOffset(float contentY) const;
+    float editorColumnX() const;
+    void layoutRowEditor(int row, const SRect& contentRect, float rowTop,
+                         float scaleX, float scaleY);
     void syncRowControls();                                         // rebuildFlatRows 内调用：行控件挂/摘 + 登记
     bool toggleExpand(const string& id);
     void rebuildFlatRows();
     bool hitTestArrow(int row, float mx);
     void updateScrollBar();
     void ensureSelectedVisible();
-    void drawArrow(RenderDevice* dev, float x, float y, bool expanded);
+    void drawArrow(RenderDevice* dev, float x, float y, bool expanded, float rowHeight);
     float calcContentWidth();
     void clearNodeRecursive(const std::shared_ptr<TreeNode>& node);
     // P0-112：就地编辑
@@ -244,6 +264,14 @@ public:
     float getLineSpacing() const { return m_lineSpacing; }
     void setArrowGap(float px);
     float getArrowGap() const { return m_arrowGap; }
+    // CR20261117002：行内编辑器 / 标签列 / 逐节点行高
+    void setLabelWidth(float width);
+    float getLabelWidth() const { return m_labelWidth; }
+    bool setNodeEditorControl(const std::string& id, Control* editor);
+    bool setNodeEditorLayout(const std::string& id, float width, float gap);
+    bool setNodeEditorAlign(const std::string& id, const char* align);
+    bool setNodeRowHeight(const std::string& id, float height);
+    bool getNodeRect(const std::string& id, SRect& outRect) const;
     void setCycleNavigation(bool cycle) { m_cycleNavigation = cycle; }
     bool getCycleNavigation() const { return m_cycleNavigation; }
     void setDefaultExpand(bool expand) { m_defaultExpand = expand; }

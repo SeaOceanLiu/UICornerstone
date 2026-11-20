@@ -115,6 +115,7 @@ public:
     void setMargin(Margin margin) override;
     void setFontSize(int fontSize);
     int getFontSize(void) const { return m_fontSize; }
+    FontName getFontName(void) const { return m_fontName; }   // CR20261116001：CheckBox 快照回读
     void setShadow(bool enabled);
     void setShadowOffset(SPoint offset);
     // 阴影状态读取（#12：宿主属性转发读；单一事实来源 = Label 自身）

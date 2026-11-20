@@ -222,6 +222,12 @@ static Api& LoadInto(Api& api, void* handle) {
     RESOLVE(TreeViewClearItems);
     RESOLVE(TreeViewGetSelectedId);
     RESOLVE(TreeViewGetNodeAt);
+    RESOLVE(TreeViewSetNodeEditorControl);
+    RESOLVE(TreeViewSetNodeEditorLayout);
+    RESOLVE(TreeViewSetNodeEditorAlign);
+    RESOLVE(TreeViewSetNodeRowHeight);
+    RESOLVE(TreeViewSetLabelWidth);
+    RESOLVE(TreeViewGetNodeRect);
     RESOLVE(EditBoxSelectAll);
     RESOLVE(EditBoxSetSelection);
     RESOLVE(EditBoxClearSelection);

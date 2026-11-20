@@ -1410,8 +1410,13 @@ Label 的文字阴影必须基于字形覆盖，不得用 `box-shadow` 或背景
 - B2-1 已闭合：构造期不注册，`ensureSizeCallback()` 懒注册覆盖 addItem/addSeparator/show/syncSize/create/setRect；weak 生命周期、析构解绑、受控 `ControlImpl::resized`、S1~S9、B1 rect、B3 create 后 sync、N1~N6 全部闭合。
 - 设计层面通过，可进入实现；实施后设计器移除临时 MenuPanel 测量 workaround，并按 §6/§11 联调。CR 状态保持 open。
 
+#### 2026-11-13 设计器联调通过
+
+- 设计器已移除临时 MenuPanel 测量 workaround，改用 `ContextMenuSyncSize` + 引擎外框回写模型；`auto=2` 310/0、`auto=3` REPORT-OK、strict PASS。
+- 设计器：closed（2026-11-13）；引擎：closed。
+
 ### CR状态
-#### 设计器：open
+#### 设计器：closed（2026-11-13 联调通过）
 #### 引擎：closed
 - 分析/设计：`design/CR20261112002_Design.md`（v3 通过，已实施）。
 - 实施/验证：`design/CR20261112002_Design.md` §13；`test_cr_contextmenu_sync` 三后端 48/48；SDL3 全量回归无新增失败；Release DLL SHA256 `100a59967720aff7588d33482bca764c8ae71cfc79e45601a08f1c90b1e717bb`；已同步设计器 `subModules/UICornerstone`。
@@ -1699,9 +1704,40 @@ V1 明确保留专用 editor/adapter，不递归：
 - CR 状态：设计器 `open` / 引擎 `open`；评审通过并实施后分别置 `closed`。
 - 验收前置：设计器与引擎在按钮/复选框内嵌 Label 的规范键、转发集合、schema 注解上保持一致；`validate_layout --strict` 通过。
 
+#### 2026-11-18 引擎按评审修订（设计 v2）
+
+- 设计：`design/CR20261116001_Embedded_Control_Schema_Design.md` v2（B1/B2 已闭合，待确认后实施）。
+- B1：CheckBox 支持 `caption-label.alignment`；`adjustSpaceAssignment` 仅在未显式设置时按 layout 取默认，显式对齐优先。
+- B2：CheckBox 新增 `m_captionFontName`/`m_captionFontStyle` 宿主快照，`createCaption` 使用快照，`captureCaptionState` 回读；`parseCheckBox` 补宿主 `font.name`。
+- B3：统一 inner wins（顶层先、`caption-label` 后）。
+- B4：引擎保持字面语义（blur 不自动 enabled）；设计器内嵌行在写 blur 时负责同时启用，补 E11。
+- N1~N6 已记录处理；测试补 E10~E14。
+
+#### 2026-11-19 引擎实施完成
+
+- 实现：schema 注解（Button/CheckBox `caption-label`）+ 共用 parser；CheckBox alignment/font.name/style/line-height/line-spacing/blur 宿主快照；inner wins；`parseFontName` 支持 schema kebab 值；`text-shadow-blur` 内嵌别名诊断。
+- 评审修正：Label `getFontName()` 补 getter；capture 不无条件置 alignment valid（仅显式或非 layout 默认时）。
+- 验证：`test_cr_embedded_label` 三后端 50/50；SDL3 全量回归仅 4 项历史失败；`validate_layout --strict` PASS。
+- 交付：Release DLL SHA256 `ea8c92cae0240ebfd2e429e4f6ee3f9a083f3d9665505df1624d74745ace9438`；已同步 `subModules/UICornerstone`。
+- 设计器：open（待联调）；引擎：closed。
+
+#### 2026-11-19 联调回归修复（GetPtr 直写 align）
+
+- 缺陷：设计器 `GetPtr("caption-label")->SetEnum("align","bottom-right")` 后立即读回 `mid-left`。
+- 修复：`CheckBox::syncCaptionAlignmentFromLabel()`；caption 的 onPropertyChanged 与 `adjustSpaceAssignment` 入口检测当前 Label 对齐，非 layout 默认即置 `m_captionAlignValid=true`。
+- 测试：E15（直写立即读回 + recreate 保持）；`test_cr_embedded_label` 三后端 53/53。
+- 交付：Release DLL SHA256 `59e222ed90247a3234c8b2989f4ad616184620bc6cdf00d9697392cb79808ad6`；已同步 `subModules/UICornerstone`。
+- 设计器：open（恢复 alignment 断言后联调）；引擎：closed。
+
+#### 2026-11-19 设计器最终联调通过（CR closed）
+
+- DLL SHA256 `59e222ed...` 核对一致；`syncCaptionAlignmentFromLabel` 生效：直写 align 立即读回、recreate 保持、save/open 保持。
+- 设计器恢复 CheckBox alignment 断言，新增“保存/打开后内嵌 alignment 保持”回归；Debug/Release auto=2 364/0、auto=3 REPORT-OK、strict PASS。
+- 设计器：closed（2026-11-19 最终联调通过）；引擎：closed；满足归档门禁。
+
 ### CR状态
-#### 设计器：open
-#### 引擎：open
+#### 设计器：closed（2026-11-19 最终联调通过）
+#### 引擎：closed
 
 ## 请引擎补充/确认
 
@@ -1914,4 +1950,290 @@ V1 明确保留专用 editor/adapter，不递归：
 
 ### CR状态
 #### 设计器：closed（2026-11-17 视觉验证通过）
+#### 引擎：closed
+
+## CR20261117001 Shape 图元绘制裁剪到控件 rect
+
+### 现状
+
+Shape 的单图元绘制（rect/round-rect/circle/ellipse/polyline/polygon 的 fill/stroke/line-width/points）以及多图元 `primitives`，都按“控件左上角 + 图元局部坐标”直接绘制，没有对控件 `getDrawRect()` 做裁剪。图元 `rect`/`points` 超出控件范围时，内容会画到 Shape 之外，覆盖相邻控件，破坏布局隔离。
+
+设计器侧已遇到实际场景：多图元组合图形（例如在 150×130 的 Shape 中放一个 `rect:[10,50,130,75]` 的 round-rect，加上点集到 y=52 的 polygon）中，图元坐标容易超出；目前只能靠人工把坐标收进 rect，既麻烦也容易误伤其他控件。`RenderDevice` 已提供 `pushClipRect/popClipRect`（GraphTool/RenderDevice 均有），引擎侧实现成本低。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-17 初次提交CR
+
+**需求**：Shape 的图元绘制应支持裁剪到控件矩形，避免图元溢出影响其它控件。
+
+**建议语义**：
+
+1. 对 Shape 的**自身图元绘制**（单图元 fill/stroke/points，以及 `primitives[]` 的全部图元）统一裁剪到 `getDrawRect()`；
+2. `box-shadow` 仍绘制在控件外侧，**不受**该裁剪影响（保持 CR20261112001 语义）；
+3. 控件背景色/边框/焦点环绘制不受影响（本来就在 rect 内；边框按现有语义）；
+4. 命中/选中/布局仍以控件 rect 为准（现状不变，裁剪只影响绘制）；
+5. 嵌套容器已有 `clip-children` 时，Shape 裁剪应与父容器裁剪**求交集**（`pushClipRect` 的既有语义）；
+6. 裁剪边界建议按绘制矩形（含 xScale/yScale 缩放）计算，边缘允许 1px 抗锯齿余量或直接硬裁，由引擎按后端一致性决定。
+
+**属性/接口建议**：
+
+- 推荐新增 Shape 布尔属性 `clip`（或 `clip-shape`），**默认 true**：设计器与用户预期一致，历史布局中溢出图元本来就会干扰其他控件，默认裁剪属于缺陷修复；
+- 若引擎担心兼容性，也可默认 false + 属性 opt-in，但需在 CR 回复中明确，设计器会同步 schema/属性面板并在文档中标注默认值；
+- 不新增 C ABI/Binding 函数；属性经现有 `SetBool/GetBool` 通道，布局 JSON 键与 schema 同步；
+- 若采用“始终裁剪、不提供属性”，也请明确，设计器侧不需要属性面板行。
+
+**测试建议**：
+
+- 单图元：rect/round-rect/circle/ellipse 的 fill/stroke 部分越界（负 x/y、超出宽高）只绘制 rect 内部分；
+- 点集：polyline/polygon 的 points 越界被裁剪；全部越界时不绘制；
+- 多图元：`primitives` 中部分图元越界，只裁剪越界图元，其他图元不受影响；
+- `box-shadow`：存在越界图元时阴影仍按包围盒在控件外侧可见；
+- `clip=false`（如采用属性方案）时保持现有溢出绘制；
+- 父容器 `clip-children` + Shape 裁剪的嵌套交集；
+- SDL3/SFML/raylib 三后端像素/截图一致性。
+
+**设计器侧配套（待引擎交付后）**：
+
+- 若新增 `clip` 属性：schema 自动生成属性行，无需专用 UI；默认值按引擎交付同步；
+- 用户手册补充“图元超出 rect 时默认裁剪”的说明与自检项；
+- 多图元结构化编辑器仍允许坐标超出 rect（由引擎裁剪），不强制修改数据。
+
+#### 2026-11-18 引擎分析/设计提交评审
+
+- 引擎设计：`design/CR20261117001_Shape_Clip_Design.md`（v1，待评审；未实施）。
+- 方案：新增 Shape 布尔属性 `clip`，默认 **true**；仅在图元绘制期间 `pushClipRect(getDrawRect())`，`primitives[]` 共一次 push/pop；`box-shadow`/背景/边框/焦点环/子控件不裁剪；父容器 `clip-children` 自动交集；`clip=false` 保留旧溢出行为。
+- 接口：不新增 C ABI/Binding；`SetBool/GetBool("clip")`；schema 增加 `shape.clip`（默认 true）。
+- 影响：`Shape` 类布局/vtable 变化，DLL/头文件/C++ 使用方需同批重编译；三后端复用现有 clip 栈。
+- 测试计划：C1~C10（单/多图元、点集、clip=false、box-shadow、父裁剪交集、缩放、C ABI、回归）。
+
+#### 2026-11-18 引擎实施完成
+
+- 实现：`clip` 属性（默认 true）+ 图元绘制裁剪；box-shadow/背景/边框/子控件不裁剪；父 `clip-children` 交集。
+- 验证：`test_cr_shape_clip` 三后端 19/19；`test_shape` 17/17；SDL3 全量回归仅 4 项历史失败；`validate_layout --strict` PASS。
+- 交付：Release DLL SHA256 `7fcbce6ebe8b7056da98c42e0e72bbd3a0116727730878f5de782df6b15aa568`；已同步 `subModules/UICornerstone`；C++ 类布局/vtable 变化需同批重编译，C ABI/Binding 无新增函数。
+- 文档/截图：`docs/controls/shape.html` 4.19.9、`shape-clip.png`、schema/属性速查/API 映射。
+
+#### 2026-11-19 设计器联调通过
+
+- DLL 哈希核对 `7fcbce6e...`；schema 自动生成 `clip` 行、`clip=false` 保存/打开生效、多图元溢出提示随 clip 刷新；docs/09、docs/12 已更新。
+- 设计器 Debug/Release auto=2 353/0、auto=3 REPORT-OK、strict PASS。
+- 设计器：closed；引擎：closed；满足归档门禁。
+
+### CR状态
+#### 设计器：closed（2026-11-19 联调通过）
+#### 引擎：closed
+
+## CR20261117002 TreeView 行内编辑器控件（属性面板动态行迁移）
+
+### 现状
+
+设计器属性面板的动态行区域目前是“扁平行池 + 手工绝对布局”：
+
+- 每行 = Label + 编辑控件（EditBox / NumericUpDown / ComboBox / ColorPicker / CheckBox / Button / TextArea），由设计器按 schema 生成；
+- 行高固定或按控件类型硬编码（普通行 26、TextArea 80/120），y 坐标手工累加；
+- 滚动靠“行控件整体平移 + 手动隐藏越界行 + propDynamic 的 clip-children”模拟；
+- 分组只是视觉上的标题按钮，不是真正的层级；多图元/页签等嵌套数据只能再做一层“假分组 + 展开状态集合”；
+- 行控件跨控件复用（行池），程序化回填值会触发真实 change 回调，需全局 `m_propSync` 静默开关兜底；
+- 动态增删行（例如多图元“添加图元”）必须整段重建行集，容易丢失焦点/滚动位置，代码量很大。
+
+本次 Shape 多图元编辑器已经暴露了这些问题：每个图元带一组字段后，面板非常长，只能再加“逐图元收起 / 收起全部”这类手工折叠；视觉上也不像树，难以阅读层级。
+
+引擎 TreeView 已有节点 `leadingControl`（行前置控件）和 `row-height`（全局行高），但没有“行尾/行内编辑控件槽”，也没有逐节点行高，无法直接承载属性编辑器。
+
+### CR类型：requirement
+
+### 修订记录
+
+#### 2026-11-17 初次提交CR
+
+**目标**：
+
+1. TreeView 节点支持一个**行内编辑器控件槽**（trailing/editor control），用于放属性编辑控件；
+2. 节点标签保持左侧列（列宽可配置），编辑器槽占剩余宽度，行列对齐；
+3. 节点支持**逐节点行高**（0 = 继承树级），以容纳 TextArea（点集/items/menus 等多行编辑）；
+4. 支持动态增删节点/编辑器时不丢失其他行的控件状态、焦点和滚动位置；
+5. 滚动、展开/折叠、窗口缩放时编辑器控件跟随行矩形，且被树内容区裁剪；
+6. 点击编辑器控件不触发行选中/展开/折叠（事件优先路由给编辑器）；
+7. 不破坏现有 TreeView JSON/属性/leadingControl 语义。
+
+**建议方案（A，推荐）：节点增加 trailing/editor 控件槽 + 逐节点行高**
+
+- `TreeNode` 增加：
+  - `std::shared_ptr<Control> editorControl;`（行内编辑控件；与 leadingControl 同生命周期语义，树只挂接不拥有）
+  - `float editorWidth = 0.f;`（0 = 占满剩余宽度；>0 = 固定宽，右对齐/左对齐由 `editorAlign` 决定）
+  - `float editorGap = 6.f;`
+  - `AlignmentMode editorAlign = AlignmentMode::AM_MID_LEFT;`
+  - `float rowHeight = 0.f;`（0 = 继承树级 `row-height`）
+- TreeView 级增加：
+  - `labelWidth`（标签列宽；0 = 自适应内容/沿用现行为）
+  - 现有 `row-height` 作为缺省行高；
+- 布局（相对内容区，已扣滚动条）：
+  - `x = indent*depth + arrowW + leading占位 + labelWidth + gap`
+  - 编辑器 `y = 行顶 + (行高 - 控件高)/2`，高度取控件自身高度并钳制到行高；
+- 行高参与 `rebuildFlatRows`、滚动范围、`ensureSelectedVisible`、命中测试、行矩形查询；
+- 编辑器控件纳入 `m_rowControls`，绘制排除/挂摘逻辑与 leadingControl 一致；
+- 节点删除/树清空时先摘除编辑器（不销毁，由宿主管理）；
+- 若 `editorControl` 为空，行为与现状完全一致（兼容）。
+
+**属性/接口建议**：
+
+- C ABI：
+  - `UICornerstone_TreeViewSetNodeEditorControl(instance, tree, id, UIControlHandle editor)`（NULL = 解除）
+  - `UICornerstone_TreeViewSetNodeEditorLayout(instance, tree, id, float width, float gap)`
+  - `UICornerstone_TreeViewSetNodeRowHeight(instance, tree, id, float height)`（0 = 继承）
+  - `UICornerstone_TreeViewSetLabelWidth(instance, tree, float width)`（或属性 `label-width`）
+  - `UICornerstone_TreeViewGetNodeRect(instance, tree, id, float* x, float* y, float* w, float* h)`（含滚动偏移后的内容区坐标；便于宿主定位/调试）
+- 属性系统别名（与 leadingControl 同风格）：
+  - `item-editor-control`（SetPtr/GetPtr，配合 `item-id`）
+  - `item-editor-width`、`item-editor-gap`、`item-row-height`
+  - `label-width`（树级）
+- C++ Binding 对应封装（`TreeViewSetNodeEditorControl` 等）；
+- JSON/schema：设计器属性面板的编辑器控件由宿主运行时创建，**不需要**持久化到布局；如需复用 `leadingControl` 的 JSON 描述方式，可后续再加，V1 不要求。
+
+**事件/焦点**：
+
+- 鼠标按下命中 `editorControl` 时，事件路由给编辑器，不改变树选中行/展开状态（leadingControl 已有类似逻辑，可复用）；
+- 编辑器获得焦点时，树不抢焦点；Tab 顺序由宿主管理；
+- 节点被折叠/滚出视口时编辑器隐藏，展开/滚回时恢复；不得销毁；
+- 编辑过程中删除节点/清空树：先触发编辑器的失焦/取消语义（或由宿主在删除前处理），不得悬挂。
+
+**测试建议**：
+
+- 单节点：设置 editorControl 后按行矩形对齐；点击编辑器不选中行；滚动后跟随；
+- 行高：普通行 26、TextArea 行 80 混排，滚动范围/命中/`ensureSelectedVisible` 正确；
+- 层级：3 层节点（组 → 子组 → 字段）展开/折叠后编辑器位置正确；
+- 动态：展开状态下插入/删除节点，其他行编辑器不重建、焦点不丢；
+- 多实例：两个 TreeView 各自的编辑器互不串扰；
+- 兼容：未设置 editorControl 时截图/行为与现状一致；
+- SDL3/SFML/raylib 三后端一致。
+
+**方案 B（备选）：宿主行绘制回调**
+
+- TreeView 暴露 `onRowDraw(node, rowRect)`，宿主自行绘制/定位控件；
+- 灵活但宿主需处理裁剪、滚动、命中，复杂度高，不推荐 V1。
+
+**方案 C（不推荐）：独立 PropertyGrid 控件**
+
+- 引擎直接实现 schema 驱动属性表格（分组/行/编辑器/校验）；
+- 与设计器 schema 强耦合、范围过大，建议后续再评估。
+
+**设计器侧配套（引擎交付后）**：
+
+- 用 TreeView 替换 `m_propDynamic` 行池：分组/字段/Shape 多图元/页签页等改为真实节点层级；
+- 每个字段节点挂一个编辑器控件（复用现有创建/回调逻辑），滚动与折叠交给 TreeView；
+- 逐节点行高承载 TextArea 行（点集、items、menus、primitives 点集）；
+- 保留现有 auto=2 回归（300+ 项）作为迁移验收；分阶段迁移：简单字段 → 分组 → Shape 多图元 → 复杂文本行；
+- 若引擎选择方案 B/C，请先在设计器侧做小范围原型再决定。
+
+#### 2026-11-19 引擎分析/设计提交评审
+
+- 引擎设计：`design/CR20261117002_TreeView_InlineEditor_Design.md`（v1，待评审；未实施）。
+- 方案 A：`TreeNode` 增加 `editorControl/editorWidth/editorGap/editorAlign/rowHeight`；TreeView 增加 `labelWidth` 与逐行 `m_rowTops/m_rowHeights` 缓存；绘制/命中/滚动/ensureSelectedVisible/GetNodeRect 统一改用逐行几何。
+- 编辑器槽位于标签右侧，受树内容区裁剪；点击编辑器不选中行/不展开/不进入双击编辑；折叠/隐藏摘除、展开恢复，节点删除先摘除不销毁。
+- C ABI：SetNodeEditorControl / SetNodeEditorLayout / SetNodeEditorAlign / SetNodeRowHeight / SetLabelWidth / GetNodeRect（6 个）；Binding 同名封装；属性别名 `item-editor-*`/`item-row-height`/`label-width`。
+- JSON：仅新增 `tree-view.label-width`；编辑器控件 V1 不持久化。
+- 影响：`TreeNode`/`TreeView` 布局变化需同批重编译；性能 O(log n + 可见行)。
+- 测试计划 T1~T14（布局、对齐、行高、展开折叠、动态增删、滚动、事件、C ABI、兼容、三后端、缩放、生命周期）。
+
+#### 2026-11-19 引擎按评审修订（设计 v2）
+
+- 设计：`design/CR20261117002_TreeView_InlineEditor_Design.md` v2（待复核）。
+- B1：首行/命中改为 `upper_bound` 回退 + 包含判断；slot=行高+lineSpacing，offset 在行顶/行内/行尾 gaps 均有定义。
+- B2：`labelWidth>0` 定为**全局列**（contentLeft + labelWidth + gap），忽略 depth/arrow/leading；标签裁剪到列，编辑器跨层级对齐。
+- B3：editorControl 借用语义/no-op deleter；cloneNode 不复制；宿主销毁前解绑；节点删除只摘除。
+- B4：编辑器聚焦后 Up/Down/Home/End/Delete/Enter 优先给编辑器；Tab 走全局焦点链。
+- B5：挂接**全部展开行**（非仅可见行）；滚出视口不摘除、折叠摘除且焦点回树、不自动提交。
+- 其他：GetNodeRect 取整行槽、折叠/非法/NULL/滚出语义；负值钳制；几何失效表；同控件多节点首次挂接 + 诊断；T15~T20 测试补充。
+
+#### 2026-11-19 引擎按 v2 复核修订（设计 v3）
+
+- 设计：`design/CR20261117002_TreeView_InlineEditor_Design.md` v3（待复核）。
+- B6：明确逻辑/设备坐标口径；绘制 y = cr.top + (rowTops - scroll)*scaleY，行内 x 同理乘 scaleX；GetNodeRect 输出逻辑坐标（含双向滚动）。
+- N1：labelWidth 作为最小全局列宽，实际 `editorColumnX = max(labelWidth, maxLabelStart)+gap`，深缩进/leading 自动加宽且跨行同列。
+- N2：align 统一 9 值、仅取水平分量。
+- N3：性能改为“与展开行相关”。
+- N4：editorWidth=0 占满可用宽，不回退控件原宽；高度 0/负值回退行高。
+- N5：GetNodeRect 返回整行可见矩形（不含行距）；失败/NULL 输出置 0。
+- N6：失效表补 moveNode/setItems/空树/字体；列宽/对齐仅重算列，不重建行高。
+- N7：标签/编辑列随横向滚动；T21~T23 补齐。
+
+#### 2026-11-19 引擎按 v3 复核修订（设计 v4）
+
+- B7：labelWidth 定为**标签文本列宽**；`editorColumnX = maxLabelStart + labelWidth + gap`，最深行仍有完整 labelWidth 文本空间（非零可见）。
+- N4：删除“宽度为 0 回退控件原宽”残留；editorWidth=0 占满可用宽，控件高<=0 回退行高。
+- 失效表补 `SetNodeLeadingControl`/leading 尺寸变化、labelWidth=0↔固定列切换；maxLabelStart 用内容逻辑坐标（不含 hScroll）。
+- T21 增加“最深行标签文本非零可见”断言。
+
+#### 2026-11-19 引擎实施完成
+
+- 实现：`TreeNode` 编辑器槽/逐节点行高；TreeView 逐行几何（upper_bound 回退）、全局标签列、绘制/命中/滚动/GetNodeRect；6 个 C ABI + Binding；`label-width` schema；属性别名。
+- 验证：`test_cr_treeview_editor` 三后端 22/22；`test_treeview` 全通过；SDL3 全量回归仅 4 项历史失败；strict PASS。
+- 交付：Release DLL SHA256 `75eccd80a3c908454b797e763a4b6a6427c8e146c0300bfad8c30e8e44338502`；已同步 `subModules/UICornerstone`。
+- 设计器：open（待属性面板迁移联调）；引擎：closed。
+
+#### 2026-11-19 代码 Review B8~B11 修复
+
+- B8：标签裁剪/`nodeLabelRect` 列尾扣除 `m_hScrollOffset`，横向滚动不覆盖编辑器。
+- B9：字体/字号/arrowGap/leading 变化重建 `m_maxLabelStart`/编辑列。
+- B10：PageUp/PageDown 按逐行 tops/heights + viewH 计算。
+- B11：行背景/选中/hover/边框使用 slot（含 lineSpacing），消除行尾无高亮间隙。
+- 验证：`test_cr_treeview_editor` 三后端 25/25；`test_treeview` 全通过；SDL3 全量回归仅 4 项历史失败；strict PASS。
+- 交付：Release DLL SHA256 `80d5f99fc242a5e1a00cbee04fbd47b39ec3f3486c48493b20454ff78000f705`；已同步 `subModules/UICornerstone`。
+
+### CR状态
+#### 设计器：open
+#### 引擎：closed
+
+## CR20261119001 TreeView 行内编辑器点击事件未派发给编辑器
+
+### 现状
+
+设计器属性面板 TreeView 行编辑器在“编辑器只挂 TreeView（单父）”时无法点击/输入；控件能正常绘制，但鼠标事件不生效。
+
+根因（引擎代码）：
+
+- `TreeView::handleEvent` 的 MouseDown 分支命中 `node->editorControl` 后直接 `return false;`，不再调用 `ControlImpl::handleEvent(event)` / `dispatchToChild(event)`。
+- 编辑器是 TreeView 的子控件，TreeView 返回 false 后事件回到父容器 `propDynamic`；父容器只能派发给自己的 children，无法转交给 TreeView 的子控件，导致编辑器收不到 MouseDown。
+- 设计器此前将编辑器同时保留在 `propDynamic` children（双父）时，父容器可按坐标命中编辑器并派发，因此问题被掩盖；CR20261117002 单父修复后暴露。
+
+### CR类型：bug
+
+### 修订记录
+
+#### 2026-11-19 设计器联调发现
+
+- 复现：普通控件属性树展开“常规”，点击 CheckBox 不切换、点击 EditBox 不聚焦；程序化设置正常。
+- 建议修复：MouseDown 命中 `editorControl` 时改为
+  `ControlImpl::handleEvent(event); return true;`（或 `dispatchToChild(event)` 并消费），保证：
+  - 编辑器收到 MouseDown/MouseUp；
+  - 不改变树选中行/展开状态；
+  - 不影响编辑器外区域的行选中。
+- 建议补 T28：点击编辑器 CheckBox 切换、EditBox 获得焦点、树选中行保持不变。
+- 设计器临时措施：恢复“编辑器同时保留在 `propDynamic` children”的双父兼容层，并新增 auto=2 点击回归（CheckBox 切换/恢复、EditBox 聚焦、树行不选中）；Debug auto=2 399/0、auto=3 REPORT-OK、Release 399/0、auto=3 REPORT-OK、strict PASS。
+- 待引擎修复 DLL 交付后，设计器移除双父兼容层，恢复单父并复跑点击回归。
+
+#### 2026-11-20 引擎修复完成
+
+- 修复：`TreeView::handleEvent` MouseDown 命中 `editorControl` 后改为 `ControlImpl::handleEvent(event); return true;`，不再返回 false 依赖父容器；leadingControl 同步改为选中行后派发并消费。
+- 测试：新增 T28（CheckBox 切换、EditBox 聚焦、树选中行不变）；`test_cr_treeview_editor` 三后端 29/29；`test_treeview` 全通过；SDL3 全量回归仅 4 项历史失败；strict PASS。
+- 交付：Release DLL SHA256 `102c260f24e5dc2867dfeabc5a52c0055eda79c232f7f98f829ef982b3d4d69e`；已同步 `subModules/UICornerstone`。
+- 设计器可移除临时双父兼容层，恢复单父并复跑点击回归。
+
+#### 2026-11-20 引擎补记分析/设计（流程修正）
+
+- 设计：`design/CR20261119001_TreeView_Editor_Click_Design.md` v1（补记；实现已交付，待评审确认）。
+- 内容：现象/根因、派发路径、leading 一致性、事件边界、备选方案、影响面、T28 测试、实施记录、评审与代码检视过程、流程偏差说明。
+- 说明：本 CR 为联调阻塞缺陷，引擎先修复后补设计；设计尚未经设计器/用户正式评审，若评审要求调整派发策略将重新修订交付。
+
+#### 2026-11-20 设计/代码评审通过；设计器恢复单父
+
+- 设计评审：`design/CR20261119001_TreeView_Editor_Click_Design.md` 通过（无阻塞）；§4.1/§4.2 派发路径、影响面、流程偏差记录获接受。
+- 设计器移除双父兼容层，恢复单父；CheckBox 切换/恢复、编辑器不选中行、EditBox 聚焦回归通过；Debug/Release auto=2 399/0、auto=3 REPORT-OK、strict PASS。
+- 引擎补 T28 编辑器外行点击（三后端 29/29）；编辑器优先于箭头的文档/代码顺序统一；测试夹具改单父。
+- 设计器：closed；引擎：closed。
+
+### CR状态
+#### 设计器：closed（单父点击回归通过）
 #### 引擎：closed

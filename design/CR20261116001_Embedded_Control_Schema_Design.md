@@ -1,6 +1,6 @@
 ﻿# CR20261116001 — 通用内嵌控件 Schema 指引与递归属性行（引擎侧分析 + 设计）
 
-> 状态：**v1（2026-11-16，待设计器 + 用户评审；未实施）**
+> 状态：**closed（2026-11-19 设计器最终联调通过；设计器/引擎两项均 closed）**
 > 来源：`D:\GitSpace\CornerstoneDesigner\Temp\UICornerstone_配合修改清单_2026-11.md` → CR20261116001
 > 关联：设计器设计文档 `11_级构型JSON属性动态行设计.md` §5.8 / §8 / §9；`PropertyNames.h`、`docs/schema/declarative-ui.schema.json`、`src/LayoutParser.cpp`、`Button` / `CheckBox`
 > 边界：本文档只覆盖引擎侧（schema 注解、parser、持久化契约、测试与手册）；设计器侧通用对象行/递归行 UI 不在本文范围。
@@ -244,6 +244,103 @@ Button 不需要宿主快照：现有实现不重建 caption（`setRect`/`setCon
 5. 用户手册/schema 校验/README/API 映射；
 6. 三后端验证 → 设计器联调 → 关闭 CR 引擎项。
 
+## 10. 评审意见处理（2026-11-18，设计器）
+
+设计器结论：**有条件通过**；B1/B2 必须闭合，B3/B4 需明确规则与测试；N1~N6 为非阻塞。处理如下。
+
+### 10.1 B1 CheckBox alignment 被 adjustSpaceAssignment 覆盖
+
+采用方案 1（支持对齐，显式优先）：
+
+- 新增 `m_captionAlignValid` / `m_captionAlignment`；
+- `caption-label.alignment` 解析后写 `m_captionAlignment` 并置 `m_captionAlignValid=true`；
+- `createCaption()` 使用该对齐；`adjustSpaceAssignment()` 仅在 `!m_captionAlignValid` 时按 `layout` 设默认 `AM_MID_LEFT/AM_MID_RIGHT`，不再无条件覆盖；
+- 设计器直写 `GetPtr("caption-label")->align` 后，`captureCaptionState()` 回读 `getAlignmentMode` 并置 valid，recreate 保持。
+
+### 10.2 B2 CheckBox font.name 在 recreate 后丢失
+
+采用方案 1（补齐宿主快照）：
+
+- 新增 `m_captionFontName`（默认 `HarmonyOS_Sans_SC_Regular`）与 `m_captionFontStyle`；
+- `caption-label.font.name/style` 解析后同时写宿主字段并应用到 Label；`font.size` 走既有 `m_captionSize`；
+- `createCaption()` 用 `m_captionFontName`（不再硬编码）；
+- `captureCaptionState()` 回读 `getFontName()` / `getFontStyle()`，recreate 稳定；
+- `parseCheckBox` 同步补宿主 `font.name` 解析（仅 `font-size` 的旧行为补齐）。
+
+### 10.3 B3 顶层键与内嵌键优先级
+
+统一为 **inner wins（内嵌显式值覆盖顶层）**：
+
+- 解析顺序：先顶层 `caption`/`font`/`font-size`/`colors`/`shadow`，再 `caption-label` 同名字段；
+- CheckBox 走宿主字段时同样先写宿主、后写内嵌；
+- 覆盖 `caption`、`font.name/size/style`、`colors.text/text-shadow`、`alignment`；
+- 新增 E10 覆盖三类冲突。
+
+### 10.4 B4 `shadow.blur` 可见性
+
+- 引擎保持**字面语义**：`shadow.blur` 只写内嵌 Label `text-shadow-blur`，不自动改变 `shadow.enabled`；
+- 可见性条件与 standalone Label 一致：`shadow.enabled=true` 且 text-shadow 颜色 alpha>0（Label 默认 normal 色 alpha=120）；
+- **设计器内嵌行负责**：用户编辑 `shadow.blur` 时，若尚未启用则同时写 `shadow.enabled=true`（与 standalone 的自动启用策略一致）；
+- 新增 E11：仅 blur、`enabled=false` → 不可见；补 `enabled=true` → 可见。
+
+### 10.5 非阻塞建议
+
+| # | 处理 |
+|---|---|
+| N1 `font.style` UI 路径 | 保持 `hostForwarded:["font"]`；文档标注 `font.style` 仅 JSON/高级用户可用（不在 V1 内嵌行） |
+| N2 开放对象诊断 | 对 `caption-label.text-shadow-blur`（内嵌别名）一次性诊断；文档标注内嵌键集合以 `$defs.label` + `exclude` 为准 |
+| N3 CheckBox 字段回读 | `captureCaptionState()` 回读 font.name/style、alignment、line-height、line-spacing-ratio、text-shadow-blur |
+| N4 单一解析器 | Button/CheckBox 共用 `applyEmbeddedLabelConfig` + 字段映射表；CheckBox 在 createCaption 前后统一走宿主字段 |
+| N5 persist/serializable | schema 注解说明 `persist:false` 必须 `serializable:false`；V1 首批全 true |
+| N6 文档一致性 | Button/CheckBox 的 `caption-label` 支持键表与 parser 实际集合逐项核对；手册同步字段表、默认值与 `font.style` 限制 |
+
+### 10.6 测试补充
+
+在 E1~E9 基础上增加：
+
+- E10：顶层/内嵌优先级（caption/colors/alignment/font）；
+- E11：仅 `shadow.blur`、`enabled=false/true` 的可见性；
+- E12：CheckBox recreate 后 `font.name`/`alignment` 保持；
+- E13：`caption-label:{}` / 非对象 / 未知内嵌键宽松接受、不崩溃；
+- E14：`GetPtr` 直写 `align`/`text-shadow-blur`/`line-height` 后 recreate 保持。
+
+## 11. 实施记录（2026-11-19）
+
+### 11.1 落地文件
+
+- `docs/schema/declarative-ui.schema.json`：`button.caption-label` 增加 `x-embedded-control`；`check-box` 新增 `caption-label` 属性与同款注解（开放对象，不收紧 additionalProperties）。
+- `src/LayoutParser.cpp`：
+  - Button：`caption-label` 全字段（caption/font(name,size,style)/alignment/shadow/colors/line-height/line-spacing-ratio/blur），内嵌优先；
+  - CheckBox：新增 `caption-label` 解析（宿主字段 + 快照），补顶层 `font.name`；内嵌 `text-shadow-blur` 别名一次性诊断；
+  - `parseFontName` 补 schema kebab 字体名（`maplemono-nf-cn-regular` 等），避免 schema 合法值被当成未知字体。
+- `include/Label.h`：新增 `getFontName()`（CheckBox 快照回读；评审修正 1）。
+- `include/CheckBox.h` / `src/CheckBox.cpp`：
+  - `m_captionAlignValid/m_captionAlignExplicit/m_captionAlignment`；`adjustSpaceAssignment` 仅在未显式设置时取 layout 默认；
+  - `m_captionFontStyleSet/m_captionFontStyle`、`m_captionLineHeight`、`m_captionLineSpacingRatio`、`m_captionShadowBlur` 宿主快照；
+  - `createCaption` 使用 `m_fontName` 与快照；`captureCaptionState` 回读 font.name/style、alignment、line-height/spacing、blur；
+  - **评审修正 2**：capture 不无条件置 `m_captionAlignValid`，仅“显式写入（`m_captionAlignExplicit`）或读回值 != layout 默认”时置位；
+  - 新增 `setCaptionAlignment/FontStyle/LineHeight/LineSpacingRatio/TextShadowBlur`。
+- 测试：`test/test_cr_embedded_label.cpp` + `layouts/cr_embedded_label.json` + CMake。
+
+### 11.1.1 联调回归修复（2026-11-19）
+
+设计器 GetPtr 直写 `align` 后立即读回被重置为 `mid-left`：
+
+- 根因：Label 的 `onPropertyChanged` → `setBoxSize/adjustSpaceAssignment` 在 `m_captionAlignValid==false` 时按 layout 默认重置对齐；
+- 修复：新增 `CheckBox::syncCaptionAlignmentFromLabel()`，在 caption 回调与 `adjustSpaceAssignment` 入口检查当前 Label 对齐：与 layout 默认不同（或已显式）时置 `m_captionAlignValid=true` 并同步 `m_captionAlignment`；
+- 测试新增 E15：`SetEnum("align","bottom-right")` 立即读回 + `setRect` recreate 后保持；三后端 53/53。
+
+### 11.2 验证结果
+
+- `test_cr_embedded_label`：SDL3 / SFML / raylib 均 **53/53**（E1~E14：全字段、inner wins、CheckBox recreate、GetPtr 直写、shadow.blur 字面语义、空对象宽松）。
+- 回归：SDL3 全量回归仅 4 项历史失败，无新增；`validate_layout --strict` PASS。
+- 影响：CheckBox 类布局/vtable 变化，DLL/头文件/C++ 使用方需同批重编译；C ABI/Binding 无新增函数。
+- Release DLL SHA256：`59e222ed90247a3234c8b2989f4ad616184620bc6cdf00d9697392cb79808ad6`；已同步设计器 `subModules/UICornerstone`。`/XD` 不能排除 `.git` 文件（submodule 的 `.git` 是 gitdir 指针文件），需用 `/XF .git`；本次同步后已恢复。
+
 ## 修订记录
 
 - 2026-11-16 v1：引擎侧首版设计；确认 schema 开放对象策略、Button/CheckBox 共用解析、CheckBox recreate 持久字段、shadow 优先级与别名诊断；待评审。
+- 2026-11-18 v2：按设计器评审闭合 B1（CheckBox alignment 显式优先）、B2（font.name 宿主快照）；明确 B3 inner wins、B4 blur 字面语义 + 设计器负责自动启用；补 E10~E14；待确认后实施。
+- 2026-11-19 v3（实施）：schema/parser/CheckBox 快照与两处评审修正落地；三后端 50/50；补 §11；引擎项 closed。
+- 2026-11-19 v4（联调回归）：修复 GetPtr 直写 align 被 layout 默认覆盖；E15 + 三后端 53/53；重新交付。
+- 2026-11-19 v5（关闭）：设计器恢复 CheckBox alignment 断言并通过（save/open 保持）；CR 设计器/引擎两项 closed。

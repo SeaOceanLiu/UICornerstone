@@ -49,6 +49,7 @@ UICornerstone_ShapeAddPrimitive(g_inst, s, "circle", 10, 10, 40, 40);
 <tr><td><code>radius</code></td><td><code>kRadius</code></td><td>Float</td><td>0</td><td>圆角半径（round-rect）</td></tr>
 <tr><td><code>ring-width</code></td><td><code>kRingWidth</code></td><td>Float</td><td>0</td><td>环带宽（circle/ellipse）</td></tr>
 <tr><td><code>background</code></td><td><code>kBackground</code></td><td>Color</td><td>透明</td><td>通用背景属性（设后取消透明）</td></tr>
+<tr><td><code>clip</code></td><td><code>kClipShape</code></td><td>Bool</td><td>true</td><td>图元绘制裁剪到控件 rect（CR20261117001）；false 保留旧溢出行为</td></tr>
 </table>
 
 <h2>4.19.3 控件的回调 / 事件</h2>
@@ -138,6 +139,19 @@ UICornerstone_ShapeSetPrimitiveFloat(g_inst, s, p, "radius", 10.0f);</code></pre
   } }</code></pre>
 <div class="note">示例截图为对称阴影（<code>offset-y=0</code>），便于观察柔光范围与 bbox 边界。当前 9-slice 实现中 <code>offset&gt;0</code> 会整体平移阴影纹理（含透明中心），视觉上阴影与控件底边会出现与 offset 等宽的间隔；这是既有实现行为，不属于本 CR 的 Shape 特例。</div>
 <div class="note">CR20261116002：状态键 <code>hover/pressed/disabled</code> 可用（部分继承 normal，状态 <code>color</code> alpha=0 关闭该状态）；Shape 为纯绘制控件、无事件，通常保持 normal，状态阴影主要由宿主程序或主题状态切换驱动。运行时状态键见<a href="../appendix/properties.html">属性速查表</a>。CR20261112001：<code>blur=0</code> 为硬边。</div>
+
+<h2>4.19.9 图元裁剪（clip）</h2>
+<p>默认 <code>clip=true</code>：单图元与 <code>primitives[]</code> 的绘制统一裁剪到控件 <code>getDrawRect()</code>，越界的 fill/stroke/points 不再覆盖相邻控件；<code>clip=false</code> 保留旧版溢出行为，便于兼容旧布局。裁剪只影响图元绘制：<b>box-shadow、背景、边框/焦点环、子控件均不受影响</b>；父容器 <code>clip-children</code> 的裁剪会自动求交集。</p>
+<figure>
+  <img src="../assets/controls/shape-clip.png" alt="Shape clip 对比：默认裁剪 vs clip=false 溢出；polygon points 越界裁剪" style="max-width:100%;border:1px solid #333;border-radius:8px;">
+  <figcaption>左：<code>clip=true</code>（默认）只绘制 rect 内部分；中：<code>clip=false</code> 保留溢出；右：polygon points 越界被裁剪。</figcaption>
+</figure>
+<pre><code>{ "type": "shape", "rect": { "x": 320, "y": 130, "w": 100, "h": 100 },
+  "clip": false,
+  "primitives": [
+    { "shape": "filled-rect", "rect": [-30, -30, 160, 160], "fill": "#EF4444" }
+  ] }</code></pre>
+<div class="note">硬裁剪：描边正好压在 rect 边界时可能被裁掉半像素，属预期。`clip` 为 Shape 专用键，与 Panel 的 <code>clip-children</code> 语义不同；C ABI/Binding 无新增函数，使用 <code>SetBool/GetBool("clip")</code>。</div>
 
 <div class="chapter-nav">
   <a href="scrollbar.html">← 4.18 ScrollBar</a>

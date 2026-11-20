@@ -72,6 +72,10 @@
   "caption-label":{"caption":"Submit", "font":{"size":16}, "alignment":"center"},  // 可选：自定义内部标题 Label（对象；与属性键同键）
   "colors":{"background":{"normal":"#4060A0FF","hover":"#5080C0FF","pressed":"#305090FF"},
             "border":{"normal":"#6080C0FF"},"text":{"normal":"#FFFFFFFF"}},
+  // CR20261116001：caption-label 内嵌 Label（Button/CheckBox 同契约）
+  //   caption / font{name,size,style} / alignment / colors{text,text-shadow} /
+  //   shadow{enabled,offset,blur} / line-height / line-spacing-ratio
+  //   inner wins；shadow.blur 规范键 → 运行时 text-shadow-blur；顶层别名 text-shadow-blur 仅 standalone Label
   "actors":{                                               // 状态图（四态图按钮：normal/hover/pressed/disabled）
     "match-parent-rect":true,
     "normal":"assets/images/normal.png",                   // 或 {"file":..., "scale-type":"fit-center"}
@@ -210,7 +214,7 @@
     { "shape":"round-rect", "rect":[10,50,130,75], "radius":6, "fill":"#34D399" },
     { "shape":"polygon", "fill":"#EF4444",
       "points":[ {"x":0,"y":52},{"x":75,"y":0},{"x":150,"y":52} ] } ] }</code></pre>
-<p>单图元键：<code>shape</code>（rect / filled-rect / round-rect / circle / ellipse / polyline / polygon）/ <code>fill</code> / <code>stroke</code> / <code>line-width</code> / <code>radius</code> / <code>ring-width</code> / <code>points[]</code>；多图元 <code>primitives[]</code> 非空时替代单图元（每项同上 + <code>rect:[x,y,w,h]</code> 本地坐标）。</p>
+<p>单图元键：<code>shape</code>（rect / filled-rect / round-rect / circle / ellipse / polyline / polygon）/ <code>fill</code> / <code>stroke</code> / <code>line-width</code> / <code>radius</code> / <code>ring-width</code> / <code>points[]</code>；多图元 <code>primitives[]</code> 非空时替代单图元（每项同上 + <code>rect:[x,y,w,h]</code> 本地坐标）。<code>clip</code>（Bool，默认 true）：图元超出控件 rect 时裁剪；<code>clip=false</code> 保留旧溢出行为。Shape 专用，与 Panel 的 <code>clip-children</code> 不同。</p>
 
 <h3>slider</h3>
 <pre><code>{ "type":"slider", "id":"rSlider",

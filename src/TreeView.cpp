@@ -17,6 +17,18 @@
 static uint8_t nodeStateBit(ControlState s);
 static SColor resolveNodeTextColor(TreeNode* nd, StateColor& ctrl, ControlState st);
 
+// CR20261117002：editorAlign 9 值/简称 → 水平分量
+static AlignmentMode parseEditorAlign(const char* a) {
+    if (!a) return AlignmentMode::AM_MID_LEFT;
+    if (_stricmp(a, "center") == 0 || _stricmp(a, "top-center") == 0 ||
+        _stricmp(a, "mid-center") == 0 || _stricmp(a, "bottom-center") == 0)
+        return AlignmentMode::AM_CENTER;
+    if (_stricmp(a, "right") == 0 || _stricmp(a, "top-right") == 0 ||
+        _stricmp(a, "mid-right") == 0 || _stricmp(a, "bottom-right") == 0)
+        return AlignmentMode::AM_MID_RIGHT;
+    return AlignmentMode::AM_MID_LEFT;
+}
+
 TreeView::TreeView(Control* parent, const SRect& rect,
                    float xScale, float yScale)
     : ControlImpl(parent, xScale, yScale)
@@ -149,10 +161,21 @@ SharedFont TreeView::getNodeFont(const shared_ptr<TreeNode>& node) {
 // 挂树并登记；对已摘除节点（收起/删除/替换）的控件 removeControl 并移出登记
 void TreeView::syncRowControls() {
     vector<shared_ptr<Control>> keep;
-    keep.reserve(m_flatRows.size());
-    for (auto& row : m_flatRows)
-        if (row.node->leadingControl)
-            keep.push_back(row.node->leadingControl);
+    keep.reserve(m_flatRows.size() * 2);
+    auto pushUnique = [&](const shared_ptr<Control>& c) {
+        if (!c) return;
+        for (auto& k : keep)
+            if (k.get() == c.get()) {
+                static bool logged = false;
+                if (!logged) { Platform::Log("TreeView: control reused by multiple nodes; first attachment wins"); logged = true; }
+                return;
+            }
+        keep.push_back(c);
+    };
+    for (auto& row : m_flatRows) {
+        pushUnique(row.node->leadingControl);
+        pushUnique(row.node->editorControl);
+    }
 
     for (auto& c : m_rowControls) {
         bool still = false;
@@ -169,12 +192,144 @@ void TreeView::syncRowControls() {
     m_rowControls = std::move(keep);
 }
 
+// CR20261117002：逐行几何（逻辑坐标）
+float TreeView::effectiveRowHeight(const shared_ptr<TreeNode>& node) const {
+    float h = (node && node->rowHeight > 0.0f) ? node->rowHeight : m_rowHeight;
+    return std::max(1.0f, h);
+}
+float TreeView::rowSlotHeight(int row) const {
+    if (row < 0 || row >= (int)m_rowHeights.size()) return 0.0f;
+    return m_rowHeights[row] + ((row == (int)m_rowHeights.size() - 1) ? 0.0f : m_lineSpacing);
+}
+void TreeView::rebuildRowMetrics() {
+    m_rowTops.clear();
+    m_rowHeights.clear();
+    m_maxLabelStart = 0.0f;
+    float top = 0.0f;
+    for (const auto& row : m_flatRows) {
+        float h = effectiveRowHeight(row.node);
+        m_rowTops.push_back(top);
+        m_rowHeights.push_back(h);
+        // labelX 只依赖 depth/leading 槽（不含 hScroll，保证横向滚动不改列宽）
+        float labelX = LEFT_PADDING + row.depth * m_indentWidth + m_arrowGap;
+        if (row.node->leadingControl) {
+            float ratio = 1.0f;
+            if (auto* actor = dynamic_cast<Actor*>(row.node->leadingControl.get())) {
+                Texture* tex = actor->getTexture();
+                if (tex && tex->height() > 0) ratio = (float)tex->width() / tex->height();
+            }
+            if (ratio == 1.0f) {
+                float ow = row.node->leadingControl->getRect().width;
+                float oh = row.node->leadingControl->getRect().height;
+                if (oh > 0 && ow > 0) ratio = ow / oh;
+            }
+            float slotH = m_rowHeight;
+            float fontH = 0.0f;
+            if (m_font) {
+                float fontPx = (float)getTextRenderer()->getFontHeight(m_font.get());
+                fontH = fontPx / std::max(0.01f, getScaleYY());
+            }
+            if (fontH > 0) slotH = fontH;
+            labelX += slotH * ratio + row.node->leadingGap;
+        }
+        m_maxLabelStart = std::max(m_maxLabelStart, labelX);
+        top += h + m_lineSpacing;
+    }
+    m_contentHeight = m_flatRows.empty() ? 0.0f : std::max(0.0f, top - m_lineSpacing);
+}
+int TreeView::firstVisibleRow(float scrollOffset) const {
+    if (m_rowTops.empty()) return -1;
+    auto it = std::upper_bound(m_rowTops.begin(), m_rowTops.end(), scrollOffset);
+    if (it == m_rowTops.begin()) return 0;
+    int cand = (int)(it - m_rowTops.begin()) - 1;
+    if (scrollOffset < m_rowTops[cand] + rowSlotHeight(cand)) return cand;
+    int next = cand + 1;
+    return next < (int)m_rowTops.size() ? next : (int)m_rowTops.size() - 1;
+}
+int TreeView::rowAtOffset(float contentY) const {
+    if (m_rowTops.empty() || contentY < 0.0f) return -1;
+    auto it = std::upper_bound(m_rowTops.begin(), m_rowTops.end(), contentY);
+    if (it == m_rowTops.begin()) return -1;
+    int i = (int)(it - m_rowTops.begin()) - 1;
+    if (contentY < m_rowTops[i] + rowSlotHeight(i)) return i;
+    return -1;
+}
+float TreeView::editorColumnX() const {
+    return m_maxLabelStart + m_labelWidth;   // 标签文本列末尾（逻辑）
+}
+
+void TreeView::layoutRowEditor(int row, const SRect& cr, float rowDeviceTop,
+                               float scaleX, float scaleY) {
+    if (row < 0 || row >= (int)m_flatRows.size()) return;
+    auto node = m_flatRows[row].node;
+    if (!node || !node->editorControl) return;
+
+    // 标签起点（与 rebuildRowMetrics 同公式，含 leading 槽）
+    float labelX = LEFT_PADDING + m_flatRows[row].depth * m_indentWidth + m_arrowGap;
+    if (node->leadingControl) {
+        float ratio = 1.0f;
+        if (auto* actor = dynamic_cast<Actor*>(node->leadingControl.get())) {
+            Texture* tex = actor->getTexture();
+            if (tex && tex->height() > 0) ratio = (float)tex->width() / tex->height();
+        }
+        if (ratio == 1.0f) {
+            float ow = node->leadingControl->getRect().width;
+            float oh = node->leadingControl->getRect().height;
+            if (oh > 0 && ow > 0) ratio = ow / oh;
+        }
+        float slotH = m_rowHeight;
+        if (m_font) {
+            float fontPx = (float)getTextRenderer()->getFontHeight(m_font.get());
+            float fontH = fontPx / std::max(0.01f, scaleY);
+            if (fontH > 0) slotH = fontH;
+        }
+        labelX += slotH * ratio + node->leadingGap;
+    }
+
+    float labelW = 0.0f;
+    if (m_labelWidth <= 0.0f) {
+        SharedFont f = getNodeFont(node);
+        if (f) {
+            SSize sz = getTextRenderer()->measureText(f.get(), node->label);
+            labelW = sz.width / std::max(0.01f, scaleX);
+        }
+    }
+    float columnEnd = (m_labelWidth > 0.0f) ? editorColumnX() : (labelX + labelW);
+    float editorX = columnEnd + node->editorGap;
+    float avail = cr.width / std::max(0.01f, scaleX) - editorX - RIGHT_GAP;
+    avail = std::max(0.0f, avail);
+
+    float w = (node->editorWidth > 0.0f) ? std::min(node->editorWidth, avail) : avail;
+    float rowH = m_rowHeights[row];
+    float h = node->editorControl->getRect().height;
+    h = (h > 0.0f) ? std::min(h, rowH) : rowH;
+    if (w <= 0.0f || h <= 0.0f) return;
+
+    float alignOff = 0.0f;
+    if (node->editorWidth > 0.0f) {
+        if (node->editorAlign == AlignmentMode::AM_MID_RIGHT ||
+            node->editorAlign == AlignmentMode::AM_TOP_RIGHT ||
+            node->editorAlign == AlignmentMode::AM_BOTTOM_RIGHT)
+            alignOff = avail - w;
+        else if (node->editorAlign == AlignmentMode::AM_CENTER ||
+                 node->editorAlign == AlignmentMode::AM_TOP_CENTER ||
+                 node->editorAlign == AlignmentMode::AM_BOTTOM_CENTER)
+            alignOff = (avail - w) * 0.5f;
+    }
+
+    float localLeft = editorX + alignOff - m_hScrollOffset;
+    float localTop = (m_rowTops[row] - m_scrollOffset) + (rowH - h) * 0.5f;
+    node->editorControl->setRect(SRect(localLeft, localTop, w, h));
+}
+
 void TreeView::setFont(FontName fontName) {
     if (m_fontName == fontName && m_font) return;
     m_fontName = fontName;
     m_font.reset();
     m_nodeFonts.clear();  // 逐节点字体缓存随级字体失效
     if (m_isCreated) ensureFont();
+    rebuildRowMetrics();
+    updateScrollBar();
 }
 
 void TreeView::setFontSize(int size) {
@@ -183,6 +338,8 @@ void TreeView::setFontSize(int size) {
     m_font.reset();
     m_nodeFonts.clear();  // 逐节点字体缓存随级字体失效
     if (m_isCreated) ensureFont();
+    rebuildRowMetrics();
+    updateScrollBar();
 }
 
 // 父链缩放变更时重建字体（保持 setFontSize 语义：字号随复合缩放）
@@ -229,10 +386,8 @@ void TreeView::draw() {
     dev->pushClipRect(cr);
 
     if (!m_flatRows.empty()) {
-        float stride = getStride();
-        int firstVisible = max(0, (int)(m_scrollOffset / stride));
-        float scaledRowH = m_rowHeight * scaleY;
-        float topY = cr.top - fmod(m_scrollOffset, stride) * scaleY;
+        int firstVisible = firstVisibleRow(m_scrollOffset);
+        if (firstVisible < 0) firstVisible = 0;
         float leftX = cr.left - m_hScrollOffset * scaleX;
         TextRenderer* renderer = getTextRenderer();
 
@@ -241,7 +396,10 @@ void TreeView::draw() {
             fontHeight = renderer->getFontHeight(m_font.get());
 
         for (int i = firstVisible; i < (int)m_flatRows.size(); i++) {
-            float y = topY + (i - firstVisible) * stride * scaleY;
+            // CR20261117002 B6：逻辑坐标 → 设备坐标
+            float y = cr.top + (m_rowTops[i] - m_scrollOffset) * scaleY;
+            float scaledRowH = m_rowHeights[i] * scaleY;
+            float scaledSlotH = rowSlotHeight(i) * scaleY;   // CR B11：背景/命中同槽高
             if (y > cr.bottom()) break;
 
             float rowLeft = cr.left;
@@ -262,17 +420,17 @@ void TreeView::draw() {
                     && rowNode->hasHoverBg && (i != m_selectedRow);   // selected 优先（P0-64③ 同口径）
                 if (bgHit) {
                     dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->bgColor, bgSt));
-                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                    dev->fillRect({cr.left, y, cr.width, scaledSlotH});
                 } else if (i == m_selectedRow) {
                     dev->setDrawColor(m_selectedColor);
-                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                    dev->fillRect({cr.left, y, cr.width, scaledSlotH});
                 } else if (i == m_hoveredRow && !rowNode->hasHoverBg) {
                     dev->setDrawColor(m_hoverColor);
-                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                    dev->fillRect({cr.left, y, cr.width, scaledSlotH});
                 }
                 if (hoverExplicit) {   // 显式 hover 优先（覆盖 base/既有链）
                     dev->setDrawColor(rowNode->bgColor.getHover());
-                    dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                    dev->fillRect({cr.left, y, cr.width, scaledSlotH});
                 }
                 if (!rowNode->disabled) {   // 叠加 tint（hover 显式/掩码豁免；selected 恒叠加）
                     const SColor* tint = nullptr;
@@ -282,20 +440,20 @@ void TreeView::draw() {
                     if (tint) {
                         dev->setDrawColor(SColor(tint->red(), tint->green(), tint->blue(),
                                                  ConstDef::LIST_HIGHLIGHT_OVERLAY_ALPHA));
-                        dev->fillRect({cr.left, y, cr.width, scaledRowH});
+                        dev->fillRect({cr.left, y, cr.width, scaledSlotH});
                     }
                 }
             }
             if (rowNode->borderVisible) {   // P0-62②：边框独立稀疏
                 dev->setDrawColor(ControlImpl::resolveStateColor(rowNode->borderColor, rowSt));
-                dev->drawRect(SRect(cr.left, y, cr.width, scaledRowH));
+                dev->drawRect(SRect(cr.left, y, cr.width, scaledSlotH));
             }
 
             float arrowX = leftX + LEFT_PADDING * scaleX + m_flatRows[i].depth * m_indentWidth * scaleX;
             float labelX = arrowX + m_arrowGap * scaleX;
 
             if (!m_flatRows[i].node->children.empty())
-                drawArrow(dev, arrowX, y, m_flatRows[i].node->expanded);
+                drawArrow(dev, arrowX, y, m_flatRows[i].node->expanded, m_rowHeights[i]);
 
             SharedFont nodeFont = getNodeFont(m_flatRows[i].node);
             int fontH = (renderer && nodeFont) ? renderer->getFontHeight(nodeFont.get()) : 0;
@@ -343,12 +501,25 @@ void TreeView::draw() {
             if (renderer && nodeFont) {
                 float textY = y + (scaledRowH - fontH) / 2;
                 auto& nd = m_flatRows[i].node;
+                // CR20261117002 B7：固定标签列裁剪（设备坐标）
+                const bool clipLabel = m_labelWidth > 0.0f;
+                if (clipLabel) {
+                    float clipW = std::max(0.0f, m_maxLabelStart + m_labelWidth - m_hScrollOffset) * scaleX;
+                    dev->pushClipRect(SRect(cr.left, y, clipW, scaledRowH));
+                }
                 TextDraw::withShadow(renderer, nodeFont.get(), nd->label,
                                      textX, textY,
                                      textX + nd->shadowOffsetX * scaleX, textY + nd->shadowOffsetY * scaleY,
                                      resolveNodeTextColor(nd.get(), m_textColor, rowSt),   // P0-62②：稀疏回退链
                                      nd->shadowEnabled,
                                      ControlImpl::resolveStateColor(nd->textShadowColor, rowSt));             // P032：item 阴影四态
+                if (clipLabel) dev->popClipRect();
+            }
+
+            // CR20261117002：行内编辑器槽（在树裁剪区内；与标签/leading 同帧单次绘制）
+            if (m_flatRows[i].node->editorControl) {
+                layoutRowEditor(i, cr, y, scaleX, scaleY);
+                m_flatRows[i].node->editorControl->draw();
             }
         }
     }
@@ -367,10 +538,10 @@ void TreeView::draw() {
     afterDraw();
 }
 
-void TreeView::drawArrow(RenderDevice* dev, float x, float y, bool expanded) {
+void TreeView::drawArrow(RenderDevice* dev, float x, float y, bool expanded, float rowHeight) {
     float scale = getScaleYY();
     float cx = x + 6 * scale;
-    float cy = y + m_rowHeight * scale / 2.0f;
+    float cy = y + rowHeight * scale / 2.0f;
     float size = 5.0f * scale;
 
     dev->setDrawColor(m_textColor.getNormal());
@@ -430,18 +601,22 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
             return true;
 
         case KeyCode::PageUp: {
-            int pageLines = max(1, (int)(m_frameDrawRect.height / getStride()));
-            int target = max(0, m_selectedRow - pageLines);
-            if (target < (int)m_flatRows.size())
-                selectNode(m_flatRows[target].node->id);
+            if (m_flatRows.empty()) return true;
+            if (m_selectedRow < 0) { selectNode(m_flatRows[0].node->id); return true; }
+            float pageY = std::max(0.0f, m_rowTops[m_selectedRow] - m_rect.height + 1.0f);
+            int target = rowAtOffset(pageY);
+            if (target < 0) target = 0;
+            selectNode(m_flatRows[target].node->id);
             return true;
         }
 
         case KeyCode::PageDown: {
-            int pageLines = max(1, (int)(m_frameDrawRect.height / getStride()));
-            int target = min((int)m_flatRows.size() - 1, m_selectedRow + pageLines);
-            if (target >= 0)
-                selectNode(m_flatRows[target].node->id);
+            if (m_flatRows.empty()) return true;
+            if (m_selectedRow < 0) { selectNode(m_flatRows[0].node->id); return true; }
+            float pageY = m_rowTops[m_selectedRow] + m_rect.height - 1.0f;
+            int target = rowAtOffset(pageY);
+            if (target < 0) target = (int)m_flatRows.size() - 1;
+            selectNode(m_flatRows[target].node->id);
             return true;
         }
 
@@ -476,18 +651,26 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
         // P0-107：内容区命中（与 C ABI TreeViewGetNodeAt 共用同一 helper）
         int row = hitTestRowInContent(event->mouseButton.x, event->mouseButton.y);
         if (row >= 0) {
+            // CR20261119001：编辑器优先于箭头/行选中（正常布局不重叠；重叠时编辑器胜出）。
+            // 编辑器是 TreeView 子控件；命中后必须在本控件内派发，不能返回 false 依赖父容器。
+            if (m_flatRows[row].node->editorControl &&
+                m_flatRows[row].node->editorControl->isContainsPoint(
+                    event->mouseButton.x, event->mouseButton.y)) {
+                ControlImpl::handleEvent(event);
+                return true;   // 不选中行/不展开，事件已消费
+            }
             m_pressedRow = row;   // P032：item pressed 态
             if (hitTestArrow(row, event->mouseButton.x)) {
                 toggleExpand(m_flatRows[row].node->id);
                 return true;
             }
-            // TreeView 增强：点击行前置控件 → 选中该行 + 不消费事件，
-            // 事件落入子控件分发（ControlImpl::handleEvent）完成控件自身交互（如 CheckBox 勾选）
+            // TreeView 增强：点击行前置控件 → 选中该行 + 派发子控件事件
             if (m_flatRows[row].node->leadingControl &&
                 m_flatRows[row].node->leadingControl->isContainsPoint(
                     event->mouseButton.x, event->mouseButton.y)) {
                 selectNode(m_flatRows[row].node->id);
-                return false;
+                ControlImpl::handleEvent(event);
+                return true;
             }
             selectNode(m_flatRows[row].node->id);
             return true;
@@ -510,7 +693,9 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
                 auto& node = m_flatRows[row].node;
                 const bool overLeading = node->leadingControl &&
                     node->leadingControl->isContainsPoint(event->mouseButton.x, event->mouseButton.y);
-                if (!overLeading) {
+                const bool overEditor = node->editorControl &&
+                    node->editorControl->isContainsPoint(event->mouseButton.x, event->mouseButton.y);
+                if (!overLeading && !overEditor) {
                     SRect lr; bool vis = false;
                     if (nodeLabelRect(node->id, lr, vis) && vis) {
                         const SRect dr = getDrawRect();
@@ -580,11 +765,9 @@ bool TreeView::handleEvent(shared_ptr<Event> event) {
 
 int TreeView::hitTestRow(float mx, float my) {
     (void)mx;
-    // P0-64：改用 getDrawRect()（m_frameDrawRect 仅在首次 draw 后有效，创建后立即 hover 会错位）
-    float relY = (my - getDrawRect().top) / getScaleYY() + m_scrollOffset;
-    int row = (int)(relY / getStride());
-    if (row >= 0 && row < (int)m_flatRows.size()) return row;
-    return -1;
+    // CR20261117002：逐行几何 + 逻辑坐标
+    float relY = (my - getDrawRect().top) / std::max(0.01f, getScaleYY()) + m_scrollOffset;
+    return rowAtOffset(relY);
 }
 
 // P0-107：内容区（扣除滚动条，与绘制裁剪区 cr 同口径）内的行命中（窗口坐标）。
@@ -715,6 +898,7 @@ void TreeView::rebuildFlatRows() {
     for (auto& root : m_rootItems)
         flatten(root, 0);
 
+    rebuildRowMetrics();
     syncRowControls();
     updateScrollBar();
 }
@@ -928,9 +1112,9 @@ bool TreeView::selectNode(const string& id) {
 
 void TreeView::ensureSelectedVisible() {
     if (m_selectedRow < 0 || !m_scrollBar) return;
-    float stride = getStride();
-    float rowTop = m_selectedRow * stride;
-    float rowBottom = rowTop + m_rowHeight;
+    if (m_selectedRow >= (int)m_rowTops.size()) return;
+    float rowTop = m_rowTops[m_selectedRow];
+    float rowBottom = rowTop + m_rowHeights[m_selectedRow];
     float viewH = m_rect.height;
 
     if (rowTop < m_scrollOffset) {
@@ -975,6 +1159,14 @@ float TreeView::calcContentWidth() {
             float slotW = (fontH > 0 ? fontH : m_rowHeight) * ratio;
             rowW += slotW + row.node->leadingGap;
         }
+        // CR20261117002：编辑器列/固定宽计入横向内容宽
+        if (row.node->editorControl) {
+            float base = (m_labelWidth > 0.0f)
+                ? (m_maxLabelStart + m_labelWidth + row.node->editorGap)
+                : (rowW + row.node->editorGap);
+            float edW = (row.node->editorWidth > 0.0f) ? row.node->editorWidth : RIGHT_GAP;
+            rowW = std::max(rowW, base + edW + RIGHT_GAP);
+        }
         if (rowW > maxW) maxW = rowW;
     }
     return maxW;
@@ -983,30 +1175,90 @@ float TreeView::calcContentWidth() {
 void TreeView::setIndentWidth(float px) {    cancelEditForMutation();
 
     m_indentWidth = max(0.0f, px);
+    rebuildRowMetrics();
+    updateScrollBar();
 }
 
 void TreeView::setRowHeight(float px) {    cancelEditForMutation();
 
     m_rowHeight = max(1.0f, px);
     if (m_scrollBar) m_scrollBar->setStepSize(getStride());
+    rebuildRowMetrics();
+    updateScrollBar();
 }
 
 void TreeView::setLineSpacing(float px) {    cancelEditForMutation();
 
     m_lineSpacing = max(0.0f, px);
     if (m_scrollBar) m_scrollBar->setStepSize(getStride());
+    rebuildRowMetrics();
+    updateScrollBar();
 }
 
 void TreeView::setArrowGap(float px) {    cancelEditForMutation();
 
     m_arrowGap = max(0.0f, px);
+    rebuildRowMetrics();
+    updateScrollBar();
+}
+
+void TreeView::setLabelWidth(float width) {
+    m_labelWidth = std::max(0.0f, width);
+    rebuildRowMetrics();
+    updateScrollBar();
+}
+
+bool TreeView::setNodeEditorControl(const std::string& id, Control* editor) {
+    auto node = findNodeById(id);
+    if (!node) return false;
+    if (editor)
+        node->editorControl = std::shared_ptr<Control>(editor, [](Control*) {});
+    else
+        node->editorControl.reset();
+    rebuildFlatRows();
+    return true;
+}
+
+bool TreeView::setNodeEditorLayout(const std::string& id, float width, float gap) {
+    auto node = findNodeById(id);
+    if (!node) return false;
+    node->editorWidth = std::max(0.0f, width);
+    node->editorGap = std::max(0.0f, gap);
+    return true;
+}
+
+bool TreeView::setNodeEditorAlign(const std::string& id, const char* align) {
+    auto node = findNodeById(id);
+    if (!node) return false;
+    node->editorAlign = parseEditorAlign(align);
+    return true;
+}
+
+bool TreeView::setNodeRowHeight(const std::string& id, float height) {
+    auto node = findNodeById(id);
+    if (!node) return false;
+    node->rowHeight = std::max(0.0f, height);
+    rebuildFlatRows();
+    return true;
+}
+
+bool TreeView::getNodeRect(const std::string& id, SRect& outRect) const {
+    outRect = SRect(0, 0, 0, 0);
+    int row = flatRowIndexById(id);
+    if (row < 0 || row >= (int)m_rowTops.size()) return false;
+    const float vSb = (m_scrollBar && m_scrollBar->getVisible())
+        ? ConstDef::SCROLLBAR_WIDTH : 0.0f;
+    outRect.left = -m_hScrollOffset;
+    outRect.top = m_rowTops[row] - m_scrollOffset;
+    outRect.width = std::max(0.0f, m_rect.width - vSb);
+    outRect.height = m_rowHeights[row];
+    return true;
 }
 
 void TreeView::updateScrollBar() {
     if (!m_scrollBar || !m_hScrollBar) return;
 
-    float stride = getStride();
-    float contentH = m_flatRows.size() * stride;
+    float contentH = m_contentHeight;
     float contentW = calcContentWidth();
     float viewH = m_rect.height;
     float viewW = m_rect.width;
@@ -1221,6 +1473,14 @@ int TreeView::setPtrProperty(const char* prop, void* value) {
         if (node) { node->userData = value; return 1; }
         return 0;
     }
+    if (strcmp(prop, PropertyNames::kItemEditorControl) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (value) node->editorControl = shared_ptr<Control>(static_cast<Control*>(value), [](Control*) {});
+        else node->editorControl.reset();
+        rebuildFlatRows();
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingControl) == 0) {
         // 前置控件容器（借用语义，生命周期由调用方保证，与 selected-user-data 同约定）：
         // 无删除器包装，避免 TreeView 误删外部控件；挂树由 syncRowControls 完成
@@ -1231,7 +1491,9 @@ int TreeView::setPtrProperty(const char* prop, void* value) {
         } else {
             node->leadingControl.reset();   // NULL = 解除容器并摘树
         }
+        rebuildRowMetrics();
         syncRowControls();
+        updateScrollBar();
         return 1;
     }
     return ControlImpl::setPtrProperty(prop, value);
@@ -1241,6 +1503,11 @@ int TreeView::getPtrProperty(const char* prop, void*& out) {
     if (strcmp(prop, PropertyNames::kSelectedUserData) == 0) {
         auto node = findNodeById(m_selectedId);
         if (node) { out = node->userData; return 1; }
+        return 0;
+    }
+    if (strcmp(prop, PropertyNames::kItemEditorControl) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (node && node->editorControl) { out = node->editorControl.get(); return 1; }
         return 0;
     }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingControl) == 0) {
@@ -1290,6 +1557,22 @@ int TreeView::setFloatProperty(const char* prop, float value) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)   { setRowHeight(value);    return 1; }
     if (strcmp(prop, PropertyNames::kLineSpacing) == 0) { setLineSpacing(value);  return 1; }
     if (strcmp(prop, PropertyNames::kArrowGap) == 0)    { setArrowGap(value);     return 1; }
+    if (strcmp(prop, PropertyNames::kLabelWidth) == 0)  { setLabelWidth(value);   return 1; }
+    if (strcmp(prop, PropertyNames::kItemEditorWidth) == 0 ||
+        strcmp(prop, PropertyNames::kItemEditorGap) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemEditorWidth) == 0) node->editorWidth = std::max(0.0f, value);
+        else node->editorGap = std::max(0.0f, value);
+        return 1;
+    }
+    if (strcmp(prop, PropertyNames::kItemRowHeight) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        node->rowHeight = std::max(0.0f, value);
+        rebuildFlatRows();
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto node = findNodeById(m_itemTargetId);
         if (node) { node->leadingGap = value; return 1; }
@@ -1335,6 +1618,12 @@ int TreeView::setEnumProperty(const char* prop, const char* value) {
         auto node = findNodeById(m_itemTargetId);
         if (node && value) { node->fontName = FontNameFromString(value); m_nodeFonts.clear(); updateScrollBar(); return 1; }
         return 0;
+    }
+    if (strcmp(prop, PropertyNames::kItemEditorAlign) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        node->editorAlign = parseEditorAlign(value);
+        return 1;
     }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingAlign) == 0) {
         auto node = findNodeById(m_itemTargetId);
@@ -1407,6 +1696,17 @@ int TreeView::getFloatProperty(const char* prop, float& out) {
     if (strcmp(prop, PropertyNames::kRowHeight) == 0)   { out = m_rowHeight;   return 1; }
     if (strcmp(prop, PropertyNames::kLineSpacing) == 0) { out = m_lineSpacing; return 1; }
     if (strcmp(prop, PropertyNames::kArrowGap) == 0)    { out = m_arrowGap;    return 1; }
+    if (strcmp(prop, PropertyNames::kLabelWidth) == 0)  { out = m_labelWidth;  return 1; }
+    if (strcmp(prop, PropertyNames::kItemEditorWidth) == 0 ||
+        strcmp(prop, PropertyNames::kItemEditorGap) == 0 ||
+        strcmp(prop, PropertyNames::kItemRowHeight) == 0) {
+        auto node = findNodeById(m_itemTargetId);
+        if (!node) return 0;
+        if (strcmp(prop, PropertyNames::kItemEditorWidth) == 0) out = node->editorWidth;
+        else if (strcmp(prop, PropertyNames::kItemEditorGap) == 0) out = node->editorGap;
+        else out = node->rowHeight;
+        return 1;
+    }
     if (strcmp(prop, PropertyNames::kTreeItemLeadingGap) == 0) {
         auto node = findNodeById(m_itemTargetId);
         if (node) { out = node->leadingGap; return 1; }
@@ -1522,8 +1822,9 @@ bool TreeView::nodeLabelRect(const std::string& id, SRect& outRect, bool& fullyV
     const float vSb = (m_scrollBar && m_scrollBar->getVisible()) ? ConstDef::SCROLLBAR_WIDTH : 0.f;
     const float contentW = m_rect.width - vSb;
     const float contentH = m_rect.height - hSb;
-    const float stride = getStride();
-    const float top = row * stride - m_scrollOffset;
+    if (row >= (int)m_rowTops.size()) return false;
+    const float top = m_rowTops[row] - m_scrollOffset;
+    const float rowH = m_rowHeights[row];
 
     float labelX = LEFT_PADDING + m_flatRows[row].depth * m_indentWidth + m_arrowGap - m_hScrollOffset;
     float labelW = 0.f;
@@ -1551,9 +1852,13 @@ bool TreeView::nodeLabelRect(const std::string& id, SRect& outRect, bool& fullyV
         }
         labelX += slotH * ratio + node->leadingGap;
     }
-    const float w = max(20.f, labelW + 8.f);
-    outRect = SRect(labelX, top + 1.f, w, max(0.f, m_rowHeight - 2.f));
-    fullyVisible = top >= -0.5f && top + m_rowHeight <= contentH + 0.5f &&
+    float w = max(20.f, labelW + 8.f);
+    if (m_labelWidth > 0.0f) {
+        float colEnd = m_maxLabelStart + m_labelWidth - m_hScrollOffset;
+        w = max(0.f, min(labelX + labelW + 8.f, colEnd) - labelX);
+    }
+    outRect = SRect(labelX, top + 1.f, w, max(0.f, rowH - 2.f));
+    fullyVisible = top >= -0.5f && top + rowH <= contentH + 0.5f &&
                    labelX >= -0.5f && labelX + labelW <= contentW + 0.5f;
     return true;
 }
